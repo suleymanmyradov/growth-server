@@ -1,0 +1,17 @@
+Log:
+  ServiceName: auth.rpc
+  Level: info
+
+Database:
+  DataSource: postgres://growthmind:growthmind123@localhost:5432/growthmind?sslmode=disable
+
+Auth:
+  AccessSecret: u54g09345u90345u90345u90345u90345
+  AccessExpire: 86400
+
+Name: auth.rpc
+ListenOn: 0.0.0.0:8080
+Etcd:
+  Hosts:
+  - 127.0.0.1:2379
+  Key: auth.rpc

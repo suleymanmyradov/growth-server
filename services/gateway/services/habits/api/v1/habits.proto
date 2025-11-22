@@ -1,0 +1,149 @@
+syntax = "proto3";
+
+package habits;
+
+option go_package = "./habits";
+
+message Habit {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+  string category = 5;
+  int32 streak = 6;
+  bool completed = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  repeated HabitCompletion completions = 10;
+}
+
+message HabitCompletion {
+  string id = 1;
+  string habit_id = 2;
+  string completed_at = 3;
+  string date = 4;
+}
+
+message ListHabitsRequest {
+  string user_id = 1;
+  string category = 2; // optional filter
+  bool completed_only = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListHabitsResponse {
+  repeated Habit habits = 1;
+  int32 total = 2;
+}
+
+message CreateHabitRequest {
+  string user_id = 1;
+  string name = 2;
+  string description = 3;
+  string category = 4;
+}
+
+message CreateHabitResponse {
+  Habit habit = 1;
+}
+
+message GetHabitRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetHabitResponse {
+  Habit habit = 1;
+}
+
+message UpdateHabitRequest {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+  string category = 5;
+}
+
+message UpdateHabitResponse {
+  Habit habit = 1;
+}
+
+message DeleteHabitRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteHabitResponse {
+}
+
+message ToggleHabitRequest {
+  string id = 1;
+  string user_id = 2;
+  string date = 3; // YYYY-MM-DD format, defaults to today
+}
+
+message ToggleHabitResponse {
+  Habit habit = 1;
+  bool completed = 2;
+}
+
+message ResetTodayHabitsRequest {
+  string user_id = 1;
+}
+
+message ResetTodayHabitsResponse {
+  int32 reset_count = 1;
+}
+
+message GetHabitStatsRequest {
+  string user_id = 1;
+  string period = 2; // week, month, year
+}
+
+message GetHabitStatsResponse {
+  int32 total_habits = 1;
+  int32 completed_today = 2;
+  int32 current_streak = 3;
+  int32 longest_streak = 4;
+  float completion_rate = 5;
+  repeated CategoryStats category_stats = 6;
+}
+
+message CategoryStats {
+  string category = 1;
+  int32 count = 2;
+  int32 completed = 3;
+}
+
+message GetHabitCalendarRequest {
+  string user_id = 1;
+  string month = 2; // YYYY-MM format
+}
+
+message GetHabitCalendarResponse {
+  repeated CalendarDay days = 1;
+}
+
+message CalendarDay {
+  string date = 1;
+  int32 completed = 2;
+  int32 total = 3;
+}
+
+service HabitsService {
+  // CRUD operations
+  rpc ListHabits(ListHabitsRequest) returns (ListHabitsResponse);
+  rpc CreateHabit(CreateHabitRequest) returns (CreateHabitResponse);
+  rpc GetHabit(GetHabitRequest) returns (GetHabitResponse);
+  rpc UpdateHabit(UpdateHabitRequest) returns (UpdateHabitResponse);
+  rpc DeleteHabit(DeleteHabitRequest) returns (DeleteHabitResponse);
+  
+  // Habit operations
+  rpc ToggleHabit(ToggleHabitRequest) returns (ToggleHabitResponse);
+  rpc ResetTodayHabits(ResetTodayHabitsRequest) returns (ResetTodayHabitsResponse);
+  
+  // Analytics
+  rpc GetHabitStats(GetHabitStatsRequest) returns (GetHabitStatsResponse);
+  rpc GetHabitCalendar(GetHabitCalendarRequest) returns (GetHabitCalendarResponse);
+}

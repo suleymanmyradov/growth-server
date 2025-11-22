@@ -234,7 +234,7 @@ type (
     Conversation {
         id string `json:"id"`
         title string `json:"title"`
-        type string `json:"type"` // "coach" or "therapist"
+        itemType string `json:"type"` // "coach" or "therapist"
         lastMessage string `json:"lastMessage"`
         userId string `json:"userId"`
         createdAt string `json:"createdAt"`
@@ -253,7 +253,7 @@ type (
     ConversationDetail {
         id string `json:"id"`
         title string `json:"title"`
-        type string `json:"type"`
+        itemType string `json:"type"`
         messages []Message `json:"messages"`
         userId string `json:"userId"`
         createdAt string `json:"createdAt"`
@@ -282,7 +282,7 @@ type (
     }
     
     StartConversationRequest {
-        type string `json:"type"` // "coach" or "therapist"
+        itemType string `json:"type"` // "coach" or "therapist"
         title string `json:"title,optional"`
         initialMessage string `json:"initialMessage,optional"`
     }
@@ -302,7 +302,7 @@ type (
     }
     
     ListConversationsRequest {
-        type string `form:"type,optional"` // "coach" or "therapist"
+        itemType string `form:"type,optional"` // "coach" or "therapist"
         page int `form:"page,default=1"`
         limit int `form:"limit,default=20"`
     }
@@ -312,7 +312,7 @@ type (
 type (
     SearchResult {
         id string `json:"id"`
-        type string `json:"type"` // "article", "goal", "habit", "conversation"
+        itemType string `json:"type"` // "article", "goal", "habit", "conversation"
         title string `json:"title"`
         description string `json:"description"`
         score float64 `json:"score"`
@@ -326,7 +326,7 @@ type (
     
     SearchRequest {
         q string `form:"q"`
-        type string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+        itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
         page int `form:"page,default=1"`
         limit int `form:"limit,default=20"`
     }
@@ -338,7 +338,7 @@ type (
         id string `json:"id"`
         title string `json:"title"`
         message string `json:"message"`
-        type string `json:"type"` // "habit_reminder", "goal_deadline", "achievement", "system"
+        itemType string `json:"type"` // "habit_reminder", "goal_deadline", "achievement", "system"
         read bool `json:"read"`
         userId string `json:"userId"`
         createdAt string `json:"createdAt"`
@@ -358,7 +358,7 @@ type (
 type (
     Activity {
         id string `json:"id"`
-        type string `json:"type"` // "habit_completed", "goal_created", "goal_completed", "article_saved"
+        itemType string `json:"type"` // "habit_completed", "goal_created", "goal_completed", "article_saved"
         title string `json:"title"`
         description string `json:"description"`
         metadata string `json:"metadata,optional"` // JSON string for additional data
@@ -406,7 +406,7 @@ type (
 // Report types
 type (
     ReportRequest {
-        type string `json:"type"` // "bug", "feedback", "abuse"
+        itemType string `json:"type"` // "bug", "feedback", "abuse"
         title string `json:"title"`
         description string `json:"description"`
         email string `json:"email,optional"`

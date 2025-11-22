@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package saved;
+
+option go_package = "./saved";
+
+message SavedItem {
+  string id = 1;
+  string user_id = 2;
+  string item_id = 3;
+  string item_type = 4; // article, habit, goal, conversation
+  string title = 5;
+  string description = 6;
+  string category = 7;
+  string saved_at = 8;
+  map<string, string> metadata = 9;
+  string collection_id = 10; // optional
+}
+
+message SavedCollection {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 item_count = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message ListSavedRequest {
+  string user_id = 1;
+  string item_type = 2; // optional filter
+  string collection_id = 3; // optional filter
+  string category = 4; // optional filter
+  int32 limit = 5;
+  int32 offset = 6;
+}
+
+message ListSavedResponse {
+  repeated SavedItem items = 1;
+  int32 total = 2;
+}
+
+message SaveItemRequest {
+  string user_id = 1;
+  string item_id = 2;
+  string item_type = 3;
+  string title = 4;
+  string description = 5;
+  string category = 6;
+  map<string, string> metadata = 7;
+  string collection_id = 8; // optional
+}
+
+message SaveItemResponse {
+  SavedItem item = 1;
+}
+
+message RemoveSavedRequest {
+  string user_id = 1;
+  string item_id = 2;
+  string item_type = 3;
+}
+
+message RemoveSavedResponse {
+}
+
+message GetSavedItemRequest {
+  string user_id = 1;
+  string item_id = 2;
+  string item_type = 3;
+}
+
+message GetSavedItemResponse {
+  SavedItem item = 1;
+}
+
+message CreateCollectionRequest {
+  string user_id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message CreateCollectionResponse {
+  SavedCollection collection = 1;
+}
+
+message ListCollectionsRequest {
+  string user_id = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListCollectionsResponse {
+  repeated SavedCollection collections = 1;
+  int32 total = 2;
+}
+
+message GetCollectionRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetCollectionResponse {
+  SavedCollection collection = 1;
+  repeated SavedItem items = 2;
+}
+
+message UpdateCollectionRequest {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string description = 4;
+}
+
+message UpdateCollectionResponse {
+  SavedCollection collection = 1;
+}
+
+message DeleteCollectionRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteCollectionResponse {
+}
+
+message MoveToCollectionRequest {
+  string user_id = 1;
+  string item_id = 2;
+  string item_type = 3;
+  string collection_id = 4;
+}
+
+message MoveToCollectionResponse {
+  SavedItem item = 1;
+}
+
+message GetSavedStatsRequest {
+  string user_id = 1;
+}
+
+message GetSavedStatsResponse {
+  int32 total_saved = 1;
+  map<string, int32> counts_by_type = 2;
+  map<string, int32> counts_by_category = 3;
+  int32 total_collections = 4;
+}
+
+message ExportSavedRequest {
+  string user_id = 1;
+  string format = 2; // json, csv
+  string item_type = 3; // optional filter
+}
+
+message ExportSavedResponse {
+  string download_url = 1;
+  string filename = 2;
+}
+
+service SavedService {
+  // Saved items CRUD
+  rpc ListSaved(ListSavedRequest) returns (ListSavedResponse);
+  rpc SaveItem(SaveItemRequest) returns (SaveItemResponse);
+  rpc RemoveSaved(RemoveSavedRequest) returns (RemoveSavedResponse);
+  rpc GetSavedItem(GetSavedItemRequest) returns (GetSavedItemResponse);
+  
+  // Collections CRUD
+  rpc CreateCollection(CreateCollectionRequest) returns (CreateCollectionResponse);
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+  rpc GetCollection(GetCollectionRequest) returns (GetCollectionResponse);
+  rpc UpdateCollection(UpdateCollectionRequest) returns (UpdateCollectionResponse);
+  rpc DeleteCollection(DeleteCollectionRequest) returns (DeleteCollectionResponse);
+  
+  // Collection operations
+  rpc MoveToCollection(MoveToCollectionRequest) returns (MoveToCollectionResponse);
+  
+  // Analytics
+  rpc GetSavedStats(GetSavedStatsRequest) returns (GetSavedStatsResponse);
+  rpc ExportSaved(ExportSavedRequest) returns (ExportSavedResponse);
+}

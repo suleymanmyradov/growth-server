@@ -1,0 +1,124 @@
+syntax = "proto3";
+
+package activity;
+
+option go_package = "./activity";
+
+message Activity {
+  string id = 1;
+  string user_id = 2;
+  string action = 3; // created, completed, updated, deleted, saved, shared
+  string entity_type = 4; // habit, goal, article, conversation
+  string entity_id = 5;
+  string title = 6;
+  string description = 7;
+  map<string, string> metadata = 8;
+  string created_at = 9;
+}
+
+message GetActivityFeedRequest {
+  string user_id = 1;
+  string entity_type = 2; // optional filter
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message GetActivityFeedResponse {
+  repeated Activity activities = 1;
+  int32 total = 2;
+}
+
+message LogActivityRequest {
+  string user_id = 1;
+  string action = 2;
+  string entity_type = 3;
+  string entity_id = 4;
+  string title = 5;
+  string description = 6;
+  map<string, string> metadata = 7;
+}
+
+message LogActivityResponse {
+  Activity activity = 1;
+}
+
+message GetActivityStatsRequest {
+  string user_id = 1;
+  string period = 2; // day, week, month, year
+}
+
+message GetActivityStatsResponse {
+  int32 total_activities = 1;
+  map<string, int32> actions_count = 2;
+  map<string, int32> entities_count = 3;
+  repeated DailyActivity daily_activity = 4;
+}
+
+message DailyActivity {
+  string date = 1;
+  int32 count = 2;
+}
+
+message GetAchievementsRequest {
+  string user_id = 1;
+}
+
+message GetAchievementsResponse {
+  repeated Achievement achievements = 1;
+}
+
+message Achievement {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string icon = 4;
+  string category = 5;
+  bool unlocked = 6;
+  string unlocked_at = 7;
+  int32 progress = 8;
+  int32 max_progress = 9;
+}
+
+message GetActivityCalendarRequest {
+  string user_id = 1;
+  string month = 2; // YYYY-MM format
+}
+
+message GetActivityCalendarResponse {
+  repeated CalendarDay days = 1;
+}
+
+message CalendarDay {
+  string date = 1;
+  int32 activity_count = 2;
+  repeated string activity_types = 3;
+}
+
+message GetStreaksRequest {
+  string user_id = 1;
+}
+
+message GetStreaksResponse {
+  int32 current_streak = 1;
+  int32 longest_streak = 2;
+  repeated Streak streaks = 3;
+}
+
+message Streak {
+  string entity_type = 1;
+  int32 current_streak = 2;
+  int32 longest_streak = 3;
+  string last_activity = 4;
+}
+
+service ActivityService {
+  // Activity feed
+  rpc GetActivityFeed(GetActivityFeedRequest) returns (GetActivityFeedResponse);
+  rpc LogActivity(LogActivityRequest) returns (LogActivityResponse);
+  
+  // Analytics
+  rpc GetActivityStats(GetActivityStatsRequest) returns (GetActivityStatsResponse);
+  rpc GetAchievements(GetAchievementsRequest) returns (GetAchievementsResponse);
+  rpc GetActivityCalendar(GetActivityCalendarRequest) returns (GetActivityCalendarResponse);
+  rpc GetStreaks(GetStreaksRequest) returns (GetStreaksResponse);
+}

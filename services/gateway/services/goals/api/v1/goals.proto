@@ -1,0 +1,193 @@
+syntax = "proto3";
+
+package goals;
+
+option go_package = "./goals";
+
+message Goal {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  string category = 5;
+  int32 progress = 6; // 0-100 percentage
+  string status = 7; // active, completed, paused, cancelled
+  string due_date = 8;
+  string created_at = 9;
+  string updated_at = 10;
+  repeated GoalMilestone milestones = 11;
+}
+
+message GoalMilestone {
+  string id = 1;
+  string goal_id = 2;
+  string title = 3;
+  string description = 4;
+  bool completed = 5;
+  string due_date = 6;
+  string completed_at = 7;
+  int32 order = 8;
+}
+
+message ListGoalsRequest {
+  string user_id = 1;
+  string category = 2; // optional filter
+  string status = 3; // optional filter
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListGoalsResponse {
+  repeated Goal goals = 1;
+  int32 total = 2;
+}
+
+message CreateGoalRequest {
+  string user_id = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  string due_date = 5;
+}
+
+message CreateGoalResponse {
+  Goal goal = 1;
+}
+
+message GetGoalRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetGoalResponse {
+  Goal goal = 1;
+}
+
+message UpdateGoalRequest {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  string category = 5;
+  string status = 6;
+  string due_date = 7;
+}
+
+message UpdateGoalResponse {
+  Goal goal = 1;
+}
+
+message DeleteGoalRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteGoalResponse {
+}
+
+message ToggleGoalRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message ToggleGoalResponse {
+  Goal goal = 1;
+}
+
+message UpdateGoalProgressRequest {
+  string id = 1;
+  string user_id = 2;
+  int32 progress = 3; // 0-100
+}
+
+message UpdateGoalProgressResponse {
+  Goal goal = 1;
+}
+
+message AddGoalMilestoneRequest {
+  string goal_id = 1;
+  string user_id = 2;
+  string title = 3;
+  string description = 4;
+  string due_date = 5;
+  int32 order = 6;
+}
+
+message AddGoalMilestoneResponse {
+  GoalMilestone milestone = 1;
+}
+
+message GetGoalMilestonesRequest {
+  string goal_id = 1;
+  string user_id = 2;
+}
+
+message GetGoalMilestonesResponse {
+  repeated GoalMilestone milestones = 1;
+}
+
+message UpdateGoalMilestoneRequest {
+  string id = 1;
+  string goal_id = 2;
+  string user_id = 3;
+  string title = 4;
+  string description = 5;
+  bool completed = 6;
+  string due_date = 7;
+  int32 order = 8;
+}
+
+message UpdateGoalMilestoneResponse {
+  GoalMilestone milestone = 1;
+}
+
+message CompleteGoalRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message CompleteGoalResponse {
+  Goal goal = 1;
+}
+
+message GetGoalStatsRequest {
+  string user_id = 1;
+  string period = 2; // week, month, year
+}
+
+message GetGoalStatsResponse {
+  int32 total_goals = 1;
+  int32 active_goals = 2;
+  int32 completed_goals = 3;
+  float average_progress = 4;
+  repeated CategoryStats category_stats = 5;
+}
+
+message CategoryStats {
+  string category = 1;
+  int32 count = 2;
+  int32 completed = 3;
+  float average_progress = 4;
+}
+
+service GoalsService {
+  // CRUD operations
+  rpc ListGoals(ListGoalsRequest) returns (ListGoalsResponse);
+  rpc CreateGoal(CreateGoalRequest) returns (CreateGoalResponse);
+  rpc GetGoal(GetGoalRequest) returns (GetGoalResponse);
+  rpc UpdateGoal(UpdateGoalRequest) returns (UpdateGoalResponse);
+  rpc DeleteGoal(DeleteGoalRequest) returns (DeleteGoalResponse);
+  
+  // Goal operations
+  rpc ToggleGoal(ToggleGoalRequest) returns (ToggleGoalResponse);
+  rpc UpdateGoalProgress(UpdateGoalProgressRequest) returns (UpdateGoalProgressResponse);
+  rpc CompleteGoal(CompleteGoalRequest) returns (CompleteGoalResponse);
+  
+  // Milestone operations
+  rpc AddGoalMilestone(AddGoalMilestoneRequest) returns (AddGoalMilestoneResponse);
+  rpc GetGoalMilestones(GetGoalMilestonesRequest) returns (GetGoalMilestonesResponse);
+  rpc UpdateGoalMilestone(UpdateGoalMilestoneRequest) returns (UpdateGoalMilestoneResponse);
+  
+  // Analytics
+  rpc GetGoalStats(GetGoalStatsRequest) returns (GetGoalStatsResponse);
+}

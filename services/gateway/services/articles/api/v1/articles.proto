@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package articles;
+
+option go_package = "./articles";
+
+message Article {
+  string id = 1;
+  string title = 2;
+  string excerpt = 3;
+  string content = 4;
+  string image_url = 5;
+  string category = 6;
+  string author_id = 7;
+  string author_name = 8;
+  string posted_at = 9;
+  int32 likes = 10;
+  int32 shares = 11;
+  int32 saves = 12;
+  int32 read_time = 13; // in minutes
+  repeated string tags = 14;
+  string created_at = 15;
+  string updated_at = 16;
+}
+
+message ListArticlesRequest {
+  string category = 1; // optional filter
+  string author_id = 2; // optional filter
+  string sort_by = 3; // newest, oldest, popular, trending
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListArticlesResponse {
+  repeated Article articles = 1;
+  int32 total = 2;
+}
+
+message GetArticleRequest {
+  string id = 1;
+}
+
+message GetArticleResponse {
+  Article article = 1;
+}
+
+message LikeArticleRequest {
+  string article_id = 1;
+  string user_id = 2;
+}
+
+message LikeArticleResponse {
+  bool liked = 1;
+  int32 total_likes = 2;
+}
+
+message ShareArticleRequest {
+  string article_id = 1;
+  string user_id = 2;
+  string platform = 3; // twitter, facebook, linkedin, etc.
+}
+
+message ShareArticleResponse {
+  int32 total_shares = 1;
+}
+
+message GetTrendingArticlesRequest {
+  string period = 1; // day, week, month
+  string category = 2; // optional
+  int32 limit = 3;
+}
+
+message GetTrendingArticlesResponse {
+  repeated Article articles = 1;
+}
+
+message GetRecommendedArticlesRequest {
+  string user_id = 1;
+  string category = 2; // optional preference
+  int32 limit = 3;
+}
+
+message GetRecommendedArticlesResponse {
+  repeated Article articles = 1;
+}
+
+message SearchArticlesRequest {
+  string query = 1;
+  string category = 2; // optional filter
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message SearchArticlesResponse {
+  repeated Article articles = 1;
+  int32 total = 2;
+}
+
+message CreateArticleRequest {
+  string title = 1;
+  string excerpt = 2;
+  string content = 3;
+  string image_url = 4;
+  string category = 5;
+  string author_id = 6;
+  repeated string tags = 7;
+}
+
+message CreateArticleResponse {
+  Article article = 1;
+}
+
+message UpdateArticleRequest {
+  string id = 1;
+  string title = 2;
+  string excerpt = 3;
+  string content = 4;
+  string image_url = 5;
+  string category = 6;
+  repeated string tags = 7;
+}
+
+message UpdateArticleResponse {
+  Article article = 1;
+}
+
+message DeleteArticleRequest {
+  string id = 1;
+  string author_id = 2;
+}
+
+message DeleteArticleResponse {
+}
+
+service ArticlesService {
+  // Public operations
+  rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse);
+  rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+  rpc GetTrendingArticles(GetTrendingArticlesRequest) returns (GetTrendingArticlesResponse);
+  rpc GetRecommendedArticles(GetRecommendedArticlesRequest) returns (GetRecommendedArticlesResponse);
+  rpc SearchArticles(SearchArticlesRequest) returns (SearchArticlesResponse);
+  
+  // User interactions
+  rpc LikeArticle(LikeArticleRequest) returns (LikeArticleResponse);
+  rpc ShareArticle(ShareArticleRequest) returns (ShareArticleResponse);
+  
+  // Author operations
+  rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
+  rpc UpdateArticle(UpdateArticleRequest) returns (UpdateArticleResponse);
+  rpc DeleteArticle(DeleteArticleRequest) returns (DeleteArticleResponse);
+}

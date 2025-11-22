@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+package settings;
+
+option go_package = "./settings";
+
+message UserSettings {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  string bio = 5;
+  string location = 6;
+  string website = 7;
+  repeated string interests = 8;
+  string avatar_url = 9;
+  string timezone = 10;
+  string language = 11;
+  string theme = 12; // light, dark, auto
+  bool email_notifications = 13;
+  bool push_notifications = 14;
+  bool habit_reminders = 15;
+  bool goal_deadlines = 16;
+  bool weekly_reports = 17;
+  string created_at = 18;
+  string updated_at = 19;
+}
+
+message AppPreferences {
+  string user_id = 1;
+  string default_habit_category = 2;
+  string default_goal_category = 3;
+  bool show_streaks = 4;
+  bool show_progress = 5;
+  bool show_motivational_quotes = 6;
+  string dashboard_layout = 7;
+  map<string, string> custom_preferences = 8;
+}
+
+message GetSettingsRequest {
+  string user_id = 1;
+}
+
+message GetSettingsResponse {
+  UserSettings settings = 1;
+  AppPreferences preferences = 2;
+}
+
+message UpdateSettingsRequest {
+  string user_id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  string bio = 5;
+  string location = 6;
+  string website = 7;
+  repeated string interests = 8;
+  string timezone = 9;
+  string language = 10;
+  string theme = 11;
+  bool email_notifications = 12;
+  bool push_notifications = 13;
+  bool habit_reminders = 14;
+  bool goal_deadlines = 15;
+  bool weekly_reports = 16;
+}
+
+message UpdateSettingsResponse {
+  UserSettings settings = 1;
+}
+
+message UpdatePreferencesRequest {
+  string user_id = 1;
+  string default_habit_category = 2;
+  string default_goal_category = 3;
+  bool show_streaks = 4;
+  bool show_progress = 5;
+  bool show_motivational_quotes = 6;
+  string dashboard_layout = 7;
+  map<string, string> custom_preferences = 8;
+}
+
+message UpdatePreferencesResponse {
+  AppPreferences preferences = 1;
+}
+
+message GetPreferencesRequest {
+  string user_id = 1;
+}
+
+message GetPreferencesResponse {
+  AppPreferences preferences = 1;
+}
+
+message UploadAvatarRequest {
+  string user_id = 1;
+  bytes image_data = 2;
+  string filename = 3;
+}
+
+message UploadAvatarResponse {
+  string avatar_url = 1;
+}
+
+message ExportDataRequest {
+  string user_id = 1;
+  string format = 2; // json, csv
+}
+
+message ExportDataResponse {
+  string download_url = 1;
+  string filename = 2;
+}
+
+message DeleteAccountRequest {
+  string user_id = 1;
+  string password = 2;
+  string confirmation = 3; // "DELETE" confirmation string
+}
+
+message DeleteAccountResponse {
+  string message = 1;
+}
+
+message GetPrivacySettingsRequest {
+  string user_id = 1;
+}
+
+message PrivacySettings {
+  string user_id = 1;
+  bool profile_public = 2;
+  bool show_email = 3;
+  bool show_location = 4;
+  bool show_website = 5;
+  bool allow_messages = 6;
+  bool show_activity = 7;
+  bool data_collection = 8;
+}
+
+message GetPrivacySettingsResponse {
+  PrivacySettings settings = 1;
+}
+
+message UpdatePrivacySettingsRequest {
+  string user_id = 1;
+  bool profile_public = 2;
+  bool show_email = 3;
+  bool show_location = 4;
+  bool show_website = 5;
+  bool allow_messages = 6;
+  bool show_activity = 7;
+  bool data_collection = 8;
+}
+
+message UpdatePrivacySettingsResponse {
+  PrivacySettings settings = 1;
+}
+
+service SettingsService {
+  // User settings
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+  
+  // App preferences
+  rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
+  
+  // Avatar management
+  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse);
+  
+  // Privacy settings
+  rpc GetPrivacySettings(GetPrivacySettingsRequest) returns (GetPrivacySettingsResponse);
+  rpc UpdatePrivacySettings(UpdatePrivacySettingsRequest) returns (UpdatePrivacySettingsResponse);
+  
+  // Data management
+  rpc ExportData(ExportDataRequest) returns (ExportDataResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+}

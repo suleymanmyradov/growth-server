@@ -1,0 +1,22 @@
+Name: growthapi
+Host: 0.0.0.0
+Port: 8888
+
+AuthRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: auth.rpc
+
+HabitsRpc:
+  Etcd:
+    Hosts:
+      - 127.0.0.1:2379
+    Key: habits.rpc
+
+Database:
+  DataSource: postgres://growthmind:growthmind123@localhost:5432/growthmind?sslmode=disable
+
+Auth:
+  AccessSecret: u54g09345u90345u90345u90345u90345
+  AccessExpire: 86400
