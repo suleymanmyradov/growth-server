@@ -1,0 +1,416 @@
+syntax = "v1"
+
+// Base types
+type (
+    EmptyResponse {
+    }
+    
+    PageRequest {
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+    
+    PageResponse {
+        total int64 `json:"total"`
+        page int `json:"page"`
+        limit int `json:"limit"`
+        totalPages int `json:"totalPages"`
+    }
+)
+
+// Authentication types
+type (
+    RegisterRequest {
+        username string `json:"username"`
+        email string `json:"email"`
+        password string `json:"password"`
+        fullName string `json:"fullName"`
+        deviceId string `header:"X-Device-Id,optional"`
+    }
+    
+    LoginRequest {
+        email string `json:"email"`
+        password string `json:"password"`
+        deviceId string `header:"X-Device-Id,optional"`
+    }
+    
+    RefreshRequest {
+        refreshToken string `json:"refreshToken"`
+    }
+    
+    AuthResponse {
+        accessToken string `json:"accessToken"`
+        refreshToken string `json:"refreshToken"`
+        expiresIn int64 `json:"expiresIn"`
+        user Profile `json:"user,optional"`
+    }
+)
+
+// Profile types
+type (
+    Profile {
+        id string `json:"id"`
+        fullName string `json:"fullName"`
+        username string `json:"username"`
+        email string `json:"email"`
+        bio string `json:"bio,optional"`
+        location string `json:"location,optional"`
+        website string `json:"website,optional"`
+        interests []string `json:"interests,optional"`
+        avatarUrl string `json:"avatarUrl,optional"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    ProfileResponse {
+        data Profile `json:"data"`
+    }
+    
+    UpdateProfileRequest {
+        fullName string `json:"fullName,optional"`
+        bio string `json:"bio,optional"`
+        location string `json:"location,optional"`
+        website string `json:"website,optional"`
+        interests []string `json:"interests,optional"`
+        avatarUrl string `json:"avatarUrl,optional"`
+    }
+)
+
+// Habit types
+type (
+    Habit {
+        id string `json:"id"`
+        name string `json:"name"`
+        description string `json:"description"`
+        streak int `json:"streak"`
+        completed bool `json:"completed"`
+        category string `json:"category"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    HabitResponse {
+        data Habit `json:"data"`
+    }
+    
+    HabitsResponse {
+        data []Habit `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    CreateHabitRequest {
+        name string `json:"name"`
+        description string `json:"description"`
+        category string `json:"category"`
+    }
+    
+    UpdateHabitRequest {
+        name string `json:"name,optional"`
+        description string `json:"description,optional"`
+        category string `json:"category,optional"`
+    }
+    
+    HabitRequest {
+        id string `path:"id"`
+    }
+)
+
+// Goal types
+type (
+    Goal {
+        id string `json:"id"`
+        title string `json:"title"`
+        description string `json:"description"`
+        category string `json:"category"`
+        dueDate string `json:"dueDate,optional"`
+        progress int `json:"progress"`
+        completed bool `json:"completed"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    GoalResponse {
+        data Goal `json:"data"`
+    }
+    
+    GoalsResponse {
+        data []Goal `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    CreateGoalRequest {
+        title string `json:"title"`
+        description string `json:"description"`
+        category string `json:"category"`
+        dueDate string `json:"dueDate,optional"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional"`
+    }
+    
+    UpdateGoalRequest {
+        title string `json:"title,optional"`
+        description string `json:"description,optional"`
+        category string `json:"category,optional"`
+        dueDate string `json:"dueDate,optional"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional"`
+    }
+    
+    GoalRequest {
+        id string `path:"id"`
+    }
+    
+    UpdateProgressRequest {
+        progress int `json:"progress"`
+    }
+)
+
+// Article types
+type (
+    Article {
+        id string `json:"id"`
+        title string `json:"title"`
+        excerpt string `json:"excerpt"`
+        content string `json:"content"`
+        category string `json:"category"`
+        readTime int `json:"readTime"`
+        imageUrl string `json:"imageUrl"`
+        author string `json:"author"`
+        publishedAt string `json:"publishedAt"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    ArticleResponse {
+        data Article `json:"data"`
+    }
+    
+    ArticlesResponse {
+        data []Article `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    ArticleRequest {
+        id string `path:"id"`
+    }
+    
+    ListArticlesRequest {
+        category string `form:"category,optional"`
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Saved items types
+type (
+    SavedItem {
+        id string `json:"id"`
+        itemType string `json:"itemType"` // "article", "goal", "habit"
+        itemId string `json:"itemId"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+    }
+    
+    SavedItemResponse {
+        data SavedItem `json:"data"`
+    }
+    
+    SavedItemsResponse {
+        data []SavedItem `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    SaveItemRequest {
+        itemType string `json:"itemType"`
+        itemId string `json:"itemId"`
+    }
+    
+    SavedItemRequest {
+        id string `path:"id"`
+    }
+)
+
+// Conversation types
+type (
+    Conversation {
+        id string `json:"id"`
+        title string `json:"title"`
+        itemType string `json:"type"` // "coach" or "therapist"
+        lastMessage string `json:"lastMessage"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    ConversationResponse {
+        data Conversation `json:"data"`
+    }
+    
+    ConversationsResponse {
+        data []Conversation `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    ConversationDetail {
+        id string `json:"id"`
+        title string `json:"title"`
+        itemType string `json:"type"`
+        messages []Message `json:"messages"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    ConversationDetailResponse {
+        data ConversationDetail `json:"data"`
+    }
+    
+    Message {
+        id string `json:"id"`
+        content string `json:"content"`
+        role string `json:"role"` // "user" or "assistant"
+        conversationId string `json:"conversationId"`
+        createdAt string `json:"createdAt"`
+    }
+    
+    MessageResponse {
+        data Message `json:"data"`
+    }
+    
+    MessagesResponse {
+        data []Message `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    StartConversationRequest {
+        itemType string `json:"type"` // "coach" or "therapist"
+        title string `json:"title,optional"`
+        initialMessage string `json:"initialMessage,optional"`
+    }
+    
+    ConversationRequest {
+        id string `path:"id"`
+    }
+    
+    SendMessageRequest {
+        content string `json:"content"`
+    }
+    
+    GetMessagesRequest {
+        id string `path:"id"`
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=50"`
+    }
+    
+    ListConversationsRequest {
+        itemType string `form:"type,optional"` // "coach" or "therapist"
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Search types
+type (
+    SearchResult {
+        id string `json:"id"`
+        itemType string `json:"type"` // "article", "goal", "habit", "conversation"
+        title string `json:"title"`
+        description string `json:"description"`
+        score float64 `json:"score"`
+        highlight string `json:"highlight,optional"`
+    }
+    
+    SearchResponse {
+        data []SearchResult `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    SearchRequest {
+        q string `form:"q"`
+        itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Notification types
+type (
+    Notification {
+        id string `json:"id"`
+        title string `json:"title"`
+        message string `json:"message"`
+        itemType string `json:"type"` // "habit_reminder", "goal_deadline", "achievement", "system"
+        read bool `json:"read"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+    }
+    
+    NotificationsResponse {
+        data []Notification `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    NotificationRequest {
+        id string `path:"id"`
+    }
+)
+
+// Activity types
+type (
+    Activity {
+        id string `json:"id"`
+        itemType string `json:"type"` // "habit_completed", "goal_created", "goal_completed", "article_saved"
+        title string `json:"title"`
+        description string `json:"description"`
+        metadata string `json:"metadata,optional"` // JSON string for additional data
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+    }
+    
+    ActivityResponse {
+        data []Activity `json:"data"`
+        page PageResponse `json:"page"`
+    }
+)
+
+// Settings types
+type (
+    Settings {
+        id string `json:"id"`
+        theme string `json:"theme"` // "light", "dark", "system"
+        language string `json:"language"`
+        timezone string `json:"timezone"`
+        emailNotifications bool `json:"emailNotifications"`
+        pushNotifications bool `json:"pushNotifications"`
+        habitReminders bool `json:"habitReminders"`
+        goalReminders bool `json:"goalReminders"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    SettingsResponse {
+        data Settings `json:"data"`
+    }
+    
+    UpdateSettingsRequest {
+        theme string `json:"theme,optional"`
+        language string `json:"language,optional"`
+        timezone string `json:"timezone,optional"`
+        emailNotifications bool `json:"emailNotifications,optional"`
+        pushNotifications bool `json:"pushNotifications,optional"`
+        habitReminders bool `json:"habitReminders,optional"`
+        goalReminders bool `json:"goalReminders,optional"`
+    }
+)
+
+// Report types
+type (
+    ReportRequest {
+        itemType string `json:"type"` // "bug", "feedback", "abuse"
+        title string `json:"title"`
+        description string `json:"description"`
+        email string `json:"email,optional"`
+    }
+)

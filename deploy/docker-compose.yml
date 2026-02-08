@@ -1,0 +1,46 @@
+version: '1.0'
+name: growthmind-dependencies
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: growthmind-postgres
+    environment:
+      POSTGRES_DB: growthmind
+      POSTGRES_USER: growthmind
+      POSTGRES_PASSWORD: growthmind123
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - growthmind-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U growthmind -d growthmind"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: growthmind-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - growthmind-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  growthmind-network:
+    driver: bridge

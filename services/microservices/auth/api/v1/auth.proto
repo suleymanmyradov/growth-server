@@ -1,0 +1,115 @@
+syntax = "proto3";
+
+package auth;
+
+option go_package = "./auth";
+
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string full_name = 4;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+  string device_id = 3;
+}
+
+message AuthResponse {
+  string access_token = 1;
+  string refresh_token = 2;
+  int64 expires_in = 3;
+  User user = 4;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  string full_name = 4;
+  string bio = 5;
+  string location = 6;
+  string website = 7;
+  repeated string interests = 8;
+  string avatar_url = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message LogoutRequest {
+  string access_token = 1;
+}
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string username = 3;
+}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  User user = 1;
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  string full_name = 2;
+  string bio = 3;
+  string location = 4;
+  string website = 5;
+  repeated string interests = 6;
+}
+
+message UpdateProfileResponse {
+  User user = 1;
+}
+
+message ChangePasswordRequest {
+  string user_id = 1;
+  string old_password = 2;
+  string new_password = 3;
+}
+
+message ForgotPasswordRequest {
+  string email = 1;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message EmptyResponse {}
+
+service AuthService {
+  // Core authentication
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
+  rpc RefreshToken(RefreshRequest) returns (AuthResponse);
+  rpc Logout(LogoutRequest) returns (EmptyResponse);
+  
+  // Token validation
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  
+  // Profile management
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  
+  // Password management
+  rpc ChangePassword(ChangePasswordRequest) returns (EmptyResponse);
+  rpc ForgotPassword(ForgotPasswordRequest) returns (EmptyResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (EmptyResponse);
+}
