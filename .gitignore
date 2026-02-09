@@ -1,0 +1,7 @@
+bin/search
+bin/gateway
+bin/conversations
+bin/client
+bin/auth
+services/gateway/contract/swagger/gateway.swagger.json.json
+.idea

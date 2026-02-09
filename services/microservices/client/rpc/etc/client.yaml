@@ -1,8 +1,4 @@
 Name: client.rpc
-ListenOn: 0.0.0.0:8080
-Etcd:
-  Hosts:
-  - 127.0.0.1:2379
-  Key: client.rpc
+ListenOn: 0.0.0.0:8082
 Postgres:
-  Datasource: host=localhost port=5432 user=growth dbname=growth sslmode=disable
+  Datasource: host=localhost port=5434 user=growth dbname=growth sslmode=disable

@@ -14,3 +14,9 @@ BEGIN
         RAISE NOTICE 'update_updated_at_column() not dropped: triggers still depend on it';
     END IF;
 END $$;
+
+-- Drop compatibility uuid_generate_v7 if present
+DROP FUNCTION IF EXISTS uuid_generate_v7();
+
+-- Drop UUID extension if no longer needed
+DROP EXTENSION IF EXISTS pgcrypto;

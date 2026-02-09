@@ -8,6 +8,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
+	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -26,8 +27,46 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.RegisterRequest) (resp *types.AuthResponse, err error) {
-	// todo: add your logic here and delete this line
+func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.AuthResponse, error) {
+	registerResp, err := l.svcCtx.AuthRpc.Register(l.ctx, &authservice.RegisterRequest{
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
+		FullName: req.FullName,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return
+	resp := &types.AuthResponse{
+		AccessToken:  registerResp.GetAccessToken(),
+		RefreshToken: registerResp.GetRefreshToken(),
+		ExpiresIn:    registerResp.GetExpiresIn(),
+	}
+
+	if registerResp.GetUser() != nil {
+		resp.User = mapAuthUserToProfile(registerResp.GetUser())
+	}
+
+	return resp, nil
+}
+
+func mapAuthUserToProfile(user *authservice.User) types.Profile {
+	if user == nil {
+		return types.Profile{}
+	}
+
+	return types.Profile{
+		Id:        user.GetId(),
+		FullName:  user.GetFullName(),
+		Username:  user.GetUsername(),
+		Email:     user.GetEmail(),
+		Bio:       user.GetBio(),
+		Location:  user.GetLocation(),
+		Website:   user.GetWebsite(),
+		Interests: user.GetInterests(),
+		AvatarUrl: user.GetAvatarUrl(),
+		CreatedAt: user.GetCreatedAt(),
+		UpdatedAt: user.GetUpdatedAt(),
+	}
 }
