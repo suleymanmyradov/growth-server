@@ -1,0 +1,256 @@
+syntax = "v1"
+
+info (
+	title:    "Self-Development API"
+	desc:     "API for personal growth, habits, goals, and AI coaching"
+	author:   "suleymanmyradov"
+	version:  "v1.0"
+	schemes:  "http"
+	host:     "localhost"
+	basePath: "/api/v1"
+)
+
+import "types.api"
+
+@server (
+	prefix: /api/v1
+	group:  auth
+	tags:   "Authentication"
+)
+service growthapi {
+	@handler Register
+	post /auth/register (RegisterRequest) returns (AuthResponse)
+
+	@handler Login
+	post /auth/login (LoginRequest) returns (AuthResponse)
+
+	@handler RefreshToken
+	post /auth/refresh (RefreshRequest) returns (AuthResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      auth
+	middleware: Auth
+	tags:       "Authentication"
+)
+service growthapi {
+	@handler Logout
+	post /auth/logout returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      profile
+	middleware: Auth
+	tags:       "Profile"
+)
+service growthapi {
+	@handler GetProfile
+	get /profile/me returns (ProfileResponse)
+
+	@handler UpdateProfile
+	put /profile (UpdateProfileRequest) returns (ProfileResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      habits
+	middleware: Auth
+	tags:       "Habits"
+)
+service growthapi {
+	@handler ListHabits
+	get /habits (PageRequest) returns (HabitsResponse)
+
+	@handler CreateHabit
+	post /habits (CreateHabitRequest) returns (HabitResponse)
+
+	@handler GetHabit
+	get /habits/:id (HabitRequest) returns (HabitResponse)
+
+	@handler UpdateHabit
+	put /habits/:id (UpdateHabitRequest) returns (HabitResponse)
+
+	@handler DeleteHabit
+	delete /habits/:id (HabitRequest) returns (EmptyResponse)
+
+	@handler ToggleHabit
+	post /habits/:id/toggle (HabitRequest) returns (HabitResponse)
+
+	@handler ResetTodayHabits
+	post /habits/reset-today returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      goals
+	middleware: Auth
+	tags:       "Goals"
+)
+service growthapi {
+	@handler ListGoals
+	get /goals (PageRequest) returns (GoalsResponse)
+
+	@handler CreateGoal
+	post /goals (CreateGoalRequest) returns (GoalResponse)
+
+	@handler GetGoal
+	get /goals/:id (GoalRequest) returns (GoalResponse)
+
+	@handler UpdateGoal
+	put /goals/:id (UpdateGoalRequest) returns (GoalResponse)
+
+	@handler DeleteGoal
+	delete /goals/:id (GoalRequest) returns (EmptyResponse)
+
+	@handler ToggleGoal
+	post /goals/:id/toggle (GoalRequest) returns (GoalResponse)
+
+	@handler UpdateGoalProgress
+	put /goals/:id/progress (UpdateProgressRequest) returns (GoalResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  articles
+	tags:   "Articles"
+)
+service growthapi {
+	@handler ListArticles
+	get /articles (ListArticlesRequest) returns (ArticlesResponse)
+
+	@handler GetArticle
+	get /articles/:id (ArticleRequest) returns (ArticleResponse)
+
+	@handler GetAuthorArticles
+	get /articles/author/:authorId (GetAuthorArticlesRequest) returns (ArticlesResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      articles
+	middleware: Auth
+	tags:       "Articles"
+)
+service growthapi {
+	@handler LikeArticle
+	post /articles/:id/like (LikeArticleRequest) returns (LikeArticleResponse)
+
+	@handler ShareArticle
+	post /articles/:id/share (ShareArticleRequest) returns (ShareArticleResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      saved
+	middleware: Auth
+	tags:       "Saved Items"
+)
+service growthapi {
+	@handler ListSaved
+	get /saved (PageRequest) returns (SavedItemsResponse)
+
+	@handler SaveItem
+	post /saved (SaveItemRequest) returns (SavedItemResponse)
+
+	@handler RemoveSaved
+	delete /saved/:id (SavedItemRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      conversations
+	middleware: Auth
+	tags:       "Conversations"
+)
+service growthapi {
+	@handler ListConversations
+	get /conversations (ListConversationsRequest) returns (ConversationsResponse)
+
+	@handler StartConversation
+	post /conversations (StartConversationRequest) returns (ConversationResponse)
+
+	@handler GetConversation
+	get /conversations/:id (ConversationRequest) returns (ConversationDetailResponse)
+
+	@handler SendMessage
+	post /conversations/:id/messages (SendMessageRequest) returns (MessageResponse)
+
+	@handler GetMessages
+	get /conversations/:id/messages (GetMessagesRequest) returns (MessagesResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  search
+	tags:   "Search"
+)
+service growthapi {
+	@handler Search
+	get /search (SearchRequest) returns (SearchResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      notifications
+	middleware: Auth
+	tags:       "Notifications"
+)
+service growthapi {
+	@handler ListNotifications
+	get /notifications (PageRequest) returns (NotificationsResponse)
+
+	@handler MarkNotificationRead
+	put /notifications/:id/read (NotificationRequest) returns (EmptyResponse)
+
+	@handler MarkAllNotificationsRead
+	put /notifications/read-all returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      activity
+	middleware: Auth
+	tags:       "Activity"
+)
+service growthapi {
+	@handler GetActivityFeed
+	get /activity (PageRequest) returns (ActivityResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      settings
+	middleware: Auth
+	tags:       "Settings"
+)
+service growthapi {
+	@handler GetSettings
+	get /settings returns (SettingsResponse)
+
+	@handler UpdateSettings
+	put /settings (UpdateSettingsRequest) returns (SettingsResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      report
+	middleware: Auth
+	tags:       "Report"
+)
+service growthapi {
+	@handler SubmitReport
+	post /report (ReportRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  categories
+	tags:   "Categories"
+)
+service growthapi {
+	@handler ListCategories
+	get /categories (ListCategoriesRequest) returns (CategoriesResponse)
+}
+

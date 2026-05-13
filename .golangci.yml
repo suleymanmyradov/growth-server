@@ -1,0 +1,29 @@
+# Based on the Uber Go Style Guide linting recommendations:
+# https://github.com/uber-go/guide/blob/master/.golangci.yml
+#
+# Recommended linters at a minimum:
+#   errcheck    - ensure errors are handled
+#   goimports   - format code and manage imports
+#   revive      - common style mistakes (modern successor to golint)
+#   govet       - common mistakes analysis
+#   staticcheck - various static analysis checks
+
+version: "2"
+
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+formatters:
+  enable:
+    - goimports
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

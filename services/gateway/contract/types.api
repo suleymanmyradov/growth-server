@@ -1,0 +1,526 @@
+syntax = "v1"
+
+// Base types
+type (
+    EmptyResponse {
+    }
+    
+    PageRequest {
+        page int `form:"page,default=1,example=1"`
+        limit int `form:"limit,default=20,example=20"`
+    }
+    
+    PageResponse {
+        total int64 `json:"total,example=100"`
+        page int `json:"page,example=1"`
+        limit int `json:"limit,example=20"`
+        totalPages int `json:"totalPages,example=5"`
+    }
+)
+
+// Authentication types
+type (
+    RegisterRequest {
+        username string `json:"username,example=johndoe"`
+        email string `json:"email,example=john@example.com"`
+        password string `json:"password,example=securePassword123"`
+        fullName string `json:"fullName,example=John Doe"`
+        deviceId string `header:"X-Device-Id,optional,example=device-12345"`
+    }
+    
+    LoginRequest {
+        email string `json:"email,example=john@example.com"`
+        password string `json:"password,example=securePassword123"`
+        deviceId string `header:"X-Device-Id,optional,example=device-12345"`
+    }
+    
+    RefreshRequest {
+        refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+    }
+    
+    AuthResponse {
+        accessToken string `json:"accessToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+        refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+        expiresIn int64 `json:"expiresIn,example=3600"`
+        user Profile `json:"user,optional"`
+    }
+)
+
+// Profile types
+type (
+    Profile {
+        id string `json:"id,example=user-123"`
+        fullName string `json:"fullName,example=John Doe"`
+        username string `json:"username,example=johndoe"`
+        email string `json:"email,example=john@example.com"`
+        bio string `json:"bio,optional,example=Passionate about personal growth"`
+        location string `json:"location,optional,example=San Francisco"`
+        website string `json:"website,optional,example=https://johndoe.com"`
+        interests []string `json:"interests,optional,example=[\"fitness\",\"reading\"]"`
+        avatarUrl string `json:"avatarUrl,optional,example=https://example.com/avatar.jpg"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    ProfileResponse {
+        data Profile `json:"data"`
+    }
+    
+    UpdateProfileRequest {
+        fullName string `json:"fullName,optional"`
+        bio string `json:"bio,optional"`
+        location string `json:"location,optional"`
+        website string `json:"website,optional"`
+        interests []string `json:"interests,optional"`
+        avatarUrl string `json:"avatarUrl,optional"`
+    }
+)
+
+// Habit types
+type (
+    Habit {
+        id string `json:"id,example=habit-123"`
+        name string `json:"name,example=Morning Exercise"`
+        description string `json:"description,example=30 minutes of cardio every morning"`
+        streak int `json:"streak,example=7"`
+        completed bool `json:"completed,example=false"`
+        category string `json:"category,example=fitness"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    HabitResponse {
+        data Habit `json:"data"`
+    }
+    
+    HabitsResponse {
+        data []Habit `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    CreateHabitRequest {
+        name string `json:"name,example=Morning Exercise"`
+        description string `json:"description,example=30 minutes of cardio every morning"`
+        category string `json:"category,example=fitness"`
+    }
+    
+    UpdateHabitRequest {
+        name string `json:"name,optional"`
+        description string `json:"description,optional"`
+        category string `json:"category,optional"`
+    }
+    
+    HabitRequest {
+        id string `path:"id"`
+    }
+)
+
+// Goal types
+type (
+    Goal {
+        id string `json:"id,example=goal-123"`
+        title string `json:"title,example=Run a marathon"`
+        description string `json:"description,example=Complete a 42.195km marathon race"`
+        category string `json:"category,example=fitness"`
+        dueDate string `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+        progress int `json:"progress,example=50"`
+        completed bool `json:"completed,example=false"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    GoalResponse {
+        data Goal `json:"data"`
+    }
+    
+    GoalsResponse {
+        data []Goal `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    CreateGoalRequest {
+        title string `json:"title,example=Run a marathon"`
+        description string `json:"description,example=Complete a 42.195km marathon race"`
+        category string `json:"category,example=fitness"`
+        dueDate string `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+    }
+    
+    UpdateGoalRequest {
+        title string `json:"title,optional"`
+        description string `json:"description,optional"`
+        category string `json:"category,optional"`
+        dueDate string `json:"dueDate,optional"`
+        relatedHabitIds []string `json:"relatedHabitIds,optional"`
+    }
+    
+    GoalRequest {
+        id string `path:"id"`
+    }
+    
+    UpdateProgressRequest {
+        id string `path:"id"`
+        progress int `json:"progress"`
+    }
+)
+
+// Check-In types
+type (
+    CheckIn {
+        id string `json:"id,example=checkin-123"`
+        userId string `json:"userId,example=user-123"`
+        habitId string `json:"habitId,example=habit-123"`
+        status string `json:"status,example=completed"`
+        mood string `json:"mood,optional,example=great"`
+        energy string `json:"energy,optional,example=high"`
+        blocker string `json:"blocker,optional,example=lack_of_time"`
+        note string `json:"note,optional,example=Felt motivated today"`
+        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+    }
+
+    CreateCheckInRequest {
+        habitId string `json:"habitId,example=habit-123"`
+        status string `json:"status,example=completed"`
+        mood string `json:"mood,optional,example=great"`
+        energy string `json:"energy,optional,example=high"`
+        blocker string `json:"blocker,optional,example=lack_of_time"`
+        note string `json:"note,optional,example=Felt motivated today"`
+    }
+
+    CreateCheckInResponse {
+        checkIn CheckIn `json:"checkIn"`
+        habit Habit `json:"habit"`
+        aiFeedback string `json:"aiFeedback,optional,example=Great job keeping your streak!"`
+    }
+
+    GetTodayCheckInsRequest {
+    }
+
+    GetTodayCheckInsResponse {
+        checkIns []CheckIn `json:"checkIns"`
+    }
+
+    GetCheckInHistoryRequest {
+        habitId string `json:"habitId,optional,example=habit-123"`
+        page int `json:"page,default=1"`
+        limit int `json:"limit,default=20"`
+    }
+
+    GetCheckInHistoryResponse {
+        checkIns []CheckIn `json:"checkIns"`
+        total int `json:"total,example=10"`
+    }
+)
+
+// Article types
+type (
+    ArticleCategory {
+        id string `json:"id,example=cat-123"`
+        name string `json:"name,example=Personal Development"`
+        slug string `json:"slug,example=personal-development"`
+    }
+    
+    Article {
+        id string `json:"id,example=article-123"`
+        title string `json:"title,example=10 Habits for Personal Growth"`
+        excerpt string `json:"excerpt,example=Discover the top habits that can transform your life..."`
+        content string `json:"content,example=Full article content here..."`
+        category *ArticleCategory `json:"category,optional"`
+        readTime int `json:"readTime,example=5"`
+        imageUrl string `json:"imageUrl,example=https://example.com/article.jpg"`
+        author string `json:"author,example=John Smith"`
+        publishedAt string `json:"publishedAt,example=2024-01-01T00:00:00Z"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    ArticleResponse {
+        data Article `json:"data"`
+    }
+    
+    ArticlesResponse {
+        data []Article `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    ArticleRequest {
+        id string `path:"id"`
+    }
+    
+    ListArticlesRequest {
+        categorySlug string `form:"category,optional"`
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+    
+    LikeArticleRequest {
+        id string `path:"id"`
+    }
+    
+    LikeArticleResponse {
+        success bool `json:"success"`
+        newLikeCount int `json:"newLikeCount"`
+    }
+    
+    ShareArticleRequest {
+        id string `path:"id"`
+        platform string `json:"platform"`
+    }
+    
+    ShareArticleResponse {
+        success bool `json:"success"`
+    }
+    
+    GetAuthorArticlesRequest {
+        authorId string `form:"authorId"`
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Saved items types
+type (
+    SavedItem {
+        id string `json:"id"`
+        itemType string `json:"itemType"` // "article", "goal", "habit"
+        itemId string `json:"itemId"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+    }
+    
+    SavedItemResponse {
+        data SavedItem `json:"data"`
+    }
+    
+    SavedItemsResponse {
+        data []SavedItem `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    SaveItemRequest {
+        itemType string `json:"itemType"`
+        itemId string `json:"itemId"`
+    }
+    
+    SavedItemRequest {
+        id string `path:"id"`
+    }
+)
+
+// Conversation types
+type (
+    Conversation {
+        id string `json:"id,example=conv-123"`
+        title string `json:"title,example=My Growth Journey"`
+        itemType string `json:"type,example=coach"`
+        lastMessage string `json:"lastMessage,example=How can I improve my daily habits?"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    ConversationResponse {
+        data Conversation `json:"data"`
+    }
+    
+    ConversationsResponse {
+        data []Conversation `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    ConversationDetail {
+        id string `json:"id"`
+        title string `json:"title"`
+        itemType string `json:"type"`
+        messages []Message `json:"messages"`
+        userId string `json:"userId"`
+        createdAt string `json:"createdAt"`
+        updatedAt string `json:"updatedAt"`
+    }
+    
+    ConversationDetailResponse {
+        data ConversationDetail `json:"data"`
+    }
+    
+    Message {
+        id string `json:"id,example=msg-123"`
+        content string `json:"content,example=Hello, I need help with my goals"`
+        role string `json:"role,example=user"`
+        conversationId string `json:"conversationId,example=conv-123"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+    }
+    
+    MessageResponse {
+        data Message `json:"data"`
+    }
+    
+    MessagesResponse {
+        data []Message `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    StartConversationRequest {
+        itemType string `json:"type,example=coach"`
+        title string `json:"title,optional,example=My Growth Journey"`
+        initialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
+    }
+    
+    ConversationRequest {
+        id string `path:"id"`
+    }
+    
+    SendMessageRequest {
+        content string `json:"content,example=How can I stay motivated?"`
+    }
+    
+    GetMessagesRequest {
+        id string `path:"id"`
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=50"`
+    }
+    
+    ListConversationsRequest {
+        itemType string `form:"type,optional"` // "coach" or "therapist"
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Search types
+type (
+    SearchResult {
+        id string `json:"id"`
+        itemType string `json:"type"` // "article", "goal", "habit", "conversation"
+        title string `json:"title"`
+        description string `json:"description"`
+        score float64 `json:"score"`
+        highlight string `json:"highlight,optional"`
+    }
+    
+    SearchResponse {
+        data []SearchResult `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    SearchRequest {
+        q string `form:"q"`
+        itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+        page int `form:"page,default=1"`
+        limit int `form:"limit,default=20"`
+    }
+)
+
+// Notification types
+type (
+    Notification {
+        id string `json:"id,example=notif-123"`
+        title string `json:"title,example=Habit Reminder"`
+        message string `json:"message,example=Don't forget to complete your morning exercise!"`
+        itemType string `json:"type,example=habit_reminder"`
+        read bool `json:"read,example=false"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+    }
+    
+    NotificationsResponse {
+        data []Notification `json:"data"`
+        page PageResponse `json:"page"`
+    }
+    
+    NotificationRequest {
+        id string `path:"id"`
+    }
+)
+
+// Activity types
+type (
+    Activity {
+        id string `json:"id,example=activity-123"`
+        itemType string `json:"type,example=habit_completed"`
+        title string `json:"title,example=Habit Completed"`
+        description string `json:"description,example=You completed Morning Exercise"`
+        metadata string `json:"metadata,optional,example={\"habitId\":\"habit-123\"}"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+    }
+    
+    ActivityResponse {
+        data []Activity `json:"data"`
+        page PageResponse `json:"page"`
+    }
+)
+
+// Settings types
+type (
+    Settings {
+        id string `json:"id,example=settings-123"`
+        theme string `json:"theme,example=dark"`
+        language string `json:"language,example=en"`
+        timezone string `json:"timezone,example=UTC"`
+        emailNotifications bool `json:"emailNotifications,example=true"`
+        pushNotifications bool `json:"pushNotifications,example=true"`
+        habitReminders bool `json:"habitReminders,example=true"`
+        goalReminders bool `json:"goalReminders,example=true"`
+        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
+        checkInTime string `json:"checkInTime,example=09:00"`
+        onboardingCompleted bool `json:"onboardingCompleted,example=false"`
+        userId string `json:"userId,example=user-123"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+
+    SettingsResponse {
+        data Settings `json:"data"`
+    }
+
+    UpdateSettingsRequest {
+        theme string `json:"theme,optional"`
+        language string `json:"language,optional"`
+        timezone string `json:"timezone,optional"`
+        emailNotifications bool `json:"emailNotifications,optional"`
+        pushNotifications bool `json:"pushNotifications,optional"`
+        habitReminders bool `json:"habitReminders,optional"`
+        goalReminders bool `json:"goalReminders,optional"`
+        accountabilityStyle string `json:"accountabilityStyle,optional"`
+        checkInTime string `json:"checkInTime,optional"`
+        onboardingCompleted bool `json:"onboardingCompleted,optional"`
+    }
+)
+
+// Report types
+type (
+    ReportRequest {
+        itemType string `json:"type"` // "bug", "feedback", "abuse"
+        title string `json:"title"`
+        description string `json:"description"`
+        email string `json:"email,optional"`
+    }
+)
+
+// Category types
+type (
+    Category {
+        id string `json:"id,example=cat-123"`
+        name string `json:"name,example=Fitness"`
+        slug string `json:"slug,example=fitness"`
+        entityType string `json:"entityType,example=habit"`
+        sortOrder int `json:"sortOrder,example=1"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+    
+    CategoryResponse {
+        data Category `json:"data"`
+    }
+    
+    CategoriesResponse {
+        data []Category `json:"data"`
+    }
+    
+    ListCategoriesRequest {
+        entityType string `form:"entityType,example=habit"`
+    }
+)

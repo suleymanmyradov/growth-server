@@ -1,0 +1,31 @@
+Name: auth.rpc
+ListenOn: 127.0.0.1:9081
+
+Postgres:
+  Datasource: host=localhost port=5434 user=growthmind dbname=growthmind password=growthmind123 sslmode=disable
+  MaxOpenConns: 25
+  MaxIdleConns: 5
+  ConnMaxLifetime: 5m
+
+JWT:
+  Secret: change-me-to-a-strong-secret
+  Issuer: growth-auth
+  Audience: growth-api
+  # Access TTL reduced to 15m for better revocation effectiveness.
+  # Gateway verifies locally, so logout doesn't terminate access tokens until expiry.
+  # Consider adding IsRevoked RPC with LRU cache for real-time revocation if needed.
+  AccessExpiryDuration: 15m
+  RefreshExpiryDuration: 168h
+
+Cache:
+  Redis:
+    Addr: 127.0.0.1:6379
+    Password: ""
+    DB: 0
+    Prefix: growth-auth
+
+Telemetry:
+  Name: auth.rpc
+  Endpoint: http://localhost:14268/api/traces
+  Sampler: 1.0
+  Batcher: zipkin

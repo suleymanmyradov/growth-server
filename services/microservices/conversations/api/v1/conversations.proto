@@ -1,0 +1,150 @@
+syntax = "proto3";
+
+package conversations;
+
+option go_package = "./conversations";
+
+message Conversation {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string type = 4; // coach, therapist
+  string last_message = 5;
+  string last_message_at = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  int32 message_count = 9;
+}
+
+message Message {
+  string id = 1;
+  string conversation_id = 2;
+  string role = 3; // user, assistant
+  string content = 4;
+  string created_at = 5;
+  string model = 6; // gpt-4, claude, etc.
+  map<string, string> metadata = 7;
+}
+
+message ListConversationsRequest {
+  string user_id = 1;
+  string type = 2; // optional filter
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListConversationsResponse {
+  repeated Conversation conversations = 1;
+  int32 total = 2;
+}
+
+message StartConversationRequest {
+  string user_id = 1;
+  string type = 2; // coach, therapist
+  string initial_message = 3; // optional
+}
+
+message StartConversationResponse {
+  Conversation conversation = 1;
+  Message message = 2; // if initial_message provided
+}
+
+message GetConversationRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message GetConversationResponse {
+  Conversation conversation = 1;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string content = 3;
+  string model = 4; // optional, defaults to configured model
+}
+
+message SendMessageResponse {
+  Message user_message = 1;
+  Message assistant_message = 2;
+}
+
+message GetMessagesRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message GetMessagesResponse {
+  repeated Message messages = 1;
+  int32 total = 2;
+}
+
+message ContinueConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string context = 3; // additional context for continuation
+}
+
+message ContinueConversationResponse {
+  Message message = 1;
+  repeated Message suggestions = 2; // conversation starters
+}
+
+message GetConversationSuggestionsRequest {
+  string type = 1; // coach, therapist
+  string user_context = 2; // optional user context
+}
+
+message GetConversationSuggestionsResponse {
+  repeated string suggestions = 1;
+}
+
+message RateMessageRequest {
+  string message_id = 1;
+  string user_id = 2;
+  int32 rating = 3; // 1-5 stars
+  string feedback = 4; // optional
+}
+
+message RateMessageResponse {
+  string message = 1;
+}
+
+message DeleteConversationRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message DeleteConversationResponse {
+}
+
+message UpdateConversationRequest {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+}
+
+message UpdateConversationResponse {
+  Conversation conversation = 1;
+}
+
+service ConversationsService {
+  // CRUD operations
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc StartConversation(StartConversationRequest) returns (StartConversationResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
+  rpc UpdateConversation(UpdateConversationRequest) returns (UpdateConversationResponse);
+  rpc DeleteConversation(DeleteConversationRequest) returns (DeleteConversationResponse);
+  
+  // Message operations
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+  rpc ContinueConversation(ContinueConversationRequest) returns (ContinueConversationResponse);
+  
+  // AI features
+  rpc GetConversationSuggestions(GetConversationSuggestionsRequest) returns (GetConversationSuggestionsResponse);
+  rpc RateMessage(RateMessageRequest) returns (RateMessageResponse);
+}

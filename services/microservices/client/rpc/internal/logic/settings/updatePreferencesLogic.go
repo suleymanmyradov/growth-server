@@ -1,0 +1,46 @@
+package settingslogic
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type UpdatePreferencesLogic struct {
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+	logx.Logger
+}
+
+func NewUpdatePreferencesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdatePreferencesLogic {
+	return &UpdatePreferencesLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+		Logger: logx.WithContext(ctx),
+	}
+}
+
+func (l *UpdatePreferencesLogic) UpdatePreferences(in *client.UpdatePreferencesRequest) (*client.UpdatePreferencesResponse, error) {
+	p, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		l.Errorf("Invalid user ID: %v", err)
+		return nil, err
+	}
+
+	l.Infof("Updating preferences for user %s", userID)
+
+	return &client.UpdatePreferencesResponse{
+		Success: true,
+	}, nil
+}

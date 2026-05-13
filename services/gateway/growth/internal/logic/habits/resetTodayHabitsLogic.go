@@ -1,0 +1,44 @@
+package habits
+
+import (
+	"context"
+
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
+	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
+
+	"errors"
+
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type ResetTodayHabitsLogic struct {
+	logx.Logger
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+}
+
+func NewResetTodayHabitsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ResetTodayHabitsLogic {
+	return &ResetTodayHabitsLogic{
+		Logger: logx.WithContext(ctx),
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
+}
+
+func (l *ResetTodayHabitsLogic) ResetTodayHabits() (resp *types.EmptyResponse, err error) {
+	_, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, errors.New("unauthenticated")
+	}
+
+	_, err = l.svcCtx.HabitsRpc.ResetTodayHabits(l.ctx, &clienthabits.ResetTodayHabitsRequest{
+		UserId: "",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.EmptyResponse{}, nil
+}

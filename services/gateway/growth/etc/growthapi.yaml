@@ -1,0 +1,23 @@
+Name: growthapi
+Host: 0.0.0.0
+Port: 9999
+CORS:
+  Origins:
+    - http://localhost:3000
+Auth:
+  Secret: change-me-to-a-strong-secret
+  Issuer: growth-auth
+  Audience: growth-api
+AuthRpc:
+  Target: 127.0.0.1:9081
+ClientRpc:
+  Target: 127.0.0.1:9082
+SearchRpc:
+  Target: 127.0.0.1:9083
+ConversationsRpc:
+  Target: 127.0.0.1:9084
+Telemetry:
+  Name: growthapi
+  Endpoint: http://localhost:14268/api/traces
+  Sampler: 1.0
+  Batcher: zipkin

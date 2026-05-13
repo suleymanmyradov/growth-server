@@ -1,0 +1,129 @@
+package errors
+
+import (
+	"encoding/json"
+	"net/http"
+	"regexp"
+	"strings"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+var snakeCaseRe = regexp.MustCompile("([a-z0-9])([A-Z])")
+
+type ErrorResponse struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func WriteUnauthorized(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusUnauthorized)
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "unauthenticated", Message: message})
+}
+
+func WriteForbidden(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "permission_denied", Message: "forbidden"})
+}
+
+func WriteError(w http.ResponseWriter, code int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "error", Message: message})
+}
+
+// GrpcToHTTPStatus maps gRPC status codes to HTTP status codes
+func GrpcToHTTPStatus(code codes.Code) int {
+	switch code {
+	case codes.OK:
+		return http.StatusOK
+	case codes.Canceled:
+		return http.StatusRequestTimeout
+	case codes.Unknown:
+		return http.StatusInternalServerError
+	case codes.InvalidArgument:
+		return http.StatusBadRequest
+	case codes.DeadlineExceeded:
+		return http.StatusGatewayTimeout
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.AlreadyExists:
+		return http.StatusConflict
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.Unauthenticated:
+		return http.StatusUnauthorized
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
+	case codes.FailedPrecondition:
+		return http.StatusBadRequest
+	case codes.Aborted:
+		return http.StatusConflict
+	case codes.OutOfRange:
+		return http.StatusBadRequest
+	case codes.Unimplemented:
+		return http.StatusNotImplemented
+	case codes.Internal:
+		return http.StatusInternalServerError
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
+	case codes.DataLoss:
+		return http.StatusInternalServerError
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// SanitizeErrorMessage returns a user-friendly error message based on gRPC code
+func SanitizeErrorMessage(code codes.Code, _ string) string {
+	switch code {
+	case codes.InvalidArgument:
+		return "invalid request"
+	case codes.NotFound:
+		return "resource not found"
+	case codes.AlreadyExists:
+		return "resource already exists"
+	case codes.PermissionDenied:
+		return "permission denied"
+	case codes.Unauthenticated:
+		return "authentication required"
+	case codes.ResourceExhausted:
+		return "too many requests"
+	case codes.FailedPrecondition:
+		return "operation not allowed"
+	case codes.Unimplemented:
+		return "feature not implemented"
+	case codes.Unavailable:
+		return "service unavailable"
+	default:
+		return "an error occurred"
+	}
+}
+
+// HandleGrpcError converts gRPC errors to proper HTTP responses with sanitized messages
+func HandleGrpcError(w http.ResponseWriter, err error) {
+	st, ok := status.FromError(err)
+	if !ok {
+		// Not a gRPC error, fall back to generic error
+		WriteError(w, http.StatusInternalServerError, "an error occurred")
+		return
+	}
+
+	httpStatus := GrpcToHTTPStatus(st.Code())
+	sanitizedMessage := SanitizeErrorMessage(st.Code(), st.Message())
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(httpStatus)
+	_ = json.NewEncoder(w).Encode(ErrorResponse{
+		Code:    grpcCodeToSnakeCase(st.Code()),
+		Message: sanitizedMessage,
+	})
+}
+
+func grpcCodeToSnakeCase(code codes.Code) string {
+	s := snakeCaseRe.ReplaceAllString(code.String(), "${1}_${2}")
+	return strings.ToLower(s)
+}
