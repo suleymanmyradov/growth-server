@@ -1,0 +1,980 @@
+syntax = "proto3";
+
+package client;
+
+option go_package = "./client";
+
+// Activity Service
+message ActivityItem {
+  string id = 1;
+  string userId = 2;
+  string type = 3;
+  string description = 4;
+  int64 timestamp = 5;
+  map<string, string> metadata = 6;
+}
+
+message GetActivityFeedRequest {
+  string userId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetActivityFeedResponse {
+  repeated ActivityItem activities = 1;
+}
+
+message LogActivityRequest {
+  string userId = 1;
+  string type = 2;
+  string description = 3;
+  map<string, string> metadata = 4;
+}
+
+message LogActivityResponse {
+  string activityId = 1;
+}
+
+message GetActivityStatsRequest {
+  string userId = 1;
+}
+
+message GetActivityStatsResponse {
+  int32 totalActivities = 1;
+  int32 streakDays = 2;
+  map<string, int32> activityCounts = 3;
+}
+
+message GetStreaksRequest {
+  string userId = 1;
+}
+
+message GetStreaksResponse {
+  int32 currentStreak = 1;
+  int32 longestStreak = 2;
+  repeated string streakDates = 3;
+}
+
+message GetAchievementsRequest {
+  string userId = 1;
+}
+
+message Achievement {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string iconUrl = 4;
+  int64 unlockedAt = 5;
+}
+
+message GetAchievementsResponse {
+  repeated Achievement achievements = 1;
+}
+
+message GetActivityCalendarRequest {
+  string userId = 1;
+  string month = 2;
+  string year = 3;
+}
+
+message CalendarDay {
+  string date = 1;
+  int32 count = 2;
+}
+
+message GetActivityCalendarResponse {
+  repeated CalendarDay days = 1;
+}
+
+service Activity {
+  rpc GetActivityFeed(GetActivityFeedRequest) returns (GetActivityFeedResponse);
+  rpc LogActivity(LogActivityRequest) returns (LogActivityResponse);
+  rpc GetActivityStats(GetActivityStatsRequest) returns (GetActivityStatsResponse);
+  rpc GetStreaks(GetStreaksRequest) returns (GetStreaksResponse);
+  rpc GetAchievements(GetAchievementsRequest) returns (GetAchievementsResponse);
+  rpc GetActivityCalendar(GetActivityCalendarRequest) returns (GetActivityCalendarResponse);
+}
+
+// Notifications Service
+message Notification {
+  string id = 1;
+  string userId = 2;
+  string type = 3;
+  string title = 4;
+  string message = 5;
+  bool read = 6;
+  int64 createdAt = 7;
+  map<string, string> metadata = 8;
+}
+
+message CreateNotificationRequest {
+  string userId = 1;
+  string type = 2;
+  string title = 3;
+  string message = 4;
+  map<string, string> metadata = 5;
+}
+
+message CreateNotificationResponse {
+  string notificationId = 1;
+}
+
+message GetNotificationRequest {
+  string notificationId = 1;
+}
+
+message GetNotificationResponse {
+  Notification notification = 1;
+}
+
+message ListNotificationsRequest {
+  string userId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  bool onlyUnread = 4;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 totalCount = 2;
+  int32 unreadCount = 3;
+}
+
+message MarkNotificationReadRequest {
+  string notificationId = 1;
+}
+
+message MarkNotificationReadResponse {
+  bool success = 1;
+}
+
+message MarkAllNotificationsReadRequest {
+  string userId = 1;
+}
+
+message MarkAllNotificationsReadResponse {
+  bool success = 1;
+}
+
+message DeleteNotificationRequest {
+  string notificationId = 1;
+}
+
+message DeleteNotificationResponse {
+  bool success = 1;
+}
+
+message GetUnreadCountRequest {
+  string userId = 1;
+}
+
+message GetUnreadCountResponse {
+  int32 count = 1;
+}
+
+message NotificationPreference {
+  string type = 1;
+  bool enabled = 2;
+  bool email = 3;
+  bool push = 4;
+}
+
+message GetNotificationPreferencesRequest {
+  string userId = 1;
+}
+
+message GetNotificationPreferencesResponse {
+  repeated NotificationPreference preferences = 1;
+}
+
+message UpdateNotificationPreferencesRequest {
+  string userId = 1;
+  repeated NotificationPreference preferences = 2;
+}
+
+message UpdateNotificationPreferencesResponse {
+  bool success = 1;
+}
+
+message GetNotificationTypesRequest {}
+
+message NotificationType {
+  string type = 1;
+  string description = 2;
+}
+
+message GetNotificationTypesResponse {
+  repeated NotificationType types = 1;
+}
+
+service Notifications {
+  rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  rpc MarkNotificationRead(MarkNotificationReadRequest) returns (MarkNotificationReadResponse);
+  rpc MarkAllNotificationsRead(MarkAllNotificationsReadRequest) returns (MarkAllNotificationsReadResponse);
+  rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  rpc GetNotificationPreferences(GetNotificationPreferencesRequest) returns (GetNotificationPreferencesResponse);
+  rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest) returns (UpdateNotificationPreferencesResponse);
+  rpc GetNotificationTypes(GetNotificationTypesRequest) returns (GetNotificationTypesResponse);
+}
+
+// Report Service
+message ReportItem {
+  string id = 1;
+  string reporterId = 2;
+  string targetId = 3;
+  string targetType = 4;
+  string category = 5;
+  string description = 6;
+  string status = 7;
+  int64 createdAt = 8;
+  int64 updatedAt = 9;
+  repeated string attachments = 10;
+}
+
+message SubmitReportRequest {
+  string reporterId = 1;
+  string targetId = 2;
+  string targetType = 3;
+  string category = 4;
+  string description = 5;
+  repeated string attachments = 6;
+}
+
+message SubmitReportResponse {
+  string reportId = 1;
+}
+
+message GetReportRequest {
+  string reportId = 1;
+}
+
+message GetReportResponse {
+  ReportItem report = 1;
+}
+
+message ListReportsRequest {
+  string reporterId = 1;
+  string status = 2;
+  int32 limit = 3;
+  int32 offset = 4;
+}
+
+message ListReportsResponse {
+  repeated ReportItem reports = 1;
+  int32 totalCount = 2;
+}
+
+message UpdateReportRequest {
+  string reportId = 1;
+  string status = 2;
+  string adminNotes = 3;
+}
+
+message UpdateReportResponse {
+  bool success = 1;
+}
+
+message GetReportCategoriesRequest {}
+
+message ReportCategory {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message GetReportCategoriesResponse {
+  repeated ReportCategory categories = 1;
+}
+
+message UploadAttachmentRequest {
+  string reportId = 1;
+  string filename = 2;
+  bytes data = 3;
+}
+
+message UploadAttachmentResponse {
+  string attachmentUrl = 1;
+}
+
+message GetReportStatusRequest {
+  string reportId = 1;
+}
+
+message GetReportStatusResponse {
+  string status = 1;
+  int64 updatedAt = 2;
+}
+
+message CloseReportRequest {
+  string reportId = 1;
+  string reason = 2;
+}
+
+message CloseReportResponse {
+  bool success = 1;
+}
+
+message AddReportCommentRequest {
+  string reportId = 1;
+  string userId = 2;
+  string comment = 3;
+}
+
+message AddReportCommentResponse {
+  string commentId = 1;
+}
+
+message ReportComment {
+  string id = 1;
+  string reportId = 2;
+  string userId = 3;
+  string comment = 4;
+  int64 createdAt = 5;
+}
+
+message GetReportCommentsRequest {
+  string reportId = 1;
+}
+
+message GetReportCommentsResponse {
+  repeated ReportComment comments = 1;
+}
+
+service Report {
+  rpc SubmitReport(SubmitReportRequest) returns (SubmitReportResponse);
+  rpc GetReport(GetReportRequest) returns (GetReportResponse);
+  rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
+  rpc UpdateReport(UpdateReportRequest) returns (UpdateReportResponse);
+  rpc GetReportCategories(GetReportCategoriesRequest) returns (GetReportCategoriesResponse);
+  rpc UploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse);
+  rpc GetReportStatus(GetReportStatusRequest) returns (GetReportStatusResponse);
+  rpc CloseReport(CloseReportRequest) returns (CloseReportResponse);
+  rpc AddReportComment(AddReportCommentRequest) returns (AddReportCommentResponse);
+  rpc GetReportComments(GetReportCommentsRequest) returns (GetReportCommentsResponse);
+}
+
+// Saved Service
+message SavedItem {
+  string id = 1;
+  string userId = 2;
+  string itemId = 3;
+  string itemType = 4;
+  string collectionId = 5;
+  int64 savedAt = 6;
+  map<string, string> metadata = 7;
+}
+
+message Collection {
+  string id = 1;
+  string userId = 2;
+  string name = 3;
+  string description = 4;
+  bool isPrivate = 5;
+  int64 createdAt = 6;
+  int32 itemCount = 7;
+}
+
+message SaveItemRequest {
+  string userId = 1;
+  string itemId = 2;
+  string itemType = 3;
+  string collectionId = 4;
+  map<string, string> metadata = 5;
+}
+
+message SaveItemResponse {
+  string savedId = 1;
+}
+
+message RemoveSavedRequest {
+  string savedId = 1;
+}
+
+message RemoveSavedResponse {
+  bool success = 1;
+}
+
+message ListSavedRequest {
+  string userId = 1;
+  string collectionId = 2;
+  string itemType = 3;
+  int32 limit = 4;
+  int32 offset = 5;
+}
+
+message ListSavedResponse {
+  repeated SavedItem items = 1;
+  int32 totalCount = 2;
+}
+
+message GetSavedItemRequest {
+  string savedId = 1;
+}
+
+message GetSavedItemResponse {
+  SavedItem item = 1;
+}
+
+message CreateCollectionRequest {
+  string userId = 1;
+  string name = 2;
+  string description = 3;
+  bool isPrivate = 4;
+}
+
+message CreateCollectionResponse {
+  string collectionId = 1;
+}
+
+message UpdateCollectionRequest {
+  string collectionId = 1;
+  string name = 2;
+  string description = 3;
+  bool isPrivate = 4;
+}
+
+message UpdateCollectionResponse {
+  bool success = 1;
+}
+
+message DeleteCollectionRequest {
+  string collectionId = 1;
+}
+
+message DeleteCollectionResponse {
+  bool success = 1;
+}
+
+message ListCollectionsRequest {
+  string userId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListCollectionsResponse {
+  repeated Collection collections = 1;
+  int32 totalCount = 2;
+}
+
+message GetCollectionRequest {
+  string collectionId = 1;
+}
+
+message GetCollectionResponse {
+  Collection collection = 1;
+}
+
+message MoveToCollectionRequest {
+  string savedId = 1;
+  string collectionId = 2;
+}
+
+message MoveToCollectionResponse {
+  bool success = 1;
+}
+
+message GetSavedStatsRequest {
+  string userId = 1;
+}
+
+message GetSavedStatsResponse {
+  int32 totalSaved = 1;
+  int32 totalCollections = 2;
+  map<string, int32> typeCounts = 3;
+}
+
+message ExportSavedRequest {
+  string userId = 1;
+  string format = 2;
+}
+
+message ExportSavedResponse {
+  string downloadUrl = 1;
+}
+
+service Saved {
+  rpc SaveItem(SaveItemRequest) returns (SaveItemResponse);
+  rpc RemoveSaved(RemoveSavedRequest) returns (RemoveSavedResponse);
+  rpc ListSaved(ListSavedRequest) returns (ListSavedResponse);
+  rpc GetSavedItem(GetSavedItemRequest) returns (GetSavedItemResponse);
+  rpc CreateCollection(CreateCollectionRequest) returns (CreateCollectionResponse);
+  rpc UpdateCollection(UpdateCollectionRequest) returns (UpdateCollectionResponse);
+  rpc DeleteCollection(DeleteCollectionRequest) returns (DeleteCollectionResponse);
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+  rpc GetCollection(GetCollectionRequest) returns (GetCollectionResponse);
+  rpc MoveToCollection(MoveToCollectionRequest) returns (MoveToCollectionResponse);
+  rpc GetSavedStats(GetSavedStatsRequest) returns (GetSavedStatsResponse);
+  rpc ExportSaved(ExportSavedRequest) returns (ExportSavedResponse);
+}
+
+// Settings Service
+message UserSettings {
+  string userId = 1;
+  string language = 2;
+  string theme = 3;
+  string timezone = 4;
+  bool marketingEmails = 5;
+  string privacyLevel = 6;
+  string accountabilityStyle = 7;
+  string checkInTime = 8;
+  bool onboardingCompleted = 9;
+}
+
+message GetSettingsRequest {
+  string userId = 1;
+}
+
+message GetSettingsResponse {
+  UserSettings settings = 1;
+}
+
+message UpdateSettingsRequest {
+  string userId = 1;
+  UserSettings settings = 2;
+}
+
+message UpdateSettingsResponse {
+  bool success = 1;
+}
+
+message GetPreferencesRequest {
+  string userId = 1;
+}
+
+message Preference {
+  string key = 1;
+  string value = 2;
+}
+
+message GetPreferencesResponse {
+  repeated Preference preferences = 1;
+}
+
+message UpdatePreferencesRequest {
+  string userId = 1;
+  repeated Preference preferences = 2;
+}
+
+message UpdatePreferencesResponse {
+  bool success = 1;
+}
+
+message UploadAvatarRequest {
+  string userId = 1;
+  bytes imageData = 2;
+  string format = 3;
+}
+
+message UploadAvatarResponse {
+  string avatarUrl = 1;
+}
+
+message DeleteAccountRequest {
+  string userId = 1;
+  string reason = 2;
+  string password = 3;
+}
+
+message DeleteAccountResponse {
+  bool success = 1;
+}
+
+message ExportDataRequest {
+  string userId = 1;
+  repeated string dataTypes = 2;
+}
+
+message ExportDataResponse {
+  string downloadUrl = 1;
+  int64 expiresAt = 2;
+}
+
+message PrivacySettings {
+  bool showActivity = 1;
+  bool showSaved = 2;
+  bool allowMessages = 3;
+  string profileVisibility = 4;
+}
+
+message GetPrivacySettingsRequest {
+  string userId = 1;
+}
+
+message GetPrivacySettingsResponse {
+  PrivacySettings settings = 1;
+}
+
+message UpdatePrivacySettingsRequest {
+  string userId = 1;
+  PrivacySettings settings = 2;
+}
+
+message UpdatePrivacySettingsResponse {
+  bool success = 1;
+}
+
+service Settings {
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+  rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
+  rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
+  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse);
+  rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
+  rpc ExportData(ExportDataRequest) returns (ExportDataResponse);
+  rpc GetPrivacySettings(GetPrivacySettingsRequest) returns (GetPrivacySettingsResponse);
+  rpc UpdatePrivacySettings(UpdatePrivacySettingsRequest) returns (UpdatePrivacySettingsResponse);
+}
+
+// Articles Service
+message ArticleCategory {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message Article {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  string authorId = 4;
+  string summary = 5;
+  string coverImage = 6;
+  repeated string tags = 7;
+  int64 publishedAt = 8;
+  int32 readTime = 9;
+  int32 likes = 10;
+  int32 shares = 11;
+  ArticleCategory category = 12;
+  int64 createdAt = 13;
+  int64 updatedAt = 14;
+}
+
+message ListArticlesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string categorySlug = 3;
+  string tag = 4;
+  string authorId = 5;
+}
+
+message ListArticlesResponse {
+  repeated Article articles = 1;
+  int32 totalCount = 2;
+}
+
+message GetArticleRequest {
+  string articleId = 1;
+}
+
+message GetArticleResponse {
+  Article article = 1;
+}
+
+message LikeArticleRequest {
+  string articleId = 1;
+  string userId = 2;
+}
+
+message LikeArticleResponse {
+  bool success = 1;
+  int32 newLikeCount = 2;
+}
+
+message ShareArticleRequest {
+  string articleId = 1;
+  string userId = 2;
+  string platform = 3;
+}
+
+message ShareArticleResponse {
+  bool success = 1;
+}
+
+message GetAuthorArticlesRequest {
+  string authorId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message GetAuthorArticlesResponse {
+  repeated Article articles = 1;
+  int32 totalCount = 2;
+}
+
+service Articles {
+  rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse);
+  rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+  rpc LikeArticle(LikeArticleRequest) returns (LikeArticleResponse);
+  rpc ShareArticle(ShareArticleRequest) returns (ShareArticleResponse);
+  rpc GetAuthorArticles(GetAuthorArticlesRequest) returns (GetAuthorArticlesResponse);
+}
+
+message Habit {
+  string id = 1;
+  string userId = 2;
+  string name = 3;
+  string description = 4;
+  string category = 5;
+  int32 streak = 6;
+  bool completed = 7;
+  bool completedToday = 8;
+  int64 createdAt = 9;
+  int64 updatedAt = 10;
+}
+
+message ListHabitsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListHabitsResponse {
+  repeated Habit habits = 1;
+  int32 total = 2;
+}
+
+message GetHabitRequest {
+  string habitId = 1;
+}
+
+message GetHabitResponse {
+  Habit habit = 1;
+}
+
+message CreateHabitRequest {
+  string userId = 1;
+  string name = 2;
+  string description = 3;
+  string category = 4;
+}
+
+message CreateHabitResponse {
+  Habit habit = 1;
+}
+
+message UpdateHabitRequest {
+  string habitId = 1;
+  string name = 2;
+  string description = 3;
+  string category = 4;
+}
+
+message UpdateHabitResponse {
+  Habit habit = 1;
+}
+
+message DeleteHabitRequest {
+  string habitId = 1;
+}
+
+message DeleteHabitResponse {
+  bool success = 1;
+}
+
+message ToggleHabitRequest {
+  string habitId = 1;
+}
+
+message ToggleHabitResponse {
+  Habit habit = 1;
+}
+
+message ResetTodayHabitsRequest {
+  string userId = 1;
+}
+
+message ResetTodayHabitsResponse {
+  int32 resetCount = 1;
+}
+
+service Habits {
+  rpc ListHabits(ListHabitsRequest) returns (ListHabitsResponse);
+  rpc GetHabit(GetHabitRequest) returns (GetHabitResponse);
+  rpc CreateHabit(CreateHabitRequest) returns (CreateHabitResponse);
+  rpc UpdateHabit(UpdateHabitRequest) returns (UpdateHabitResponse);
+  rpc DeleteHabit(DeleteHabitRequest) returns (DeleteHabitResponse);
+  rpc ToggleHabit(ToggleHabitRequest) returns (ToggleHabitResponse);
+  rpc ResetTodayHabits(ResetTodayHabitsRequest) returns (ResetTodayHabitsResponse);
+}
+
+message Goal {
+  string id = 1;
+  string userId = 2;
+  string title = 3;
+  string description = 4;
+  string category = 5;
+  int32 progress = 6;
+  bool completed = 7;
+  int64 dueDate = 8;
+  int64 createdAt = 9;
+  int64 updatedAt = 10;
+}
+
+message ListGoalsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListGoalsResponse {
+  repeated Goal goals = 1;
+  int32 total = 2;
+}
+
+message GetGoalRequest {
+  string goalId = 1;
+}
+
+message GetGoalResponse {
+  Goal goal = 1;
+}
+
+message CreateGoalRequest {
+  string userId = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  int64 dueDate = 5;
+}
+
+message CreateGoalResponse {
+  Goal goal = 1;
+}
+
+message UpdateGoalRequest {
+  string goalId = 1;
+  string title = 2;
+  string description = 3;
+  string category = 4;
+  int64 dueDate = 5;
+}
+
+message UpdateGoalResponse {
+  Goal goal = 1;
+}
+
+message DeleteGoalRequest {
+  string goalId = 1;
+}
+
+message DeleteGoalResponse {
+  bool success = 1;
+}
+
+message ToggleGoalRequest {
+  string goalId = 1;
+}
+
+message ToggleGoalResponse {
+  Goal goal = 1;
+}
+
+message UpdateGoalProgressRequest {
+  string goalId = 1;
+  int32 progress = 2;
+}
+
+message UpdateGoalProgressResponse {
+  Goal goal = 1;
+}
+
+service Goals {
+  rpc ListGoals(ListGoalsRequest) returns (ListGoalsResponse);
+  rpc GetGoal(GetGoalRequest) returns (GetGoalResponse);
+  rpc CreateGoal(CreateGoalRequest) returns (CreateGoalResponse);
+  rpc UpdateGoal(UpdateGoalRequest) returns (UpdateGoalResponse);
+  rpc DeleteGoal(DeleteGoalRequest) returns (DeleteGoalResponse);
+  rpc ToggleGoal(ToggleGoalRequest) returns (ToggleGoalResponse);
+  rpc UpdateGoalProgress(UpdateGoalProgressRequest) returns (UpdateGoalProgressResponse);
+}
+
+// Categories Service
+message Category {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  string entityType = 4;
+  int32 sortOrder = 5;
+  int64 createdAt = 6;
+  int64 updatedAt = 7;
+}
+
+message ListCategoriesRequest {
+  string entityType = 1;
+}
+
+message ListCategoriesResponse {
+  repeated Category categories = 1;
+}
+
+service Categories {
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+}
+
+// CheckIn Service
+message CheckIn {
+  string id = 1;
+  string userId = 2;
+  string habitId = 3;
+  string status = 4;       // "completed" | "missed"
+  string mood = 5;         // "great" | "okay" | "low" | "stressed"
+  string energy = 6;       // "high" | "medium" | "low"
+  string blocker = 7;
+  string note = 8;
+  int64 createdAt = 9;
+}
+
+message CreateCheckInRequest {
+  string userId = 1;
+  string habitId = 2;
+  string status = 3;
+  string mood = 4;
+  string energy = 5;
+  string blocker = 6;
+  string note = 7;
+}
+
+message CreateCheckInResponse {
+  CheckIn checkIn = 1;
+  Habit habit = 2;         // updated habit after check-in
+  string aiFeedback = 3; // AI-generated coaching feedback
+}
+
+message GetTodayCheckInsRequest {
+  string userId = 1;
+}
+
+message GetTodayCheckInsResponse {
+  repeated CheckIn checkIns = 1;
+}
+
+message GetCheckInHistoryRequest {
+  string userId = 1;
+  string habitId = 2;      // optional filter
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetCheckInHistoryResponse {
+  repeated CheckIn checkIns = 1;
+  int32 total = 2;
+}
+
+message HasCheckedInTodayRequest {
+  string userId = 1;
+  string habitId = 2;
+}
+
+message HasCheckedInTodayResponse {
+  bool checkedIn = 1;
+}
+
+service CheckInService {
+  rpc CreateCheckIn(CreateCheckInRequest) returns (CreateCheckInResponse);
+  rpc GetTodayCheckIns(GetTodayCheckInsRequest) returns (GetTodayCheckInsResponse);
+  rpc GetCheckInHistory(GetCheckInHistoryRequest) returns (GetCheckInHistoryResponse);
+  rpc HasCheckedInToday(HasCheckedInTodayRequest) returns (HasCheckedInTodayResponse);
+}

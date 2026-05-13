@@ -1,0 +1,8 @@
+Name: conversations.rpc
+ListenOn: 127.0.0.1:9084
+
+Telemetry:
+  Name: conversations.rpc
+  Endpoint: http://localhost:14268/api/traces
+  Sampler: 1.0
+  Batcher: zipkin

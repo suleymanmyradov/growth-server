@@ -1,0 +1,67 @@
+package notificationslogic
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+
+	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+type GetNotificationLogic struct {
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+	logx.Logger
+}
+
+func NewGetNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetNotificationLogic {
+	return &GetNotificationLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+		Logger: logx.WithContext(ctx),
+	}
+}
+
+func (l *GetNotificationLogic) GetNotification(in *client.GetNotificationRequest) (*client.GetNotificationResponse, error) {
+	if in == nil || in.NotificationId == "" {
+		return nil, status.Error(codes.InvalidArgument, "notification ID is required")
+	}
+
+	p, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+
+	notificationID, err := uuid.Parse(in.NotificationId)
+	if err != nil {
+		l.Errorf("failed to parse notification ID: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid notification ID")
+	}
+
+	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(l.ctx, notificationID)
+	if err != nil {
+		l.Errorf("failed to get notification: %v", err)
+		return nil, status.Error(codes.NotFound, "notification not found")
+	}
+
+	if notification.UserID.String() != p.UserID {
+		return nil, status.Error(codes.PermissionDenied, "access denied")
+	}
+
+	return &client.GetNotificationResponse{
+		Notification: &client.Notification{
+			Id:        notification.ID.String(),
+			UserId:    notification.UserID.String(),
+			Type:      notification.ItemType,
+			Title:     notification.Title,
+			Message:   notification.Message,
+			Read:      notification.IsRead,
+			CreatedAt: notification.CreatedAt.Unix(),
+		},
+	}, nil
+}

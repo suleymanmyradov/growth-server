@@ -1,0 +1,18 @@
+bin/
+logs/
+
+services/gateway/contract/swagger/gateway.swagger.json.json
+.idea
+keys/
+
+# Config files with secrets
+services/**/etc/*.yaml
+services/**/etc/*.yml
+pkg/ai/etc/*.yaml
+pkg/ai/etc/*.yml
+sql/conf/*.yaml
+
+# Environment files
+.env
+.env.*
+services/microservices/client/rpc/etc/client.yaml
