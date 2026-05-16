@@ -89,10 +89,10 @@ func (m *MockClient) Generate(_ context.Context, req ai.GenerateRequest) (ai.Gen
 	m.responses[req.ModelProfile] = recorders[1:]
 
 	return ai.GenerateResponse{
-		Message:  rec.Message,
-		Usage:    rec.Usage,
-		ModelID:  "mock-model",
-		CostUSD:  rec.CostUSD,
+		Message: rec.Message,
+		Usage:   rec.Usage,
+		ModelID: "mock-model",
+		CostUSD: rec.CostUSD,
 	}, nil
 }
 

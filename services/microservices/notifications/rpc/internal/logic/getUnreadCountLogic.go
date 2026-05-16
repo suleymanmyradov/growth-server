@@ -1,11 +1,11 @@
-package notificationslogic
+package logic
 
 import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -27,7 +27,7 @@ func NewGetUnreadCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ge
 	}
 }
 
-func (l *GetUnreadCountLogic) GetUnreadCount(in *client.GetUnreadCountRequest) (*client.GetUnreadCountResponse, error) {
+func (l *GetUnreadCountLogic) GetUnreadCount(in *notifications.GetUnreadCountRequest) (*notifications.GetUnreadCountResponse, error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
@@ -35,16 +35,16 @@ func (l *GetUnreadCountLogic) GetUnreadCount(in *client.GetUnreadCountRequest) (
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	count, err := l.svcCtx.Repo.Notifications.CountUnreadNotifications(l.ctx, userID)
+	count, err := l.svcCtx.Repo.Notifications.GetUnreadCount(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count unread notifications: %v", err)
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to count unread notifications")
 	}
 
-	return &client.GetUnreadCountResponse{
+	return &notifications.GetUnreadCountResponse{
 		Count: int32(count),
 	}, nil
 }

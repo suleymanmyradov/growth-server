@@ -16,9 +16,9 @@ const (
 
 // ToolCall represents a tool call requested by the model.
 type ToolCall struct {
-	ID    string       `json:"id"`
-	Type  string       `json:"type,omitempty"`
-	Fn    FunctionCall `json:"function"`
+	ID   string       `json:"id"`
+	Type string       `json:"type,omitempty"`
+	Fn   FunctionCall `json:"function"`
 }
 
 // FunctionCall is the function name and arguments within a ToolCall.
@@ -29,20 +29,20 @@ type FunctionCall struct {
 
 // ToolCallDelta represents a partial tool call during streaming.
 type ToolCallDelta struct {
-	Index    int    `json:"index"`
-	ID       string `json:"id,omitempty"`
-	FnName   string `json:"function_name,omitempty"`
-	FnArgs   string `json:"function_arguments,omitempty"`
+	Index  int    `json:"index"`
+	ID     string `json:"id,omitempty"`
+	FnName string `json:"function_name,omitempty"`
+	FnArgs string `json:"function_arguments,omitempty"`
 }
 
 // Message is the standard role/content shape. It mirrors Eino's schema.Message
 // but keeps our own type so the framework is swappable.
 type Message struct {
-	Role       Role        `json:"role"`
-	Content    string      `json:"content"`
-	Name       string      `json:"name,omitempty"`
-	ToolCalls  []ToolCall  `json:"tool_calls,omitempty"`
-	ToolCallID string      `json:"tool_call_id,omitempty"`
+	Role       Role       `json:"role"`
+	Content    string     `json:"content"`
+	Name       string     `json:"name,omitempty"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
+	ToolCallID string     `json:"tool_call_id,omitempty"`
 }
 
 // Metadata carries call-level context for logging and spend tracking.
@@ -83,11 +83,11 @@ type GenerateRequest struct {
 
 // GenerateResponse is returned by Generate.
 type GenerateResponse struct {
-	Message    Message `json:"message"`
-	Usage      Usage   `json:"usage"`
-	ModelID    string  `json:"model_id"`
-	LatencyMS  int64   `json:"latency_ms"`
-	CostUSD    float64 `json:"cost_usd"`
+	Message   Message `json:"message"`
+	Usage     Usage   `json:"usage"`
+	ModelID   string  `json:"model_id"`
+	LatencyMS int64   `json:"latency_ms"`
+	CostUSD   float64 `json:"cost_usd"`
 }
 
 // Usage reports token counts.
@@ -99,10 +99,10 @@ type Usage struct {
 
 // Chunk is a streaming delta.
 type Chunk struct {
-	Delta        string        `json:"delta,omitempty"`
+	Delta         string         `json:"delta,omitempty"`
 	ToolCallDelta *ToolCallDelta `json:"tool_call_delta,omitempty"`
-	FinishReason string        `json:"finish_reason,omitempty"`
-	Usage        *Usage        `json:"usage,omitempty"`
+	FinishReason  string         `json:"finish_reason,omitempty"`
+	Usage         *Usage         `json:"usage,omitempty"`
 }
 
 // StreamReader exposes Recv/Close for streaming consumption.

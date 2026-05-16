@@ -16,11 +16,11 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
-	clientnotifications "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/notifications"
 	clientreport "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/report"
 	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 	clientsettings "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
 	conversationsservice "github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/client/conversationsservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
@@ -32,7 +32,7 @@ type ServiceContext struct {
 	Config           config.Config
 	Auth             rest.Middleware
 	AuthRpc          authservice.AuthService
-	ClientRpc        clientnotifications.Notifications
+	NotificationsRpc notificationsClient.Notifications
 	SavedRpc         clientsaved.Saved
 	SettingsRpc      clientsettings.Settings
 	ReportRpc        clientreport.Report
@@ -65,7 +65,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Audience: c.Auth.Audience,
 		}),
 		AuthRpc:          authRpc,
-		ClientRpc:        clientnotifications.NewNotifications(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
+		NotificationsRpc: notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, clientOpts...)),
 		SavedRpc:         clientsaved.NewSaved(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
 		SettingsRpc:      clientsettings.NewSettings(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
 		ReportRpc:        clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),

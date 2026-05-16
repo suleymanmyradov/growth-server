@@ -3,8 +3,8 @@ package memory
 import (
 	"testing"
 
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/stretchr/testify/assert"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 )
 
 func TestConversationWindow_Add(t *testing.T) {

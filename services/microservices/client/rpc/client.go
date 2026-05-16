@@ -13,7 +13,6 @@ import (
 	checkInServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/checkinservice"
 	goalsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/goals"
 	habitsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/habits"
-	notificationsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/notifications"
 	reportServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/report"
 	savedServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/saved"
 	settingsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/settings"
@@ -38,7 +37,6 @@ func main() {
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		client.RegisterActivityServer(grpcServer, activityServer.NewActivityServer(ctx))
-		client.RegisterNotificationsServer(grpcServer, notificationsServer.NewNotificationsServer(ctx))
 		client.RegisterReportServer(grpcServer, reportServer.NewReportServer(ctx))
 		client.RegisterSavedServer(grpcServer, savedServer.NewSavedServer(ctx))
 		client.RegisterSettingsServer(grpcServer, settingsServer.NewSettingsServer(ctx))

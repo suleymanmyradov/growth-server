@@ -9,7 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
-	clientnotifications "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/notifications"
+	notificationsClient "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -35,8 +35,7 @@ func (l *ListNotificationsLogic) ListNotifications(req *types.PageRequest) (resp
 		return &types.NotificationsResponse{Data: []types.Notification{}}, nil
 	}
 
-	rpcResp, err := l.svcCtx.ClientRpc.ListNotifications(l.ctx, &clientnotifications.ListNotificationsRequest{
-		UserId: "",
+	rpcResp, err := l.svcCtx.NotificationsRpc.ListNotifications(l.ctx, &notificationsClient.ListNotificationsRequest{
 		Limit:  int32(req.Limit),
 		Offset: int32((req.Page - 1) * req.Limit),
 	})
@@ -55,6 +54,10 @@ func (l *ListNotificationsLogic) ListNotifications(req *types.PageRequest) (resp
 			UserId:    n.UserId,
 			CreatedAt: strconv.FormatInt(n.CreatedAt, 10),
 		})
+	}
+
+	if req.Limit <= 0 {
+		req.Limit = 20
 	}
 
 	totalPages := int(rpcResp.TotalCount) / req.Limit

@@ -34,8 +34,8 @@ var (
 
 // QuotaError provides details about which quota was exceeded.
 type QuotaError struct {
-	Limit  string
-	Used   int64
+	Limit string
+	Used  int64
 	Cap   int64
 }
 

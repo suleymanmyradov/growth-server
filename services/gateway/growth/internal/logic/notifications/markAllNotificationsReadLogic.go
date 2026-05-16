@@ -8,7 +8,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
-	clientnotifications "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/notifications"
+	notificationsClient "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,7 +34,7 @@ func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead() (resp *types.
 		return &types.EmptyResponse{}, nil
 	}
 
-	_, err = l.svcCtx.ClientRpc.MarkAllNotificationsRead(l.ctx, &clientnotifications.MarkAllNotificationsReadRequest{
+	_, err = l.svcCtx.NotificationsRpc.MarkAllNotificationsRead(l.ctx, &notificationsClient.MarkAllNotificationsReadRequest{
 		UserId: "",
 	})
 	if err != nil {

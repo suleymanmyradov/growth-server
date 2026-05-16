@@ -8,7 +8,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
-	clientnotifications "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/notifications"
+	notificationsClient "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -28,7 +28,7 @@ func NewMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *MarkNotificationReadLogic) MarkNotificationRead(req *types.NotificationRequest) (resp *types.EmptyResponse, err error) {
-	_, err = l.svcCtx.ClientRpc.MarkNotificationRead(l.ctx, &clientnotifications.MarkNotificationReadRequest{
+	_, err = l.svcCtx.NotificationsRpc.MarkNotificationRead(l.ctx, &notificationsClient.MarkNotificationReadRequest{
 		NotificationId: req.Id,
 	})
 	if err != nil {
