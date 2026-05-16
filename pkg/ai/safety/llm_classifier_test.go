@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
-	"github.com/suleymanmyradov/growth-server/pkg/ai/aitest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/aitest"
 )
 
 func TestLLMClassifier_Safe(t *testing.T) {

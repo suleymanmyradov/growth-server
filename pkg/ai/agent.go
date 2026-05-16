@@ -2,12 +2,9 @@ package ai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/cloudwego/eino/components/model"
-	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -52,7 +49,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 
 		result, err := c.callGenerateWithTools(ctx, m, msgs, toolInfos, opts)
 		if err != nil {
-			c.logCall(req.ModelProfile, m.modelID, req.Metadata, totalUsage, time.Since(start).Milliseconds(), 0, err)
+			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, time.Since(start).Milliseconds(), 0, err)
 			recordMetrics(req.ModelProfile, m.modelID, "error")
 			return AgentResponse{}, fmt.Errorf("ai.RunAgent step %d: %w", step+1, err)
 		}
@@ -78,7 +75,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 		for _, tc := range result.ToolCalls {
 			tool, ok := toolMap[tc.Function.Name]
 			if !ok {
-				logx.Errorf("ai.RunAgent: unknown tool %q called", tc.Function.Name)
+				logx.WithContext(ctx).Errorf("ai.RunAgent: unknown tool %q called", tc.Function.Name)
 				toolResult := toolResultMessage(tc.ID, fmt.Sprintf(`{"error":"unknown tool %q"}`, tc.Function.Name))
 				allMessages = append(allMessages, toolResult)
 				msgs = append(msgs, toEinoMessage(toolResult))
@@ -87,7 +84,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 
 			output, err := tool.Execute(ctx, tc.Function.Arguments)
 			if err != nil {
-				logx.Errorf("ai.RunAgent: tool %q execution error: %v", tc.Function.Name, err)
+				logx.WithContext(ctx).Errorf("ai.RunAgent: tool %q execution error: %v", tc.Function.Name, err)
 				output = fmt.Sprintf(`{"error":%q}`, err.Error())
 			}
 
@@ -101,7 +98,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 	if steps >= req.MaxSteps && len(msgs) > 0 {
 		lastMsg := msgs[len(msgs)-1]
 		if len(lastMsg.ToolCalls) > 0 {
-			logx.Infof("ai.RunAgent: hit max steps %d", req.MaxSteps)
+			logx.WithContext(ctx).Infof("ai.RunAgent: hit max steps %d", req.MaxSteps)
 		}
 	}
 
@@ -109,7 +106,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 	latencyMS := time.Since(start).Milliseconds()
 
 	c.recordUsage(ctx, req.Metadata, totalUsage, costUSD)
-	c.logCall(req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, costUSD, nil)
+	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, costUSD, nil)
 	recordMetrics(req.ModelProfile, m.modelID, "ok")
 
 	return AgentResponse{
@@ -121,21 +118,3 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 		CostUSD:   costUSD,
 	}, nil
 }
-
-// toolResultMessage creates a tool result Message from a tool execution.
-// Redefined here to avoid circular dependency with types.go.
-func toolResultMsg(toolCallID, content string) Message {
-	return Message{
-		Role:       RoleTool,
-		Content:    content,
-		ToolCallID: toolCallID,
-	}
-}
-
-// Suppress unused imports.
-var (
-	_ = json.Unmarshal
-	_ = model.WithTemperature
-	_ = schema.System
-	_ = logx.Infof
-)

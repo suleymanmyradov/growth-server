@@ -38,24 +38,6 @@ type ISavedItems interface {
 	CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType string) (int64, error)
 }
 
-type INotifications interface {
-	ListNotifications(ctx context.Context, limit, offset int32) ([]db.ListNotificationsRow, error)
-	ListNotificationsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.ListNotificationsByUserRow, error)
-	ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.ListUnreadNotificationsRow, error)
-	ListNotificationsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.ListNotificationsByTypeRow, error)
-	ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.ListNotificationsForUserRow, error)
-	GetNotificationByID(ctx context.Context, id uuid.UUID) (db.GetNotificationRow, error)
-	CreateNotification(ctx context.Context, params db.CreateNotificationParams) (db.CreateNotificationRow, error)
-	MarkNotificationRead(ctx context.Context, id uuid.UUID) (db.MarkNotificationReadRow, error)
-	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
-	DeleteNotification(ctx context.Context, id uuid.UUID) error
-	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
-	CountNotifications(ctx context.Context) (int64, error)
-	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
-	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
-}
-
 type IActivities interface {
 	ListActivities(ctx context.Context, limit, offset int32) ([]db.Activity, error)
 	ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
@@ -131,27 +113,25 @@ type ICheckIns interface {
 }
 
 type Repository struct {
-	Articles      IArticles
-	SavedItems    ISavedItems
-	Notifications INotifications
-	Activities    IActivities
-	UserSettings  IUserSettings
-	Habits        IHabits
-	Goals         IGoals
-	Categories    ICategories
-	CheckIns      ICheckIns
+	Articles     IArticles
+	SavedItems   ISavedItems
+	Activities   IActivities
+	UserSettings IUserSettings
+	Habits       IHabits
+	Goals        IGoals
+	Categories   ICategories
+	CheckIns     ICheckIns
 }
 
 func NewRepository(db *db.Queries) *Repository {
 	return &Repository{
-		Articles:      NewArticlesRepo(db),
-		SavedItems:    NewSavedItemsRepo(db),
-		Notifications: NewNotificationsRepo(db),
-		Activities:    NewActivitiesRepo(db),
-		UserSettings:  NewUserSettingsRepo(db),
-		Habits:        NewHabitsRepo(db),
-		Goals:         NewGoalsRepo(db),
-		Categories:    NewCategoriesRepo(db),
-		CheckIns:      NewCheckInsRepo(db),
+		Articles:     NewArticlesRepo(db),
+		SavedItems:   NewSavedItemsRepo(db),
+		Activities:   NewActivitiesRepo(db),
+		UserSettings: NewUserSettingsRepo(db),
+		Habits:       NewHabitsRepo(db),
+		Goals:        NewGoalsRepo(db),
+		Categories:   NewCategoriesRepo(db),
+		CheckIns:     NewCheckInsRepo(db),
 	}
 }

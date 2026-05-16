@@ -163,17 +163,6 @@ type Message struct {
 	CreatedAt      time.Time `db:"created_at" json:"created_at"`
 }
 
-type Notification struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-}
-
 type Profile struct {
 	ID        uuid.UUID      `db:"id" json:"id"`
 	UserID    uuid.UUID      `db:"user_id" json:"user_id"`

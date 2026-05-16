@@ -10,6 +10,7 @@ import (
 	articles "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/articles"
 	auth "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/auth"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
+	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
 	conversations "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
@@ -122,6 +123,30 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: categories.ListCategoriesHandler(serverCtx),
 			},
 		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/check-ins",
+					Handler: checkin.CreateCheckInHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/check-ins/history",
+					Handler: checkin.GetCheckInHistoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/check-ins/today",
+					Handler: checkin.GetTodayCheckInsHandler(serverCtx),
+				},
+			}...,
+		),
 		rest.WithPrefix("/api/v1"),
 	)
 

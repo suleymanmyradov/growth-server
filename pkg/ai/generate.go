@@ -41,7 +41,7 @@ func (c *client) Generate(ctx context.Context, req GenerateRequest) (GenerateRes
 		if resp, fbErr := c.tryFallback(ctx, req, msgs, opts, err, latencyMS); fbErr == nil {
 			return resp, nil
 		}
-		c.logCall(req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
+		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
 		recordMetrics(req.ModelProfile, m.modelID, "error")
 		return GenerateResponse{}, fmt.Errorf("ai.Generate: %w", err)
 	}
@@ -51,7 +51,7 @@ func (c *client) Generate(ctx context.Context, req GenerateRequest) (GenerateRes
 	latencyMS = time.Since(start).Milliseconds()
 
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
-	c.logCall(req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
+	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
 	recordMetrics(req.ModelProfile, m.modelID, "ok")
 
 	return GenerateResponse{
@@ -70,7 +70,7 @@ func (c *client) generateWithTools(ctx context.Context, m openaiModel, req Gener
 	latencyMS := time.Since(start).Milliseconds()
 
 	if err != nil {
-		c.logCall(req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
+		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
 		recordMetrics(req.ModelProfile, m.modelID, "error")
 		return GenerateResponse{}, fmt.Errorf("ai.Generate: %w", err)
 	}
@@ -80,7 +80,7 @@ func (c *client) generateWithTools(ctx context.Context, m openaiModel, req Gener
 	latencyMS = time.Since(start).Milliseconds()
 
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
-	c.logCall(req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
+	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
 	recordMetrics(req.ModelProfile, m.modelID, "ok")
 
 	return GenerateResponse{
@@ -102,13 +102,13 @@ func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*s
 		return GenerateResponse{}, primaryErr
 	}
 
-	logx.Infof("ai: primary model failed, trying fallback: %v", primaryErr)
+	logx.WithContext(ctx).Infof("ai: primary model failed, trying fallback: %v", primaryErr)
 
 	start := time.Now()
 	result, err := c.callGenerate(ctx, fb, msgs, opts)
 	latencyMS := time.Since(start).Milliseconds()
 	if err != nil {
-		c.logCall(ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
+		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
 		recordMetrics(ModelFallback, fb.modelID, "error")
 		return GenerateResponse{}, fmt.Errorf("ai.Generate fallback also failed: %w (primary: %v)", err, primaryErr)
 	}
@@ -116,7 +116,7 @@ func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*s
 	usage := extractUsage(result)
 	costUSD := c.cfg.ComputeCost(fb.modelID, usage.PromptTokens, usage.CompletionTokens)
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
-	c.logCall(ModelFallback, fb.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
+	c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
 	recordMetrics(ModelFallback, fb.modelID, "ok")
 
 	return GenerateResponse{

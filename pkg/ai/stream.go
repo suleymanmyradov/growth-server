@@ -33,7 +33,7 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		return genErr
 	})
 	if streamErr != nil {
-		c.logCall(req.ModelProfile, m.modelID, req.Metadata, Usage{}, time.Since(start).Milliseconds(), 0, streamErr)
+		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, time.Since(start).Milliseconds(), 0, streamErr)
 		recordMetrics(req.ModelProfile, m.modelID, "error")
 		return nil, fmt.Errorf("ai.Stream: %w", streamErr)
 	}
@@ -70,11 +70,11 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 	if err != nil {
 		if err == io.EOF {
 			r.done = true
-			r.client.logCall(r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, nil)
+			r.client.logCall(context.Background(), r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, nil)
 			recordMetrics(r.profile, r.modelID, "ok")
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
-		r.client.logCall(r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, err)
+		r.client.logCall(context.Background(), r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, err)
 		recordMetrics(r.profile, r.modelID, "error")
 		return Chunk{}, err
 	}

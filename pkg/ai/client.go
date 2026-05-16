@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
@@ -130,7 +129,7 @@ func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 	if meta.UserID != "" && c.cfg.Quota.UserDailyTokenCap > 0 {
 		ok, err := c.opts.quotaStore.CheckUserQuota(ctx, meta.UserID, c.cfg.Quota.UserDailyTokenCap)
 		if err != nil {
-			logx.Errorf("ai: quota check error for user %s: %v", meta.UserID, err)
+			logx.WithContext(ctx).Errorf("ai: quota check error for user %s: %v", meta.UserID, err)
 			return nil // fail open on quota store errors
 		}
 		if !ok {
@@ -140,7 +139,7 @@ func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 	if c.cfg.Quota.GlobalDailyCostCapUSD > 0 {
 		ok, err := c.opts.quotaStore.CheckGlobalQuota(ctx, int64(c.cfg.Quota.GlobalDailyCostCapUSD*1e6))
 		if err != nil {
-			logx.Errorf("ai: global quota check error: %v", err)
+			logx.WithContext(ctx).Errorf("ai: global quota check error: %v", err)
 			return nil
 		}
 		if !ok {
@@ -157,26 +156,36 @@ func (c *client) recordUsage(ctx context.Context, meta Metadata, usage Usage, co
 	}
 	if meta.UserID != "" && c.cfg.Quota.UserDailyTokenCap > 0 {
 		if err := c.opts.quotaStore.IncrUserTokens(ctx, meta.UserID, int64(usage.TotalTokens)); err != nil {
-			logx.Errorf("ai: record user tokens error: %v", err)
+			logx.WithContext(ctx).Errorf("ai: record user tokens error: %v", err)
 		}
 	}
 	if c.cfg.Quota.GlobalDailyCostCapUSD > 0 {
 		if err := c.opts.quotaStore.IncrGlobalCost(ctx, int64(costUSD*1e6)); err != nil {
-			logx.Errorf("ai: record global cost error: %v", err)
+			logx.WithContext(ctx).Errorf("ai: record global cost error: %v", err)
 		}
 	}
 }
 
 // logCall logs every call with model, profile, feature, tokens, latency, cost, error.
 // Never logs message contents at info level.
-func (c *client) logCall(profile ModelProfile, modelID string, meta Metadata, usage Usage, latencyMS int64, costUSD float64, err error) {
+func (c *client) logCall(ctx context.Context, profile ModelProfile, modelID string, meta Metadata, usage Usage, latencyMS int64, costUSD float64, err error) {
+	logger := logx.WithContext(ctx).
+		WithFields(
+			logx.Field("profile", profile),
+			logx.Field("model", modelID),
+			logx.Field("feature", meta.Feature),
+			logx.Field("user_id", meta.UserID),
+			logx.Field("conversation_id", meta.ConversationID),
+			logx.Field("prompt_tokens", usage.PromptTokens),
+			logx.Field("completion_tokens", usage.CompletionTokens),
+			logx.Field("latency_ms", latencyMS),
+			logx.Field("cost_usd", costUSD),
+		)
 	if err != nil {
-		logx.Infof("ai call: profile=%s model=%s feature=%s user=%s latency_ms=%d cost_usd=%.6f error=%v",
-			profile, modelID, meta.Feature, meta.UserID, latencyMS, costUSD, err)
+		logger.Errorf("ai call failed: %v", err)
 		return
 	}
-	logx.Infof("ai call: profile=%s model=%s feature=%s user=%s prompt_tokens=%d completion_tokens=%d latency_ms=%d cost_usd=%.6f",
-		profile, modelID, meta.Feature, meta.UserID, usage.PromptTokens, usage.CompletionTokens, latencyMS, costUSD)
+	logger.Info("ai call ok")
 }
 
 // openRouterTransport injects OpenRouter analytics headers into every request.
@@ -250,9 +259,4 @@ func (c *client) callGenerateWithTools(ctx context.Context, m openaiModel, msgs 
 		return nil, retryErr
 	}
 	return result, nil
-}
-
-// nowMS returns current unix milliseconds.
-func nowMS() int64 {
-	return time.Now().UnixMilli()
 }

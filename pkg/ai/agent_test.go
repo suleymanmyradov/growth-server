@@ -15,7 +15,7 @@ func TestClient_RunAgent(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 		callCount++
 		var body map[string]any
-		json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewDecoder(r.Body).Decode(&body)
 
 		if callCount == 1 {
 			// First call: model requests a tool call.
@@ -41,7 +41,7 @@ func TestClient_RunAgent(t *testing.T) {
 				}},
 				"usage": map[string]any{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 			}
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 			return
 		}
 
@@ -60,7 +60,7 @@ func TestClient_RunAgent(t *testing.T) {
 			}},
 			"usage": map[string]any{"prompt_tokens": 20, "completion_tokens": 10, "total_tokens": 30},
 		}
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 

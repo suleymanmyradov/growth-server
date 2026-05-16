@@ -62,4 +62,4 @@ func formatMessages(msgs []ai.Message) string {
 }
 
 func floatPtr(f float32) *float32 { return &f }
-func intPtr(i int) *int            { return &i }
+func intPtr(i int) *int           { return &i }

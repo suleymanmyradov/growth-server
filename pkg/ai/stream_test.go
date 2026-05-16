@@ -23,9 +23,9 @@ func TestClient_Stream(t *testing.T) {
 		}
 		for _, chunk := range chunks {
 			data, _ := json.Marshal(chunk)
-			w.Write([]byte("data: " + string(data) + "\n\n"))
+			_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
 		}
-		w.Write([]byte("data: [DONE]\n\n"))
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
 	})
 	defer server.Close()
 

@@ -6,17 +6,13 @@ import (
 
 // Eino type aliases used internally for conversion.
 type (
-	einoMessage     = schema.Message
-	einoToolCall    = schema.ToolCall
+	einoMessage      = schema.Message
+	einoToolCall     = schema.ToolCall
 	einoFunctionCall = schema.FunctionCall
-	einoRoleType    = schema.RoleType
 )
 
 const (
-	einoSystem    = schema.System
-	einoUser      = schema.User
-	einoAssistant = schema.Assistant
-	einoTool      = schema.Tool
+	einoSystem = schema.System
 )
 
 // toEinoRole converts our Role to Eino's RoleType.

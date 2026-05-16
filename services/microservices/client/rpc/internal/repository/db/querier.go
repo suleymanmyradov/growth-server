@@ -24,12 +24,9 @@ type Querier interface {
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountNotifications(ctx context.Context) (int64, error)
-	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error)
-	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUserSettings(ctx context.Context) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
@@ -38,19 +35,16 @@ type Querier interface {
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
 	CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error)
-	CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error)
 	CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error)
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
-	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShare(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShareByUserAndArticle(ctx context.Context, arg DeleteArticleShareByUserAndArticleParams) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	DeleteNotification(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItemByUserAndItem(ctx context.Context, arg DeleteSavedItemByUserAndItemParams) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
@@ -70,12 +64,10 @@ type Querier interface {
 	GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeekParams) ([]CheckIn, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (Goal, error)
 	GetHabit(ctx context.Context, id uuid.UUID) (Habit, error)
-	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
 	GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error)
 	GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error)
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
-	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error)
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error)
 	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
@@ -93,17 +85,10 @@ type Querier interface {
 	ListCategories(ctx context.Context, entityType EntityType) ([]Category, error)
 	ListGoals(ctx context.Context, arg ListGoalsParams) ([]Goal, error)
 	ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit, error)
-	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error)
-	ListNotificationsByType(ctx context.Context, arg ListNotificationsByTypeParams) ([]ListNotificationsByTypeRow, error)
-	ListNotificationsByUser(ctx context.Context, arg ListNotificationsByUserParams) ([]ListNotificationsByUserRow, error)
-	ListNotificationsForUser(ctx context.Context, arg ListNotificationsForUserParams) ([]ListNotificationsForUserRow, error)
 	ListSavedItems(ctx context.Context, arg ListSavedItemsParams) ([]SavedItem, error)
 	ListSavedItemsByType(ctx context.Context, arg ListSavedItemsByTypeParams) ([]SavedItem, error)
 	ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsByUserParams) ([]SavedItem, error)
-	ListUnreadNotifications(ctx context.Context, arg ListUnreadNotificationsParams) ([]ListUnreadNotificationsRow, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
-	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
-	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	SearchArticles(ctx context.Context, arg SearchArticlesParams) ([]SearchArticlesRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error)

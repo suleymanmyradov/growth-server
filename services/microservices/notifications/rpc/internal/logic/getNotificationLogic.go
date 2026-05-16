@@ -1,12 +1,14 @@
-package notificationslogic
+package logic
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
@@ -27,7 +29,7 @@ func NewGetNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 	}
 }
 
-func (l *GetNotificationLogic) GetNotification(in *client.GetNotificationRequest) (*client.GetNotificationResponse, error) {
+func (l *GetNotificationLogic) GetNotification(in *notifications.GetNotificationRequest) (*notifications.GetNotificationResponse, error) {
 	if in == nil || in.NotificationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "notification ID is required")
 	}
@@ -46,15 +48,18 @@ func (l *GetNotificationLogic) GetNotification(in *client.GetNotificationRequest
 	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(l.ctx, notificationID)
 	if err != nil {
 		l.Errorf("failed to get notification: %v", err)
-		return nil, status.Error(codes.NotFound, "notification not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, status.Error(codes.NotFound, "notification not found")
+		}
+		return nil, status.Error(codes.Internal, "failed to get notification")
 	}
 
 	if notification.UserID.String() != p.UserID {
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	return &client.GetNotificationResponse{
-		Notification: &client.Notification{
+	return &notifications.GetNotificationResponse{
+		Notification: &notifications.Notification{
 			Id:        notification.ID.String(),
 			UserId:    notification.UserID.String(),
 			Type:      notification.ItemType,

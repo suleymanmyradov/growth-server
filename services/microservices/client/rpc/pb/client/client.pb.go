@@ -850,1179 +850,6 @@ func (x *GetActivityCalendarResponse) GetDays() []*CalendarDay {
 	return nil
 }
 
-// Notifications Service
-type Notification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
-	Type          string                 `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
-	Title         string                 `protobuf:"bytes,4,opt,name=title,proto3" json:"title,omitempty"`
-	Message       string                 `protobuf:"bytes,5,opt,name=message,proto3" json:"message,omitempty"`
-	Read          bool                   `protobuf:"varint,6,opt,name=read,proto3" json:"read,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,7,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,8,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Notification) Reset() {
-	*x = Notification{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Notification) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Notification) ProtoMessage() {}
-
-func (x *Notification) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Notification.ProtoReflect.Descriptor instead.
-func (*Notification) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *Notification) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Notification) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *Notification) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *Notification) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *Notification) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *Notification) GetRead() bool {
-	if x != nil {
-		return x.Read
-	}
-	return false
-}
-
-func (x *Notification) GetCreatedAt() int64 {
-	if x != nil {
-		return x.CreatedAt
-	}
-	return 0
-}
-
-func (x *Notification) GetMetadata() map[string]string {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
-type CreateNotificationRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Message       string                 `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
-	Metadata      map[string]string      `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CreateNotificationRequest) Reset() {
-	*x = CreateNotificationRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateNotificationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateNotificationRequest) ProtoMessage() {}
-
-func (x *CreateNotificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateNotificationRequest.ProtoReflect.Descriptor instead.
-func (*CreateNotificationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *CreateNotificationRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *CreateNotificationRequest) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *CreateNotificationRequest) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *CreateNotificationRequest) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *CreateNotificationRequest) GetMetadata() map[string]string {
-	if x != nil {
-		return x.Metadata
-	}
-	return nil
-}
-
-type CreateNotificationResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notificationId,proto3" json:"notificationId,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *CreateNotificationResponse) Reset() {
-	*x = CreateNotificationResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateNotificationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateNotificationResponse) ProtoMessage() {}
-
-func (x *CreateNotificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CreateNotificationResponse.ProtoReflect.Descriptor instead.
-func (*CreateNotificationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *CreateNotificationResponse) GetNotificationId() string {
-	if x != nil {
-		return x.NotificationId
-	}
-	return ""
-}
-
-type GetNotificationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notificationId,proto3" json:"notificationId,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *GetNotificationRequest) Reset() {
-	*x = GetNotificationRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationRequest) ProtoMessage() {}
-
-func (x *GetNotificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationRequest.ProtoReflect.Descriptor instead.
-func (*GetNotificationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *GetNotificationRequest) GetNotificationId() string {
-	if x != nil {
-		return x.NotificationId
-	}
-	return ""
-}
-
-type GetNotificationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Notification  *Notification          `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetNotificationResponse) Reset() {
-	*x = GetNotificationResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationResponse) ProtoMessage() {}
-
-func (x *GetNotificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationResponse.ProtoReflect.Descriptor instead.
-func (*GetNotificationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *GetNotificationResponse) GetNotification() *Notification {
-	if x != nil {
-		return x.Notification
-	}
-	return nil
-}
-
-type ListNotificationsRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
-	OnlyUnread    bool                   `protobuf:"varint,4,opt,name=onlyUnread,proto3" json:"onlyUnread,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListNotificationsRequest) Reset() {
-	*x = ListNotificationsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[20]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListNotificationsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListNotificationsRequest) ProtoMessage() {}
-
-func (x *ListNotificationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[20]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListNotificationsRequest.ProtoReflect.Descriptor instead.
-func (*ListNotificationsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{20}
-}
-
-func (x *ListNotificationsRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *ListNotificationsRequest) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-func (x *ListNotificationsRequest) GetOffset() int32 {
-	if x != nil {
-		return x.Offset
-	}
-	return 0
-}
-
-func (x *ListNotificationsRequest) GetOnlyUnread() bool {
-	if x != nil {
-		return x.OnlyUnread
-	}
-	return false
-}
-
-type ListNotificationsResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Notifications []*Notification        `protobuf:"bytes,1,rep,name=notifications,proto3" json:"notifications,omitempty"`
-	TotalCount    int32                  `protobuf:"varint,2,opt,name=totalCount,proto3" json:"totalCount,omitempty"`
-	UnreadCount   int32                  `protobuf:"varint,3,opt,name=unreadCount,proto3" json:"unreadCount,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListNotificationsResponse) Reset() {
-	*x = ListNotificationsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListNotificationsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListNotificationsResponse) ProtoMessage() {}
-
-func (x *ListNotificationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ListNotificationsResponse.ProtoReflect.Descriptor instead.
-func (*ListNotificationsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *ListNotificationsResponse) GetNotifications() []*Notification {
-	if x != nil {
-		return x.Notifications
-	}
-	return nil
-}
-
-func (x *ListNotificationsResponse) GetTotalCount() int32 {
-	if x != nil {
-		return x.TotalCount
-	}
-	return 0
-}
-
-func (x *ListNotificationsResponse) GetUnreadCount() int32 {
-	if x != nil {
-		return x.UnreadCount
-	}
-	return 0
-}
-
-type MarkNotificationReadRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notificationId,proto3" json:"notificationId,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *MarkNotificationReadRequest) Reset() {
-	*x = MarkNotificationReadRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MarkNotificationReadRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarkNotificationReadRequest) ProtoMessage() {}
-
-func (x *MarkNotificationReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarkNotificationReadRequest.ProtoReflect.Descriptor instead.
-func (*MarkNotificationReadRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *MarkNotificationReadRequest) GetNotificationId() string {
-	if x != nil {
-		return x.NotificationId
-	}
-	return ""
-}
-
-type MarkNotificationReadResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MarkNotificationReadResponse) Reset() {
-	*x = MarkNotificationReadResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MarkNotificationReadResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarkNotificationReadResponse) ProtoMessage() {}
-
-func (x *MarkNotificationReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarkNotificationReadResponse.ProtoReflect.Descriptor instead.
-func (*MarkNotificationReadResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *MarkNotificationReadResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type MarkAllNotificationsReadRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MarkAllNotificationsReadRequest) Reset() {
-	*x = MarkAllNotificationsReadRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MarkAllNotificationsReadRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarkAllNotificationsReadRequest) ProtoMessage() {}
-
-func (x *MarkAllNotificationsReadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarkAllNotificationsReadRequest.ProtoReflect.Descriptor instead.
-func (*MarkAllNotificationsReadRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *MarkAllNotificationsReadRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type MarkAllNotificationsReadResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *MarkAllNotificationsReadResponse) Reset() {
-	*x = MarkAllNotificationsReadResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *MarkAllNotificationsReadResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*MarkAllNotificationsReadResponse) ProtoMessage() {}
-
-func (x *MarkAllNotificationsReadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use MarkAllNotificationsReadResponse.ProtoReflect.Descriptor instead.
-func (*MarkAllNotificationsReadResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *MarkAllNotificationsReadResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type DeleteNotificationRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	NotificationId string                 `protobuf:"bytes,1,opt,name=notificationId,proto3" json:"notificationId,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *DeleteNotificationRequest) Reset() {
-	*x = DeleteNotificationRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteNotificationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteNotificationRequest) ProtoMessage() {}
-
-func (x *DeleteNotificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteNotificationRequest.ProtoReflect.Descriptor instead.
-func (*DeleteNotificationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *DeleteNotificationRequest) GetNotificationId() string {
-	if x != nil {
-		return x.NotificationId
-	}
-	return ""
-}
-
-type DeleteNotificationResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteNotificationResponse) Reset() {
-	*x = DeleteNotificationResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteNotificationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteNotificationResponse) ProtoMessage() {}
-
-func (x *DeleteNotificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeleteNotificationResponse.ProtoReflect.Descriptor instead.
-func (*DeleteNotificationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *DeleteNotificationResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type GetUnreadCountRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetUnreadCountRequest) Reset() {
-	*x = GetUnreadCountRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetUnreadCountRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetUnreadCountRequest) ProtoMessage() {}
-
-func (x *GetUnreadCountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetUnreadCountRequest.ProtoReflect.Descriptor instead.
-func (*GetUnreadCountRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *GetUnreadCountRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type GetUnreadCountResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Count         int32                  `protobuf:"varint,1,opt,name=count,proto3" json:"count,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetUnreadCountResponse) Reset() {
-	*x = GetUnreadCountResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetUnreadCountResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetUnreadCountResponse) ProtoMessage() {}
-
-func (x *GetUnreadCountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetUnreadCountResponse.ProtoReflect.Descriptor instead.
-func (*GetUnreadCountResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *GetUnreadCountResponse) GetCount() int32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
-type NotificationPreference struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Enabled       bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	Email         bool                   `protobuf:"varint,3,opt,name=email,proto3" json:"email,omitempty"`
-	Push          bool                   `protobuf:"varint,4,opt,name=push,proto3" json:"push,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NotificationPreference) Reset() {
-	*x = NotificationPreference{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotificationPreference) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotificationPreference) ProtoMessage() {}
-
-func (x *NotificationPreference) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotificationPreference.ProtoReflect.Descriptor instead.
-func (*NotificationPreference) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *NotificationPreference) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *NotificationPreference) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-func (x *NotificationPreference) GetEmail() bool {
-	if x != nil {
-		return x.Email
-	}
-	return false
-}
-
-func (x *NotificationPreference) GetPush() bool {
-	if x != nil {
-		return x.Push
-	}
-	return false
-}
-
-type GetNotificationPreferencesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetNotificationPreferencesRequest) Reset() {
-	*x = GetNotificationPreferencesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationPreferencesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationPreferencesRequest) ProtoMessage() {}
-
-func (x *GetNotificationPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationPreferencesRequest.ProtoReflect.Descriptor instead.
-func (*GetNotificationPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *GetNotificationPreferencesRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-type GetNotificationPreferencesResponse struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	Preferences   []*NotificationPreference `protobuf:"bytes,1,rep,name=preferences,proto3" json:"preferences,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetNotificationPreferencesResponse) Reset() {
-	*x = GetNotificationPreferencesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationPreferencesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationPreferencesResponse) ProtoMessage() {}
-
-func (x *GetNotificationPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationPreferencesResponse.ProtoReflect.Descriptor instead.
-func (*GetNotificationPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *GetNotificationPreferencesResponse) GetPreferences() []*NotificationPreference {
-	if x != nil {
-		return x.Preferences
-	}
-	return nil
-}
-
-type UpdateNotificationPreferencesRequest struct {
-	state         protoimpl.MessageState    `protogen:"open.v1"`
-	UserId        string                    `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Preferences   []*NotificationPreference `protobuf:"bytes,2,rep,name=preferences,proto3" json:"preferences,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateNotificationPreferencesRequest) Reset() {
-	*x = UpdateNotificationPreferencesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateNotificationPreferencesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNotificationPreferencesRequest) ProtoMessage() {}
-
-func (x *UpdateNotificationPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNotificationPreferencesRequest.ProtoReflect.Descriptor instead.
-func (*UpdateNotificationPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *UpdateNotificationPreferencesRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *UpdateNotificationPreferencesRequest) GetPreferences() []*NotificationPreference {
-	if x != nil {
-		return x.Preferences
-	}
-	return nil
-}
-
-type UpdateNotificationPreferencesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UpdateNotificationPreferencesResponse) Reset() {
-	*x = UpdateNotificationPreferencesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[34]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateNotificationPreferencesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateNotificationPreferencesResponse) ProtoMessage() {}
-
-func (x *UpdateNotificationPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[34]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UpdateNotificationPreferencesResponse.ProtoReflect.Descriptor instead.
-func (*UpdateNotificationPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *UpdateNotificationPreferencesResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-type GetNotificationTypesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetNotificationTypesRequest) Reset() {
-	*x = GetNotificationTypesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[35]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationTypesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationTypesRequest) ProtoMessage() {}
-
-func (x *GetNotificationTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[35]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationTypesRequest.ProtoReflect.Descriptor instead.
-func (*GetNotificationTypesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{35}
-}
-
-type NotificationType struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *NotificationType) Reset() {
-	*x = NotificationType{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *NotificationType) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*NotificationType) ProtoMessage() {}
-
-func (x *NotificationType) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use NotificationType.ProtoReflect.Descriptor instead.
-func (*NotificationType) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *NotificationType) GetType() string {
-	if x != nil {
-		return x.Type
-	}
-	return ""
-}
-
-func (x *NotificationType) GetDescription() string {
-	if x != nil {
-		return x.Description
-	}
-	return ""
-}
-
-type GetNotificationTypesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Types         []*NotificationType    `protobuf:"bytes,1,rep,name=types,proto3" json:"types,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetNotificationTypesResponse) Reset() {
-	*x = GetNotificationTypesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetNotificationTypesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetNotificationTypesResponse) ProtoMessage() {}
-
-func (x *GetNotificationTypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetNotificationTypesResponse.ProtoReflect.Descriptor instead.
-func (*GetNotificationTypesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *GetNotificationTypesResponse) GetTypes() []*NotificationType {
-	if x != nil {
-		return x.Types
-	}
-	return nil
-}
-
 // Report Service
 type ReportItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -2042,7 +869,7 @@ type ReportItem struct {
 
 func (x *ReportItem) Reset() {
 	*x = ReportItem{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[38]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2054,7 +881,7 @@ func (x *ReportItem) String() string {
 func (*ReportItem) ProtoMessage() {}
 
 func (x *ReportItem) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[38]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2067,7 +894,7 @@ func (x *ReportItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportItem.ProtoReflect.Descriptor instead.
 func (*ReportItem) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{38}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ReportItem) GetId() string {
@@ -2154,7 +981,7 @@ type SubmitReportRequest struct {
 
 func (x *SubmitReportRequest) Reset() {
 	*x = SubmitReportRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[39]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2166,7 +993,7 @@ func (x *SubmitReportRequest) String() string {
 func (*SubmitReportRequest) ProtoMessage() {}
 
 func (x *SubmitReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[39]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2179,7 +1006,7 @@ func (x *SubmitReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitReportRequest.ProtoReflect.Descriptor instead.
 func (*SubmitReportRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{39}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *SubmitReportRequest) GetReporterId() string {
@@ -2233,7 +1060,7 @@ type SubmitReportResponse struct {
 
 func (x *SubmitReportResponse) Reset() {
 	*x = SubmitReportResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[40]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2245,7 +1072,7 @@ func (x *SubmitReportResponse) String() string {
 func (*SubmitReportResponse) ProtoMessage() {}
 
 func (x *SubmitReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[40]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2258,7 +1085,7 @@ func (x *SubmitReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubmitReportResponse.ProtoReflect.Descriptor instead.
 func (*SubmitReportResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{40}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *SubmitReportResponse) GetReportId() string {
@@ -2277,7 +1104,7 @@ type GetReportRequest struct {
 
 func (x *GetReportRequest) Reset() {
 	*x = GetReportRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[41]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2289,7 +1116,7 @@ func (x *GetReportRequest) String() string {
 func (*GetReportRequest) ProtoMessage() {}
 
 func (x *GetReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[41]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2302,7 +1129,7 @@ func (x *GetReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportRequest.ProtoReflect.Descriptor instead.
 func (*GetReportRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{41}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *GetReportRequest) GetReportId() string {
@@ -2321,7 +1148,7 @@ type GetReportResponse struct {
 
 func (x *GetReportResponse) Reset() {
 	*x = GetReportResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[42]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2333,7 +1160,7 @@ func (x *GetReportResponse) String() string {
 func (*GetReportResponse) ProtoMessage() {}
 
 func (x *GetReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[42]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2346,7 +1173,7 @@ func (x *GetReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportResponse.ProtoReflect.Descriptor instead.
 func (*GetReportResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{42}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *GetReportResponse) GetReport() *ReportItem {
@@ -2368,7 +1195,7 @@ type ListReportsRequest struct {
 
 func (x *ListReportsRequest) Reset() {
 	*x = ListReportsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[43]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2380,7 +1207,7 @@ func (x *ListReportsRequest) String() string {
 func (*ListReportsRequest) ProtoMessage() {}
 
 func (x *ListReportsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[43]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2393,7 +1220,7 @@ func (x *ListReportsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReportsRequest.ProtoReflect.Descriptor instead.
 func (*ListReportsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{43}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ListReportsRequest) GetReporterId() string {
@@ -2434,7 +1261,7 @@ type ListReportsResponse struct {
 
 func (x *ListReportsResponse) Reset() {
 	*x = ListReportsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[44]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2446,7 +1273,7 @@ func (x *ListReportsResponse) String() string {
 func (*ListReportsResponse) ProtoMessage() {}
 
 func (x *ListReportsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[44]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2459,7 +1286,7 @@ func (x *ListReportsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListReportsResponse.ProtoReflect.Descriptor instead.
 func (*ListReportsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{44}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListReportsResponse) GetReports() []*ReportItem {
@@ -2487,7 +1314,7 @@ type UpdateReportRequest struct {
 
 func (x *UpdateReportRequest) Reset() {
 	*x = UpdateReportRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[45]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2499,7 +1326,7 @@ func (x *UpdateReportRequest) String() string {
 func (*UpdateReportRequest) ProtoMessage() {}
 
 func (x *UpdateReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[45]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2512,7 +1339,7 @@ func (x *UpdateReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReportRequest.ProtoReflect.Descriptor instead.
 func (*UpdateReportRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{45}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *UpdateReportRequest) GetReportId() string {
@@ -2545,7 +1372,7 @@ type UpdateReportResponse struct {
 
 func (x *UpdateReportResponse) Reset() {
 	*x = UpdateReportResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[46]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2557,7 +1384,7 @@ func (x *UpdateReportResponse) String() string {
 func (*UpdateReportResponse) ProtoMessage() {}
 
 func (x *UpdateReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[46]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2570,7 +1397,7 @@ func (x *UpdateReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateReportResponse.ProtoReflect.Descriptor instead.
 func (*UpdateReportResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{46}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *UpdateReportResponse) GetSuccess() bool {
@@ -2588,7 +1415,7 @@ type GetReportCategoriesRequest struct {
 
 func (x *GetReportCategoriesRequest) Reset() {
 	*x = GetReportCategoriesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[47]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2600,7 +1427,7 @@ func (x *GetReportCategoriesRequest) String() string {
 func (*GetReportCategoriesRequest) ProtoMessage() {}
 
 func (x *GetReportCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[47]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2613,7 +1440,7 @@ func (x *GetReportCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*GetReportCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{47}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{24}
 }
 
 type ReportCategory struct {
@@ -2627,7 +1454,7 @@ type ReportCategory struct {
 
 func (x *ReportCategory) Reset() {
 	*x = ReportCategory{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[48]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2639,7 +1466,7 @@ func (x *ReportCategory) String() string {
 func (*ReportCategory) ProtoMessage() {}
 
 func (x *ReportCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[48]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2652,7 +1479,7 @@ func (x *ReportCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportCategory.ProtoReflect.Descriptor instead.
 func (*ReportCategory) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{48}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ReportCategory) GetId() string {
@@ -2685,7 +1512,7 @@ type GetReportCategoriesResponse struct {
 
 func (x *GetReportCategoriesResponse) Reset() {
 	*x = GetReportCategoriesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[49]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2697,7 +1524,7 @@ func (x *GetReportCategoriesResponse) String() string {
 func (*GetReportCategoriesResponse) ProtoMessage() {}
 
 func (x *GetReportCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[49]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2710,7 +1537,7 @@ func (x *GetReportCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*GetReportCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{49}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetReportCategoriesResponse) GetCategories() []*ReportCategory {
@@ -2731,7 +1558,7 @@ type UploadAttachmentRequest struct {
 
 func (x *UploadAttachmentRequest) Reset() {
 	*x = UploadAttachmentRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[50]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2743,7 +1570,7 @@ func (x *UploadAttachmentRequest) String() string {
 func (*UploadAttachmentRequest) ProtoMessage() {}
 
 func (x *UploadAttachmentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[50]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2756,7 +1583,7 @@ func (x *UploadAttachmentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAttachmentRequest.ProtoReflect.Descriptor instead.
 func (*UploadAttachmentRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{50}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *UploadAttachmentRequest) GetReportId() string {
@@ -2789,7 +1616,7 @@ type UploadAttachmentResponse struct {
 
 func (x *UploadAttachmentResponse) Reset() {
 	*x = UploadAttachmentResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[51]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2801,7 +1628,7 @@ func (x *UploadAttachmentResponse) String() string {
 func (*UploadAttachmentResponse) ProtoMessage() {}
 
 func (x *UploadAttachmentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[51]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2814,7 +1641,7 @@ func (x *UploadAttachmentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAttachmentResponse.ProtoReflect.Descriptor instead.
 func (*UploadAttachmentResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{51}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *UploadAttachmentResponse) GetAttachmentUrl() string {
@@ -2833,7 +1660,7 @@ type GetReportStatusRequest struct {
 
 func (x *GetReportStatusRequest) Reset() {
 	*x = GetReportStatusRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[52]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2845,7 +1672,7 @@ func (x *GetReportStatusRequest) String() string {
 func (*GetReportStatusRequest) ProtoMessage() {}
 
 func (x *GetReportStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[52]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2858,7 +1685,7 @@ func (x *GetReportStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetReportStatusRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{52}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetReportStatusRequest) GetReportId() string {
@@ -2878,7 +1705,7 @@ type GetReportStatusResponse struct {
 
 func (x *GetReportStatusResponse) Reset() {
 	*x = GetReportStatusResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[53]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2890,7 +1717,7 @@ func (x *GetReportStatusResponse) String() string {
 func (*GetReportStatusResponse) ProtoMessage() {}
 
 func (x *GetReportStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[53]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2903,7 +1730,7 @@ func (x *GetReportStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetReportStatusResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{53}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetReportStatusResponse) GetStatus() string {
@@ -2930,7 +1757,7 @@ type CloseReportRequest struct {
 
 func (x *CloseReportRequest) Reset() {
 	*x = CloseReportRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[54]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2942,7 +1769,7 @@ func (x *CloseReportRequest) String() string {
 func (*CloseReportRequest) ProtoMessage() {}
 
 func (x *CloseReportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[54]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2955,7 +1782,7 @@ func (x *CloseReportRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseReportRequest.ProtoReflect.Descriptor instead.
 func (*CloseReportRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{54}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CloseReportRequest) GetReportId() string {
@@ -2981,7 +1808,7 @@ type CloseReportResponse struct {
 
 func (x *CloseReportResponse) Reset() {
 	*x = CloseReportResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[55]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2993,7 +1820,7 @@ func (x *CloseReportResponse) String() string {
 func (*CloseReportResponse) ProtoMessage() {}
 
 func (x *CloseReportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[55]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3006,7 +1833,7 @@ func (x *CloseReportResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CloseReportResponse.ProtoReflect.Descriptor instead.
 func (*CloseReportResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{55}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CloseReportResponse) GetSuccess() bool {
@@ -3027,7 +1854,7 @@ type AddReportCommentRequest struct {
 
 func (x *AddReportCommentRequest) Reset() {
 	*x = AddReportCommentRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[56]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3039,7 +1866,7 @@ func (x *AddReportCommentRequest) String() string {
 func (*AddReportCommentRequest) ProtoMessage() {}
 
 func (x *AddReportCommentRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[56]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3052,7 +1879,7 @@ func (x *AddReportCommentRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddReportCommentRequest.ProtoReflect.Descriptor instead.
 func (*AddReportCommentRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{56}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *AddReportCommentRequest) GetReportId() string {
@@ -3085,7 +1912,7 @@ type AddReportCommentResponse struct {
 
 func (x *AddReportCommentResponse) Reset() {
 	*x = AddReportCommentResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[57]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3097,7 +1924,7 @@ func (x *AddReportCommentResponse) String() string {
 func (*AddReportCommentResponse) ProtoMessage() {}
 
 func (x *AddReportCommentResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[57]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3110,7 +1937,7 @@ func (x *AddReportCommentResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddReportCommentResponse.ProtoReflect.Descriptor instead.
 func (*AddReportCommentResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{57}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *AddReportCommentResponse) GetCommentId() string {
@@ -3133,7 +1960,7 @@ type ReportComment struct {
 
 func (x *ReportComment) Reset() {
 	*x = ReportComment{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[58]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3145,7 +1972,7 @@ func (x *ReportComment) String() string {
 func (*ReportComment) ProtoMessage() {}
 
 func (x *ReportComment) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[58]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3158,7 +1985,7 @@ func (x *ReportComment) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReportComment.ProtoReflect.Descriptor instead.
 func (*ReportComment) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{58}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ReportComment) GetId() string {
@@ -3205,7 +2032,7 @@ type GetReportCommentsRequest struct {
 
 func (x *GetReportCommentsRequest) Reset() {
 	*x = GetReportCommentsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[59]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3217,7 +2044,7 @@ func (x *GetReportCommentsRequest) String() string {
 func (*GetReportCommentsRequest) ProtoMessage() {}
 
 func (x *GetReportCommentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[59]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3230,7 +2057,7 @@ func (x *GetReportCommentsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportCommentsRequest.ProtoReflect.Descriptor instead.
 func (*GetReportCommentsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{59}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetReportCommentsRequest) GetReportId() string {
@@ -3249,7 +2076,7 @@ type GetReportCommentsResponse struct {
 
 func (x *GetReportCommentsResponse) Reset() {
 	*x = GetReportCommentsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[60]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3261,7 +2088,7 @@ func (x *GetReportCommentsResponse) String() string {
 func (*GetReportCommentsResponse) ProtoMessage() {}
 
 func (x *GetReportCommentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[60]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3274,7 +2101,7 @@ func (x *GetReportCommentsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetReportCommentsResponse.ProtoReflect.Descriptor instead.
 func (*GetReportCommentsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{60}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetReportCommentsResponse) GetComments() []*ReportComment {
@@ -3300,7 +2127,7 @@ type SavedItem struct {
 
 func (x *SavedItem) Reset() {
 	*x = SavedItem{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[61]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3312,7 +2139,7 @@ func (x *SavedItem) String() string {
 func (*SavedItem) ProtoMessage() {}
 
 func (x *SavedItem) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[61]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3325,7 +2152,7 @@ func (x *SavedItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SavedItem.ProtoReflect.Descriptor instead.
 func (*SavedItem) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{61}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SavedItem) GetId() string {
@@ -3392,7 +2219,7 @@ type Collection struct {
 
 func (x *Collection) Reset() {
 	*x = Collection{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[62]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3404,7 +2231,7 @@ func (x *Collection) String() string {
 func (*Collection) ProtoMessage() {}
 
 func (x *Collection) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[62]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3417,7 +2244,7 @@ func (x *Collection) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Collection.ProtoReflect.Descriptor instead.
 func (*Collection) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{62}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *Collection) GetId() string {
@@ -3482,7 +2309,7 @@ type SaveItemRequest struct {
 
 func (x *SaveItemRequest) Reset() {
 	*x = SaveItemRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[63]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3494,7 +2321,7 @@ func (x *SaveItemRequest) String() string {
 func (*SaveItemRequest) ProtoMessage() {}
 
 func (x *SaveItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[63]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3507,7 +2334,7 @@ func (x *SaveItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveItemRequest.ProtoReflect.Descriptor instead.
 func (*SaveItemRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{63}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *SaveItemRequest) GetUserId() string {
@@ -3554,7 +2381,7 @@ type SaveItemResponse struct {
 
 func (x *SaveItemResponse) Reset() {
 	*x = SaveItemResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[64]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3566,7 +2393,7 @@ func (x *SaveItemResponse) String() string {
 func (*SaveItemResponse) ProtoMessage() {}
 
 func (x *SaveItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[64]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3579,7 +2406,7 @@ func (x *SaveItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveItemResponse.ProtoReflect.Descriptor instead.
 func (*SaveItemResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{64}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *SaveItemResponse) GetSavedId() string {
@@ -3598,7 +2425,7 @@ type RemoveSavedRequest struct {
 
 func (x *RemoveSavedRequest) Reset() {
 	*x = RemoveSavedRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[65]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3610,7 +2437,7 @@ func (x *RemoveSavedRequest) String() string {
 func (*RemoveSavedRequest) ProtoMessage() {}
 
 func (x *RemoveSavedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[65]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3623,7 +2450,7 @@ func (x *RemoveSavedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSavedRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSavedRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{65}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *RemoveSavedRequest) GetSavedId() string {
@@ -3642,7 +2469,7 @@ type RemoveSavedResponse struct {
 
 func (x *RemoveSavedResponse) Reset() {
 	*x = RemoveSavedResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[66]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3654,7 +2481,7 @@ func (x *RemoveSavedResponse) String() string {
 func (*RemoveSavedResponse) ProtoMessage() {}
 
 func (x *RemoveSavedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[66]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3667,7 +2494,7 @@ func (x *RemoveSavedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveSavedResponse.ProtoReflect.Descriptor instead.
 func (*RemoveSavedResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{66}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *RemoveSavedResponse) GetSuccess() bool {
@@ -3690,7 +2517,7 @@ type ListSavedRequest struct {
 
 func (x *ListSavedRequest) Reset() {
 	*x = ListSavedRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[67]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3702,7 +2529,7 @@ func (x *ListSavedRequest) String() string {
 func (*ListSavedRequest) ProtoMessage() {}
 
 func (x *ListSavedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[67]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3715,7 +2542,7 @@ func (x *ListSavedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSavedRequest.ProtoReflect.Descriptor instead.
 func (*ListSavedRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{67}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *ListSavedRequest) GetUserId() string {
@@ -3763,7 +2590,7 @@ type ListSavedResponse struct {
 
 func (x *ListSavedResponse) Reset() {
 	*x = ListSavedResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[68]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3775,7 +2602,7 @@ func (x *ListSavedResponse) String() string {
 func (*ListSavedResponse) ProtoMessage() {}
 
 func (x *ListSavedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[68]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3788,7 +2615,7 @@ func (x *ListSavedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSavedResponse.ProtoReflect.Descriptor instead.
 func (*ListSavedResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{68}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListSavedResponse) GetItems() []*SavedItem {
@@ -3814,7 +2641,7 @@ type GetSavedItemRequest struct {
 
 func (x *GetSavedItemRequest) Reset() {
 	*x = GetSavedItemRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[69]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3826,7 +2653,7 @@ func (x *GetSavedItemRequest) String() string {
 func (*GetSavedItemRequest) ProtoMessage() {}
 
 func (x *GetSavedItemRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[69]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3839,7 +2666,7 @@ func (x *GetSavedItemRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSavedItemRequest.ProtoReflect.Descriptor instead.
 func (*GetSavedItemRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{69}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *GetSavedItemRequest) GetSavedId() string {
@@ -3858,7 +2685,7 @@ type GetSavedItemResponse struct {
 
 func (x *GetSavedItemResponse) Reset() {
 	*x = GetSavedItemResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[70]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3870,7 +2697,7 @@ func (x *GetSavedItemResponse) String() string {
 func (*GetSavedItemResponse) ProtoMessage() {}
 
 func (x *GetSavedItemResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[70]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3883,7 +2710,7 @@ func (x *GetSavedItemResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSavedItemResponse.ProtoReflect.Descriptor instead.
 func (*GetSavedItemResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{70}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetSavedItemResponse) GetItem() *SavedItem {
@@ -3905,7 +2732,7 @@ type CreateCollectionRequest struct {
 
 func (x *CreateCollectionRequest) Reset() {
 	*x = CreateCollectionRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[71]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3917,7 +2744,7 @@ func (x *CreateCollectionRequest) String() string {
 func (*CreateCollectionRequest) ProtoMessage() {}
 
 func (x *CreateCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[71]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3930,7 +2757,7 @@ func (x *CreateCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCollectionRequest.ProtoReflect.Descriptor instead.
 func (*CreateCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{71}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *CreateCollectionRequest) GetUserId() string {
@@ -3970,7 +2797,7 @@ type CreateCollectionResponse struct {
 
 func (x *CreateCollectionResponse) Reset() {
 	*x = CreateCollectionResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[72]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3982,7 +2809,7 @@ func (x *CreateCollectionResponse) String() string {
 func (*CreateCollectionResponse) ProtoMessage() {}
 
 func (x *CreateCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[72]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3995,7 +2822,7 @@ func (x *CreateCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCollectionResponse.ProtoReflect.Descriptor instead.
 func (*CreateCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{72}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *CreateCollectionResponse) GetCollectionId() string {
@@ -4017,7 +2844,7 @@ type UpdateCollectionRequest struct {
 
 func (x *UpdateCollectionRequest) Reset() {
 	*x = UpdateCollectionRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[73]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4029,7 +2856,7 @@ func (x *UpdateCollectionRequest) String() string {
 func (*UpdateCollectionRequest) ProtoMessage() {}
 
 func (x *UpdateCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[73]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4042,7 +2869,7 @@ func (x *UpdateCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCollectionRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{73}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *UpdateCollectionRequest) GetCollectionId() string {
@@ -4082,7 +2909,7 @@ type UpdateCollectionResponse struct {
 
 func (x *UpdateCollectionResponse) Reset() {
 	*x = UpdateCollectionResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[74]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4094,7 +2921,7 @@ func (x *UpdateCollectionResponse) String() string {
 func (*UpdateCollectionResponse) ProtoMessage() {}
 
 func (x *UpdateCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[74]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4107,7 +2934,7 @@ func (x *UpdateCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCollectionResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{74}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *UpdateCollectionResponse) GetSuccess() bool {
@@ -4126,7 +2953,7 @@ type DeleteCollectionRequest struct {
 
 func (x *DeleteCollectionRequest) Reset() {
 	*x = DeleteCollectionRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[75]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4138,7 +2965,7 @@ func (x *DeleteCollectionRequest) String() string {
 func (*DeleteCollectionRequest) ProtoMessage() {}
 
 func (x *DeleteCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[75]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4151,7 +2978,7 @@ func (x *DeleteCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCollectionRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{75}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *DeleteCollectionRequest) GetCollectionId() string {
@@ -4170,7 +2997,7 @@ type DeleteCollectionResponse struct {
 
 func (x *DeleteCollectionResponse) Reset() {
 	*x = DeleteCollectionResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[76]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4182,7 +3009,7 @@ func (x *DeleteCollectionResponse) String() string {
 func (*DeleteCollectionResponse) ProtoMessage() {}
 
 func (x *DeleteCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[76]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4195,7 +3022,7 @@ func (x *DeleteCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCollectionResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{76}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *DeleteCollectionResponse) GetSuccess() bool {
@@ -4216,7 +3043,7 @@ type ListCollectionsRequest struct {
 
 func (x *ListCollectionsRequest) Reset() {
 	*x = ListCollectionsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[77]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4228,7 +3055,7 @@ func (x *ListCollectionsRequest) String() string {
 func (*ListCollectionsRequest) ProtoMessage() {}
 
 func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[77]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4241,7 +3068,7 @@ func (x *ListCollectionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsRequest.ProtoReflect.Descriptor instead.
 func (*ListCollectionsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{77}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ListCollectionsRequest) GetUserId() string {
@@ -4275,7 +3102,7 @@ type ListCollectionsResponse struct {
 
 func (x *ListCollectionsResponse) Reset() {
 	*x = ListCollectionsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[78]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4287,7 +3114,7 @@ func (x *ListCollectionsResponse) String() string {
 func (*ListCollectionsResponse) ProtoMessage() {}
 
 func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[78]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4300,7 +3127,7 @@ func (x *ListCollectionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCollectionsResponse.ProtoReflect.Descriptor instead.
 func (*ListCollectionsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{78}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ListCollectionsResponse) GetCollections() []*Collection {
@@ -4326,7 +3153,7 @@ type GetCollectionRequest struct {
 
 func (x *GetCollectionRequest) Reset() {
 	*x = GetCollectionRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[79]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4338,7 +3165,7 @@ func (x *GetCollectionRequest) String() string {
 func (*GetCollectionRequest) ProtoMessage() {}
 
 func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[79]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4351,7 +3178,7 @@ func (x *GetCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCollectionRequest.ProtoReflect.Descriptor instead.
 func (*GetCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{79}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *GetCollectionRequest) GetCollectionId() string {
@@ -4370,7 +3197,7 @@ type GetCollectionResponse struct {
 
 func (x *GetCollectionResponse) Reset() {
 	*x = GetCollectionResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[80]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4382,7 +3209,7 @@ func (x *GetCollectionResponse) String() string {
 func (*GetCollectionResponse) ProtoMessage() {}
 
 func (x *GetCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[80]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4395,7 +3222,7 @@ func (x *GetCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCollectionResponse.ProtoReflect.Descriptor instead.
 func (*GetCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{80}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{57}
 }
 
 func (x *GetCollectionResponse) GetCollection() *Collection {
@@ -4415,7 +3242,7 @@ type MoveToCollectionRequest struct {
 
 func (x *MoveToCollectionRequest) Reset() {
 	*x = MoveToCollectionRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[81]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4427,7 +3254,7 @@ func (x *MoveToCollectionRequest) String() string {
 func (*MoveToCollectionRequest) ProtoMessage() {}
 
 func (x *MoveToCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[81]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4440,7 +3267,7 @@ func (x *MoveToCollectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveToCollectionRequest.ProtoReflect.Descriptor instead.
 func (*MoveToCollectionRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{81}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *MoveToCollectionRequest) GetSavedId() string {
@@ -4466,7 +3293,7 @@ type MoveToCollectionResponse struct {
 
 func (x *MoveToCollectionResponse) Reset() {
 	*x = MoveToCollectionResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[82]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4478,7 +3305,7 @@ func (x *MoveToCollectionResponse) String() string {
 func (*MoveToCollectionResponse) ProtoMessage() {}
 
 func (x *MoveToCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[82]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4491,7 +3318,7 @@ func (x *MoveToCollectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MoveToCollectionResponse.ProtoReflect.Descriptor instead.
 func (*MoveToCollectionResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{82}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{59}
 }
 
 func (x *MoveToCollectionResponse) GetSuccess() bool {
@@ -4510,7 +3337,7 @@ type GetSavedStatsRequest struct {
 
 func (x *GetSavedStatsRequest) Reset() {
 	*x = GetSavedStatsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[83]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4522,7 +3349,7 @@ func (x *GetSavedStatsRequest) String() string {
 func (*GetSavedStatsRequest) ProtoMessage() {}
 
 func (x *GetSavedStatsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[83]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4535,7 +3362,7 @@ func (x *GetSavedStatsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSavedStatsRequest.ProtoReflect.Descriptor instead.
 func (*GetSavedStatsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{83}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetSavedStatsRequest) GetUserId() string {
@@ -4556,7 +3383,7 @@ type GetSavedStatsResponse struct {
 
 func (x *GetSavedStatsResponse) Reset() {
 	*x = GetSavedStatsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[84]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4568,7 +3395,7 @@ func (x *GetSavedStatsResponse) String() string {
 func (*GetSavedStatsResponse) ProtoMessage() {}
 
 func (x *GetSavedStatsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[84]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4581,7 +3408,7 @@ func (x *GetSavedStatsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSavedStatsResponse.ProtoReflect.Descriptor instead.
 func (*GetSavedStatsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{84}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetSavedStatsResponse) GetTotalSaved() int32 {
@@ -4615,7 +3442,7 @@ type ExportSavedRequest struct {
 
 func (x *ExportSavedRequest) Reset() {
 	*x = ExportSavedRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[85]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4627,7 +3454,7 @@ func (x *ExportSavedRequest) String() string {
 func (*ExportSavedRequest) ProtoMessage() {}
 
 func (x *ExportSavedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[85]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4640,7 +3467,7 @@ func (x *ExportSavedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportSavedRequest.ProtoReflect.Descriptor instead.
 func (*ExportSavedRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{85}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *ExportSavedRequest) GetUserId() string {
@@ -4666,7 +3493,7 @@ type ExportSavedResponse struct {
 
 func (x *ExportSavedResponse) Reset() {
 	*x = ExportSavedResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[86]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4678,7 +3505,7 @@ func (x *ExportSavedResponse) String() string {
 func (*ExportSavedResponse) ProtoMessage() {}
 
 func (x *ExportSavedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[86]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4691,7 +3518,7 @@ func (x *ExportSavedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportSavedResponse.ProtoReflect.Descriptor instead.
 func (*ExportSavedResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{86}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *ExportSavedResponse) GetDownloadUrl() string {
@@ -4719,7 +3546,7 @@ type UserSettings struct {
 
 func (x *UserSettings) Reset() {
 	*x = UserSettings{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[87]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4731,7 +3558,7 @@ func (x *UserSettings) String() string {
 func (*UserSettings) ProtoMessage() {}
 
 func (x *UserSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[87]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4744,7 +3571,7 @@ func (x *UserSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserSettings.ProtoReflect.Descriptor instead.
 func (*UserSettings) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{87}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *UserSettings) GetUserId() string {
@@ -4819,7 +3646,7 @@ type GetSettingsRequest struct {
 
 func (x *GetSettingsRequest) Reset() {
 	*x = GetSettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[88]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4831,7 +3658,7 @@ func (x *GetSettingsRequest) String() string {
 func (*GetSettingsRequest) ProtoMessage() {}
 
 func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[88]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4844,7 +3671,7 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{88}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *GetSettingsRequest) GetUserId() string {
@@ -4863,7 +3690,7 @@ type GetSettingsResponse struct {
 
 func (x *GetSettingsResponse) Reset() {
 	*x = GetSettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[89]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4875,7 +3702,7 @@ func (x *GetSettingsResponse) String() string {
 func (*GetSettingsResponse) ProtoMessage() {}
 
 func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[89]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4888,7 +3715,7 @@ func (x *GetSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{89}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *GetSettingsResponse) GetSettings() *UserSettings {
@@ -4908,7 +3735,7 @@ type UpdateSettingsRequest struct {
 
 func (x *UpdateSettingsRequest) Reset() {
 	*x = UpdateSettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[90]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4920,7 +3747,7 @@ func (x *UpdateSettingsRequest) String() string {
 func (*UpdateSettingsRequest) ProtoMessage() {}
 
 func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[90]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4933,7 +3760,7 @@ func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{90}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *UpdateSettingsRequest) GetUserId() string {
@@ -4959,7 +3786,7 @@ type UpdateSettingsResponse struct {
 
 func (x *UpdateSettingsResponse) Reset() {
 	*x = UpdateSettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[91]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4971,7 +3798,7 @@ func (x *UpdateSettingsResponse) String() string {
 func (*UpdateSettingsResponse) ProtoMessage() {}
 
 func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[91]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4984,7 +3811,7 @@ func (x *UpdateSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{91}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *UpdateSettingsResponse) GetSuccess() bool {
@@ -5003,7 +3830,7 @@ type GetPreferencesRequest struct {
 
 func (x *GetPreferencesRequest) Reset() {
 	*x = GetPreferencesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[92]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5015,7 +3842,7 @@ func (x *GetPreferencesRequest) String() string {
 func (*GetPreferencesRequest) ProtoMessage() {}
 
 func (x *GetPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[92]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5028,7 +3855,7 @@ func (x *GetPreferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPreferencesRequest.ProtoReflect.Descriptor instead.
 func (*GetPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{92}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *GetPreferencesRequest) GetUserId() string {
@@ -5048,7 +3875,7 @@ type Preference struct {
 
 func (x *Preference) Reset() {
 	*x = Preference{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[93]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5060,7 +3887,7 @@ func (x *Preference) String() string {
 func (*Preference) ProtoMessage() {}
 
 func (x *Preference) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[93]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5073,7 +3900,7 @@ func (x *Preference) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Preference.ProtoReflect.Descriptor instead.
 func (*Preference) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{93}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{70}
 }
 
 func (x *Preference) GetKey() string {
@@ -5099,7 +3926,7 @@ type GetPreferencesResponse struct {
 
 func (x *GetPreferencesResponse) Reset() {
 	*x = GetPreferencesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[94]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5111,7 +3938,7 @@ func (x *GetPreferencesResponse) String() string {
 func (*GetPreferencesResponse) ProtoMessage() {}
 
 func (x *GetPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[94]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5124,7 +3951,7 @@ func (x *GetPreferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPreferencesResponse.ProtoReflect.Descriptor instead.
 func (*GetPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{94}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *GetPreferencesResponse) GetPreferences() []*Preference {
@@ -5144,7 +3971,7 @@ type UpdatePreferencesRequest struct {
 
 func (x *UpdatePreferencesRequest) Reset() {
 	*x = UpdatePreferencesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[95]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5156,7 +3983,7 @@ func (x *UpdatePreferencesRequest) String() string {
 func (*UpdatePreferencesRequest) ProtoMessage() {}
 
 func (x *UpdatePreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[95]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5169,7 +3996,7 @@ func (x *UpdatePreferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePreferencesRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{95}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{72}
 }
 
 func (x *UpdatePreferencesRequest) GetUserId() string {
@@ -5195,7 +4022,7 @@ type UpdatePreferencesResponse struct {
 
 func (x *UpdatePreferencesResponse) Reset() {
 	*x = UpdatePreferencesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[96]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5207,7 +4034,7 @@ func (x *UpdatePreferencesResponse) String() string {
 func (*UpdatePreferencesResponse) ProtoMessage() {}
 
 func (x *UpdatePreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[96]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5220,7 +4047,7 @@ func (x *UpdatePreferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePreferencesResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{96}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *UpdatePreferencesResponse) GetSuccess() bool {
@@ -5241,7 +4068,7 @@ type UploadAvatarRequest struct {
 
 func (x *UploadAvatarRequest) Reset() {
 	*x = UploadAvatarRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[97]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5253,7 +4080,7 @@ func (x *UploadAvatarRequest) String() string {
 func (*UploadAvatarRequest) ProtoMessage() {}
 
 func (x *UploadAvatarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[97]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5266,7 +4093,7 @@ func (x *UploadAvatarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAvatarRequest.ProtoReflect.Descriptor instead.
 func (*UploadAvatarRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{97}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *UploadAvatarRequest) GetUserId() string {
@@ -5299,7 +4126,7 @@ type UploadAvatarResponse struct {
 
 func (x *UploadAvatarResponse) Reset() {
 	*x = UploadAvatarResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[98]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5311,7 +4138,7 @@ func (x *UploadAvatarResponse) String() string {
 func (*UploadAvatarResponse) ProtoMessage() {}
 
 func (x *UploadAvatarResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[98]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5324,7 +4151,7 @@ func (x *UploadAvatarResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UploadAvatarResponse.ProtoReflect.Descriptor instead.
 func (*UploadAvatarResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{98}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *UploadAvatarResponse) GetAvatarUrl() string {
@@ -5345,7 +4172,7 @@ type DeleteAccountRequest struct {
 
 func (x *DeleteAccountRequest) Reset() {
 	*x = DeleteAccountRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[99]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5357,7 +4184,7 @@ func (x *DeleteAccountRequest) String() string {
 func (*DeleteAccountRequest) ProtoMessage() {}
 
 func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[99]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5370,7 +4197,7 @@ func (x *DeleteAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteAccountRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{99}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *DeleteAccountRequest) GetUserId() string {
@@ -5403,7 +4230,7 @@ type DeleteAccountResponse struct {
 
 func (x *DeleteAccountResponse) Reset() {
 	*x = DeleteAccountResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[100]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5415,7 +4242,7 @@ func (x *DeleteAccountResponse) String() string {
 func (*DeleteAccountResponse) ProtoMessage() {}
 
 func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[100]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5428,7 +4255,7 @@ func (x *DeleteAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteAccountResponse.ProtoReflect.Descriptor instead.
 func (*DeleteAccountResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{100}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *DeleteAccountResponse) GetSuccess() bool {
@@ -5448,7 +4275,7 @@ type ExportDataRequest struct {
 
 func (x *ExportDataRequest) Reset() {
 	*x = ExportDataRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[101]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5460,7 +4287,7 @@ func (x *ExportDataRequest) String() string {
 func (*ExportDataRequest) ProtoMessage() {}
 
 func (x *ExportDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[101]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5473,7 +4300,7 @@ func (x *ExportDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportDataRequest.ProtoReflect.Descriptor instead.
 func (*ExportDataRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{101}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *ExportDataRequest) GetUserId() string {
@@ -5500,7 +4327,7 @@ type ExportDataResponse struct {
 
 func (x *ExportDataResponse) Reset() {
 	*x = ExportDataResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[102]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5512,7 +4339,7 @@ func (x *ExportDataResponse) String() string {
 func (*ExportDataResponse) ProtoMessage() {}
 
 func (x *ExportDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[102]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5525,7 +4352,7 @@ func (x *ExportDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ExportDataResponse.ProtoReflect.Descriptor instead.
 func (*ExportDataResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{102}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *ExportDataResponse) GetDownloadUrl() string {
@@ -5554,7 +4381,7 @@ type PrivacySettings struct {
 
 func (x *PrivacySettings) Reset() {
 	*x = PrivacySettings{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[103]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5566,7 +4393,7 @@ func (x *PrivacySettings) String() string {
 func (*PrivacySettings) ProtoMessage() {}
 
 func (x *PrivacySettings) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[103]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5579,7 +4406,7 @@ func (x *PrivacySettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PrivacySettings.ProtoReflect.Descriptor instead.
 func (*PrivacySettings) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{103}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *PrivacySettings) GetShowActivity() bool {
@@ -5619,7 +4446,7 @@ type GetPrivacySettingsRequest struct {
 
 func (x *GetPrivacySettingsRequest) Reset() {
 	*x = GetPrivacySettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[104]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5631,7 +4458,7 @@ func (x *GetPrivacySettingsRequest) String() string {
 func (*GetPrivacySettingsRequest) ProtoMessage() {}
 
 func (x *GetPrivacySettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[104]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5644,7 +4471,7 @@ func (x *GetPrivacySettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrivacySettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetPrivacySettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{104}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GetPrivacySettingsRequest) GetUserId() string {
@@ -5663,7 +4490,7 @@ type GetPrivacySettingsResponse struct {
 
 func (x *GetPrivacySettingsResponse) Reset() {
 	*x = GetPrivacySettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[105]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5675,7 +4502,7 @@ func (x *GetPrivacySettingsResponse) String() string {
 func (*GetPrivacySettingsResponse) ProtoMessage() {}
 
 func (x *GetPrivacySettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[105]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5688,7 +4515,7 @@ func (x *GetPrivacySettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetPrivacySettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetPrivacySettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{105}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *GetPrivacySettingsResponse) GetSettings() *PrivacySettings {
@@ -5708,7 +4535,7 @@ type UpdatePrivacySettingsRequest struct {
 
 func (x *UpdatePrivacySettingsRequest) Reset() {
 	*x = UpdatePrivacySettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[106]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5720,7 +4547,7 @@ func (x *UpdatePrivacySettingsRequest) String() string {
 func (*UpdatePrivacySettingsRequest) ProtoMessage() {}
 
 func (x *UpdatePrivacySettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[106]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5733,7 +4560,7 @@ func (x *UpdatePrivacySettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePrivacySettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePrivacySettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{106}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *UpdatePrivacySettingsRequest) GetUserId() string {
@@ -5759,7 +4586,7 @@ type UpdatePrivacySettingsResponse struct {
 
 func (x *UpdatePrivacySettingsResponse) Reset() {
 	*x = UpdatePrivacySettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[107]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5771,7 +4598,7 @@ func (x *UpdatePrivacySettingsResponse) String() string {
 func (*UpdatePrivacySettingsResponse) ProtoMessage() {}
 
 func (x *UpdatePrivacySettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[107]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5784,7 +4611,7 @@ func (x *UpdatePrivacySettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePrivacySettingsResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePrivacySettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{107}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{84}
 }
 
 func (x *UpdatePrivacySettingsResponse) GetSuccess() bool {
@@ -5806,7 +4633,7 @@ type ArticleCategory struct {
 
 func (x *ArticleCategory) Reset() {
 	*x = ArticleCategory{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[108]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5818,7 +4645,7 @@ func (x *ArticleCategory) String() string {
 func (*ArticleCategory) ProtoMessage() {}
 
 func (x *ArticleCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[108]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5831,7 +4658,7 @@ func (x *ArticleCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArticleCategory.ProtoReflect.Descriptor instead.
 func (*ArticleCategory) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{108}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *ArticleCategory) GetId() string {
@@ -5877,7 +4704,7 @@ type Article struct {
 
 func (x *Article) Reset() {
 	*x = Article{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[109]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5889,7 +4716,7 @@ func (x *Article) String() string {
 func (*Article) ProtoMessage() {}
 
 func (x *Article) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[109]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5902,7 +4729,7 @@ func (x *Article) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Article.ProtoReflect.Descriptor instead.
 func (*Article) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{109}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *Article) GetId() string {
@@ -6016,7 +4843,7 @@ type ListArticlesRequest struct {
 
 func (x *ListArticlesRequest) Reset() {
 	*x = ListArticlesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[110]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6028,7 +4855,7 @@ func (x *ListArticlesRequest) String() string {
 func (*ListArticlesRequest) ProtoMessage() {}
 
 func (x *ListArticlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[110]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6041,7 +4868,7 @@ func (x *ListArticlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListArticlesRequest.ProtoReflect.Descriptor instead.
 func (*ListArticlesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{110}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{87}
 }
 
 func (x *ListArticlesRequest) GetLimit() int32 {
@@ -6089,7 +4916,7 @@ type ListArticlesResponse struct {
 
 func (x *ListArticlesResponse) Reset() {
 	*x = ListArticlesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[111]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6101,7 +4928,7 @@ func (x *ListArticlesResponse) String() string {
 func (*ListArticlesResponse) ProtoMessage() {}
 
 func (x *ListArticlesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[111]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6114,7 +4941,7 @@ func (x *ListArticlesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListArticlesResponse.ProtoReflect.Descriptor instead.
 func (*ListArticlesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{111}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *ListArticlesResponse) GetArticles() []*Article {
@@ -6140,7 +4967,7 @@ type GetArticleRequest struct {
 
 func (x *GetArticleRequest) Reset() {
 	*x = GetArticleRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[112]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6152,7 +4979,7 @@ func (x *GetArticleRequest) String() string {
 func (*GetArticleRequest) ProtoMessage() {}
 
 func (x *GetArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[112]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6165,7 +4992,7 @@ func (x *GetArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArticleRequest.ProtoReflect.Descriptor instead.
 func (*GetArticleRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{112}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *GetArticleRequest) GetArticleId() string {
@@ -6184,7 +5011,7 @@ type GetArticleResponse struct {
 
 func (x *GetArticleResponse) Reset() {
 	*x = GetArticleResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[113]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6196,7 +5023,7 @@ func (x *GetArticleResponse) String() string {
 func (*GetArticleResponse) ProtoMessage() {}
 
 func (x *GetArticleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[113]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6209,7 +5036,7 @@ func (x *GetArticleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetArticleResponse.ProtoReflect.Descriptor instead.
 func (*GetArticleResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{113}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *GetArticleResponse) GetArticle() *Article {
@@ -6229,7 +5056,7 @@ type LikeArticleRequest struct {
 
 func (x *LikeArticleRequest) Reset() {
 	*x = LikeArticleRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[114]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6241,7 +5068,7 @@ func (x *LikeArticleRequest) String() string {
 func (*LikeArticleRequest) ProtoMessage() {}
 
 func (x *LikeArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[114]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6254,7 +5081,7 @@ func (x *LikeArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikeArticleRequest.ProtoReflect.Descriptor instead.
 func (*LikeArticleRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{114}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *LikeArticleRequest) GetArticleId() string {
@@ -6281,7 +5108,7 @@ type LikeArticleResponse struct {
 
 func (x *LikeArticleResponse) Reset() {
 	*x = LikeArticleResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[115]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6293,7 +5120,7 @@ func (x *LikeArticleResponse) String() string {
 func (*LikeArticleResponse) ProtoMessage() {}
 
 func (x *LikeArticleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[115]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6306,7 +5133,7 @@ func (x *LikeArticleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LikeArticleResponse.ProtoReflect.Descriptor instead.
 func (*LikeArticleResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{115}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *LikeArticleResponse) GetSuccess() bool {
@@ -6334,7 +5161,7 @@ type ShareArticleRequest struct {
 
 func (x *ShareArticleRequest) Reset() {
 	*x = ShareArticleRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[116]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6346,7 +5173,7 @@ func (x *ShareArticleRequest) String() string {
 func (*ShareArticleRequest) ProtoMessage() {}
 
 func (x *ShareArticleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[116]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6359,7 +5186,7 @@ func (x *ShareArticleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareArticleRequest.ProtoReflect.Descriptor instead.
 func (*ShareArticleRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{116}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{93}
 }
 
 func (x *ShareArticleRequest) GetArticleId() string {
@@ -6392,7 +5219,7 @@ type ShareArticleResponse struct {
 
 func (x *ShareArticleResponse) Reset() {
 	*x = ShareArticleResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[117]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6404,7 +5231,7 @@ func (x *ShareArticleResponse) String() string {
 func (*ShareArticleResponse) ProtoMessage() {}
 
 func (x *ShareArticleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[117]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6417,7 +5244,7 @@ func (x *ShareArticleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ShareArticleResponse.ProtoReflect.Descriptor instead.
 func (*ShareArticleResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{117}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *ShareArticleResponse) GetSuccess() bool {
@@ -6438,7 +5265,7 @@ type GetAuthorArticlesRequest struct {
 
 func (x *GetAuthorArticlesRequest) Reset() {
 	*x = GetAuthorArticlesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[118]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6450,7 +5277,7 @@ func (x *GetAuthorArticlesRequest) String() string {
 func (*GetAuthorArticlesRequest) ProtoMessage() {}
 
 func (x *GetAuthorArticlesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[118]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6463,7 +5290,7 @@ func (x *GetAuthorArticlesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAuthorArticlesRequest.ProtoReflect.Descriptor instead.
 func (*GetAuthorArticlesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{118}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *GetAuthorArticlesRequest) GetAuthorId() string {
@@ -6497,7 +5324,7 @@ type GetAuthorArticlesResponse struct {
 
 func (x *GetAuthorArticlesResponse) Reset() {
 	*x = GetAuthorArticlesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[119]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6509,7 +5336,7 @@ func (x *GetAuthorArticlesResponse) String() string {
 func (*GetAuthorArticlesResponse) ProtoMessage() {}
 
 func (x *GetAuthorArticlesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[119]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6522,7 +5349,7 @@ func (x *GetAuthorArticlesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAuthorArticlesResponse.ProtoReflect.Descriptor instead.
 func (*GetAuthorArticlesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{119}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *GetAuthorArticlesResponse) GetArticles() []*Article {
@@ -6557,7 +5384,7 @@ type Habit struct {
 
 func (x *Habit) Reset() {
 	*x = Habit{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[120]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6569,7 +5396,7 @@ func (x *Habit) String() string {
 func (*Habit) ProtoMessage() {}
 
 func (x *Habit) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[120]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6582,7 +5409,7 @@ func (x *Habit) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Habit.ProtoReflect.Descriptor instead.
 func (*Habit) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{120}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *Habit) GetId() string {
@@ -6666,7 +5493,7 @@ type ListHabitsRequest struct {
 
 func (x *ListHabitsRequest) Reset() {
 	*x = ListHabitsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[121]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6678,7 +5505,7 @@ func (x *ListHabitsRequest) String() string {
 func (*ListHabitsRequest) ProtoMessage() {}
 
 func (x *ListHabitsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[121]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6691,7 +5518,7 @@ func (x *ListHabitsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHabitsRequest.ProtoReflect.Descriptor instead.
 func (*ListHabitsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{121}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *ListHabitsRequest) GetUserId() string {
@@ -6725,7 +5552,7 @@ type ListHabitsResponse struct {
 
 func (x *ListHabitsResponse) Reset() {
 	*x = ListHabitsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[122]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6737,7 +5564,7 @@ func (x *ListHabitsResponse) String() string {
 func (*ListHabitsResponse) ProtoMessage() {}
 
 func (x *ListHabitsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[122]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6750,7 +5577,7 @@ func (x *ListHabitsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHabitsResponse.ProtoReflect.Descriptor instead.
 func (*ListHabitsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{122}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *ListHabitsResponse) GetHabits() []*Habit {
@@ -6776,7 +5603,7 @@ type GetHabitRequest struct {
 
 func (x *GetHabitRequest) Reset() {
 	*x = GetHabitRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[123]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6788,7 +5615,7 @@ func (x *GetHabitRequest) String() string {
 func (*GetHabitRequest) ProtoMessage() {}
 
 func (x *GetHabitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[123]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6801,7 +5628,7 @@ func (x *GetHabitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHabitRequest.ProtoReflect.Descriptor instead.
 func (*GetHabitRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{123}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *GetHabitRequest) GetHabitId() string {
@@ -6820,7 +5647,7 @@ type GetHabitResponse struct {
 
 func (x *GetHabitResponse) Reset() {
 	*x = GetHabitResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[124]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6832,7 +5659,7 @@ func (x *GetHabitResponse) String() string {
 func (*GetHabitResponse) ProtoMessage() {}
 
 func (x *GetHabitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[124]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6845,7 +5672,7 @@ func (x *GetHabitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetHabitResponse.ProtoReflect.Descriptor instead.
 func (*GetHabitResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{124}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *GetHabitResponse) GetHabit() *Habit {
@@ -6867,7 +5694,7 @@ type CreateHabitRequest struct {
 
 func (x *CreateHabitRequest) Reset() {
 	*x = CreateHabitRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[125]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6879,7 +5706,7 @@ func (x *CreateHabitRequest) String() string {
 func (*CreateHabitRequest) ProtoMessage() {}
 
 func (x *CreateHabitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[125]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6892,7 +5719,7 @@ func (x *CreateHabitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateHabitRequest.ProtoReflect.Descriptor instead.
 func (*CreateHabitRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{125}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *CreateHabitRequest) GetUserId() string {
@@ -6932,7 +5759,7 @@ type CreateHabitResponse struct {
 
 func (x *CreateHabitResponse) Reset() {
 	*x = CreateHabitResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[126]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6944,7 +5771,7 @@ func (x *CreateHabitResponse) String() string {
 func (*CreateHabitResponse) ProtoMessage() {}
 
 func (x *CreateHabitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[126]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6957,7 +5784,7 @@ func (x *CreateHabitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateHabitResponse.ProtoReflect.Descriptor instead.
 func (*CreateHabitResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{126}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{103}
 }
 
 func (x *CreateHabitResponse) GetHabit() *Habit {
@@ -6979,7 +5806,7 @@ type UpdateHabitRequest struct {
 
 func (x *UpdateHabitRequest) Reset() {
 	*x = UpdateHabitRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[127]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6991,7 +5818,7 @@ func (x *UpdateHabitRequest) String() string {
 func (*UpdateHabitRequest) ProtoMessage() {}
 
 func (x *UpdateHabitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[127]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7004,7 +5831,7 @@ func (x *UpdateHabitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateHabitRequest.ProtoReflect.Descriptor instead.
 func (*UpdateHabitRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{127}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *UpdateHabitRequest) GetHabitId() string {
@@ -7044,7 +5871,7 @@ type UpdateHabitResponse struct {
 
 func (x *UpdateHabitResponse) Reset() {
 	*x = UpdateHabitResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[128]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7056,7 +5883,7 @@ func (x *UpdateHabitResponse) String() string {
 func (*UpdateHabitResponse) ProtoMessage() {}
 
 func (x *UpdateHabitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[128]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7069,7 +5896,7 @@ func (x *UpdateHabitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateHabitResponse.ProtoReflect.Descriptor instead.
 func (*UpdateHabitResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{128}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *UpdateHabitResponse) GetHabit() *Habit {
@@ -7088,7 +5915,7 @@ type DeleteHabitRequest struct {
 
 func (x *DeleteHabitRequest) Reset() {
 	*x = DeleteHabitRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[129]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7100,7 +5927,7 @@ func (x *DeleteHabitRequest) String() string {
 func (*DeleteHabitRequest) ProtoMessage() {}
 
 func (x *DeleteHabitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[129]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7113,7 +5940,7 @@ func (x *DeleteHabitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHabitRequest.ProtoReflect.Descriptor instead.
 func (*DeleteHabitRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{129}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *DeleteHabitRequest) GetHabitId() string {
@@ -7132,7 +5959,7 @@ type DeleteHabitResponse struct {
 
 func (x *DeleteHabitResponse) Reset() {
 	*x = DeleteHabitResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[130]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7144,7 +5971,7 @@ func (x *DeleteHabitResponse) String() string {
 func (*DeleteHabitResponse) ProtoMessage() {}
 
 func (x *DeleteHabitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[130]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7157,7 +5984,7 @@ func (x *DeleteHabitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteHabitResponse.ProtoReflect.Descriptor instead.
 func (*DeleteHabitResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{130}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *DeleteHabitResponse) GetSuccess() bool {
@@ -7176,7 +6003,7 @@ type ToggleHabitRequest struct {
 
 func (x *ToggleHabitRequest) Reset() {
 	*x = ToggleHabitRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[131]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7188,7 +6015,7 @@ func (x *ToggleHabitRequest) String() string {
 func (*ToggleHabitRequest) ProtoMessage() {}
 
 func (x *ToggleHabitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[131]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7201,7 +6028,7 @@ func (x *ToggleHabitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleHabitRequest.ProtoReflect.Descriptor instead.
 func (*ToggleHabitRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{131}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *ToggleHabitRequest) GetHabitId() string {
@@ -7220,7 +6047,7 @@ type ToggleHabitResponse struct {
 
 func (x *ToggleHabitResponse) Reset() {
 	*x = ToggleHabitResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[132]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7232,7 +6059,7 @@ func (x *ToggleHabitResponse) String() string {
 func (*ToggleHabitResponse) ProtoMessage() {}
 
 func (x *ToggleHabitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[132]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7245,7 +6072,7 @@ func (x *ToggleHabitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleHabitResponse.ProtoReflect.Descriptor instead.
 func (*ToggleHabitResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{132}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *ToggleHabitResponse) GetHabit() *Habit {
@@ -7264,7 +6091,7 @@ type ResetTodayHabitsRequest struct {
 
 func (x *ResetTodayHabitsRequest) Reset() {
 	*x = ResetTodayHabitsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[133]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7276,7 +6103,7 @@ func (x *ResetTodayHabitsRequest) String() string {
 func (*ResetTodayHabitsRequest) ProtoMessage() {}
 
 func (x *ResetTodayHabitsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[133]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7289,7 +6116,7 @@ func (x *ResetTodayHabitsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetTodayHabitsRequest.ProtoReflect.Descriptor instead.
 func (*ResetTodayHabitsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{133}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *ResetTodayHabitsRequest) GetUserId() string {
@@ -7308,7 +6135,7 @@ type ResetTodayHabitsResponse struct {
 
 func (x *ResetTodayHabitsResponse) Reset() {
 	*x = ResetTodayHabitsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[134]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7320,7 +6147,7 @@ func (x *ResetTodayHabitsResponse) String() string {
 func (*ResetTodayHabitsResponse) ProtoMessage() {}
 
 func (x *ResetTodayHabitsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[134]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7333,7 +6160,7 @@ func (x *ResetTodayHabitsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetTodayHabitsResponse.ProtoReflect.Descriptor instead.
 func (*ResetTodayHabitsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{134}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *ResetTodayHabitsResponse) GetResetCount() int32 {
@@ -7361,7 +6188,7 @@ type Goal struct {
 
 func (x *Goal) Reset() {
 	*x = Goal{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[135]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7373,7 +6200,7 @@ func (x *Goal) String() string {
 func (*Goal) ProtoMessage() {}
 
 func (x *Goal) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[135]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7386,7 +6213,7 @@ func (x *Goal) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Goal.ProtoReflect.Descriptor instead.
 func (*Goal) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{135}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *Goal) GetId() string {
@@ -7470,7 +6297,7 @@ type ListGoalsRequest struct {
 
 func (x *ListGoalsRequest) Reset() {
 	*x = ListGoalsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[136]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7482,7 +6309,7 @@ func (x *ListGoalsRequest) String() string {
 func (*ListGoalsRequest) ProtoMessage() {}
 
 func (x *ListGoalsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[136]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7495,7 +6322,7 @@ func (x *ListGoalsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGoalsRequest.ProtoReflect.Descriptor instead.
 func (*ListGoalsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{136}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *ListGoalsRequest) GetUserId() string {
@@ -7529,7 +6356,7 @@ type ListGoalsResponse struct {
 
 func (x *ListGoalsResponse) Reset() {
 	*x = ListGoalsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[137]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7541,7 +6368,7 @@ func (x *ListGoalsResponse) String() string {
 func (*ListGoalsResponse) ProtoMessage() {}
 
 func (x *ListGoalsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[137]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7554,7 +6381,7 @@ func (x *ListGoalsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGoalsResponse.ProtoReflect.Descriptor instead.
 func (*ListGoalsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{137}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *ListGoalsResponse) GetGoals() []*Goal {
@@ -7580,7 +6407,7 @@ type GetGoalRequest struct {
 
 func (x *GetGoalRequest) Reset() {
 	*x = GetGoalRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[138]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7592,7 +6419,7 @@ func (x *GetGoalRequest) String() string {
 func (*GetGoalRequest) ProtoMessage() {}
 
 func (x *GetGoalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[138]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7605,7 +6432,7 @@ func (x *GetGoalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGoalRequest.ProtoReflect.Descriptor instead.
 func (*GetGoalRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{138}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *GetGoalRequest) GetGoalId() string {
@@ -7624,7 +6451,7 @@ type GetGoalResponse struct {
 
 func (x *GetGoalResponse) Reset() {
 	*x = GetGoalResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[139]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7636,7 +6463,7 @@ func (x *GetGoalResponse) String() string {
 func (*GetGoalResponse) ProtoMessage() {}
 
 func (x *GetGoalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[139]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7649,7 +6476,7 @@ func (x *GetGoalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetGoalResponse.ProtoReflect.Descriptor instead.
 func (*GetGoalResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{139}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *GetGoalResponse) GetGoal() *Goal {
@@ -7672,7 +6499,7 @@ type CreateGoalRequest struct {
 
 func (x *CreateGoalRequest) Reset() {
 	*x = CreateGoalRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[140]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7684,7 +6511,7 @@ func (x *CreateGoalRequest) String() string {
 func (*CreateGoalRequest) ProtoMessage() {}
 
 func (x *CreateGoalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[140]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7697,7 +6524,7 @@ func (x *CreateGoalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGoalRequest.ProtoReflect.Descriptor instead.
 func (*CreateGoalRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{140}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *CreateGoalRequest) GetUserId() string {
@@ -7744,7 +6571,7 @@ type CreateGoalResponse struct {
 
 func (x *CreateGoalResponse) Reset() {
 	*x = CreateGoalResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[141]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7756,7 +6583,7 @@ func (x *CreateGoalResponse) String() string {
 func (*CreateGoalResponse) ProtoMessage() {}
 
 func (x *CreateGoalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[141]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7769,7 +6596,7 @@ func (x *CreateGoalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateGoalResponse.ProtoReflect.Descriptor instead.
 func (*CreateGoalResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{141}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *CreateGoalResponse) GetGoal() *Goal {
@@ -7792,7 +6619,7 @@ type UpdateGoalRequest struct {
 
 func (x *UpdateGoalRequest) Reset() {
 	*x = UpdateGoalRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[142]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7804,7 +6631,7 @@ func (x *UpdateGoalRequest) String() string {
 func (*UpdateGoalRequest) ProtoMessage() {}
 
 func (x *UpdateGoalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[142]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7817,7 +6644,7 @@ func (x *UpdateGoalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGoalRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGoalRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{142}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{119}
 }
 
 func (x *UpdateGoalRequest) GetGoalId() string {
@@ -7864,7 +6691,7 @@ type UpdateGoalResponse struct {
 
 func (x *UpdateGoalResponse) Reset() {
 	*x = UpdateGoalResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[143]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7876,7 +6703,7 @@ func (x *UpdateGoalResponse) String() string {
 func (*UpdateGoalResponse) ProtoMessage() {}
 
 func (x *UpdateGoalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[143]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7889,7 +6716,7 @@ func (x *UpdateGoalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGoalResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGoalResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{143}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *UpdateGoalResponse) GetGoal() *Goal {
@@ -7908,7 +6735,7 @@ type DeleteGoalRequest struct {
 
 func (x *DeleteGoalRequest) Reset() {
 	*x = DeleteGoalRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[144]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7920,7 +6747,7 @@ func (x *DeleteGoalRequest) String() string {
 func (*DeleteGoalRequest) ProtoMessage() {}
 
 func (x *DeleteGoalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[144]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7933,7 +6760,7 @@ func (x *DeleteGoalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGoalRequest.ProtoReflect.Descriptor instead.
 func (*DeleteGoalRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{144}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *DeleteGoalRequest) GetGoalId() string {
@@ -7952,7 +6779,7 @@ type DeleteGoalResponse struct {
 
 func (x *DeleteGoalResponse) Reset() {
 	*x = DeleteGoalResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[145]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7964,7 +6791,7 @@ func (x *DeleteGoalResponse) String() string {
 func (*DeleteGoalResponse) ProtoMessage() {}
 
 func (x *DeleteGoalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[145]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7977,7 +6804,7 @@ func (x *DeleteGoalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteGoalResponse.ProtoReflect.Descriptor instead.
 func (*DeleteGoalResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{145}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{122}
 }
 
 func (x *DeleteGoalResponse) GetSuccess() bool {
@@ -7996,7 +6823,7 @@ type ToggleGoalRequest struct {
 
 func (x *ToggleGoalRequest) Reset() {
 	*x = ToggleGoalRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[146]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8008,7 +6835,7 @@ func (x *ToggleGoalRequest) String() string {
 func (*ToggleGoalRequest) ProtoMessage() {}
 
 func (x *ToggleGoalRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[146]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8021,7 +6848,7 @@ func (x *ToggleGoalRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleGoalRequest.ProtoReflect.Descriptor instead.
 func (*ToggleGoalRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{146}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *ToggleGoalRequest) GetGoalId() string {
@@ -8040,7 +6867,7 @@ type ToggleGoalResponse struct {
 
 func (x *ToggleGoalResponse) Reset() {
 	*x = ToggleGoalResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[147]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8052,7 +6879,7 @@ func (x *ToggleGoalResponse) String() string {
 func (*ToggleGoalResponse) ProtoMessage() {}
 
 func (x *ToggleGoalResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[147]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8065,7 +6892,7 @@ func (x *ToggleGoalResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ToggleGoalResponse.ProtoReflect.Descriptor instead.
 func (*ToggleGoalResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{147}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *ToggleGoalResponse) GetGoal() *Goal {
@@ -8085,7 +6912,7 @@ type UpdateGoalProgressRequest struct {
 
 func (x *UpdateGoalProgressRequest) Reset() {
 	*x = UpdateGoalProgressRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[148]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8097,7 +6924,7 @@ func (x *UpdateGoalProgressRequest) String() string {
 func (*UpdateGoalProgressRequest) ProtoMessage() {}
 
 func (x *UpdateGoalProgressRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[148]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8110,7 +6937,7 @@ func (x *UpdateGoalProgressRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGoalProgressRequest.ProtoReflect.Descriptor instead.
 func (*UpdateGoalProgressRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{148}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{125}
 }
 
 func (x *UpdateGoalProgressRequest) GetGoalId() string {
@@ -8136,7 +6963,7 @@ type UpdateGoalProgressResponse struct {
 
 func (x *UpdateGoalProgressResponse) Reset() {
 	*x = UpdateGoalProgressResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[149]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8148,7 +6975,7 @@ func (x *UpdateGoalProgressResponse) String() string {
 func (*UpdateGoalProgressResponse) ProtoMessage() {}
 
 func (x *UpdateGoalProgressResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[149]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8161,7 +6988,7 @@ func (x *UpdateGoalProgressResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateGoalProgressResponse.ProtoReflect.Descriptor instead.
 func (*UpdateGoalProgressResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{149}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *UpdateGoalProgressResponse) GetGoal() *Goal {
@@ -8187,7 +7014,7 @@ type Category struct {
 
 func (x *Category) Reset() {
 	*x = Category{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[150]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8199,7 +7026,7 @@ func (x *Category) String() string {
 func (*Category) ProtoMessage() {}
 
 func (x *Category) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[150]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8212,7 +7039,7 @@ func (x *Category) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Category.ProtoReflect.Descriptor instead.
 func (*Category) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{150}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *Category) GetId() string {
@@ -8273,7 +7100,7 @@ type ListCategoriesRequest struct {
 
 func (x *ListCategoriesRequest) Reset() {
 	*x = ListCategoriesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[151]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8285,7 +7112,7 @@ func (x *ListCategoriesRequest) String() string {
 func (*ListCategoriesRequest) ProtoMessage() {}
 
 func (x *ListCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[151]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8298,7 +7125,7 @@ func (x *ListCategoriesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCategoriesRequest.ProtoReflect.Descriptor instead.
 func (*ListCategoriesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{151}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *ListCategoriesRequest) GetEntityType() string {
@@ -8317,7 +7144,7 @@ type ListCategoriesResponse struct {
 
 func (x *ListCategoriesResponse) Reset() {
 	*x = ListCategoriesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[152]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8329,7 +7156,7 @@ func (x *ListCategoriesResponse) String() string {
 func (*ListCategoriesResponse) ProtoMessage() {}
 
 func (x *ListCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[152]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8342,7 +7169,7 @@ func (x *ListCategoriesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCategoriesResponse.ProtoReflect.Descriptor instead.
 func (*ListCategoriesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{152}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *ListCategoriesResponse) GetCategories() []*Category {
@@ -8370,7 +7197,7 @@ type CheckIn struct {
 
 func (x *CheckIn) Reset() {
 	*x = CheckIn{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[153]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8382,7 +7209,7 @@ func (x *CheckIn) String() string {
 func (*CheckIn) ProtoMessage() {}
 
 func (x *CheckIn) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[153]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8395,7 +7222,7 @@ func (x *CheckIn) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckIn.ProtoReflect.Descriptor instead.
 func (*CheckIn) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{153}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *CheckIn) GetId() string {
@@ -8476,7 +7303,7 @@ type CreateCheckInRequest struct {
 
 func (x *CreateCheckInRequest) Reset() {
 	*x = CreateCheckInRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[154]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8488,7 +7315,7 @@ func (x *CreateCheckInRequest) String() string {
 func (*CreateCheckInRequest) ProtoMessage() {}
 
 func (x *CreateCheckInRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[154]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8501,7 +7328,7 @@ func (x *CreateCheckInRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCheckInRequest.ProtoReflect.Descriptor instead.
 func (*CreateCheckInRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{154}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *CreateCheckInRequest) GetUserId() string {
@@ -8564,7 +7391,7 @@ type CreateCheckInResponse struct {
 
 func (x *CreateCheckInResponse) Reset() {
 	*x = CreateCheckInResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[155]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8576,7 +7403,7 @@ func (x *CreateCheckInResponse) String() string {
 func (*CreateCheckInResponse) ProtoMessage() {}
 
 func (x *CreateCheckInResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[155]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8589,7 +7416,7 @@ func (x *CreateCheckInResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCheckInResponse.ProtoReflect.Descriptor instead.
 func (*CreateCheckInResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{155}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *CreateCheckInResponse) GetCheckIn() *CheckIn {
@@ -8622,7 +7449,7 @@ type GetTodayCheckInsRequest struct {
 
 func (x *GetTodayCheckInsRequest) Reset() {
 	*x = GetTodayCheckInsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[156]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8634,7 +7461,7 @@ func (x *GetTodayCheckInsRequest) String() string {
 func (*GetTodayCheckInsRequest) ProtoMessage() {}
 
 func (x *GetTodayCheckInsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[156]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8647,7 +7474,7 @@ func (x *GetTodayCheckInsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTodayCheckInsRequest.ProtoReflect.Descriptor instead.
 func (*GetTodayCheckInsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{156}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *GetTodayCheckInsRequest) GetUserId() string {
@@ -8666,7 +7493,7 @@ type GetTodayCheckInsResponse struct {
 
 func (x *GetTodayCheckInsResponse) Reset() {
 	*x = GetTodayCheckInsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[157]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8678,7 +7505,7 @@ func (x *GetTodayCheckInsResponse) String() string {
 func (*GetTodayCheckInsResponse) ProtoMessage() {}
 
 func (x *GetTodayCheckInsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[157]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8691,7 +7518,7 @@ func (x *GetTodayCheckInsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTodayCheckInsResponse.ProtoReflect.Descriptor instead.
 func (*GetTodayCheckInsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{157}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *GetTodayCheckInsResponse) GetCheckIns() []*CheckIn {
@@ -8713,7 +7540,7 @@ type GetCheckInHistoryRequest struct {
 
 func (x *GetCheckInHistoryRequest) Reset() {
 	*x = GetCheckInHistoryRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[158]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8725,7 +7552,7 @@ func (x *GetCheckInHistoryRequest) String() string {
 func (*GetCheckInHistoryRequest) ProtoMessage() {}
 
 func (x *GetCheckInHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[158]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8738,7 +7565,7 @@ func (x *GetCheckInHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckInHistoryRequest.ProtoReflect.Descriptor instead.
 func (*GetCheckInHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{158}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *GetCheckInHistoryRequest) GetUserId() string {
@@ -8779,7 +7606,7 @@ type GetCheckInHistoryResponse struct {
 
 func (x *GetCheckInHistoryResponse) Reset() {
 	*x = GetCheckInHistoryResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[159]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8791,7 +7618,7 @@ func (x *GetCheckInHistoryResponse) String() string {
 func (*GetCheckInHistoryResponse) ProtoMessage() {}
 
 func (x *GetCheckInHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[159]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8804,7 +7631,7 @@ func (x *GetCheckInHistoryResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCheckInHistoryResponse.ProtoReflect.Descriptor instead.
 func (*GetCheckInHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{159}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *GetCheckInHistoryResponse) GetCheckIns() []*CheckIn {
@@ -8831,7 +7658,7 @@ type HasCheckedInTodayRequest struct {
 
 func (x *HasCheckedInTodayRequest) Reset() {
 	*x = HasCheckedInTodayRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[160]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8843,7 +7670,7 @@ func (x *HasCheckedInTodayRequest) String() string {
 func (*HasCheckedInTodayRequest) ProtoMessage() {}
 
 func (x *HasCheckedInTodayRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[160]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8856,7 +7683,7 @@ func (x *HasCheckedInTodayRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HasCheckedInTodayRequest.ProtoReflect.Descriptor instead.
 func (*HasCheckedInTodayRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{160}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *HasCheckedInTodayRequest) GetUserId() string {
@@ -8882,7 +7709,7 @@ type HasCheckedInTodayResponse struct {
 
 func (x *HasCheckedInTodayResponse) Reset() {
 	*x = HasCheckedInTodayResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[161]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8894,7 +7721,7 @@ func (x *HasCheckedInTodayResponse) String() string {
 func (*HasCheckedInTodayResponse) ProtoMessage() {}
 
 func (x *HasCheckedInTodayResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[161]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8907,7 +7734,7 @@ func (x *HasCheckedInTodayResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HasCheckedInTodayResponse.ProtoReflect.Descriptor instead.
 func (*HasCheckedInTodayResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{161}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *HasCheckedInTodayResponse) GetCheckedIn() bool {
@@ -8989,83 +7816,7 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x14\n" +
 	"\x05count\x18\x02 \x01(\x05R\x05count\"F\n" +
 	"\x1bGetActivityCalendarResponse\x12'\n" +
-	"\x04days\x18\x01 \x03(\v2\x13.client.CalendarDayR\x04days\"\xa9\x02\n" +
-	"\fNotification\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
-	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04type\x18\x03 \x01(\tR\x04type\x12\x14\n" +
-	"\x05title\x18\x04 \x01(\tR\x05title\x12\x18\n" +
-	"\amessage\x18\x05 \x01(\tR\amessage\x12\x12\n" +
-	"\x04read\x18\x06 \x01(\bR\x04read\x12\x1c\n" +
-	"\tcreatedAt\x18\a \x01(\x03R\tcreatedAt\x12>\n" +
-	"\bmetadata\x18\b \x03(\v2\".client.Notification.MetadataEntryR\bmetadata\x1a;\n" +
-	"\rMetadataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x81\x02\n" +
-	"\x19CreateNotificationRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04type\x18\x02 \x01(\tR\x04type\x12\x14\n" +
-	"\x05title\x18\x03 \x01(\tR\x05title\x12\x18\n" +
-	"\amessage\x18\x04 \x01(\tR\amessage\x12K\n" +
-	"\bmetadata\x18\x05 \x03(\v2/.client.CreateNotificationRequest.MetadataEntryR\bmetadata\x1a;\n" +
-	"\rMetadataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"D\n" +
-	"\x1aCreateNotificationResponse\x12&\n" +
-	"\x0enotificationId\x18\x01 \x01(\tR\x0enotificationId\"@\n" +
-	"\x16GetNotificationRequest\x12&\n" +
-	"\x0enotificationId\x18\x01 \x01(\tR\x0enotificationId\"S\n" +
-	"\x17GetNotificationResponse\x128\n" +
-	"\fnotification\x18\x01 \x01(\v2\x14.client.NotificationR\fnotification\"\x80\x01\n" +
-	"\x18ListNotificationsRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x1e\n" +
-	"\n" +
-	"onlyUnread\x18\x04 \x01(\bR\n" +
-	"onlyUnread\"\x99\x01\n" +
-	"\x19ListNotificationsResponse\x12:\n" +
-	"\rnotifications\x18\x01 \x03(\v2\x14.client.NotificationR\rnotifications\x12\x1e\n" +
-	"\n" +
-	"totalCount\x18\x02 \x01(\x05R\n" +
-	"totalCount\x12 \n" +
-	"\vunreadCount\x18\x03 \x01(\x05R\vunreadCount\"E\n" +
-	"\x1bMarkNotificationReadRequest\x12&\n" +
-	"\x0enotificationId\x18\x01 \x01(\tR\x0enotificationId\"8\n" +
-	"\x1cMarkNotificationReadResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"9\n" +
-	"\x1fMarkAllNotificationsReadRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\"<\n" +
-	" MarkAllNotificationsReadResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"C\n" +
-	"\x19DeleteNotificationRequest\x12&\n" +
-	"\x0enotificationId\x18\x01 \x01(\tR\x0enotificationId\"6\n" +
-	"\x1aDeleteNotificationResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"/\n" +
-	"\x15GetUnreadCountRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\".\n" +
-	"\x16GetUnreadCountResponse\x12\x14\n" +
-	"\x05count\x18\x01 \x01(\x05R\x05count\"p\n" +
-	"\x16NotificationPreference\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12\x18\n" +
-	"\aenabled\x18\x02 \x01(\bR\aenabled\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\bR\x05email\x12\x12\n" +
-	"\x04push\x18\x04 \x01(\bR\x04push\";\n" +
-	"!GetNotificationPreferencesRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\"f\n" +
-	"\"GetNotificationPreferencesResponse\x12@\n" +
-	"\vpreferences\x18\x01 \x03(\v2\x1e.client.NotificationPreferenceR\vpreferences\"\x80\x01\n" +
-	"$UpdateNotificationPreferencesRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12@\n" +
-	"\vpreferences\x18\x02 \x03(\v2\x1e.client.NotificationPreferenceR\vpreferences\"A\n" +
-	"%UpdateNotificationPreferencesResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x1d\n" +
-	"\x1bGetNotificationTypesRequest\"H\n" +
-	"\x10NotificationType\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12 \n" +
-	"\vdescription\x18\x02 \x01(\tR\vdescription\"N\n" +
-	"\x1cGetNotificationTypesResponse\x12.\n" +
-	"\x05types\x18\x01 \x03(\v2\x18.client.NotificationTypeR\x05types\"\xac\x02\n" +
+	"\x04days\x18\x01 \x03(\v2\x13.client.CalendarDayR\x04days\"\xac\x02\n" +
 	"\n" +
 	"ReportItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1e\n" +
@@ -9558,18 +8309,7 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\n" +
 	"GetStreaks\x12\x19.client.GetStreaksRequest\x1a\x1a.client.GetStreaksResponse\x12R\n" +
 	"\x0fGetAchievements\x12\x1e.client.GetAchievementsRequest\x1a\x1f.client.GetAchievementsResponse\x12^\n" +
-	"\x13GetActivityCalendar\x12\".client.GetActivityCalendarRequest\x1a#.client.GetActivityCalendarResponse2\xf0\a\n" +
-	"\rNotifications\x12[\n" +
-	"\x12CreateNotification\x12!.client.CreateNotificationRequest\x1a\".client.CreateNotificationResponse\x12R\n" +
-	"\x0fGetNotification\x12\x1e.client.GetNotificationRequest\x1a\x1f.client.GetNotificationResponse\x12X\n" +
-	"\x11ListNotifications\x12 .client.ListNotificationsRequest\x1a!.client.ListNotificationsResponse\x12a\n" +
-	"\x14MarkNotificationRead\x12#.client.MarkNotificationReadRequest\x1a$.client.MarkNotificationReadResponse\x12m\n" +
-	"\x18MarkAllNotificationsRead\x12'.client.MarkAllNotificationsReadRequest\x1a(.client.MarkAllNotificationsReadResponse\x12[\n" +
-	"\x12DeleteNotification\x12!.client.DeleteNotificationRequest\x1a\".client.DeleteNotificationResponse\x12O\n" +
-	"\x0eGetUnreadCount\x12\x1d.client.GetUnreadCountRequest\x1a\x1e.client.GetUnreadCountResponse\x12s\n" +
-	"\x1aGetNotificationPreferences\x12).client.GetNotificationPreferencesRequest\x1a*.client.GetNotificationPreferencesResponse\x12|\n" +
-	"\x1dUpdateNotificationPreferences\x12,.client.UpdateNotificationPreferencesRequest\x1a-.client.UpdateNotificationPreferencesResponse\x12a\n" +
-	"\x14GetNotificationTypes\x12#.client.GetNotificationTypesRequest\x1a$.client.GetNotificationTypesResponse2\xac\x06\n" +
+	"\x13GetActivityCalendar\x12\".client.GetActivityCalendarRequest\x1a#.client.GetActivityCalendarResponse2\xac\x06\n" +
 	"\x06Report\x12I\n" +
 	"\fSubmitReport\x12\x1b.client.SubmitReportRequest\x1a\x1c.client.SubmitReportResponse\x12@\n" +
 	"\tGetReport\x12\x18.client.GetReportRequest\x1a\x19.client.GetReportResponse\x12F\n" +
@@ -9655,377 +8395,325 @@ func file_services_microservices_client_api_v1_client_proto_rawDescGZIP() []byte
 	return file_services_microservices_client_api_v1_client_proto_rawDescData
 }
 
-var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 170)
+var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 145)
 var file_services_microservices_client_api_v1_client_proto_goTypes = []any{
-	(*ActivityItem)(nil),                          // 0: client.ActivityItem
-	(*GetActivityFeedRequest)(nil),                // 1: client.GetActivityFeedRequest
-	(*GetActivityFeedResponse)(nil),               // 2: client.GetActivityFeedResponse
-	(*LogActivityRequest)(nil),                    // 3: client.LogActivityRequest
-	(*LogActivityResponse)(nil),                   // 4: client.LogActivityResponse
-	(*GetActivityStatsRequest)(nil),               // 5: client.GetActivityStatsRequest
-	(*GetActivityStatsResponse)(nil),              // 6: client.GetActivityStatsResponse
-	(*GetStreaksRequest)(nil),                     // 7: client.GetStreaksRequest
-	(*GetStreaksResponse)(nil),                    // 8: client.GetStreaksResponse
-	(*GetAchievementsRequest)(nil),                // 9: client.GetAchievementsRequest
-	(*Achievement)(nil),                           // 10: client.Achievement
-	(*GetAchievementsResponse)(nil),               // 11: client.GetAchievementsResponse
-	(*GetActivityCalendarRequest)(nil),            // 12: client.GetActivityCalendarRequest
-	(*CalendarDay)(nil),                           // 13: client.CalendarDay
-	(*GetActivityCalendarResponse)(nil),           // 14: client.GetActivityCalendarResponse
-	(*Notification)(nil),                          // 15: client.Notification
-	(*CreateNotificationRequest)(nil),             // 16: client.CreateNotificationRequest
-	(*CreateNotificationResponse)(nil),            // 17: client.CreateNotificationResponse
-	(*GetNotificationRequest)(nil),                // 18: client.GetNotificationRequest
-	(*GetNotificationResponse)(nil),               // 19: client.GetNotificationResponse
-	(*ListNotificationsRequest)(nil),              // 20: client.ListNotificationsRequest
-	(*ListNotificationsResponse)(nil),             // 21: client.ListNotificationsResponse
-	(*MarkNotificationReadRequest)(nil),           // 22: client.MarkNotificationReadRequest
-	(*MarkNotificationReadResponse)(nil),          // 23: client.MarkNotificationReadResponse
-	(*MarkAllNotificationsReadRequest)(nil),       // 24: client.MarkAllNotificationsReadRequest
-	(*MarkAllNotificationsReadResponse)(nil),      // 25: client.MarkAllNotificationsReadResponse
-	(*DeleteNotificationRequest)(nil),             // 26: client.DeleteNotificationRequest
-	(*DeleteNotificationResponse)(nil),            // 27: client.DeleteNotificationResponse
-	(*GetUnreadCountRequest)(nil),                 // 28: client.GetUnreadCountRequest
-	(*GetUnreadCountResponse)(nil),                // 29: client.GetUnreadCountResponse
-	(*NotificationPreference)(nil),                // 30: client.NotificationPreference
-	(*GetNotificationPreferencesRequest)(nil),     // 31: client.GetNotificationPreferencesRequest
-	(*GetNotificationPreferencesResponse)(nil),    // 32: client.GetNotificationPreferencesResponse
-	(*UpdateNotificationPreferencesRequest)(nil),  // 33: client.UpdateNotificationPreferencesRequest
-	(*UpdateNotificationPreferencesResponse)(nil), // 34: client.UpdateNotificationPreferencesResponse
-	(*GetNotificationTypesRequest)(nil),           // 35: client.GetNotificationTypesRequest
-	(*NotificationType)(nil),                      // 36: client.NotificationType
-	(*GetNotificationTypesResponse)(nil),          // 37: client.GetNotificationTypesResponse
-	(*ReportItem)(nil),                            // 38: client.ReportItem
-	(*SubmitReportRequest)(nil),                   // 39: client.SubmitReportRequest
-	(*SubmitReportResponse)(nil),                  // 40: client.SubmitReportResponse
-	(*GetReportRequest)(nil),                      // 41: client.GetReportRequest
-	(*GetReportResponse)(nil),                     // 42: client.GetReportResponse
-	(*ListReportsRequest)(nil),                    // 43: client.ListReportsRequest
-	(*ListReportsResponse)(nil),                   // 44: client.ListReportsResponse
-	(*UpdateReportRequest)(nil),                   // 45: client.UpdateReportRequest
-	(*UpdateReportResponse)(nil),                  // 46: client.UpdateReportResponse
-	(*GetReportCategoriesRequest)(nil),            // 47: client.GetReportCategoriesRequest
-	(*ReportCategory)(nil),                        // 48: client.ReportCategory
-	(*GetReportCategoriesResponse)(nil),           // 49: client.GetReportCategoriesResponse
-	(*UploadAttachmentRequest)(nil),               // 50: client.UploadAttachmentRequest
-	(*UploadAttachmentResponse)(nil),              // 51: client.UploadAttachmentResponse
-	(*GetReportStatusRequest)(nil),                // 52: client.GetReportStatusRequest
-	(*GetReportStatusResponse)(nil),               // 53: client.GetReportStatusResponse
-	(*CloseReportRequest)(nil),                    // 54: client.CloseReportRequest
-	(*CloseReportResponse)(nil),                   // 55: client.CloseReportResponse
-	(*AddReportCommentRequest)(nil),               // 56: client.AddReportCommentRequest
-	(*AddReportCommentResponse)(nil),              // 57: client.AddReportCommentResponse
-	(*ReportComment)(nil),                         // 58: client.ReportComment
-	(*GetReportCommentsRequest)(nil),              // 59: client.GetReportCommentsRequest
-	(*GetReportCommentsResponse)(nil),             // 60: client.GetReportCommentsResponse
-	(*SavedItem)(nil),                             // 61: client.SavedItem
-	(*Collection)(nil),                            // 62: client.Collection
-	(*SaveItemRequest)(nil),                       // 63: client.SaveItemRequest
-	(*SaveItemResponse)(nil),                      // 64: client.SaveItemResponse
-	(*RemoveSavedRequest)(nil),                    // 65: client.RemoveSavedRequest
-	(*RemoveSavedResponse)(nil),                   // 66: client.RemoveSavedResponse
-	(*ListSavedRequest)(nil),                      // 67: client.ListSavedRequest
-	(*ListSavedResponse)(nil),                     // 68: client.ListSavedResponse
-	(*GetSavedItemRequest)(nil),                   // 69: client.GetSavedItemRequest
-	(*GetSavedItemResponse)(nil),                  // 70: client.GetSavedItemResponse
-	(*CreateCollectionRequest)(nil),               // 71: client.CreateCollectionRequest
-	(*CreateCollectionResponse)(nil),              // 72: client.CreateCollectionResponse
-	(*UpdateCollectionRequest)(nil),               // 73: client.UpdateCollectionRequest
-	(*UpdateCollectionResponse)(nil),              // 74: client.UpdateCollectionResponse
-	(*DeleteCollectionRequest)(nil),               // 75: client.DeleteCollectionRequest
-	(*DeleteCollectionResponse)(nil),              // 76: client.DeleteCollectionResponse
-	(*ListCollectionsRequest)(nil),                // 77: client.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),               // 78: client.ListCollectionsResponse
-	(*GetCollectionRequest)(nil),                  // 79: client.GetCollectionRequest
-	(*GetCollectionResponse)(nil),                 // 80: client.GetCollectionResponse
-	(*MoveToCollectionRequest)(nil),               // 81: client.MoveToCollectionRequest
-	(*MoveToCollectionResponse)(nil),              // 82: client.MoveToCollectionResponse
-	(*GetSavedStatsRequest)(nil),                  // 83: client.GetSavedStatsRequest
-	(*GetSavedStatsResponse)(nil),                 // 84: client.GetSavedStatsResponse
-	(*ExportSavedRequest)(nil),                    // 85: client.ExportSavedRequest
-	(*ExportSavedResponse)(nil),                   // 86: client.ExportSavedResponse
-	(*UserSettings)(nil),                          // 87: client.UserSettings
-	(*GetSettingsRequest)(nil),                    // 88: client.GetSettingsRequest
-	(*GetSettingsResponse)(nil),                   // 89: client.GetSettingsResponse
-	(*UpdateSettingsRequest)(nil),                 // 90: client.UpdateSettingsRequest
-	(*UpdateSettingsResponse)(nil),                // 91: client.UpdateSettingsResponse
-	(*GetPreferencesRequest)(nil),                 // 92: client.GetPreferencesRequest
-	(*Preference)(nil),                            // 93: client.Preference
-	(*GetPreferencesResponse)(nil),                // 94: client.GetPreferencesResponse
-	(*UpdatePreferencesRequest)(nil),              // 95: client.UpdatePreferencesRequest
-	(*UpdatePreferencesResponse)(nil),             // 96: client.UpdatePreferencesResponse
-	(*UploadAvatarRequest)(nil),                   // 97: client.UploadAvatarRequest
-	(*UploadAvatarResponse)(nil),                  // 98: client.UploadAvatarResponse
-	(*DeleteAccountRequest)(nil),                  // 99: client.DeleteAccountRequest
-	(*DeleteAccountResponse)(nil),                 // 100: client.DeleteAccountResponse
-	(*ExportDataRequest)(nil),                     // 101: client.ExportDataRequest
-	(*ExportDataResponse)(nil),                    // 102: client.ExportDataResponse
-	(*PrivacySettings)(nil),                       // 103: client.PrivacySettings
-	(*GetPrivacySettingsRequest)(nil),             // 104: client.GetPrivacySettingsRequest
-	(*GetPrivacySettingsResponse)(nil),            // 105: client.GetPrivacySettingsResponse
-	(*UpdatePrivacySettingsRequest)(nil),          // 106: client.UpdatePrivacySettingsRequest
-	(*UpdatePrivacySettingsResponse)(nil),         // 107: client.UpdatePrivacySettingsResponse
-	(*ArticleCategory)(nil),                       // 108: client.ArticleCategory
-	(*Article)(nil),                               // 109: client.Article
-	(*ListArticlesRequest)(nil),                   // 110: client.ListArticlesRequest
-	(*ListArticlesResponse)(nil),                  // 111: client.ListArticlesResponse
-	(*GetArticleRequest)(nil),                     // 112: client.GetArticleRequest
-	(*GetArticleResponse)(nil),                    // 113: client.GetArticleResponse
-	(*LikeArticleRequest)(nil),                    // 114: client.LikeArticleRequest
-	(*LikeArticleResponse)(nil),                   // 115: client.LikeArticleResponse
-	(*ShareArticleRequest)(nil),                   // 116: client.ShareArticleRequest
-	(*ShareArticleResponse)(nil),                  // 117: client.ShareArticleResponse
-	(*GetAuthorArticlesRequest)(nil),              // 118: client.GetAuthorArticlesRequest
-	(*GetAuthorArticlesResponse)(nil),             // 119: client.GetAuthorArticlesResponse
-	(*Habit)(nil),                                 // 120: client.Habit
-	(*ListHabitsRequest)(nil),                     // 121: client.ListHabitsRequest
-	(*ListHabitsResponse)(nil),                    // 122: client.ListHabitsResponse
-	(*GetHabitRequest)(nil),                       // 123: client.GetHabitRequest
-	(*GetHabitResponse)(nil),                      // 124: client.GetHabitResponse
-	(*CreateHabitRequest)(nil),                    // 125: client.CreateHabitRequest
-	(*CreateHabitResponse)(nil),                   // 126: client.CreateHabitResponse
-	(*UpdateHabitRequest)(nil),                    // 127: client.UpdateHabitRequest
-	(*UpdateHabitResponse)(nil),                   // 128: client.UpdateHabitResponse
-	(*DeleteHabitRequest)(nil),                    // 129: client.DeleteHabitRequest
-	(*DeleteHabitResponse)(nil),                   // 130: client.DeleteHabitResponse
-	(*ToggleHabitRequest)(nil),                    // 131: client.ToggleHabitRequest
-	(*ToggleHabitResponse)(nil),                   // 132: client.ToggleHabitResponse
-	(*ResetTodayHabitsRequest)(nil),               // 133: client.ResetTodayHabitsRequest
-	(*ResetTodayHabitsResponse)(nil),              // 134: client.ResetTodayHabitsResponse
-	(*Goal)(nil),                                  // 135: client.Goal
-	(*ListGoalsRequest)(nil),                      // 136: client.ListGoalsRequest
-	(*ListGoalsResponse)(nil),                     // 137: client.ListGoalsResponse
-	(*GetGoalRequest)(nil),                        // 138: client.GetGoalRequest
-	(*GetGoalResponse)(nil),                       // 139: client.GetGoalResponse
-	(*CreateGoalRequest)(nil),                     // 140: client.CreateGoalRequest
-	(*CreateGoalResponse)(nil),                    // 141: client.CreateGoalResponse
-	(*UpdateGoalRequest)(nil),                     // 142: client.UpdateGoalRequest
-	(*UpdateGoalResponse)(nil),                    // 143: client.UpdateGoalResponse
-	(*DeleteGoalRequest)(nil),                     // 144: client.DeleteGoalRequest
-	(*DeleteGoalResponse)(nil),                    // 145: client.DeleteGoalResponse
-	(*ToggleGoalRequest)(nil),                     // 146: client.ToggleGoalRequest
-	(*ToggleGoalResponse)(nil),                    // 147: client.ToggleGoalResponse
-	(*UpdateGoalProgressRequest)(nil),             // 148: client.UpdateGoalProgressRequest
-	(*UpdateGoalProgressResponse)(nil),            // 149: client.UpdateGoalProgressResponse
-	(*Category)(nil),                              // 150: client.Category
-	(*ListCategoriesRequest)(nil),                 // 151: client.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil),                // 152: client.ListCategoriesResponse
-	(*CheckIn)(nil),                               // 153: client.CheckIn
-	(*CreateCheckInRequest)(nil),                  // 154: client.CreateCheckInRequest
-	(*CreateCheckInResponse)(nil),                 // 155: client.CreateCheckInResponse
-	(*GetTodayCheckInsRequest)(nil),               // 156: client.GetTodayCheckInsRequest
-	(*GetTodayCheckInsResponse)(nil),              // 157: client.GetTodayCheckInsResponse
-	(*GetCheckInHistoryRequest)(nil),              // 158: client.GetCheckInHistoryRequest
-	(*GetCheckInHistoryResponse)(nil),             // 159: client.GetCheckInHistoryResponse
-	(*HasCheckedInTodayRequest)(nil),              // 160: client.HasCheckedInTodayRequest
-	(*HasCheckedInTodayResponse)(nil),             // 161: client.HasCheckedInTodayResponse
-	nil,                                           // 162: client.ActivityItem.MetadataEntry
-	nil,                                           // 163: client.LogActivityRequest.MetadataEntry
-	nil,                                           // 164: client.GetActivityStatsResponse.ActivityCountsEntry
-	nil,                                           // 165: client.Notification.MetadataEntry
-	nil,                                           // 166: client.CreateNotificationRequest.MetadataEntry
-	nil,                                           // 167: client.SavedItem.MetadataEntry
-	nil,                                           // 168: client.SaveItemRequest.MetadataEntry
-	nil,                                           // 169: client.GetSavedStatsResponse.TypeCountsEntry
+	(*ActivityItem)(nil),                  // 0: client.ActivityItem
+	(*GetActivityFeedRequest)(nil),        // 1: client.GetActivityFeedRequest
+	(*GetActivityFeedResponse)(nil),       // 2: client.GetActivityFeedResponse
+	(*LogActivityRequest)(nil),            // 3: client.LogActivityRequest
+	(*LogActivityResponse)(nil),           // 4: client.LogActivityResponse
+	(*GetActivityStatsRequest)(nil),       // 5: client.GetActivityStatsRequest
+	(*GetActivityStatsResponse)(nil),      // 6: client.GetActivityStatsResponse
+	(*GetStreaksRequest)(nil),             // 7: client.GetStreaksRequest
+	(*GetStreaksResponse)(nil),            // 8: client.GetStreaksResponse
+	(*GetAchievementsRequest)(nil),        // 9: client.GetAchievementsRequest
+	(*Achievement)(nil),                   // 10: client.Achievement
+	(*GetAchievementsResponse)(nil),       // 11: client.GetAchievementsResponse
+	(*GetActivityCalendarRequest)(nil),    // 12: client.GetActivityCalendarRequest
+	(*CalendarDay)(nil),                   // 13: client.CalendarDay
+	(*GetActivityCalendarResponse)(nil),   // 14: client.GetActivityCalendarResponse
+	(*ReportItem)(nil),                    // 15: client.ReportItem
+	(*SubmitReportRequest)(nil),           // 16: client.SubmitReportRequest
+	(*SubmitReportResponse)(nil),          // 17: client.SubmitReportResponse
+	(*GetReportRequest)(nil),              // 18: client.GetReportRequest
+	(*GetReportResponse)(nil),             // 19: client.GetReportResponse
+	(*ListReportsRequest)(nil),            // 20: client.ListReportsRequest
+	(*ListReportsResponse)(nil),           // 21: client.ListReportsResponse
+	(*UpdateReportRequest)(nil),           // 22: client.UpdateReportRequest
+	(*UpdateReportResponse)(nil),          // 23: client.UpdateReportResponse
+	(*GetReportCategoriesRequest)(nil),    // 24: client.GetReportCategoriesRequest
+	(*ReportCategory)(nil),                // 25: client.ReportCategory
+	(*GetReportCategoriesResponse)(nil),   // 26: client.GetReportCategoriesResponse
+	(*UploadAttachmentRequest)(nil),       // 27: client.UploadAttachmentRequest
+	(*UploadAttachmentResponse)(nil),      // 28: client.UploadAttachmentResponse
+	(*GetReportStatusRequest)(nil),        // 29: client.GetReportStatusRequest
+	(*GetReportStatusResponse)(nil),       // 30: client.GetReportStatusResponse
+	(*CloseReportRequest)(nil),            // 31: client.CloseReportRequest
+	(*CloseReportResponse)(nil),           // 32: client.CloseReportResponse
+	(*AddReportCommentRequest)(nil),       // 33: client.AddReportCommentRequest
+	(*AddReportCommentResponse)(nil),      // 34: client.AddReportCommentResponse
+	(*ReportComment)(nil),                 // 35: client.ReportComment
+	(*GetReportCommentsRequest)(nil),      // 36: client.GetReportCommentsRequest
+	(*GetReportCommentsResponse)(nil),     // 37: client.GetReportCommentsResponse
+	(*SavedItem)(nil),                     // 38: client.SavedItem
+	(*Collection)(nil),                    // 39: client.Collection
+	(*SaveItemRequest)(nil),               // 40: client.SaveItemRequest
+	(*SaveItemResponse)(nil),              // 41: client.SaveItemResponse
+	(*RemoveSavedRequest)(nil),            // 42: client.RemoveSavedRequest
+	(*RemoveSavedResponse)(nil),           // 43: client.RemoveSavedResponse
+	(*ListSavedRequest)(nil),              // 44: client.ListSavedRequest
+	(*ListSavedResponse)(nil),             // 45: client.ListSavedResponse
+	(*GetSavedItemRequest)(nil),           // 46: client.GetSavedItemRequest
+	(*GetSavedItemResponse)(nil),          // 47: client.GetSavedItemResponse
+	(*CreateCollectionRequest)(nil),       // 48: client.CreateCollectionRequest
+	(*CreateCollectionResponse)(nil),      // 49: client.CreateCollectionResponse
+	(*UpdateCollectionRequest)(nil),       // 50: client.UpdateCollectionRequest
+	(*UpdateCollectionResponse)(nil),      // 51: client.UpdateCollectionResponse
+	(*DeleteCollectionRequest)(nil),       // 52: client.DeleteCollectionRequest
+	(*DeleteCollectionResponse)(nil),      // 53: client.DeleteCollectionResponse
+	(*ListCollectionsRequest)(nil),        // 54: client.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),       // 55: client.ListCollectionsResponse
+	(*GetCollectionRequest)(nil),          // 56: client.GetCollectionRequest
+	(*GetCollectionResponse)(nil),         // 57: client.GetCollectionResponse
+	(*MoveToCollectionRequest)(nil),       // 58: client.MoveToCollectionRequest
+	(*MoveToCollectionResponse)(nil),      // 59: client.MoveToCollectionResponse
+	(*GetSavedStatsRequest)(nil),          // 60: client.GetSavedStatsRequest
+	(*GetSavedStatsResponse)(nil),         // 61: client.GetSavedStatsResponse
+	(*ExportSavedRequest)(nil),            // 62: client.ExportSavedRequest
+	(*ExportSavedResponse)(nil),           // 63: client.ExportSavedResponse
+	(*UserSettings)(nil),                  // 64: client.UserSettings
+	(*GetSettingsRequest)(nil),            // 65: client.GetSettingsRequest
+	(*GetSettingsResponse)(nil),           // 66: client.GetSettingsResponse
+	(*UpdateSettingsRequest)(nil),         // 67: client.UpdateSettingsRequest
+	(*UpdateSettingsResponse)(nil),        // 68: client.UpdateSettingsResponse
+	(*GetPreferencesRequest)(nil),         // 69: client.GetPreferencesRequest
+	(*Preference)(nil),                    // 70: client.Preference
+	(*GetPreferencesResponse)(nil),        // 71: client.GetPreferencesResponse
+	(*UpdatePreferencesRequest)(nil),      // 72: client.UpdatePreferencesRequest
+	(*UpdatePreferencesResponse)(nil),     // 73: client.UpdatePreferencesResponse
+	(*UploadAvatarRequest)(nil),           // 74: client.UploadAvatarRequest
+	(*UploadAvatarResponse)(nil),          // 75: client.UploadAvatarResponse
+	(*DeleteAccountRequest)(nil),          // 76: client.DeleteAccountRequest
+	(*DeleteAccountResponse)(nil),         // 77: client.DeleteAccountResponse
+	(*ExportDataRequest)(nil),             // 78: client.ExportDataRequest
+	(*ExportDataResponse)(nil),            // 79: client.ExportDataResponse
+	(*PrivacySettings)(nil),               // 80: client.PrivacySettings
+	(*GetPrivacySettingsRequest)(nil),     // 81: client.GetPrivacySettingsRequest
+	(*GetPrivacySettingsResponse)(nil),    // 82: client.GetPrivacySettingsResponse
+	(*UpdatePrivacySettingsRequest)(nil),  // 83: client.UpdatePrivacySettingsRequest
+	(*UpdatePrivacySettingsResponse)(nil), // 84: client.UpdatePrivacySettingsResponse
+	(*ArticleCategory)(nil),               // 85: client.ArticleCategory
+	(*Article)(nil),                       // 86: client.Article
+	(*ListArticlesRequest)(nil),           // 87: client.ListArticlesRequest
+	(*ListArticlesResponse)(nil),          // 88: client.ListArticlesResponse
+	(*GetArticleRequest)(nil),             // 89: client.GetArticleRequest
+	(*GetArticleResponse)(nil),            // 90: client.GetArticleResponse
+	(*LikeArticleRequest)(nil),            // 91: client.LikeArticleRequest
+	(*LikeArticleResponse)(nil),           // 92: client.LikeArticleResponse
+	(*ShareArticleRequest)(nil),           // 93: client.ShareArticleRequest
+	(*ShareArticleResponse)(nil),          // 94: client.ShareArticleResponse
+	(*GetAuthorArticlesRequest)(nil),      // 95: client.GetAuthorArticlesRequest
+	(*GetAuthorArticlesResponse)(nil),     // 96: client.GetAuthorArticlesResponse
+	(*Habit)(nil),                         // 97: client.Habit
+	(*ListHabitsRequest)(nil),             // 98: client.ListHabitsRequest
+	(*ListHabitsResponse)(nil),            // 99: client.ListHabitsResponse
+	(*GetHabitRequest)(nil),               // 100: client.GetHabitRequest
+	(*GetHabitResponse)(nil),              // 101: client.GetHabitResponse
+	(*CreateHabitRequest)(nil),            // 102: client.CreateHabitRequest
+	(*CreateHabitResponse)(nil),           // 103: client.CreateHabitResponse
+	(*UpdateHabitRequest)(nil),            // 104: client.UpdateHabitRequest
+	(*UpdateHabitResponse)(nil),           // 105: client.UpdateHabitResponse
+	(*DeleteHabitRequest)(nil),            // 106: client.DeleteHabitRequest
+	(*DeleteHabitResponse)(nil),           // 107: client.DeleteHabitResponse
+	(*ToggleHabitRequest)(nil),            // 108: client.ToggleHabitRequest
+	(*ToggleHabitResponse)(nil),           // 109: client.ToggleHabitResponse
+	(*ResetTodayHabitsRequest)(nil),       // 110: client.ResetTodayHabitsRequest
+	(*ResetTodayHabitsResponse)(nil),      // 111: client.ResetTodayHabitsResponse
+	(*Goal)(nil),                          // 112: client.Goal
+	(*ListGoalsRequest)(nil),              // 113: client.ListGoalsRequest
+	(*ListGoalsResponse)(nil),             // 114: client.ListGoalsResponse
+	(*GetGoalRequest)(nil),                // 115: client.GetGoalRequest
+	(*GetGoalResponse)(nil),               // 116: client.GetGoalResponse
+	(*CreateGoalRequest)(nil),             // 117: client.CreateGoalRequest
+	(*CreateGoalResponse)(nil),            // 118: client.CreateGoalResponse
+	(*UpdateGoalRequest)(nil),             // 119: client.UpdateGoalRequest
+	(*UpdateGoalResponse)(nil),            // 120: client.UpdateGoalResponse
+	(*DeleteGoalRequest)(nil),             // 121: client.DeleteGoalRequest
+	(*DeleteGoalResponse)(nil),            // 122: client.DeleteGoalResponse
+	(*ToggleGoalRequest)(nil),             // 123: client.ToggleGoalRequest
+	(*ToggleGoalResponse)(nil),            // 124: client.ToggleGoalResponse
+	(*UpdateGoalProgressRequest)(nil),     // 125: client.UpdateGoalProgressRequest
+	(*UpdateGoalProgressResponse)(nil),    // 126: client.UpdateGoalProgressResponse
+	(*Category)(nil),                      // 127: client.Category
+	(*ListCategoriesRequest)(nil),         // 128: client.ListCategoriesRequest
+	(*ListCategoriesResponse)(nil),        // 129: client.ListCategoriesResponse
+	(*CheckIn)(nil),                       // 130: client.CheckIn
+	(*CreateCheckInRequest)(nil),          // 131: client.CreateCheckInRequest
+	(*CreateCheckInResponse)(nil),         // 132: client.CreateCheckInResponse
+	(*GetTodayCheckInsRequest)(nil),       // 133: client.GetTodayCheckInsRequest
+	(*GetTodayCheckInsResponse)(nil),      // 134: client.GetTodayCheckInsResponse
+	(*GetCheckInHistoryRequest)(nil),      // 135: client.GetCheckInHistoryRequest
+	(*GetCheckInHistoryResponse)(nil),     // 136: client.GetCheckInHistoryResponse
+	(*HasCheckedInTodayRequest)(nil),      // 137: client.HasCheckedInTodayRequest
+	(*HasCheckedInTodayResponse)(nil),     // 138: client.HasCheckedInTodayResponse
+	nil,                                   // 139: client.ActivityItem.MetadataEntry
+	nil,                                   // 140: client.LogActivityRequest.MetadataEntry
+	nil,                                   // 141: client.GetActivityStatsResponse.ActivityCountsEntry
+	nil,                                   // 142: client.SavedItem.MetadataEntry
+	nil,                                   // 143: client.SaveItemRequest.MetadataEntry
+	nil,                                   // 144: client.GetSavedStatsResponse.TypeCountsEntry
 }
 var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
-	162, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
+	139, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
 	0,   // 1: client.GetActivityFeedResponse.activities:type_name -> client.ActivityItem
-	163, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
-	164, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
+	140, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
+	141, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
 	10,  // 4: client.GetAchievementsResponse.achievements:type_name -> client.Achievement
 	13,  // 5: client.GetActivityCalendarResponse.days:type_name -> client.CalendarDay
-	165, // 6: client.Notification.metadata:type_name -> client.Notification.MetadataEntry
-	166, // 7: client.CreateNotificationRequest.metadata:type_name -> client.CreateNotificationRequest.MetadataEntry
-	15,  // 8: client.GetNotificationResponse.notification:type_name -> client.Notification
-	15,  // 9: client.ListNotificationsResponse.notifications:type_name -> client.Notification
-	30,  // 10: client.GetNotificationPreferencesResponse.preferences:type_name -> client.NotificationPreference
-	30,  // 11: client.UpdateNotificationPreferencesRequest.preferences:type_name -> client.NotificationPreference
-	36,  // 12: client.GetNotificationTypesResponse.types:type_name -> client.NotificationType
-	38,  // 13: client.GetReportResponse.report:type_name -> client.ReportItem
-	38,  // 14: client.ListReportsResponse.reports:type_name -> client.ReportItem
-	48,  // 15: client.GetReportCategoriesResponse.categories:type_name -> client.ReportCategory
-	58,  // 16: client.GetReportCommentsResponse.comments:type_name -> client.ReportComment
-	167, // 17: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
-	168, // 18: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
-	61,  // 19: client.ListSavedResponse.items:type_name -> client.SavedItem
-	61,  // 20: client.GetSavedItemResponse.item:type_name -> client.SavedItem
-	62,  // 21: client.ListCollectionsResponse.collections:type_name -> client.Collection
-	62,  // 22: client.GetCollectionResponse.collection:type_name -> client.Collection
-	169, // 23: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
-	87,  // 24: client.GetSettingsResponse.settings:type_name -> client.UserSettings
-	87,  // 25: client.UpdateSettingsRequest.settings:type_name -> client.UserSettings
-	93,  // 26: client.GetPreferencesResponse.preferences:type_name -> client.Preference
-	93,  // 27: client.UpdatePreferencesRequest.preferences:type_name -> client.Preference
-	103, // 28: client.GetPrivacySettingsResponse.settings:type_name -> client.PrivacySettings
-	103, // 29: client.UpdatePrivacySettingsRequest.settings:type_name -> client.PrivacySettings
-	108, // 30: client.Article.category:type_name -> client.ArticleCategory
-	109, // 31: client.ListArticlesResponse.articles:type_name -> client.Article
-	109, // 32: client.GetArticleResponse.article:type_name -> client.Article
-	109, // 33: client.GetAuthorArticlesResponse.articles:type_name -> client.Article
-	120, // 34: client.ListHabitsResponse.habits:type_name -> client.Habit
-	120, // 35: client.GetHabitResponse.habit:type_name -> client.Habit
-	120, // 36: client.CreateHabitResponse.habit:type_name -> client.Habit
-	120, // 37: client.UpdateHabitResponse.habit:type_name -> client.Habit
-	120, // 38: client.ToggleHabitResponse.habit:type_name -> client.Habit
-	135, // 39: client.ListGoalsResponse.goals:type_name -> client.Goal
-	135, // 40: client.GetGoalResponse.goal:type_name -> client.Goal
-	135, // 41: client.CreateGoalResponse.goal:type_name -> client.Goal
-	135, // 42: client.UpdateGoalResponse.goal:type_name -> client.Goal
-	135, // 43: client.ToggleGoalResponse.goal:type_name -> client.Goal
-	135, // 44: client.UpdateGoalProgressResponse.goal:type_name -> client.Goal
-	150, // 45: client.ListCategoriesResponse.categories:type_name -> client.Category
-	153, // 46: client.CreateCheckInResponse.checkIn:type_name -> client.CheckIn
-	120, // 47: client.CreateCheckInResponse.habit:type_name -> client.Habit
-	153, // 48: client.GetTodayCheckInsResponse.checkIns:type_name -> client.CheckIn
-	153, // 49: client.GetCheckInHistoryResponse.checkIns:type_name -> client.CheckIn
-	1,   // 50: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
-	3,   // 51: client.Activity.LogActivity:input_type -> client.LogActivityRequest
-	5,   // 52: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
-	7,   // 53: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
-	9,   // 54: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
-	12,  // 55: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
-	16,  // 56: client.Notifications.CreateNotification:input_type -> client.CreateNotificationRequest
-	18,  // 57: client.Notifications.GetNotification:input_type -> client.GetNotificationRequest
-	20,  // 58: client.Notifications.ListNotifications:input_type -> client.ListNotificationsRequest
-	22,  // 59: client.Notifications.MarkNotificationRead:input_type -> client.MarkNotificationReadRequest
-	24,  // 60: client.Notifications.MarkAllNotificationsRead:input_type -> client.MarkAllNotificationsReadRequest
-	26,  // 61: client.Notifications.DeleteNotification:input_type -> client.DeleteNotificationRequest
-	28,  // 62: client.Notifications.GetUnreadCount:input_type -> client.GetUnreadCountRequest
-	31,  // 63: client.Notifications.GetNotificationPreferences:input_type -> client.GetNotificationPreferencesRequest
-	33,  // 64: client.Notifications.UpdateNotificationPreferences:input_type -> client.UpdateNotificationPreferencesRequest
-	35,  // 65: client.Notifications.GetNotificationTypes:input_type -> client.GetNotificationTypesRequest
-	39,  // 66: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
-	41,  // 67: client.Report.GetReport:input_type -> client.GetReportRequest
-	43,  // 68: client.Report.ListReports:input_type -> client.ListReportsRequest
-	45,  // 69: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
-	47,  // 70: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
-	50,  // 71: client.Report.UploadAttachment:input_type -> client.UploadAttachmentRequest
-	52,  // 72: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
-	54,  // 73: client.Report.CloseReport:input_type -> client.CloseReportRequest
-	56,  // 74: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
-	59,  // 75: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
-	63,  // 76: client.Saved.SaveItem:input_type -> client.SaveItemRequest
-	65,  // 77: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
-	67,  // 78: client.Saved.ListSaved:input_type -> client.ListSavedRequest
-	69,  // 79: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
-	71,  // 80: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
-	73,  // 81: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
-	75,  // 82: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
-	77,  // 83: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
-	79,  // 84: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
-	81,  // 85: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
-	83,  // 86: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
-	85,  // 87: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
-	88,  // 88: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
-	90,  // 89: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
-	92,  // 90: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
-	95,  // 91: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
-	97,  // 92: client.Settings.UploadAvatar:input_type -> client.UploadAvatarRequest
-	99,  // 93: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
-	101, // 94: client.Settings.ExportData:input_type -> client.ExportDataRequest
-	104, // 95: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
-	106, // 96: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
-	110, // 97: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
-	112, // 98: client.Articles.GetArticle:input_type -> client.GetArticleRequest
-	114, // 99: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
-	116, // 100: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
-	118, // 101: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
-	121, // 102: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
-	123, // 103: client.Habits.GetHabit:input_type -> client.GetHabitRequest
-	125, // 104: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
-	127, // 105: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
-	129, // 106: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
-	131, // 107: client.Habits.ToggleHabit:input_type -> client.ToggleHabitRequest
-	133, // 108: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
-	136, // 109: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
-	138, // 110: client.Goals.GetGoal:input_type -> client.GetGoalRequest
-	140, // 111: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
-	142, // 112: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
-	144, // 113: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
-	146, // 114: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
-	148, // 115: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
-	151, // 116: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
-	154, // 117: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
-	156, // 118: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
-	158, // 119: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
-	160, // 120: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
-	2,   // 121: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
-	4,   // 122: client.Activity.LogActivity:output_type -> client.LogActivityResponse
-	6,   // 123: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
-	8,   // 124: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
-	11,  // 125: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
-	14,  // 126: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
-	17,  // 127: client.Notifications.CreateNotification:output_type -> client.CreateNotificationResponse
-	19,  // 128: client.Notifications.GetNotification:output_type -> client.GetNotificationResponse
-	21,  // 129: client.Notifications.ListNotifications:output_type -> client.ListNotificationsResponse
-	23,  // 130: client.Notifications.MarkNotificationRead:output_type -> client.MarkNotificationReadResponse
-	25,  // 131: client.Notifications.MarkAllNotificationsRead:output_type -> client.MarkAllNotificationsReadResponse
-	27,  // 132: client.Notifications.DeleteNotification:output_type -> client.DeleteNotificationResponse
-	29,  // 133: client.Notifications.GetUnreadCount:output_type -> client.GetUnreadCountResponse
-	32,  // 134: client.Notifications.GetNotificationPreferences:output_type -> client.GetNotificationPreferencesResponse
-	34,  // 135: client.Notifications.UpdateNotificationPreferences:output_type -> client.UpdateNotificationPreferencesResponse
-	37,  // 136: client.Notifications.GetNotificationTypes:output_type -> client.GetNotificationTypesResponse
-	40,  // 137: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
-	42,  // 138: client.Report.GetReport:output_type -> client.GetReportResponse
-	44,  // 139: client.Report.ListReports:output_type -> client.ListReportsResponse
-	46,  // 140: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
-	49,  // 141: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
-	51,  // 142: client.Report.UploadAttachment:output_type -> client.UploadAttachmentResponse
-	53,  // 143: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
-	55,  // 144: client.Report.CloseReport:output_type -> client.CloseReportResponse
-	57,  // 145: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
-	60,  // 146: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
-	64,  // 147: client.Saved.SaveItem:output_type -> client.SaveItemResponse
-	66,  // 148: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
-	68,  // 149: client.Saved.ListSaved:output_type -> client.ListSavedResponse
-	70,  // 150: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
-	72,  // 151: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
-	74,  // 152: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
-	76,  // 153: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
-	78,  // 154: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
-	80,  // 155: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
-	82,  // 156: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
-	84,  // 157: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
-	86,  // 158: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
-	89,  // 159: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
-	91,  // 160: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
-	94,  // 161: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
-	96,  // 162: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
-	98,  // 163: client.Settings.UploadAvatar:output_type -> client.UploadAvatarResponse
-	100, // 164: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
-	102, // 165: client.Settings.ExportData:output_type -> client.ExportDataResponse
-	105, // 166: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
-	107, // 167: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
-	111, // 168: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
-	113, // 169: client.Articles.GetArticle:output_type -> client.GetArticleResponse
-	115, // 170: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
-	117, // 171: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
-	119, // 172: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
-	122, // 173: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
-	124, // 174: client.Habits.GetHabit:output_type -> client.GetHabitResponse
-	126, // 175: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
-	128, // 176: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
-	130, // 177: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
-	132, // 178: client.Habits.ToggleHabit:output_type -> client.ToggleHabitResponse
-	134, // 179: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
-	137, // 180: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
-	139, // 181: client.Goals.GetGoal:output_type -> client.GetGoalResponse
-	141, // 182: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
-	143, // 183: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
-	145, // 184: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
-	147, // 185: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
-	149, // 186: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
-	152, // 187: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
-	155, // 188: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
-	157, // 189: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
-	159, // 190: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
-	161, // 191: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
-	121, // [121:192] is the sub-list for method output_type
-	50,  // [50:121] is the sub-list for method input_type
-	50,  // [50:50] is the sub-list for extension type_name
-	50,  // [50:50] is the sub-list for extension extendee
-	0,   // [0:50] is the sub-list for field type_name
+	15,  // 6: client.GetReportResponse.report:type_name -> client.ReportItem
+	15,  // 7: client.ListReportsResponse.reports:type_name -> client.ReportItem
+	25,  // 8: client.GetReportCategoriesResponse.categories:type_name -> client.ReportCategory
+	35,  // 9: client.GetReportCommentsResponse.comments:type_name -> client.ReportComment
+	142, // 10: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
+	143, // 11: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
+	38,  // 12: client.ListSavedResponse.items:type_name -> client.SavedItem
+	38,  // 13: client.GetSavedItemResponse.item:type_name -> client.SavedItem
+	39,  // 14: client.ListCollectionsResponse.collections:type_name -> client.Collection
+	39,  // 15: client.GetCollectionResponse.collection:type_name -> client.Collection
+	144, // 16: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
+	64,  // 17: client.GetSettingsResponse.settings:type_name -> client.UserSettings
+	64,  // 18: client.UpdateSettingsRequest.settings:type_name -> client.UserSettings
+	70,  // 19: client.GetPreferencesResponse.preferences:type_name -> client.Preference
+	70,  // 20: client.UpdatePreferencesRequest.preferences:type_name -> client.Preference
+	80,  // 21: client.GetPrivacySettingsResponse.settings:type_name -> client.PrivacySettings
+	80,  // 22: client.UpdatePrivacySettingsRequest.settings:type_name -> client.PrivacySettings
+	85,  // 23: client.Article.category:type_name -> client.ArticleCategory
+	86,  // 24: client.ListArticlesResponse.articles:type_name -> client.Article
+	86,  // 25: client.GetArticleResponse.article:type_name -> client.Article
+	86,  // 26: client.GetAuthorArticlesResponse.articles:type_name -> client.Article
+	97,  // 27: client.ListHabitsResponse.habits:type_name -> client.Habit
+	97,  // 28: client.GetHabitResponse.habit:type_name -> client.Habit
+	97,  // 29: client.CreateHabitResponse.habit:type_name -> client.Habit
+	97,  // 30: client.UpdateHabitResponse.habit:type_name -> client.Habit
+	97,  // 31: client.ToggleHabitResponse.habit:type_name -> client.Habit
+	112, // 32: client.ListGoalsResponse.goals:type_name -> client.Goal
+	112, // 33: client.GetGoalResponse.goal:type_name -> client.Goal
+	112, // 34: client.CreateGoalResponse.goal:type_name -> client.Goal
+	112, // 35: client.UpdateGoalResponse.goal:type_name -> client.Goal
+	112, // 36: client.ToggleGoalResponse.goal:type_name -> client.Goal
+	112, // 37: client.UpdateGoalProgressResponse.goal:type_name -> client.Goal
+	127, // 38: client.ListCategoriesResponse.categories:type_name -> client.Category
+	130, // 39: client.CreateCheckInResponse.checkIn:type_name -> client.CheckIn
+	97,  // 40: client.CreateCheckInResponse.habit:type_name -> client.Habit
+	130, // 41: client.GetTodayCheckInsResponse.checkIns:type_name -> client.CheckIn
+	130, // 42: client.GetCheckInHistoryResponse.checkIns:type_name -> client.CheckIn
+	1,   // 43: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
+	3,   // 44: client.Activity.LogActivity:input_type -> client.LogActivityRequest
+	5,   // 45: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
+	7,   // 46: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
+	9,   // 47: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
+	12,  // 48: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
+	16,  // 49: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
+	18,  // 50: client.Report.GetReport:input_type -> client.GetReportRequest
+	20,  // 51: client.Report.ListReports:input_type -> client.ListReportsRequest
+	22,  // 52: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
+	24,  // 53: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
+	27,  // 54: client.Report.UploadAttachment:input_type -> client.UploadAttachmentRequest
+	29,  // 55: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
+	31,  // 56: client.Report.CloseReport:input_type -> client.CloseReportRequest
+	33,  // 57: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
+	36,  // 58: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
+	40,  // 59: client.Saved.SaveItem:input_type -> client.SaveItemRequest
+	42,  // 60: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
+	44,  // 61: client.Saved.ListSaved:input_type -> client.ListSavedRequest
+	46,  // 62: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
+	48,  // 63: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
+	50,  // 64: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
+	52,  // 65: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
+	54,  // 66: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
+	56,  // 67: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
+	58,  // 68: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
+	60,  // 69: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
+	62,  // 70: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
+	65,  // 71: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
+	67,  // 72: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
+	69,  // 73: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
+	72,  // 74: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
+	74,  // 75: client.Settings.UploadAvatar:input_type -> client.UploadAvatarRequest
+	76,  // 76: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
+	78,  // 77: client.Settings.ExportData:input_type -> client.ExportDataRequest
+	81,  // 78: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
+	83,  // 79: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
+	87,  // 80: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
+	89,  // 81: client.Articles.GetArticle:input_type -> client.GetArticleRequest
+	91,  // 82: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
+	93,  // 83: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
+	95,  // 84: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
+	98,  // 85: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
+	100, // 86: client.Habits.GetHabit:input_type -> client.GetHabitRequest
+	102, // 87: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
+	104, // 88: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
+	106, // 89: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
+	108, // 90: client.Habits.ToggleHabit:input_type -> client.ToggleHabitRequest
+	110, // 91: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
+	113, // 92: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
+	115, // 93: client.Goals.GetGoal:input_type -> client.GetGoalRequest
+	117, // 94: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
+	119, // 95: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
+	121, // 96: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
+	123, // 97: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
+	125, // 98: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
+	128, // 99: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
+	131, // 100: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
+	133, // 101: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
+	135, // 102: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
+	137, // 103: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
+	2,   // 104: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
+	4,   // 105: client.Activity.LogActivity:output_type -> client.LogActivityResponse
+	6,   // 106: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
+	8,   // 107: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
+	11,  // 108: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
+	14,  // 109: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
+	17,  // 110: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
+	19,  // 111: client.Report.GetReport:output_type -> client.GetReportResponse
+	21,  // 112: client.Report.ListReports:output_type -> client.ListReportsResponse
+	23,  // 113: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
+	26,  // 114: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
+	28,  // 115: client.Report.UploadAttachment:output_type -> client.UploadAttachmentResponse
+	30,  // 116: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
+	32,  // 117: client.Report.CloseReport:output_type -> client.CloseReportResponse
+	34,  // 118: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
+	37,  // 119: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
+	41,  // 120: client.Saved.SaveItem:output_type -> client.SaveItemResponse
+	43,  // 121: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
+	45,  // 122: client.Saved.ListSaved:output_type -> client.ListSavedResponse
+	47,  // 123: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
+	49,  // 124: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
+	51,  // 125: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
+	53,  // 126: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
+	55,  // 127: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
+	57,  // 128: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
+	59,  // 129: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
+	61,  // 130: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
+	63,  // 131: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
+	66,  // 132: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
+	68,  // 133: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
+	71,  // 134: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
+	73,  // 135: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
+	75,  // 136: client.Settings.UploadAvatar:output_type -> client.UploadAvatarResponse
+	77,  // 137: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
+	79,  // 138: client.Settings.ExportData:output_type -> client.ExportDataResponse
+	82,  // 139: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
+	84,  // 140: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
+	88,  // 141: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
+	90,  // 142: client.Articles.GetArticle:output_type -> client.GetArticleResponse
+	92,  // 143: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
+	94,  // 144: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
+	96,  // 145: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
+	99,  // 146: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
+	101, // 147: client.Habits.GetHabit:output_type -> client.GetHabitResponse
+	103, // 148: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
+	105, // 149: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
+	107, // 150: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
+	109, // 151: client.Habits.ToggleHabit:output_type -> client.ToggleHabitResponse
+	111, // 152: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
+	114, // 153: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
+	116, // 154: client.Goals.GetGoal:output_type -> client.GetGoalResponse
+	118, // 155: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
+	120, // 156: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
+	122, // 157: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
+	124, // 158: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
+	126, // 159: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
+	129, // 160: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
+	132, // 161: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
+	134, // 162: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
+	136, // 163: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
+	138, // 164: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
+	104, // [104:165] is the sub-list for method output_type
+	43,  // [43:104] is the sub-list for method input_type
+	43,  // [43:43] is the sub-list for extension type_name
+	43,  // [43:43] is the sub-list for extension extendee
+	0,   // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_services_microservices_client_api_v1_client_proto_init() }
@@ -10039,9 +8727,9 @@ func file_services_microservices_client_api_v1_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_client_api_v1_client_proto_rawDesc), len(file_services_microservices_client_api_v1_client_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   170,
+			NumMessages:   145,
 			NumExtensions: 0,
-			NumServices:   10,
+			NumServices:   9,
 		},
 		GoTypes:           file_services_microservices_client_api_v1_client_proto_goTypes,
 		DependencyIndexes: file_services_microservices_client_api_v1_client_proto_depIdxs,

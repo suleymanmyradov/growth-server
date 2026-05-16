@@ -15,13 +15,13 @@ func TestClient_Generate_WithFallback(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 		// Parse the request body to check which model is being called.
 		var body map[string]any
-		json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewDecoder(r.Body).Decode(&body)
 		model, _ := body["model"].(string)
 
 		if model == "deepseek/deepseek-chat-v3" {
 			// Primary model returns 500.
 			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(`{"error":{"message":"overloaded","type":"server_error","code":500}}`))
+			_, _ = w.Write([]byte(`{"error":{"message":"overloaded","type":"server_error","code":500}}`))
 			return
 		}
 
@@ -34,7 +34,7 @@ func TestClient_Generate_WithFallback(t *testing.T) {
 			"usage":   map[string]any{"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -110,7 +110,7 @@ func TestOpenRouterTransport_Headers(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 		seenHeaders = r.Header
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{}`))
+		_, _ = w.Write([]byte(`{}`))
 	})
 	defer server.Close()
 

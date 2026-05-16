@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package notifications;
+
+option go_package = "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications";
+
+// Notification model
+message Notification {
+  string id = 1;
+  string userId = 2;
+  string type = 3;
+  string title = 4;
+  string message = 5;
+  bool read = 6;
+  int64 createdAt = 7;
+}
+
+message CreateNotificationRequest {
+  string userId = 1;
+  string type = 2;
+  string title = 3;
+  string message = 4;
+}
+
+message CreateNotificationResponse {
+  string notificationId = 1;
+}
+
+message GetNotificationRequest {
+  string notificationId = 1;
+}
+
+message GetNotificationResponse {
+  Notification notification = 1;
+}
+
+message ListNotificationsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  bool onlyUnread = 3;
+}
+
+message ListNotificationsResponse {
+  repeated Notification notifications = 1;
+  int32 totalCount = 2;
+  int32 unreadCount = 3;
+}
+
+message MarkNotificationReadRequest {
+  string notificationId = 1;
+}
+
+message MarkNotificationReadResponse {
+  bool success = 1;
+}
+
+message MarkAllNotificationsReadRequest {}
+
+message MarkAllNotificationsReadResponse {
+  bool success = 1;
+}
+
+message DeleteNotificationRequest {
+  string notificationId = 1;
+}
+
+message DeleteNotificationResponse {
+  bool success = 1;
+}
+
+message GetUnreadCountRequest {}
+
+message GetUnreadCountResponse {
+  int32 count = 1;
+}
+
+service Notifications {
+  rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
+  rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
+  rpc ListNotifications(ListNotificationsRequest) returns (ListNotificationsResponse);
+  rpc MarkNotificationRead(MarkNotificationReadRequest) returns (MarkNotificationReadResponse);
+  rpc MarkAllNotificationsRead(MarkAllNotificationsReadRequest) returns (MarkAllNotificationsReadResponse);
+  rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
+  rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+}

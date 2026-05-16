@@ -84,4 +84,4 @@ func (c *LLMClassifier) Classify(ctx context.Context, text string) (Verdict, err
 }
 
 func floatPtr(f float32) *float32 { return &f }
-func intPtr(i int) *int            { return &i }
+func intPtr(i int) *int           { return &i }

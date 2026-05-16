@@ -5,9 +5,9 @@ import (
 	"io"
 	"testing"
 
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 )
 
 func TestMockClient_Generate(t *testing.T) {

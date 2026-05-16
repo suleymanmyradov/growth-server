@@ -245,6 +245,23 @@ service growthapi {
 }
 
 @server (
+	prefix:     /api/v1
+	group:      checkin
+	middleware: Auth
+	tags:       "Check-In"
+)
+service growthapi {
+	@handler CreateCheckIn
+	post /check-ins (CreateCheckInRequest) returns (CreateCheckInResponse)
+
+	@handler GetTodayCheckIns
+	get /check-ins/today returns (GetTodayCheckInsResponse)
+
+	@handler GetCheckInHistory
+	get /check-ins/history (GetCheckInHistoryRequest) returns (GetCheckInHistoryResponse)
+}
+
+@server (
 	prefix: /api/v1
 	group:  categories
 	tags:   "Categories"

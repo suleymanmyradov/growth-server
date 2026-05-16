@@ -1,6 +1,6 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-conversation-proto generate-client-repo generate-auth-repo generate-conversations-repo generate-search-repo sqlc lint build build-auth build-client build-search build-conversations build-gateway clean
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-conversation-proto generate-notification-proto generate-client-repo generate-auth-repo generate-conversations-repo generate-search-repo sqlc lint build build-auth build-client build-search build-conversations build-notifications build-gateway clean
 SQLC_VERSION ?= v1.27.0
-SQLC_SERVICES := auth client conversations search
+SQLC_SERVICES := auth client conversations search notifications
 # Default target
 help:
 	@echo "Available commands:"
@@ -106,6 +106,9 @@ generate-search-proto:
 generate-conversations-proto:
 	@echo "Generating conversations proto..."
 	goctl rpc protoc ./services/microservices/conversations/api/v1/conversations.proto --go_out=./services/microservices/conversations/rpc/pb --go-grpc_out=./services/microservices/conversations/rpc/pb --zrpc_out=./services/microservices/conversations/rpc -m --style goZero
+generate-notification-proto:
+	@echo "Generating notifications proto..."
+	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc -m --style goZero
 
 # Lint with golangci-lint (Uber Go Style Guide recommended)
 lint:
@@ -116,7 +119,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-conversations build-gateway
+build: build-auth build-client build-search build-conversations build-notifications build-gateway
 	@echo "All services built successfully!"
 
 build-auth:
@@ -138,6 +141,11 @@ build-conversations:
 	@echo "Building conversations service..."
 	@mkdir -p bin
 	go build -o bin/conversations ./services/microservices/conversations/rpc
+
+build-notifications:
+	@echo "Building notifications service..."
+	@mkdir -p bin
+	go build -o bin/notifications ./services/microservices/notifications/rpc
 
 build-gateway:
 	@echo "Building gateway service..."

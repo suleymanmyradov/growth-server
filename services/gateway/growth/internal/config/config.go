@@ -19,6 +19,7 @@ type Config struct {
 	Auth             AuthConfig
 	AuthRpc          zrpc.RpcClientConf
 	ClientRpc        zrpc.RpcClientConf
+	NotificationsRpc zrpc.RpcClientConf
 	SearchRpc        zrpc.RpcClientConf
 	ConversationsRpc zrpc.RpcClientConf
 }

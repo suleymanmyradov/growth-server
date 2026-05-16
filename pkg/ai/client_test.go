@@ -102,7 +102,7 @@ func TestNew_MissingAPIKey(t *testing.T) {
 func TestNew_WithCustomHTTPClient(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"id":"chatcmpl-test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"hello"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":1,"total_tokens":6}}`))
+		_, _ = w.Write([]byte(`{"id":"chatcmpl-test","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"hello"},"finish_reason":"stop"}],"usage":{"prompt_tokens":5,"completion_tokens":1,"total_tokens":6}}`))
 	})
 	defer server.Close()
 
@@ -128,7 +128,7 @@ func TestClient_Generate(t *testing.T) {
 			"usage":   map[string]any{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -152,7 +152,7 @@ func TestClient_Generate(t *testing.T) {
 func TestClient_Generate_APIError(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{"error":{"message":"internal error","type":"server_error","code":500}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"internal error","type":"server_error","code":500}}`))
 	})
 	defer server.Close()
 
@@ -180,7 +180,7 @@ func TestClient_GenerateStructured(t *testing.T) {
 			"usage":   map[string]any{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 
@@ -214,7 +214,7 @@ func TestClient_GenerateStructured_MarkdownFence(t *testing.T) {
 			"usage":   map[string]any{"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 	})
 	defer server.Close()
 

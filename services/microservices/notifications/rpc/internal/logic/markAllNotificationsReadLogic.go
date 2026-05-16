@@ -1,11 +1,11 @@
-package notificationslogic
+package logic
 
 import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -27,7 +27,7 @@ func NewMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceCo
 	}
 }
 
-func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(in *client.MarkAllNotificationsReadRequest) (*client.MarkAllNotificationsReadResponse, error) {
+func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(in *notifications.MarkAllNotificationsReadRequest) (*notifications.MarkAllNotificationsReadResponse, error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
@@ -35,16 +35,16 @@ func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(in *client.Mark
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
 	err = l.svcCtx.Repo.Notifications.MarkAllNotificationsRead(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to mark all notifications as read: %v", err)
-		return nil, err
+		return nil, status.Error(codes.Internal, "failed to mark all notifications as read")
 	}
 
-	return &client.MarkAllNotificationsReadResponse{
+	return &notifications.MarkAllNotificationsReadResponse{
 		Success: true,
 	}, nil
 }

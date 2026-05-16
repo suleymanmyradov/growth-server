@@ -118,7 +118,7 @@ AI:
 
 ## Observability
 
-- **Logging**: Every call logged via `logx.Infof` with profile, model, feature, user, tokens, latency, cost. **Never** logs prompt/completion contents at info level.
+- **Logging**: Every call logged via `logx.WithContext(ctx)` with structured fields (profile, model, feature, user_id, conversation_id, prompt_tokens, completion_tokens, latency_ms, cost_usd). Logs propagate trace_id/span_id from upstream tracing middleware. **Never** logs prompt/completion contents at info level.
 - **Metrics**: Prometheus counters (`ai_requests_total`, `ai_tokens_total`, `ai_cost_usd_total`) and histogram (`ai_request_duration_seconds`).
 
 ## Resilience

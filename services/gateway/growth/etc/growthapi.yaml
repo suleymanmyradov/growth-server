@@ -16,6 +16,8 @@ SearchRpc:
   Target: 127.0.0.1:9083
 ConversationsRpc:
   Target: 127.0.0.1:9084
+NotificationsRpc:
+  Target: 127.0.0.1:9085
 Telemetry:
   Name: growthapi
   Endpoint: http://localhost:14268/api/traces

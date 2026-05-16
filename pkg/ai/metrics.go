@@ -55,19 +55,3 @@ func init() {
 func recordMetrics(profile ModelProfile, modelID, status string) {
 	requestsTotal.WithLabelValues(string(profile), modelID, status).Inc()
 }
-
-// recordTokenMetrics records token usage metrics.
-func recordTokenMetrics(profile ModelProfile, modelID string, usage Usage) {
-	tokensTotal.WithLabelValues(string(profile), modelID, "prompt").Add(float64(usage.PromptTokens))
-	tokensTotal.WithLabelValues(string(profile), modelID, "completion").Add(float64(usage.CompletionTokens))
-}
-
-// recordCostMetrics records cost metrics.
-func recordCostMetrics(profile ModelProfile, costUSD float64) {
-	costUSDTotal.WithLabelValues(string(profile)).Add(costUSD)
-}
-
-// recordDurationMetrics records request duration.
-func recordDurationMetrics(profile ModelProfile, modelID string, durationSeconds float64) {
-	requestDuration.WithLabelValues(string(profile), modelID).Observe(durationSeconds)
-}

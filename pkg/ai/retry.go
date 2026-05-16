@@ -33,7 +33,7 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 		if isRetryable(lastErr) {
 			// Retryable errors (429, 5xx) should be retried with backoff.
 			// They don't trip the circuit breaker.
-			logx.Infof("ai: retryable error on model %s (attempt %d): %v", modelID, attempt, lastErr)
+			logx.WithContext(ctx).Infof("ai: retryable error on model %s (attempt %d): %v", modelID, attempt, lastErr)
 			return struct{}{}, lastErr
 		}
 
@@ -43,7 +43,7 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 		if err := brk.DoWithAcceptable(func() error {
 			return lastErr
 		}, acceptable); err != nil {
-			logx.Infof("ai: circuit breaker open for model %s: %v", modelID, err)
+			logx.WithContext(ctx).Infof("ai: circuit breaker open for model %s: %v", modelID, err)
 			return struct{}{}, backoff.Permanent(fmt.Errorf("ai: circuit breaker: %w", err))
 		}
 

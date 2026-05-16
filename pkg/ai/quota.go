@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // QuotaStore is the interface for per-user and global quota tracking.
@@ -81,11 +80,8 @@ func (noopQuotaStore) CheckUserQuota(_ context.Context, _ string, _ int64) (bool
 	return true, nil
 }
 func (noopQuotaStore) IncrUserTokens(_ context.Context, _ string, _ int64) error { return nil }
-func (noopQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error)  { return true, nil }
-func (noopQuotaStore) IncrGlobalCost(_ context.Context, _ int64) error            { return nil }
+func (noopQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error) { return true, nil }
+func (noopQuotaStore) IncrGlobalCost(_ context.Context, _ int64) error           { return nil }
 
 // Ensure redisQuotaStore implements QuotaStore.
 var _ QuotaStore = (*redisQuotaStore)(nil)
-
-// Suppress unused import warning.
-var _ = logx.Infof
