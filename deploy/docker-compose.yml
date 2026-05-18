@@ -62,6 +62,29 @@ services:
       timeout: 5s
       retries: 5
 
+  redpanda:
+    image: redpandadata/redpanda:latest
+    container_name: growthmind-redpanda
+    command: >
+      redpanda start
+      --smp 1
+      --memory 512M
+      --reserve-memory 0M
+      --overprovisioned
+      --node-id 0
+      --check=false
+      --kafka-addr PLAINTEXT://0.0.0.0:9092
+      --advertise-kafka-addr PLAINTEXT://redpanda:9092
+    ports:
+      - "9092:9092"
+    networks:
+      - growthmind-network
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   notifications-rpc:
     build:
       context: ../../services/microservices/notifications/rpc
@@ -75,12 +98,38 @@ services:
       - POSTGRES_PASSWORD=growthmind123
       - ETCD_ENDPOINTS=etcd:2379
       - ETCD_KEY=notifications.rpc
+      - KAFKA_BROKERS=redpanda:9092
     ports:
-      - "9092:9092"
+      - "9093:9092"
     depends_on:
       postgres:
         condition: service_healthy
       etcd:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    networks:
+      - growthmind-network
+    restart: unless-stopped
+
+  ai-coach-consumer:
+    build:
+      context: ../../services/microservices/ai-coach/consumer
+      dockerfile: Dockerfile
+    container_name: growthmind-ai-coach-consumer
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=growthmind
+      - POSTGRES_USER=growthmind
+      - POSTGRES_PASSWORD=growthmind123
+      - KAFKA_BROKERS=redpanda:9092
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_BASE_URL=https://openrouter.ai/api/v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
         condition: service_healthy
     networks:
       - growthmind-network

@@ -3,11 +3,10 @@ package config
 import (
 	"time"
 
-	"github.com/zeromicro/go-zero/zrpc"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 )
 
 type Config struct {
-	zrpc.RpcServerConf
 	Postgres struct {
 		Datasource      string
 		MaxOpenConns    int
@@ -15,9 +14,9 @@ type Config struct {
 		ConnMaxLifetime time.Duration
 	}
 	Kafka struct {
-		Brokers          []string
-		EventsTopic      string
-		ReminderDueTopic string
-		ConsumerGroup    string
+		Brokers       []string
+		EventsTopic   string
+		ConsumerGroup string
 	}
+	AI ai.Config
 }

@@ -27,6 +27,9 @@ func main() {
 	conf.MustLoad(*configFile, &c)
 	ctx := svc.NewServiceContext(c)
 
+	// Start Kafka consumers and scheduler before RPC server.
+	cancelConsumers := ctx.StartConsumers()
+
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		notifications.RegisterNotificationsServer(grpcServer, server.NewNotificationsServer(ctx))
 
@@ -41,6 +44,7 @@ func main() {
 		RPC: s,
 		OnShutdown: []func(context.Context) error{
 			func(_ context.Context) error {
+				cancelConsumers()
 				ctx.Close()
 				return nil
 			},

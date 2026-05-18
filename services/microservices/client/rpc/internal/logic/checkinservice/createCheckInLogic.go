@@ -8,8 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/prompts"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -111,85 +110,32 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		l.Errorf("Failed to create activity: %v", err)
 	}
 
-	// Generate AI coaching feedback
-	aiFeedback := l.generateFeedback(userID, habit, in)
+	// Fire-and-forget publish check-in event to Kafka.
+	if l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeCheckInCreated, events.CheckInCreated{
+				UserID:    userID.String(),
+				CheckInID: checkIn.ID.String(),
+				HabitID:   habit.ID.String(),
+				HabitName: habit.Name,
+				Status:    in.Status,
+				Streak:    habit.Streak.Int32,
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish check-in event: %v", err)
+			}
+		}()
+	}
 
 	return &client.CreateCheckInResponse{
 		CheckIn:    checkInToProto(checkIn),
 		Habit:      habitToProto(habit),
-		AiFeedback: aiFeedback,
+		AiFeedback: "", // TODO: remove once frontend migrates to async delivery via notifications
 	}, nil
-}
-
-func (l *CreateCheckInLogic) generateFeedback(userID uuid.UUID, habit db.Habit, in *client.CreateCheckInRequest) string {
-	if l.svcCtx.AI == nil {
-		return ""
-	}
-
-	// Fetch user settings for accountability style
-	accountabilityStyle := "balanced"
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
-	if err == nil && settings.AccountabilityStyle != "" {
-		accountabilityStyle = settings.AccountabilityStyle
-	}
-
-	// Fetch recent 7-day check-in pattern for this habit
-	recentPattern := l.buildRecentPattern(userID, habit.ID)
-
-	promptInput := prompts.CheckInFeedbackInput{
-		HabitName:           habit.Name,
-		Status:              in.Status,
-		Mood:                in.Mood,
-		Energy:              in.Energy,
-		Blocker:             in.Blocker,
-		Note:                in.Note,
-		AccountabilityStyle: accountabilityStyle,
-		Streak:              habit.Streak.Int32,
-		RecentPattern:       recentPattern,
-	}
-
-	system := prompts.BuildSystemPrompt(accountabilityStyle)
-	user := prompts.BuildUserPrompt(promptInput)
-
-	resp, err := l.svcCtx.AI.Generate(l.ctx, ai.GenerateRequest{
-		ModelProfile: ai.ModelCheap,
-		System:       system,
-		Messages: []ai.Message{
-			{Role: ai.RoleUser, Content: user},
-		},
-		Metadata: ai.Metadata{
-			UserID:  in.UserId,
-			Feature: "check-in-feedback",
-		},
-	})
-	if err != nil {
-		l.Errorf("AI feedback generation failed: %v", err)
-		return ""
-	}
-
-	return resp.Message.Content
-}
-
-func (l *CreateCheckInLogic) buildRecentPattern(userID, habitID uuid.UUID) string {
-	now := time.Now().UTC()
-	start := now.AddDate(0, 0, -7)
-	checkIns, err := l.svcCtx.Repo.CheckIns.GetCheckInsForWeek(l.ctx, userID, start, now)
-	if err != nil {
-		return ""
-	}
-
-	var habitChecks int
-	var completed int
-	for _, c := range checkIns {
-		if c.HabitID == habitID {
-			habitChecks++
-			if c.Status == "completed" {
-				completed++
-			}
-		}
-	}
-	if habitChecks == 0 {
-		return ""
-	}
-	return fmt.Sprintf("completed %d of last %d check-ins", completed, habitChecks)
 }

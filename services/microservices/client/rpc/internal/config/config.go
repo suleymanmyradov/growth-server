@@ -3,7 +3,6 @@ package config
 import (
 	"time"
 
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -15,5 +14,8 @@ type Config struct {
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
 	}
-	AI ai.Config
+	Kafka struct {
+		Brokers     []string
+		EventsTopic string
+	}
 }
