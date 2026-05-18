@@ -5,11 +5,15 @@ import (
 )
 
 type Repository struct {
-	Notifications *NotificationsRepo
+	Notifications    *NotificationsRepo
+	Reminders        *RemindersRepo
+	ProcessedEvents  *ProcessedEventsRepo
 }
 
-func NewRepository(db *db.Queries) *Repository {
+func NewRepository(q *db.Queries) *Repository {
 	return &Repository{
-		Notifications: NewNotificationsRepo(db),
+		Notifications:   NewNotificationsRepo(q),
+		Reminders:       NewRemindersRepo(q),
+		ProcessedEvents: NewProcessedEventsRepo(q),
 	}
 }

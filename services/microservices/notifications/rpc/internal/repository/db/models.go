@@ -7,6 +7,7 @@ package db
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -65,6 +66,21 @@ type Activity struct {
 	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
 	UserID      uuid.UUID             `db:"user_id" json:"user_id"`
 	CreatedAt   time.Time             `db:"created_at" json:"created_at"`
+}
+
+type AiCoachProcessedEvent struct {
+	EventID     uuid.UUID `db:"event_id" json:"event_id"`
+	ProcessedAt time.Time `db:"processed_at" json:"processed_at"`
+}
+
+type AiFeedback struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	CheckInID uuid.UUID `db:"check_in_id" json:"check_in_id"`
+	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
+	Content   string    `db:"content" json:"content"`
+	Model     string    `db:"model" json:"model"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
 type Article struct {
@@ -174,6 +190,11 @@ type Notification struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+type ProcessedEvent struct {
+	EventID     uuid.UUID `db:"event_id" json:"event_id"`
+	ProcessedAt time.Time `db:"processed_at" json:"processed_at"`
+}
+
 type Profile struct {
 	ID        uuid.UUID      `db:"id" json:"id"`
 	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
@@ -184,6 +205,18 @@ type Profile struct {
 	AvatarUrl sql.NullString `db:"avatar_url" json:"avatar_url"`
 	CreatedAt time.Time      `db:"created_at" json:"created_at"`
 	UpdatedAt time.Time      `db:"updated_at" json:"updated_at"`
+}
+
+type ReminderQueue struct {
+	ID          uuid.UUID       `db:"id" json:"id"`
+	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
+	Type        string          `db:"type" json:"type"`
+	ScheduledAt time.Time       `db:"scheduled_at" json:"scheduled_at"`
+	Sent        bool            `db:"sent" json:"sent"`
+	SentAt      sql.NullTime    `db:"sent_at" json:"sent_at"`
+	Metadata    json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time       `db:"updated_at" json:"updated_at"`
 }
 
 type SavedItem struct {

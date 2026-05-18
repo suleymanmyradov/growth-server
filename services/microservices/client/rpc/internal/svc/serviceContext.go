@@ -6,18 +6,17 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type ServiceContext struct {
-	Config config.Config
-	Repo   *repository.Repository
-	AI     ai.Client
-	sqlDB  *sql.DB
+	Config    config.Config
+	Repo      *repository.Repository
+	EventsPub *events.Publisher
+	sqlDB     *sql.DB
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {
@@ -40,25 +39,23 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	queries := db.New(sqlDB)
 
-	var aiClient ai.Client
-	if c.AI.APIKey != "" {
-		client, err := ai.New(c.AI)
-		if err != nil {
-			logx.Errorf("failed to create AI client: %v", err)
-		} else {
-			aiClient = client
-		}
+	var eventsPub *events.Publisher
+	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
+		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
 	}
 
 	return &ServiceContext{
-		Config: c,
-		Repo:   repository.NewRepository(queries),
-		AI:     aiClient,
-		sqlDB:  sqlDB,
+		Config:    c,
+		Repo:      repository.NewRepository(queries),
+		EventsPub: eventsPub,
+		sqlDB:     sqlDB,
 	}
 }
 
 func (s *ServiceContext) Close() {
+	if s.EventsPub != nil {
+		_ = s.EventsPub.Close()
+	}
 	if s.sqlDB != nil {
 		_ = s.sqlDB.Close()
 	}

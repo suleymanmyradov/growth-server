@@ -14,6 +14,7 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.11.1
+	github.com/zeromicro/go-queue v1.2.2
 	github.com/zeromicro/go-zero v1.10.1
 	golang.org/x/crypto v0.50.0
 	google.golang.org/grpc v1.80.0
@@ -113,8 +114,10 @@ require (
 	github.com/meguminnnnnnnnn/go-openai v0.1.2 // indirect
 	github.com/nikolalohinski/gonja v1.5.3 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
+	github.com/pierrec/lz4/v4 v4.1.21 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
 	github.com/titanous/json5 v1.0.0 // indirect

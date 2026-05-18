@@ -11,21 +11,29 @@ import (
 )
 
 type Querier interface {
+	CancelPendingReminderForDate(ctx context.Context, arg CancelPendingReminderForDateParams) error
+	ClaimDueReminders(ctx context.Context, limit int32) ([]ReminderQueue, error)
 	CountNotifications(ctx context.Context) (int64, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error)
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
+	EnqueueReminder(ctx context.Context, arg EnqueueReminderParams) (ReminderQueue, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
+	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error)
+	GetReminderContext(ctx context.Context, userID uuid.UUID) (GetReminderContextRow, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
+	IsEventProcessed(ctx context.Context, eventID uuid.UUID) (bool, error)
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error)
 	ListNotificationsByType(ctx context.Context, arg ListNotificationsByTypeParams) ([]ListNotificationsByTypeRow, error)
 	ListNotificationsByUser(ctx context.Context, arg ListNotificationsByUserParams) ([]ListNotificationsByUserRow, error)
 	ListNotificationsForUser(ctx context.Context, arg ListNotificationsForUserParams) ([]ListNotificationsForUserRow, error)
 	ListUnreadNotifications(ctx context.Context, arg ListUnreadNotificationsParams) ([]ListUnreadNotificationsRow, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
+	MarkEventProcessed(ctx context.Context, eventID uuid.UUID) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
+	MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQueue, error)
 }
 
 var _ Querier = (*Queries)(nil)

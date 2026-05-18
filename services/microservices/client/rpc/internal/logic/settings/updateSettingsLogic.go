@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -92,6 +93,46 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		if err != nil {
 			l.Errorf("Failed to update user settings: %v", err)
 			return nil, err
+		}
+	}
+
+	// Fire-and-forget publish settings/onboarding events to Kafka.
+	if l.svcCtx.EventsPub != nil {
+		if in.Settings != nil && in.Settings.OnboardingCompleted {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				env, err := events.NewEnvelope(events.TypeUserOnboarded, events.UserOnboarded{
+					UserID: userID.String(),
+				})
+				if err != nil {
+					logx.Errorf("envelope: %v", err)
+					return
+				}
+				if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+					logx.Errorf("publish onboarding event: %v", err)
+				}
+			}()
+		}
+
+		if in.Settings != nil && (in.Settings.Timezone != "" || in.Settings.CheckInTime != "") {
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+				env, err := events.NewEnvelope(events.TypeSettingsChanged, events.SettingsChanged{
+					UserID:         userID.String(),
+					Timezone:       in.Settings.Timezone,
+					CheckInTime:    in.Settings.CheckInTime,
+					HabitReminders: true,
+				})
+				if err != nil {
+					logx.Errorf("envelope: %v", err)
+					return
+				}
+				if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+					logx.Errorf("publish settings event: %v", err)
+				}
+			}()
 		}
 	}
 
