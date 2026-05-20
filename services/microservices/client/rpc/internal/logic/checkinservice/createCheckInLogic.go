@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sqlc-dev/pqtype"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -133,9 +134,111 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		}()
 	}
 
+	// Fire-and-forget: generate AI feedback (non-blocking, best-effort)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		feedback := l.generateAIFeedback(ctx, in, habit, checkIn)
+		if feedback != "" {
+			l.Infof("AI feedback generated for check-in %s: %s", checkIn.ID, feedback)
+		}
+	}()
+
 	return &client.CreateCheckInResponse{
 		CheckIn:    checkInToProto(checkIn),
 		Habit:      habitToProto(habit),
 		AiFeedback: "", // TODO: remove once frontend migrates to async delivery via notifications
 	}, nil
+}
+
+func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.Habit, checkIn db.CheckIn) string {
+	// Fetch user settings for accountability style
+	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID)
+	accountabilityStyle := "balanced"
+	if err == nil && settings.AccountabilityStyle != "" {
+		accountabilityStyle = settings.AccountabilityStyle
+	}
+
+	// Fetch the primary goal for context (best-effort)
+	goals, err := l.svcCtx.Repo.Goals.ListGoals(ctx, habit.UserID, 1, 0)
+	goalTitle := ""
+	if err == nil && len(goals) > 0 {
+		goalTitle = goals[0].Title
+	}
+
+	// Build recent pattern summary (last 7 days check-ins for this habit)
+	weekAgo := time.Now().AddDate(0, 0, -7)
+	recentCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInsForWeek(ctx, habit.UserID, weekAgo, time.Now())
+	recentPattern := "No recent check-ins"
+	if err == nil && len(recentCheckIns) > 0 {
+		completedCount := 0
+		missedCount := 0
+		for _, ci := range recentCheckIns {
+			if ci.HabitID == habit.ID {
+				if ci.Status == "completed" {
+					completedCount++
+				} else {
+					missedCount++
+				}
+			}
+		}
+		if completedCount+missedCount > 0 {
+			recentPattern = fmt.Sprintf("%d completed, %d missed in the last 7 days", completedCount, missedCount)
+		}
+	}
+
+	// Build the prompt
+	systemPrompt := `You are an AI accountability coach. The user just checked in on their habit.
+
+Respond with 2-3 sentences that are:
+- Specific to this habit and situation
+- Match the accountability tone specified
+- Actionable (suggest a concrete next step)
+- Never judgmental or shaming
+
+If completed: acknowledge the win, reinforce the streak, suggest keeping momentum.
+If missed: understand the blocker, suggest a small adjustment, protect tomorrow.`
+
+	userMessage := fmt.Sprintf(`Context:
+- Goal: %s
+- Habit: %s
+- Status: %s
+- Mood: %s
+- Energy: %s
+- Blocker (if missed): %s
+- Note: %s
+- Accountability style: %s
+- Streak: %d days
+- Recent pattern: %s`,
+		orDefault(goalTitle, "Not set"),
+		habit.Name,
+		in.Status,
+		orDefault(in.Mood, "Not specified"),
+		orDefault(in.Energy, "Not specified"),
+		orDefault(in.Blocker, "None"),
+		orDefault(in.Note, "None"),
+		accountabilityStyle,
+		habit.Streak.Int32,
+		recentPattern,
+	)
+
+	resp, err := l.svcCtx.AIClient.Generate(ctx, ai.GenerateRequest{
+		ModelProfile: ai.ModelCheap,
+		System:       systemPrompt,
+		Messages:     []ai.Message{{Role: ai.RoleUser, Content: userMessage}},
+		Metadata:     ai.Metadata{UserID: habit.UserID.String(), Feature: "check_in_feedback"},
+	})
+	if err != nil {
+		l.Errorf("AI feedback generation failed: %v", err)
+		return ""
+	}
+
+	return resp.Message.Content
+}
+
+func orDefault(s, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }

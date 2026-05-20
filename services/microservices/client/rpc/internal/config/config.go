@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
@@ -18,4 +19,5 @@ type Config struct {
 		Brokers     []string
 		EventsTopic string
 	}
+	AI ai.Config
 }

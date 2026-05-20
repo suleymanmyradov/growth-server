@@ -137,6 +137,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodGet,
+					Path:    "/check-ins/checked-today",
+					Handler: checkin.HasCheckedInTodayHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
 					Path:    "/check-ins/history",
 					Handler: checkin.GetCheckInHistoryHandler(serverCtx),
 				},
