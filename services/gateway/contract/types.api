@@ -213,6 +213,14 @@ type (
         checkIns []CheckIn `json:"checkIns"`
         total int `json:"total,example=10"`
     }
+
+    HasCheckedInTodayRequest {
+        habitId string `form:"habitId"`
+    }
+
+    HasCheckedInTodayResponse {
+        checkedIn bool `json:"checkedIn"`
+    }
 )
 
 // Article types

@@ -2,14 +2,13 @@ package checkin
 
 import (
 	"context"
+	"errors"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 
-	"errors"
-
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 

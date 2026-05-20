@@ -259,6 +259,9 @@ service growthapi {
 
 	@handler GetCheckInHistory
 	get /check-ins/history (GetCheckInHistoryRequest) returns (GetCheckInHistoryResponse)
+
+	@handler HasCheckedInToday
+	get /check-ins/checked-today (HasCheckedInTodayRequest) returns (HasCheckedInTodayResponse)
 }
 
 @server (

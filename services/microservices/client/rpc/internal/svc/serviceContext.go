@@ -6,6 +6,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
@@ -16,6 +17,7 @@ type ServiceContext struct {
 	Config    config.Config
 	Repo      *repository.Repository
 	EventsPub *events.Publisher
+	AIClient  ai.Client
 	sqlDB     *sql.DB
 }
 
@@ -44,10 +46,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
 	}
 
+	aiClient, err := ai.New(c.AI)
+	if err != nil {
+		panic(fmt.Errorf("ai client: %w", err))
+	}
+
 	return &ServiceContext{
 		Config:    c,
 		Repo:      repository.NewRepository(queries),
 		EventsPub: eventsPub,
+		AIClient:  aiClient,
 		sqlDB:     sqlDB,
 	}
 }

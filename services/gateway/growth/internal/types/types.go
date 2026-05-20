@@ -239,6 +239,14 @@ type HabitsResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type HasCheckedInTodayRequest struct {
+	HabitId string `form:"habitId"`
+}
+
+type HasCheckedInTodayResponse struct {
+	CheckedIn bool `json:"checkedIn"`
+}
+
 type LikeArticleRequest struct {
 	Id string `path:"id"`
 }
