@@ -11,14 +11,16 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/service"
 )
 
 type ServiceContext struct {
-	Config    config.Config
-	Repo      *repository.Repository
-	EventsPub *events.Publisher
-	AIClient  ai.Client
-	sqlDB     *sql.DB
+	Config           config.Config
+	Repo             *repository.Repository
+	EventsPub        *events.Publisher
+	AIClient         ai.Client
+	PatternDetection *service.PatternDetectionService
+	sqlDB            *sql.DB
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {
@@ -51,12 +53,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		panic(fmt.Errorf("ai client: %w", err))
 	}
 
+	repo := repository.NewRepository(queries)
+	patternDetection := service.NewPatternDetectionService(repo)
+
 	return &ServiceContext{
-		Config:    c,
-		Repo:      repository.NewRepository(queries),
-		EventsPub: eventsPub,
-		AIClient:  aiClient,
-		sqlDB:     sqlDB,
+		Config:           c,
+		Repo:             repo,
+		EventsPub:        eventsPub,
+		AIClient:         aiClient,
+		PatternDetection: patternDetection,
+		sqlDB:            sqlDB,
 	}
 }
 

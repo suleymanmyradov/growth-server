@@ -22,13 +22,10 @@ func checkInToProto(c db.CheckIn) *client.CheckIn {
 	}
 }
 
-func protoToCheckInParams(userId, habitId, status, mood, energy, blocker, note string) db.CreateCheckInParams {
-	userIDUUID, _ := uuid.Parse(userId)
-	habitIDUUID, _ := uuid.Parse(habitId)
-
+func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, blocker, note string) db.CreateCheckInParams {
 	return db.CreateCheckInParams{
-		UserID:  userIDUUID,
-		HabitID: habitIDUUID,
+		UserID:  userID,
+		HabitID: habitID,
 		Status:  status,
 		Mood:    sql.NullString{String: mood, Valid: mood != ""},
 		Energy:  sql.NullString{String: energy, Valid: energy != ""},

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 const insertAIFeedback = `INSERT INTO ai_feedback (id, user_id, check_in_id, habit_id, content, model)
@@ -33,7 +34,11 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 	if err != nil {
 		return nil, fmt.Errorf("get check-ins for week: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logx.Errorf("error closing rows: %v", err)
+		}
+	}()
 
 	var items []CheckIn
 	for rows.Next() {

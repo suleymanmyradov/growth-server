@@ -87,7 +87,7 @@ services:
 
   notifications-rpc:
     build:
-      context: ../../services/microservices/notifications/rpc
+      context: ../services/microservices/notifications/rpc
       dockerfile: Dockerfile
     container_name: growthmind-notifications-rpc
     environment:
@@ -114,7 +114,7 @@ services:
 
   ai-coach-consumer:
     build:
-      context: ../../services/microservices/ai-coach/consumer
+      context: ../services/microservices/ai-coach/consumer
       dockerfile: Dockerfile
     container_name: growthmind-ai-coach-consumer
     environment:

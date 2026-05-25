@@ -43,7 +43,7 @@ func (l *LikeArticleLogic) LikeArticle(req *types.LikeArticleRequest) (resp *typ
 	}
 
 	return &types.LikeArticleResponse{
-		Success:     rpcResp.Success,
+		Success:      rpcResp.Success,
 		NewLikeCount: int(rpcResp.NewLikeCount),
 	}, nil
 }

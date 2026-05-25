@@ -274,3 +274,58 @@ service growthapi {
 	get /categories (ListCategoriesRequest) returns (CategoriesResponse)
 }
 
+@server (
+	prefix:     /api/v1
+	group:      weeklyreview
+	middleware: Auth
+	tags:       "Weekly Review"
+)
+service growthapi {
+	@handler ListWeeklyReviews
+	get /weekly-reviews (PageRequest) returns (WeeklyReviewsResponse)
+
+	@handler GetCurrentWeeklyReview
+	get /weekly-reviews/current returns (WeeklyReviewResponse)
+
+	@handler GenerateWeeklyReview
+	post /weekly-reviews/generate (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
+
+	@handler GetWeeklyReview
+	get /weekly-reviews/:weekStart returns (WeeklyReviewResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      personalization
+	middleware: Auth
+	tags:       "Personalization"
+)
+service growthapi {
+	@handler GetCoachingProfile
+	get /personalization/coaching-profile returns (CoachingProfileResponse)
+
+	@handler UpsertCoachingProfile
+	post /personalization/coaching-profile (UpsertCoachingProfileRequest) returns (CoachingProfileResponse)
+
+	@handler UpdateCoachingProfilePreferences
+	put /personalization/coaching-profile/preferences (UpdateCoachingProfilePreferencesRequest) returns (CoachingProfileResponse)
+
+	@handler GetPersonalizationContext
+	get /personalization/context (GetPersonalizationContextRequest) returns (PersonalizationContextResponse)
+
+	@handler GeneratePersonalizedCoaching
+	post /personalization/coaching (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
+
+	@handler ListPendingPlanAdjustmentSuggestions
+	get /personalization/plan-adjustments returns (PlanAdjustmentSuggestionsResponse)
+
+	@handler CreatePlanAdjustmentSuggestion
+	post /personalization/plan-adjustments (CreatePlanAdjustmentSuggestionRequest) returns (PlanAdjustmentSuggestionResponse)
+
+	@handler UpdatePlanAdjustmentSuggestionStatus
+	put /personalization/plan-adjustments/:id/status (UpdatePlanAdjustmentSuggestionStatusRequest) returns (PlanAdjustmentSuggestionResponse)
+
+	@handler ApplyPlanAdjustmentSuggestion
+	post /personalization/plan-adjustments/:id/apply returns (PlanAdjustmentSuggestionResponse)
+}
+

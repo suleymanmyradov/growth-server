@@ -2911,3 +2911,626 @@ var CheckInService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
+
+const (
+	WeeklyReviewService_GenerateWeeklyReview_FullMethodName   = "/client.WeeklyReviewService/GenerateWeeklyReview"
+	WeeklyReviewService_GetWeeklyReview_FullMethodName        = "/client.WeeklyReviewService/GetWeeklyReview"
+	WeeklyReviewService_GetCurrentWeeklyReview_FullMethodName = "/client.WeeklyReviewService/GetCurrentWeeklyReview"
+	WeeklyReviewService_ListWeeklyReviews_FullMethodName      = "/client.WeeklyReviewService/ListWeeklyReviews"
+)
+
+// WeeklyReviewServiceClient is the client API for WeeklyReviewService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type WeeklyReviewServiceClient interface {
+	GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error)
+	GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error)
+	GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error)
+	ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error)
+}
+
+type weeklyReviewServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewWeeklyReviewServiceClient(cc grpc.ClientConnInterface) WeeklyReviewServiceClient {
+	return &weeklyReviewServiceClient{cc}
+}
+
+func (c *weeklyReviewServiceClient) GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateWeeklyReviewResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_GenerateWeeklyReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weeklyReviewServiceClient) GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetWeeklyReviewResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_GetWeeklyReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weeklyReviewServiceClient) GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCurrentWeeklyReviewResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_GetCurrentWeeklyReview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *weeklyReviewServiceClient) ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWeeklyReviewsResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_ListWeeklyReviews_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// WeeklyReviewServiceServer is the server API for WeeklyReviewService service.
+// All implementations must embed UnimplementedWeeklyReviewServiceServer
+// for forward compatibility.
+type WeeklyReviewServiceServer interface {
+	GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error)
+	GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error)
+	GetCurrentWeeklyReview(context.Context, *GetCurrentWeeklyReviewRequest) (*GetCurrentWeeklyReviewResponse, error)
+	ListWeeklyReviews(context.Context, *ListWeeklyReviewsRequest) (*ListWeeklyReviewsResponse, error)
+	mustEmbedUnimplementedWeeklyReviewServiceServer()
+}
+
+// UnimplementedWeeklyReviewServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedWeeklyReviewServiceServer struct{}
+
+func (UnimplementedWeeklyReviewServiceServer) GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateWeeklyReview not implemented")
+}
+func (UnimplementedWeeklyReviewServiceServer) GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetWeeklyReview not implemented")
+}
+func (UnimplementedWeeklyReviewServiceServer) GetCurrentWeeklyReview(context.Context, *GetCurrentWeeklyReviewRequest) (*GetCurrentWeeklyReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCurrentWeeklyReview not implemented")
+}
+func (UnimplementedWeeklyReviewServiceServer) ListWeeklyReviews(context.Context, *ListWeeklyReviewsRequest) (*ListWeeklyReviewsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWeeklyReviews not implemented")
+}
+func (UnimplementedWeeklyReviewServiceServer) mustEmbedUnimplementedWeeklyReviewServiceServer() {}
+func (UnimplementedWeeklyReviewServiceServer) testEmbeddedByValue()                             {}
+
+// UnsafeWeeklyReviewServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to WeeklyReviewServiceServer will
+// result in compilation errors.
+type UnsafeWeeklyReviewServiceServer interface {
+	mustEmbedUnimplementedWeeklyReviewServiceServer()
+}
+
+func RegisterWeeklyReviewServiceServer(s grpc.ServiceRegistrar, srv WeeklyReviewServiceServer) {
+	// If the following call panics, it indicates UnimplementedWeeklyReviewServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&WeeklyReviewService_ServiceDesc, srv)
+}
+
+func _WeeklyReviewService_GenerateWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateWeeklyReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeeklyReviewServiceServer).GenerateWeeklyReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeeklyReviewService_GenerateWeeklyReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeeklyReviewServiceServer).GenerateWeeklyReview(ctx, req.(*GenerateWeeklyReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeeklyReviewService_GetWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetWeeklyReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeeklyReviewServiceServer).GetWeeklyReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeeklyReviewService_GetWeeklyReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeeklyReviewServiceServer).GetWeeklyReview(ctx, req.(*GetWeeklyReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeeklyReviewService_GetCurrentWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCurrentWeeklyReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeeklyReviewServiceServer).GetCurrentWeeklyReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeeklyReviewService_GetCurrentWeeklyReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeeklyReviewServiceServer).GetCurrentWeeklyReview(ctx, req.(*GetCurrentWeeklyReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WeeklyReviewService_ListWeeklyReviews_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWeeklyReviewsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WeeklyReviewServiceServer).ListWeeklyReviews(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeeklyReviewService_ListWeeklyReviews_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeeklyReviewServiceServer).ListWeeklyReviews(ctx, req.(*ListWeeklyReviewsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// WeeklyReviewService_ServiceDesc is the grpc.ServiceDesc for WeeklyReviewService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var WeeklyReviewService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.WeeklyReviewService",
+	HandlerType: (*WeeklyReviewServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GenerateWeeklyReview",
+			Handler:    _WeeklyReviewService_GenerateWeeklyReview_Handler,
+		},
+		{
+			MethodName: "GetWeeklyReview",
+			Handler:    _WeeklyReviewService_GetWeeklyReview_Handler,
+		},
+		{
+			MethodName: "GetCurrentWeeklyReview",
+			Handler:    _WeeklyReviewService_GetCurrentWeeklyReview_Handler,
+		},
+		{
+			MethodName: "ListWeeklyReviews",
+			Handler:    _WeeklyReviewService_ListWeeklyReviews_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}
+
+const (
+	PersonalizationService_GetCoachingProfile_FullMethodName                   = "/client.PersonalizationService/GetCoachingProfile"
+	PersonalizationService_UpsertCoachingProfile_FullMethodName                = "/client.PersonalizationService/UpsertCoachingProfile"
+	PersonalizationService_UpdateCoachingProfilePreferences_FullMethodName     = "/client.PersonalizationService/UpdateCoachingProfilePreferences"
+	PersonalizationService_GetPersonalizationContext_FullMethodName            = "/client.PersonalizationService/GetPersonalizationContext"
+	PersonalizationService_CreatePlanAdjustmentSuggestion_FullMethodName       = "/client.PersonalizationService/CreatePlanAdjustmentSuggestion"
+	PersonalizationService_ListPendingPlanAdjustmentSuggestions_FullMethodName = "/client.PersonalizationService/ListPendingPlanAdjustmentSuggestions"
+	PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_FullMethodName = "/client.PersonalizationService/UpdatePlanAdjustmentSuggestionStatus"
+	PersonalizationService_ApplyPlanAdjustmentSuggestion_FullMethodName        = "/client.PersonalizationService/ApplyPlanAdjustmentSuggestion"
+	PersonalizationService_GeneratePersonalizedCoaching_FullMethodName         = "/client.PersonalizationService/GeneratePersonalizedCoaching"
+)
+
+// PersonalizationServiceClient is the client API for PersonalizationService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type PersonalizationServiceClient interface {
+	GetCoachingProfile(ctx context.Context, in *GetCoachingProfileRequest, opts ...grpc.CallOption) (*GetCoachingProfileResponse, error)
+	UpsertCoachingProfile(ctx context.Context, in *UpsertCoachingProfileRequest, opts ...grpc.CallOption) (*UpsertCoachingProfileResponse, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, in *UpdateCoachingProfilePreferencesRequest, opts ...grpc.CallOption) (*UpdateCoachingProfilePreferencesResponse, error)
+	GetPersonalizationContext(ctx context.Context, in *GetPersonalizationContextRequest, opts ...grpc.CallOption) (*GetPersonalizationContextResponse, error)
+	CreatePlanAdjustmentSuggestion(ctx context.Context, in *CreatePlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*CreatePlanAdjustmentSuggestionResponse, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, in *ListPendingPlanAdjustmentSuggestionsRequest, opts ...grpc.CallOption) (*ListPendingPlanAdjustmentSuggestionsResponse, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, in *UpdatePlanAdjustmentSuggestionStatusRequest, opts ...grpc.CallOption) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error)
+	GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error)
+}
+
+type personalizationServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewPersonalizationServiceClient(cc grpc.ClientConnInterface) PersonalizationServiceClient {
+	return &personalizationServiceClient{cc}
+}
+
+func (c *personalizationServiceClient) GetCoachingProfile(ctx context.Context, in *GetCoachingProfileRequest, opts ...grpc.CallOption) (*GetCoachingProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCoachingProfileResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_GetCoachingProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) UpsertCoachingProfile(ctx context.Context, in *UpsertCoachingProfileRequest, opts ...grpc.CallOption) (*UpsertCoachingProfileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertCoachingProfileResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_UpsertCoachingProfile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) UpdateCoachingProfilePreferences(ctx context.Context, in *UpdateCoachingProfilePreferencesRequest, opts ...grpc.CallOption) (*UpdateCoachingProfilePreferencesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCoachingProfilePreferencesResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_UpdateCoachingProfilePreferences_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) GetPersonalizationContext(ctx context.Context, in *GetPersonalizationContextRequest, opts ...grpc.CallOption) (*GetPersonalizationContextResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPersonalizationContextResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_GetPersonalizationContext_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) CreatePlanAdjustmentSuggestion(ctx context.Context, in *CreatePlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*CreatePlanAdjustmentSuggestionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePlanAdjustmentSuggestionResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_CreatePlanAdjustmentSuggestion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) ListPendingPlanAdjustmentSuggestions(ctx context.Context, in *ListPendingPlanAdjustmentSuggestionsRequest, opts ...grpc.CallOption) (*ListPendingPlanAdjustmentSuggestionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListPendingPlanAdjustmentSuggestionsResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_ListPendingPlanAdjustmentSuggestions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, in *UpdatePlanAdjustmentSuggestionStatusRequest, opts ...grpc.CallOption) (*UpdatePlanAdjustmentSuggestionStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdatePlanAdjustmentSuggestionStatusResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ApplyPlanAdjustmentSuggestionResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_ApplyPlanAdjustmentSuggestion_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *personalizationServiceClient) GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GeneratePersonalizedCoachingResponse)
+	err := c.cc.Invoke(ctx, PersonalizationService_GeneratePersonalizedCoaching_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PersonalizationServiceServer is the server API for PersonalizationService service.
+// All implementations must embed UnimplementedPersonalizationServiceServer
+// for forward compatibility.
+type PersonalizationServiceServer interface {
+	GetCoachingProfile(context.Context, *GetCoachingProfileRequest) (*GetCoachingProfileResponse, error)
+	UpsertCoachingProfile(context.Context, *UpsertCoachingProfileRequest) (*UpsertCoachingProfileResponse, error)
+	UpdateCoachingProfilePreferences(context.Context, *UpdateCoachingProfilePreferencesRequest) (*UpdateCoachingProfilePreferencesResponse, error)
+	GetPersonalizationContext(context.Context, *GetPersonalizationContextRequest) (*GetPersonalizationContextResponse, error)
+	CreatePlanAdjustmentSuggestion(context.Context, *CreatePlanAdjustmentSuggestionRequest) (*CreatePlanAdjustmentSuggestionResponse, error)
+	ListPendingPlanAdjustmentSuggestions(context.Context, *ListPendingPlanAdjustmentSuggestionsRequest) (*ListPendingPlanAdjustmentSuggestionsResponse, error)
+	UpdatePlanAdjustmentSuggestionStatus(context.Context, *UpdatePlanAdjustmentSuggestionStatusRequest) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
+	ApplyPlanAdjustmentSuggestion(context.Context, *ApplyPlanAdjustmentSuggestionRequest) (*ApplyPlanAdjustmentSuggestionResponse, error)
+	GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error)
+	mustEmbedUnimplementedPersonalizationServiceServer()
+}
+
+// UnimplementedPersonalizationServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedPersonalizationServiceServer struct{}
+
+func (UnimplementedPersonalizationServiceServer) GetCoachingProfile(context.Context, *GetCoachingProfileRequest) (*GetCoachingProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCoachingProfile not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) UpsertCoachingProfile(context.Context, *UpsertCoachingProfileRequest) (*UpsertCoachingProfileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertCoachingProfile not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) UpdateCoachingProfilePreferences(context.Context, *UpdateCoachingProfilePreferencesRequest) (*UpdateCoachingProfilePreferencesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateCoachingProfilePreferences not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) GetPersonalizationContext(context.Context, *GetPersonalizationContextRequest) (*GetPersonalizationContextResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPersonalizationContext not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) CreatePlanAdjustmentSuggestion(context.Context, *CreatePlanAdjustmentSuggestionRequest) (*CreatePlanAdjustmentSuggestionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreatePlanAdjustmentSuggestion not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) ListPendingPlanAdjustmentSuggestions(context.Context, *ListPendingPlanAdjustmentSuggestionsRequest) (*ListPendingPlanAdjustmentSuggestionsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListPendingPlanAdjustmentSuggestions not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) UpdatePlanAdjustmentSuggestionStatus(context.Context, *UpdatePlanAdjustmentSuggestionStatusRequest) (*UpdatePlanAdjustmentSuggestionStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdatePlanAdjustmentSuggestionStatus not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) ApplyPlanAdjustmentSuggestion(context.Context, *ApplyPlanAdjustmentSuggestionRequest) (*ApplyPlanAdjustmentSuggestionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ApplyPlanAdjustmentSuggestion not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GeneratePersonalizedCoaching not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) mustEmbedUnimplementedPersonalizationServiceServer() {
+}
+func (UnimplementedPersonalizationServiceServer) testEmbeddedByValue() {}
+
+// UnsafePersonalizationServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to PersonalizationServiceServer will
+// result in compilation errors.
+type UnsafePersonalizationServiceServer interface {
+	mustEmbedUnimplementedPersonalizationServiceServer()
+}
+
+func RegisterPersonalizationServiceServer(s grpc.ServiceRegistrar, srv PersonalizationServiceServer) {
+	// If the following call panics, it indicates UnimplementedPersonalizationServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&PersonalizationService_ServiceDesc, srv)
+}
+
+func _PersonalizationService_GetCoachingProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCoachingProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).GetCoachingProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_GetCoachingProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).GetCoachingProfile(ctx, req.(*GetCoachingProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_UpsertCoachingProfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertCoachingProfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).UpsertCoachingProfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_UpsertCoachingProfile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).UpsertCoachingProfile(ctx, req.(*UpsertCoachingProfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_UpdateCoachingProfilePreferences_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCoachingProfilePreferencesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).UpdateCoachingProfilePreferences(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_UpdateCoachingProfilePreferences_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).UpdateCoachingProfilePreferences(ctx, req.(*UpdateCoachingProfilePreferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_GetPersonalizationContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPersonalizationContextRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).GetPersonalizationContext(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_GetPersonalizationContext_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).GetPersonalizationContext(ctx, req.(*GetPersonalizationContextRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_CreatePlanAdjustmentSuggestion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePlanAdjustmentSuggestionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).CreatePlanAdjustmentSuggestion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_CreatePlanAdjustmentSuggestion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).CreatePlanAdjustmentSuggestion(ctx, req.(*CreatePlanAdjustmentSuggestionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_ListPendingPlanAdjustmentSuggestions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListPendingPlanAdjustmentSuggestionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).ListPendingPlanAdjustmentSuggestions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_ListPendingPlanAdjustmentSuggestions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).ListPendingPlanAdjustmentSuggestions(ctx, req.(*ListPendingPlanAdjustmentSuggestionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePlanAdjustmentSuggestionStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).UpdatePlanAdjustmentSuggestionStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).UpdatePlanAdjustmentSuggestionStatus(ctx, req.(*UpdatePlanAdjustmentSuggestionStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_ApplyPlanAdjustmentSuggestion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ApplyPlanAdjustmentSuggestionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).ApplyPlanAdjustmentSuggestion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_ApplyPlanAdjustmentSuggestion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).ApplyPlanAdjustmentSuggestion(ctx, req.(*ApplyPlanAdjustmentSuggestionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PersonalizationService_GeneratePersonalizedCoaching_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GeneratePersonalizedCoachingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PersonalizationServiceServer).GeneratePersonalizedCoaching(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PersonalizationService_GeneratePersonalizedCoaching_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PersonalizationServiceServer).GeneratePersonalizedCoaching(ctx, req.(*GeneratePersonalizedCoachingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// PersonalizationService_ServiceDesc is the grpc.ServiceDesc for PersonalizationService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var PersonalizationService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.PersonalizationService",
+	HandlerType: (*PersonalizationServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetCoachingProfile",
+			Handler:    _PersonalizationService_GetCoachingProfile_Handler,
+		},
+		{
+			MethodName: "UpsertCoachingProfile",
+			Handler:    _PersonalizationService_UpsertCoachingProfile_Handler,
+		},
+		{
+			MethodName: "UpdateCoachingProfilePreferences",
+			Handler:    _PersonalizationService_UpdateCoachingProfilePreferences_Handler,
+		},
+		{
+			MethodName: "GetPersonalizationContext",
+			Handler:    _PersonalizationService_GetPersonalizationContext_Handler,
+		},
+		{
+			MethodName: "CreatePlanAdjustmentSuggestion",
+			Handler:    _PersonalizationService_CreatePlanAdjustmentSuggestion_Handler,
+		},
+		{
+			MethodName: "ListPendingPlanAdjustmentSuggestions",
+			Handler:    _PersonalizationService_ListPendingPlanAdjustmentSuggestions_Handler,
+		},
+		{
+			MethodName: "UpdatePlanAdjustmentSuggestionStatus",
+			Handler:    _PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_Handler,
+		},
+		{
+			MethodName: "ApplyPlanAdjustmentSuggestion",
+			Handler:    _PersonalizationService_ApplyPlanAdjustmentSuggestion_Handler,
+		},
+		{
+			MethodName: "GeneratePersonalizedCoaching",
+			Handler:    _PersonalizationService_GeneratePersonalizedCoaching_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}

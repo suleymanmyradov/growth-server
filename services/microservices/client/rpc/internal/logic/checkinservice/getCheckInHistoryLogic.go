@@ -44,13 +44,14 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(in *client.GetCheckInHistoryR
 	}
 
 	var checkIns []db.CheckIn
+	var habitID uuid.UUID
 	if in.HabitId != "" {
-		habitID, err := uuid.Parse(in.HabitId)
+		habitID, err = uuid.Parse(in.HabitId)
 		if err != nil {
 			l.Errorf("Invalid habit ID: %v", err)
 			return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
 		}
-		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByHabit(l.ctx, habitID, limit, offset)
+		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByHabit(l.ctx, habitID, userID, limit, offset)
 	} else {
 		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByUser(l.ctx, userID, limit, offset)
 	}
@@ -68,7 +69,6 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(in *client.GetCheckInHistoryR
 	// Get total count
 	var total int64
 	if in.HabitId != "" {
-		habitID, _ := uuid.Parse(in.HabitId)
 		total, err = l.svcCtx.Repo.CheckIns.CountCheckInsByHabit(l.ctx, habitID)
 		if err != nil {
 			l.Errorf("Failed to count check-ins by habit: %v", err)

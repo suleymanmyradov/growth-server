@@ -73,6 +73,13 @@ func (r *habitsRepo) UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak
 	})
 }
 
+func (r *habitsRepo) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.Habit, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.MarkHabitCompleted")
+	defer span.End()
+
+	return r.db.MarkHabitCompleted(ctx, id)
+}
+
 func (r *habitsRepo) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ResetTodayHabits")
 	defer span.End()

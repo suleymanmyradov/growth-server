@@ -7744,6 +7744,2187 @@ func (x *HasCheckedInTodayResponse) GetCheckedIn() bool {
 	return false
 }
 
+type WeeklyReviewHabitBreakdown struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	HabitId        string                 `protobuf:"bytes,1,opt,name=habitId,proto3" json:"habitId,omitempty"`
+	HabitName      string                 `protobuf:"bytes,2,opt,name=habitName,proto3" json:"habitName,omitempty"`
+	Category       string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	TotalCheckIns  int32                  `protobuf:"varint,4,opt,name=totalCheckIns,proto3" json:"totalCheckIns,omitempty"`
+	CompletedCount int32                  `protobuf:"varint,5,opt,name=completedCount,proto3" json:"completedCount,omitempty"`
+	MissedCount    int32                  `protobuf:"varint,6,opt,name=missedCount,proto3" json:"missedCount,omitempty"`
+	CompletionRate float64                `protobuf:"fixed64,7,opt,name=completionRate,proto3" json:"completionRate,omitempty"`
+	LastCheckInAt  int64                  `protobuf:"varint,8,opt,name=lastCheckInAt,proto3" json:"lastCheckInAt,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WeeklyReviewHabitBreakdown) Reset() {
+	*x = WeeklyReviewHabitBreakdown{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[139]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WeeklyReviewHabitBreakdown) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeeklyReviewHabitBreakdown) ProtoMessage() {}
+
+func (x *WeeklyReviewHabitBreakdown) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[139]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeeklyReviewHabitBreakdown.ProtoReflect.Descriptor instead.
+func (*WeeklyReviewHabitBreakdown) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{139}
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetHabitId() string {
+	if x != nil {
+		return x.HabitId
+	}
+	return ""
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetHabitName() string {
+	if x != nil {
+		return x.HabitName
+	}
+	return ""
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetTotalCheckIns() int32 {
+	if x != nil {
+		return x.TotalCheckIns
+	}
+	return 0
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetCompletedCount() int32 {
+	if x != nil {
+		return x.CompletedCount
+	}
+	return 0
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetMissedCount() int32 {
+	if x != nil {
+		return x.MissedCount
+	}
+	return 0
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetCompletionRate() float64 {
+	if x != nil {
+		return x.CompletionRate
+	}
+	return 0
+}
+
+func (x *WeeklyReviewHabitBreakdown) GetLastCheckInAt() int64 {
+	if x != nil {
+		return x.LastCheckInAt
+	}
+	return 0
+}
+
+type WeeklyReviewAdjustment struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	HabitId        string                 `protobuf:"bytes,1,opt,name=habitId,proto3" json:"habitId,omitempty"`
+	HabitName      string                 `protobuf:"bytes,2,opt,name=habitName,proto3" json:"habitName,omitempty"`
+	Reason         string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	Suggestion     string                 `protobuf:"bytes,4,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	AdjustmentType string                 `protobuf:"bytes,5,opt,name=adjustmentType,proto3" json:"adjustmentType,omitempty"` // reduce_difficulty | change_time | clarify_plan | keep_same | pause
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *WeeklyReviewAdjustment) Reset() {
+	*x = WeeklyReviewAdjustment{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[140]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WeeklyReviewAdjustment) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeeklyReviewAdjustment) ProtoMessage() {}
+
+func (x *WeeklyReviewAdjustment) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[140]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeeklyReviewAdjustment.ProtoReflect.Descriptor instead.
+func (*WeeklyReviewAdjustment) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{140}
+}
+
+func (x *WeeklyReviewAdjustment) GetHabitId() string {
+	if x != nil {
+		return x.HabitId
+	}
+	return ""
+}
+
+func (x *WeeklyReviewAdjustment) GetHabitName() string {
+	if x != nil {
+		return x.HabitName
+	}
+	return ""
+}
+
+func (x *WeeklyReviewAdjustment) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *WeeklyReviewAdjustment) GetSuggestion() string {
+	if x != nil {
+		return x.Suggestion
+	}
+	return ""
+}
+
+func (x *WeeklyReviewAdjustment) GetAdjustmentType() string {
+	if x != nil {
+		return x.AdjustmentType
+	}
+	return ""
+}
+
+type WeeklyReviewNextWeekPlan struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Focus           string                 `protobuf:"bytes,1,opt,name=focus,proto3" json:"focus,omitempty"`
+	Commitments     []string               `protobuf:"bytes,2,rep,name=commitments,proto3" json:"commitments,omitempty"`
+	Risks           []string               `protobuf:"bytes,3,rep,name=risks,proto3" json:"risks,omitempty"`
+	RecoveryActions []string               `protobuf:"bytes,4,rep,name=recoveryActions,proto3" json:"recoveryActions,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *WeeklyReviewNextWeekPlan) Reset() {
+	*x = WeeklyReviewNextWeekPlan{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[141]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WeeklyReviewNextWeekPlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeeklyReviewNextWeekPlan) ProtoMessage() {}
+
+func (x *WeeklyReviewNextWeekPlan) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[141]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeeklyReviewNextWeekPlan.ProtoReflect.Descriptor instead.
+func (*WeeklyReviewNextWeekPlan) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{141}
+}
+
+func (x *WeeklyReviewNextWeekPlan) GetFocus() string {
+	if x != nil {
+		return x.Focus
+	}
+	return ""
+}
+
+func (x *WeeklyReviewNextWeekPlan) GetCommitments() []string {
+	if x != nil {
+		return x.Commitments
+	}
+	return nil
+}
+
+func (x *WeeklyReviewNextWeekPlan) GetRisks() []string {
+	if x != nil {
+		return x.Risks
+	}
+	return nil
+}
+
+func (x *WeeklyReviewNextWeekPlan) GetRecoveryActions() []string {
+	if x != nil {
+		return x.RecoveryActions
+	}
+	return nil
+}
+
+type WeeklyReview struct {
+	state                protoimpl.MessageState        `protogen:"open.v1"`
+	Id                   string                        `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId               string                        `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	WeekStart            string                        `protobuf:"bytes,3,opt,name=weekStart,proto3" json:"weekStart,omitempty"`
+	WeekEnd              string                        `protobuf:"bytes,4,opt,name=weekEnd,proto3" json:"weekEnd,omitempty"`
+	TotalHabits          int32                         `protobuf:"varint,5,opt,name=totalHabits,proto3" json:"totalHabits,omitempty"`
+	CompletedCheckIns    int32                         `protobuf:"varint,6,opt,name=completedCheckIns,proto3" json:"completedCheckIns,omitempty"`
+	MissedCheckIns       int32                         `protobuf:"varint,7,opt,name=missedCheckIns,proto3" json:"missedCheckIns,omitempty"`
+	CompletionRate       float64                       `protobuf:"fixed64,8,opt,name=completionRate,proto3" json:"completionRate,omitempty"`
+	BestDay              string                        `protobuf:"bytes,9,opt,name=bestDay,proto3" json:"bestDay,omitempty"`
+	HardestDay           string                        `protobuf:"bytes,10,opt,name=hardestDay,proto3" json:"hardestDay,omitempty"`
+	TopBlocker           string                        `protobuf:"bytes,11,opt,name=topBlocker,proto3" json:"topBlocker,omitempty"`
+	MoodSummary          map[string]int32              `protobuf:"bytes,12,rep,name=moodSummary,proto3" json:"moodSummary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	EnergySummary        map[string]int32              `protobuf:"bytes,13,rep,name=energySummary,proto3" json:"energySummary,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	HabitBreakdown       []*WeeklyReviewHabitBreakdown `protobuf:"bytes,14,rep,name=habitBreakdown,proto3" json:"habitBreakdown,omitempty"`
+	AiSummary            string                        `protobuf:"bytes,15,opt,name=aiSummary,proto3" json:"aiSummary,omitempty"`
+	SuggestedAdjustments []*WeeklyReviewAdjustment     `protobuf:"bytes,16,rep,name=suggestedAdjustments,proto3" json:"suggestedAdjustments,omitempty"`
+	NextWeekPlan         *WeeklyReviewNextWeekPlan     `protobuf:"bytes,17,opt,name=nextWeekPlan,proto3" json:"nextWeekPlan,omitempty"`
+	GeneratedAt          int64                         `protobuf:"varint,18,opt,name=generatedAt,proto3" json:"generatedAt,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *WeeklyReview) Reset() {
+	*x = WeeklyReview{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[142]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WeeklyReview) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WeeklyReview) ProtoMessage() {}
+
+func (x *WeeklyReview) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[142]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WeeklyReview.ProtoReflect.Descriptor instead.
+func (*WeeklyReview) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{142}
+}
+
+func (x *WeeklyReview) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetWeekStart() string {
+	if x != nil {
+		return x.WeekStart
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetWeekEnd() string {
+	if x != nil {
+		return x.WeekEnd
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetTotalHabits() int32 {
+	if x != nil {
+		return x.TotalHabits
+	}
+	return 0
+}
+
+func (x *WeeklyReview) GetCompletedCheckIns() int32 {
+	if x != nil {
+		return x.CompletedCheckIns
+	}
+	return 0
+}
+
+func (x *WeeklyReview) GetMissedCheckIns() int32 {
+	if x != nil {
+		return x.MissedCheckIns
+	}
+	return 0
+}
+
+func (x *WeeklyReview) GetCompletionRate() float64 {
+	if x != nil {
+		return x.CompletionRate
+	}
+	return 0
+}
+
+func (x *WeeklyReview) GetBestDay() string {
+	if x != nil {
+		return x.BestDay
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetHardestDay() string {
+	if x != nil {
+		return x.HardestDay
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetTopBlocker() string {
+	if x != nil {
+		return x.TopBlocker
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetMoodSummary() map[string]int32 {
+	if x != nil {
+		return x.MoodSummary
+	}
+	return nil
+}
+
+func (x *WeeklyReview) GetEnergySummary() map[string]int32 {
+	if x != nil {
+		return x.EnergySummary
+	}
+	return nil
+}
+
+func (x *WeeklyReview) GetHabitBreakdown() []*WeeklyReviewHabitBreakdown {
+	if x != nil {
+		return x.HabitBreakdown
+	}
+	return nil
+}
+
+func (x *WeeklyReview) GetAiSummary() string {
+	if x != nil {
+		return x.AiSummary
+	}
+	return ""
+}
+
+func (x *WeeklyReview) GetSuggestedAdjustments() []*WeeklyReviewAdjustment {
+	if x != nil {
+		return x.SuggestedAdjustments
+	}
+	return nil
+}
+
+func (x *WeeklyReview) GetNextWeekPlan() *WeeklyReviewNextWeekPlan {
+	if x != nil {
+		return x.NextWeekPlan
+	}
+	return nil
+}
+
+func (x *WeeklyReview) GetGeneratedAt() int64 {
+	if x != nil {
+		return x.GeneratedAt
+	}
+	return 0
+}
+
+type GenerateWeeklyReviewRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	UserId          string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	WeekStart       string                 `protobuf:"bytes,2,opt,name=weekStart,proto3" json:"weekStart,omitempty"` // optional, YYYY-MM-DD. Defaults to current week start.
+	ForceRegenerate bool                   `protobuf:"varint,3,opt,name=forceRegenerate,proto3" json:"forceRegenerate,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GenerateWeeklyReviewRequest) Reset() {
+	*x = GenerateWeeklyReviewRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[143]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateWeeklyReviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateWeeklyReviewRequest) ProtoMessage() {}
+
+func (x *GenerateWeeklyReviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[143]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateWeeklyReviewRequest.ProtoReflect.Descriptor instead.
+func (*GenerateWeeklyReviewRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{143}
+}
+
+func (x *GenerateWeeklyReviewRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GenerateWeeklyReviewRequest) GetWeekStart() string {
+	if x != nil {
+		return x.WeekStart
+	}
+	return ""
+}
+
+func (x *GenerateWeeklyReviewRequest) GetForceRegenerate() bool {
+	if x != nil {
+		return x.ForceRegenerate
+	}
+	return false
+}
+
+type GenerateWeeklyReviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Review        *WeeklyReview          `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateWeeklyReviewResponse) Reset() {
+	*x = GenerateWeeklyReviewResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[144]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateWeeklyReviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateWeeklyReviewResponse) ProtoMessage() {}
+
+func (x *GenerateWeeklyReviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[144]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateWeeklyReviewResponse.ProtoReflect.Descriptor instead.
+func (*GenerateWeeklyReviewResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{144}
+}
+
+func (x *GenerateWeeklyReviewResponse) GetReview() *WeeklyReview {
+	if x != nil {
+		return x.Review
+	}
+	return nil
+}
+
+type GetWeeklyReviewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	WeekStart     string                 `protobuf:"bytes,2,opt,name=weekStart,proto3" json:"weekStart,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWeeklyReviewRequest) Reset() {
+	*x = GetWeeklyReviewRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[145]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWeeklyReviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWeeklyReviewRequest) ProtoMessage() {}
+
+func (x *GetWeeklyReviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[145]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWeeklyReviewRequest.ProtoReflect.Descriptor instead.
+func (*GetWeeklyReviewRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{145}
+}
+
+func (x *GetWeeklyReviewRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetWeeklyReviewRequest) GetWeekStart() string {
+	if x != nil {
+		return x.WeekStart
+	}
+	return ""
+}
+
+type GetWeeklyReviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Review        *WeeklyReview          `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetWeeklyReviewResponse) Reset() {
+	*x = GetWeeklyReviewResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[146]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetWeeklyReviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetWeeklyReviewResponse) ProtoMessage() {}
+
+func (x *GetWeeklyReviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[146]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetWeeklyReviewResponse.ProtoReflect.Descriptor instead.
+func (*GetWeeklyReviewResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{146}
+}
+
+func (x *GetWeeklyReviewResponse) GetReview() *WeeklyReview {
+	if x != nil {
+		return x.Review
+	}
+	return nil
+}
+
+type GetCurrentWeeklyReviewRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCurrentWeeklyReviewRequest) Reset() {
+	*x = GetCurrentWeeklyReviewRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[147]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCurrentWeeklyReviewRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCurrentWeeklyReviewRequest) ProtoMessage() {}
+
+func (x *GetCurrentWeeklyReviewRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[147]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCurrentWeeklyReviewRequest.ProtoReflect.Descriptor instead.
+func (*GetCurrentWeeklyReviewRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{147}
+}
+
+func (x *GetCurrentWeeklyReviewRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetCurrentWeeklyReviewResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Review        *WeeklyReview          `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCurrentWeeklyReviewResponse) Reset() {
+	*x = GetCurrentWeeklyReviewResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[148]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCurrentWeeklyReviewResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCurrentWeeklyReviewResponse) ProtoMessage() {}
+
+func (x *GetCurrentWeeklyReviewResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[148]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCurrentWeeklyReviewResponse.ProtoReflect.Descriptor instead.
+func (*GetCurrentWeeklyReviewResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{148}
+}
+
+func (x *GetCurrentWeeklyReviewResponse) GetReview() *WeeklyReview {
+	if x != nil {
+		return x.Review
+	}
+	return nil
+}
+
+type ListWeeklyReviewsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWeeklyReviewsRequest) Reset() {
+	*x = ListWeeklyReviewsRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[149]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWeeklyReviewsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWeeklyReviewsRequest) ProtoMessage() {}
+
+func (x *ListWeeklyReviewsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[149]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWeeklyReviewsRequest.ProtoReflect.Descriptor instead.
+func (*ListWeeklyReviewsRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{149}
+}
+
+func (x *ListWeeklyReviewsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListWeeklyReviewsRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListWeeklyReviewsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListWeeklyReviewsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Reviews       []*WeeklyReview        `protobuf:"bytes,1,rep,name=reviews,proto3" json:"reviews,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWeeklyReviewsResponse) Reset() {
+	*x = ListWeeklyReviewsResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[150]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWeeklyReviewsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWeeklyReviewsResponse) ProtoMessage() {}
+
+func (x *ListWeeklyReviewsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[150]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWeeklyReviewsResponse.ProtoReflect.Descriptor instead.
+func (*ListWeeklyReviewsResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{150}
+}
+
+func (x *ListWeeklyReviewsResponse) GetReviews() []*WeeklyReview {
+	if x != nil {
+		return x.Reviews
+	}
+	return nil
+}
+
+func (x *ListWeeklyReviewsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+// Personalization Service
+type CoachingProfile struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId               string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	AccountabilityStyle  string                 `protobuf:"bytes,3,opt,name=accountabilityStyle,proto3" json:"accountabilityStyle,omitempty"`
+	PreferredTone        string                 `protobuf:"bytes,4,opt,name=preferredTone,proto3" json:"preferredTone,omitempty"`
+	DifficultyPreference string                 `protobuf:"bytes,5,opt,name=difficultyPreference,proto3" json:"difficultyPreference,omitempty"`
+	PrimaryMotivation    string                 `protobuf:"bytes,6,opt,name=primaryMotivation,proto3" json:"primaryMotivation,omitempty"`
+	CommonBlockers       []string               `protobuf:"bytes,7,rep,name=commonBlockers,proto3" json:"commonBlockers,omitempty"`
+	CoachingNotesJson    string                 `protobuf:"bytes,8,opt,name=coachingNotesJson,proto3" json:"coachingNotesJson,omitempty"`
+	LastContextRefreshAt int64                  `protobuf:"varint,9,opt,name=lastContextRefreshAt,proto3" json:"lastContextRefreshAt,omitempty"`
+	CreatedAt            int64                  `protobuf:"varint,10,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	UpdatedAt            int64                  `protobuf:"varint,11,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CoachingProfile) Reset() {
+	*x = CoachingProfile{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[151]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CoachingProfile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CoachingProfile) ProtoMessage() {}
+
+func (x *CoachingProfile) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[151]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CoachingProfile.ProtoReflect.Descriptor instead.
+func (*CoachingProfile) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{151}
+}
+
+func (x *CoachingProfile) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetAccountabilityStyle() string {
+	if x != nil {
+		return x.AccountabilityStyle
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetPreferredTone() string {
+	if x != nil {
+		return x.PreferredTone
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetDifficultyPreference() string {
+	if x != nil {
+		return x.DifficultyPreference
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetPrimaryMotivation() string {
+	if x != nil {
+		return x.PrimaryMotivation
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetCommonBlockers() []string {
+	if x != nil {
+		return x.CommonBlockers
+	}
+	return nil
+}
+
+func (x *CoachingProfile) GetCoachingNotesJson() string {
+	if x != nil {
+		return x.CoachingNotesJson
+	}
+	return ""
+}
+
+func (x *CoachingProfile) GetLastContextRefreshAt() int64 {
+	if x != nil {
+		return x.LastContextRefreshAt
+	}
+	return 0
+}
+
+func (x *CoachingProfile) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *CoachingProfile) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+type PersonalizationContext struct {
+	state              protoimpl.MessageState      `protogen:"open.v1"`
+	Profile            *CoachingProfile            `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	ActiveGoals        []*Goal                     `protobuf:"bytes,2,rep,name=activeGoals,proto3" json:"activeGoals,omitempty"`
+	ActiveHabits       []*Habit                    `protobuf:"bytes,3,rep,name=activeHabits,proto3" json:"activeHabits,omitempty"`
+	RecentCheckIns     []*CheckIn                  `protobuf:"bytes,4,rep,name=recentCheckIns,proto3" json:"recentCheckIns,omitempty"`
+	LatestWeeklyReview *WeeklyReview               `protobuf:"bytes,5,opt,name=latestWeeklyReview,proto3" json:"latestWeeklyReview,omitempty"`
+	PendingSuggestions []*PlanAdjustmentSuggestion `protobuf:"bytes,6,rep,name=pendingSuggestions,proto3" json:"pendingSuggestions,omitempty"`
+	PatternInsights    map[string]string           `protobuf:"bytes,7,rep,name=patternInsights,proto3" json:"patternInsights,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *PersonalizationContext) Reset() {
+	*x = PersonalizationContext{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[152]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PersonalizationContext) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PersonalizationContext) ProtoMessage() {}
+
+func (x *PersonalizationContext) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[152]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PersonalizationContext.ProtoReflect.Descriptor instead.
+func (*PersonalizationContext) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{152}
+}
+
+func (x *PersonalizationContext) GetProfile() *CoachingProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetActiveGoals() []*Goal {
+	if x != nil {
+		return x.ActiveGoals
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetActiveHabits() []*Habit {
+	if x != nil {
+		return x.ActiveHabits
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetRecentCheckIns() []*CheckIn {
+	if x != nil {
+		return x.RecentCheckIns
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetLatestWeeklyReview() *WeeklyReview {
+	if x != nil {
+		return x.LatestWeeklyReview
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetPendingSuggestions() []*PlanAdjustmentSuggestion {
+	if x != nil {
+		return x.PendingSuggestions
+	}
+	return nil
+}
+
+func (x *PersonalizationContext) GetPatternInsights() map[string]string {
+	if x != nil {
+		return x.PatternInsights
+	}
+	return nil
+}
+
+type PlanAdjustmentSuggestion struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId         string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	GoalId         string                 `protobuf:"bytes,3,opt,name=goalId,proto3" json:"goalId,omitempty"`
+	HabitId        string                 `protobuf:"bytes,4,opt,name=habitId,proto3" json:"habitId,omitempty"`
+	Source         string                 `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	AdjustmentType string                 `protobuf:"bytes,6,opt,name=adjustmentType,proto3" json:"adjustmentType,omitempty"`
+	Reason         string                 `protobuf:"bytes,7,opt,name=reason,proto3" json:"reason,omitempty"`
+	Suggestion     string                 `protobuf:"bytes,8,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	Status         string                 `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
+	MetadataJson   string                 `protobuf:"bytes,10,opt,name=metadataJson,proto3" json:"metadataJson,omitempty"`
+	CreatedAt      int64                  `protobuf:"varint,11,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	UpdatedAt      int64                  `protobuf:"varint,12,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *PlanAdjustmentSuggestion) Reset() {
+	*x = PlanAdjustmentSuggestion{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[153]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanAdjustmentSuggestion) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanAdjustmentSuggestion) ProtoMessage() {}
+
+func (x *PlanAdjustmentSuggestion) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[153]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanAdjustmentSuggestion.ProtoReflect.Descriptor instead.
+func (*PlanAdjustmentSuggestion) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{153}
+}
+
+func (x *PlanAdjustmentSuggestion) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetGoalId() string {
+	if x != nil {
+		return x.GoalId
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetHabitId() string {
+	if x != nil {
+		return x.HabitId
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetAdjustmentType() string {
+	if x != nil {
+		return x.AdjustmentType
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetSuggestion() string {
+	if x != nil {
+		return x.Suggestion
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+func (x *PlanAdjustmentSuggestion) GetCreatedAt() int64 {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return 0
+}
+
+func (x *PlanAdjustmentSuggestion) GetUpdatedAt() int64 {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return 0
+}
+
+type GetCoachingProfileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCoachingProfileRequest) Reset() {
+	*x = GetCoachingProfileRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[154]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCoachingProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCoachingProfileRequest) ProtoMessage() {}
+
+func (x *GetCoachingProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[154]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCoachingProfileRequest.ProtoReflect.Descriptor instead.
+func (*GetCoachingProfileRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{154}
+}
+
+func (x *GetCoachingProfileRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetCoachingProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *CoachingProfile       `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCoachingProfileResponse) Reset() {
+	*x = GetCoachingProfileResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[155]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCoachingProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCoachingProfileResponse) ProtoMessage() {}
+
+func (x *GetCoachingProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[155]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCoachingProfileResponse.ProtoReflect.Descriptor instead.
+func (*GetCoachingProfileResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{155}
+}
+
+func (x *GetCoachingProfileResponse) GetProfile() *CoachingProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+type UpsertCoachingProfileRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	UserId               string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	AccountabilityStyle  string                 `protobuf:"bytes,2,opt,name=accountabilityStyle,proto3" json:"accountabilityStyle,omitempty"`
+	PreferredTone        string                 `protobuf:"bytes,3,opt,name=preferredTone,proto3" json:"preferredTone,omitempty"`
+	DifficultyPreference string                 `protobuf:"bytes,4,opt,name=difficultyPreference,proto3" json:"difficultyPreference,omitempty"`
+	PrimaryMotivation    string                 `protobuf:"bytes,5,opt,name=primaryMotivation,proto3" json:"primaryMotivation,omitempty"`
+	CommonBlockers       []string               `protobuf:"bytes,6,rep,name=commonBlockers,proto3" json:"commonBlockers,omitempty"`
+	CoachingNotesJson    string                 `protobuf:"bytes,7,opt,name=coachingNotesJson,proto3" json:"coachingNotesJson,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UpsertCoachingProfileRequest) Reset() {
+	*x = UpsertCoachingProfileRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[156]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertCoachingProfileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertCoachingProfileRequest) ProtoMessage() {}
+
+func (x *UpsertCoachingProfileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[156]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertCoachingProfileRequest.ProtoReflect.Descriptor instead.
+func (*UpsertCoachingProfileRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{156}
+}
+
+func (x *UpsertCoachingProfileRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpsertCoachingProfileRequest) GetAccountabilityStyle() string {
+	if x != nil {
+		return x.AccountabilityStyle
+	}
+	return ""
+}
+
+func (x *UpsertCoachingProfileRequest) GetPreferredTone() string {
+	if x != nil {
+		return x.PreferredTone
+	}
+	return ""
+}
+
+func (x *UpsertCoachingProfileRequest) GetDifficultyPreference() string {
+	if x != nil {
+		return x.DifficultyPreference
+	}
+	return ""
+}
+
+func (x *UpsertCoachingProfileRequest) GetPrimaryMotivation() string {
+	if x != nil {
+		return x.PrimaryMotivation
+	}
+	return ""
+}
+
+func (x *UpsertCoachingProfileRequest) GetCommonBlockers() []string {
+	if x != nil {
+		return x.CommonBlockers
+	}
+	return nil
+}
+
+func (x *UpsertCoachingProfileRequest) GetCoachingNotesJson() string {
+	if x != nil {
+		return x.CoachingNotesJson
+	}
+	return ""
+}
+
+type UpsertCoachingProfileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *CoachingProfile       `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpsertCoachingProfileResponse) Reset() {
+	*x = UpsertCoachingProfileResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[157]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpsertCoachingProfileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpsertCoachingProfileResponse) ProtoMessage() {}
+
+func (x *UpsertCoachingProfileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[157]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpsertCoachingProfileResponse.ProtoReflect.Descriptor instead.
+func (*UpsertCoachingProfileResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{157}
+}
+
+func (x *UpsertCoachingProfileResponse) GetProfile() *CoachingProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+type UpdateCoachingProfilePreferencesRequest struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	UserId               string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	AccountabilityStyle  string                 `protobuf:"bytes,2,opt,name=accountabilityStyle,proto3" json:"accountabilityStyle,omitempty"`
+	PreferredTone        string                 `protobuf:"bytes,3,opt,name=preferredTone,proto3" json:"preferredTone,omitempty"`
+	DifficultyPreference string                 `protobuf:"bytes,4,opt,name=difficultyPreference,proto3" json:"difficultyPreference,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) Reset() {
+	*x = UpdateCoachingProfilePreferencesRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[158]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCoachingProfilePreferencesRequest) ProtoMessage() {}
+
+func (x *UpdateCoachingProfilePreferencesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[158]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCoachingProfilePreferencesRequest.ProtoReflect.Descriptor instead.
+func (*UpdateCoachingProfilePreferencesRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{158}
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) GetAccountabilityStyle() string {
+	if x != nil {
+		return x.AccountabilityStyle
+	}
+	return ""
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) GetPreferredTone() string {
+	if x != nil {
+		return x.PreferredTone
+	}
+	return ""
+}
+
+func (x *UpdateCoachingProfilePreferencesRequest) GetDifficultyPreference() string {
+	if x != nil {
+		return x.DifficultyPreference
+	}
+	return ""
+}
+
+type UpdateCoachingProfilePreferencesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Profile       *CoachingProfile       `protobuf:"bytes,1,opt,name=profile,proto3" json:"profile,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateCoachingProfilePreferencesResponse) Reset() {
+	*x = UpdateCoachingProfilePreferencesResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[159]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateCoachingProfilePreferencesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateCoachingProfilePreferencesResponse) ProtoMessage() {}
+
+func (x *UpdateCoachingProfilePreferencesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[159]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateCoachingProfilePreferencesResponse.ProtoReflect.Descriptor instead.
+func (*UpdateCoachingProfilePreferencesResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{159}
+}
+
+func (x *UpdateCoachingProfilePreferencesResponse) GetProfile() *CoachingProfile {
+	if x != nil {
+		return x.Profile
+	}
+	return nil
+}
+
+type GetPersonalizationContextRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	ForceRefresh  bool                   `protobuf:"varint,2,opt,name=forceRefresh,proto3" json:"forceRefresh,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPersonalizationContextRequest) Reset() {
+	*x = GetPersonalizationContextRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[160]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPersonalizationContextRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPersonalizationContextRequest) ProtoMessage() {}
+
+func (x *GetPersonalizationContextRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[160]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPersonalizationContextRequest.ProtoReflect.Descriptor instead.
+func (*GetPersonalizationContextRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{160}
+}
+
+func (x *GetPersonalizationContextRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GetPersonalizationContextRequest) GetForceRefresh() bool {
+	if x != nil {
+		return x.ForceRefresh
+	}
+	return false
+}
+
+type GetPersonalizationContextResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Context       *PersonalizationContext `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPersonalizationContextResponse) Reset() {
+	*x = GetPersonalizationContextResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[161]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPersonalizationContextResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPersonalizationContextResponse) ProtoMessage() {}
+
+func (x *GetPersonalizationContextResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[161]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPersonalizationContextResponse.ProtoReflect.Descriptor instead.
+func (*GetPersonalizationContextResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{161}
+}
+
+func (x *GetPersonalizationContextResponse) GetContext() *PersonalizationContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
+type CreatePlanAdjustmentSuggestionRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	GoalId         string                 `protobuf:"bytes,2,opt,name=goalId,proto3" json:"goalId,omitempty"`
+	HabitId        string                 `protobuf:"bytes,3,opt,name=habitId,proto3" json:"habitId,omitempty"`
+	Source         string                 `protobuf:"bytes,4,opt,name=source,proto3" json:"source,omitempty"`
+	AdjustmentType string                 `protobuf:"bytes,5,opt,name=adjustmentType,proto3" json:"adjustmentType,omitempty"`
+	Reason         string                 `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	Suggestion     string                 `protobuf:"bytes,7,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	MetadataJson   string                 `protobuf:"bytes,8,opt,name=metadataJson,proto3" json:"metadataJson,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) Reset() {
+	*x = CreatePlanAdjustmentSuggestionRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[162]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePlanAdjustmentSuggestionRequest) ProtoMessage() {}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[162]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePlanAdjustmentSuggestionRequest.ProtoReflect.Descriptor instead.
+func (*CreatePlanAdjustmentSuggestionRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{162}
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetGoalId() string {
+	if x != nil {
+		return x.GoalId
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetHabitId() string {
+	if x != nil {
+		return x.HabitId
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetAdjustmentType() string {
+	if x != nil {
+		return x.AdjustmentType
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetSuggestion() string {
+	if x != nil {
+		return x.Suggestion
+	}
+	return ""
+}
+
+func (x *CreatePlanAdjustmentSuggestionRequest) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+type CreatePlanAdjustmentSuggestionResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Suggestion    *PlanAdjustmentSuggestion `protobuf:"bytes,1,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreatePlanAdjustmentSuggestionResponse) Reset() {
+	*x = CreatePlanAdjustmentSuggestionResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[163]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreatePlanAdjustmentSuggestionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreatePlanAdjustmentSuggestionResponse) ProtoMessage() {}
+
+func (x *CreatePlanAdjustmentSuggestionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[163]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreatePlanAdjustmentSuggestionResponse.ProtoReflect.Descriptor instead.
+func (*CreatePlanAdjustmentSuggestionResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{163}
+}
+
+func (x *CreatePlanAdjustmentSuggestionResponse) GetSuggestion() *PlanAdjustmentSuggestion {
+	if x != nil {
+		return x.Suggestion
+	}
+	return nil
+}
+
+type ListPendingPlanAdjustmentSuggestionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) Reset() {
+	*x = ListPendingPlanAdjustmentSuggestionsRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[164]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingPlanAdjustmentSuggestionsRequest) ProtoMessage() {}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[164]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingPlanAdjustmentSuggestionsRequest.ProtoReflect.Descriptor instead.
+func (*ListPendingPlanAdjustmentSuggestionsRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{164}
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type ListPendingPlanAdjustmentSuggestionsResponse struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Suggestions   []*PlanAdjustmentSuggestion `protobuf:"bytes,1,rep,name=suggestions,proto3" json:"suggestions,omitempty"`
+	Total         int32                       `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsResponse) Reset() {
+	*x = ListPendingPlanAdjustmentSuggestionsResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[165]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingPlanAdjustmentSuggestionsResponse) ProtoMessage() {}
+
+func (x *ListPendingPlanAdjustmentSuggestionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[165]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingPlanAdjustmentSuggestionsResponse.ProtoReflect.Descriptor instead.
+func (*ListPendingPlanAdjustmentSuggestionsResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{165}
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsResponse) GetSuggestions() []*PlanAdjustmentSuggestion {
+	if x != nil {
+		return x.Suggestions
+	}
+	return nil
+}
+
+func (x *ListPendingPlanAdjustmentSuggestionsResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type UpdatePlanAdjustmentSuggestionStatusRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SuggestionId  string                 `protobuf:"bytes,1,opt,name=suggestionId,proto3" json:"suggestionId,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) Reset() {
+	*x = UpdatePlanAdjustmentSuggestionStatusRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[166]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePlanAdjustmentSuggestionStatusRequest) ProtoMessage() {}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[166]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePlanAdjustmentSuggestionStatusRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePlanAdjustmentSuggestionStatusRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{166}
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) GetSuggestionId() string {
+	if x != nil {
+		return x.SuggestionId
+	}
+	return ""
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusRequest) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type UpdatePlanAdjustmentSuggestionStatusResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Suggestion    *PlanAdjustmentSuggestion `protobuf:"bytes,1,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusResponse) Reset() {
+	*x = UpdatePlanAdjustmentSuggestionStatusResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[167]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePlanAdjustmentSuggestionStatusResponse) ProtoMessage() {}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[167]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePlanAdjustmentSuggestionStatusResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePlanAdjustmentSuggestionStatusResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{167}
+}
+
+func (x *UpdatePlanAdjustmentSuggestionStatusResponse) GetSuggestion() *PlanAdjustmentSuggestion {
+	if x != nil {
+		return x.Suggestion
+	}
+	return nil
+}
+
+type ApplyPlanAdjustmentSuggestionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SuggestionId  string                 `protobuf:"bytes,1,opt,name=suggestionId,proto3" json:"suggestionId,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyPlanAdjustmentSuggestionRequest) Reset() {
+	*x = ApplyPlanAdjustmentSuggestionRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[168]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyPlanAdjustmentSuggestionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyPlanAdjustmentSuggestionRequest) ProtoMessage() {}
+
+func (x *ApplyPlanAdjustmentSuggestionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[168]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyPlanAdjustmentSuggestionRequest.ProtoReflect.Descriptor instead.
+func (*ApplyPlanAdjustmentSuggestionRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{168}
+}
+
+func (x *ApplyPlanAdjustmentSuggestionRequest) GetSuggestionId() string {
+	if x != nil {
+		return x.SuggestionId
+	}
+	return ""
+}
+
+func (x *ApplyPlanAdjustmentSuggestionRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type ApplyPlanAdjustmentSuggestionResponse struct {
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Suggestion    *PlanAdjustmentSuggestion `protobuf:"bytes,1,opt,name=suggestion,proto3" json:"suggestion,omitempty"`
+	Success       bool                      `protobuf:"varint,2,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApplyPlanAdjustmentSuggestionResponse) Reset() {
+	*x = ApplyPlanAdjustmentSuggestionResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[169]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApplyPlanAdjustmentSuggestionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApplyPlanAdjustmentSuggestionResponse) ProtoMessage() {}
+
+func (x *ApplyPlanAdjustmentSuggestionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[169]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApplyPlanAdjustmentSuggestionResponse.ProtoReflect.Descriptor instead.
+func (*ApplyPlanAdjustmentSuggestionResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{169}
+}
+
+func (x *ApplyPlanAdjustmentSuggestionResponse) GetSuggestion() *PlanAdjustmentSuggestion {
+	if x != nil {
+		return x.Suggestion
+	}
+	return nil
+}
+
+func (x *ApplyPlanAdjustmentSuggestionResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type GeneratePersonalizedCoachingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+	UserMessage   string                 `protobuf:"bytes,2,opt,name=userMessage,proto3" json:"userMessage,omitempty"`
+	Context       string                 `protobuf:"bytes,3,opt,name=context,proto3" json:"context,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GeneratePersonalizedCoachingRequest) Reset() {
+	*x = GeneratePersonalizedCoachingRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[170]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GeneratePersonalizedCoachingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GeneratePersonalizedCoachingRequest) ProtoMessage() {}
+
+func (x *GeneratePersonalizedCoachingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[170]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GeneratePersonalizedCoachingRequest.ProtoReflect.Descriptor instead.
+func (*GeneratePersonalizedCoachingRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{170}
+}
+
+func (x *GeneratePersonalizedCoachingRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *GeneratePersonalizedCoachingRequest) GetUserMessage() string {
+	if x != nil {
+		return x.UserMessage
+	}
+	return ""
+}
+
+func (x *GeneratePersonalizedCoachingRequest) GetContext() string {
+	if x != nil {
+		return x.Context
+	}
+	return ""
+}
+
+type GeneratePersonalizedCoachingResponse struct {
+	state            protoimpl.MessageState  `protogen:"open.v1"`
+	CoachingResponse string                  `protobuf:"bytes,1,opt,name=coachingResponse,proto3" json:"coachingResponse,omitempty"`
+	Context          *PersonalizationContext `protobuf:"bytes,2,opt,name=context,proto3" json:"context,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GeneratePersonalizedCoachingResponse) Reset() {
+	*x = GeneratePersonalizedCoachingResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[171]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GeneratePersonalizedCoachingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GeneratePersonalizedCoachingResponse) ProtoMessage() {}
+
+func (x *GeneratePersonalizedCoachingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[171]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GeneratePersonalizedCoachingResponse.ProtoReflect.Descriptor instead.
+func (*GeneratePersonalizedCoachingResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{171}
+}
+
+func (x *GeneratePersonalizedCoachingResponse) GetCoachingResponse() string {
+	if x != nil {
+		return x.CoachingResponse
+	}
+	return ""
+}
+
+func (x *GeneratePersonalizedCoachingResponse) GetContext() *PersonalizationContext {
+	if x != nil {
+		return x.Context
+	}
+	return nil
+}
+
 var File_services_microservices_client_api_v1_client_proto protoreflect.FileDescriptor
 
 const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
@@ -8301,7 +10482,192 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x18\n" +
 	"\ahabitId\x18\x02 \x01(\tR\ahabitId\"9\n" +
 	"\x19HasCheckedInTodayResponse\x12\x1c\n" +
-	"\tcheckedIn\x18\x01 \x01(\bR\tcheckedIn2\xf6\x03\n" +
+	"\tcheckedIn\x18\x01 \x01(\bR\tcheckedIn\"\xae\x02\n" +
+	"\x1aWeeklyReviewHabitBreakdown\x12\x18\n" +
+	"\ahabitId\x18\x01 \x01(\tR\ahabitId\x12\x1c\n" +
+	"\thabitName\x18\x02 \x01(\tR\thabitName\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12$\n" +
+	"\rtotalCheckIns\x18\x04 \x01(\x05R\rtotalCheckIns\x12&\n" +
+	"\x0ecompletedCount\x18\x05 \x01(\x05R\x0ecompletedCount\x12 \n" +
+	"\vmissedCount\x18\x06 \x01(\x05R\vmissedCount\x12&\n" +
+	"\x0ecompletionRate\x18\a \x01(\x01R\x0ecompletionRate\x12$\n" +
+	"\rlastCheckInAt\x18\b \x01(\x03R\rlastCheckInAt\"\xb0\x01\n" +
+	"\x16WeeklyReviewAdjustment\x12\x18\n" +
+	"\ahabitId\x18\x01 \x01(\tR\ahabitId\x12\x1c\n" +
+	"\thabitName\x18\x02 \x01(\tR\thabitName\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x1e\n" +
+	"\n" +
+	"suggestion\x18\x04 \x01(\tR\n" +
+	"suggestion\x12&\n" +
+	"\x0eadjustmentType\x18\x05 \x01(\tR\x0eadjustmentType\"\x92\x01\n" +
+	"\x18WeeklyReviewNextWeekPlan\x12\x14\n" +
+	"\x05focus\x18\x01 \x01(\tR\x05focus\x12 \n" +
+	"\vcommitments\x18\x02 \x03(\tR\vcommitments\x12\x14\n" +
+	"\x05risks\x18\x03 \x03(\tR\x05risks\x12(\n" +
+	"\x0frecoveryActions\x18\x04 \x03(\tR\x0frecoveryActions\"\xa8\a\n" +
+	"\fWeeklyReview\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x1c\n" +
+	"\tweekStart\x18\x03 \x01(\tR\tweekStart\x12\x18\n" +
+	"\aweekEnd\x18\x04 \x01(\tR\aweekEnd\x12 \n" +
+	"\vtotalHabits\x18\x05 \x01(\x05R\vtotalHabits\x12,\n" +
+	"\x11completedCheckIns\x18\x06 \x01(\x05R\x11completedCheckIns\x12&\n" +
+	"\x0emissedCheckIns\x18\a \x01(\x05R\x0emissedCheckIns\x12&\n" +
+	"\x0ecompletionRate\x18\b \x01(\x01R\x0ecompletionRate\x12\x18\n" +
+	"\abestDay\x18\t \x01(\tR\abestDay\x12\x1e\n" +
+	"\n" +
+	"hardestDay\x18\n" +
+	" \x01(\tR\n" +
+	"hardestDay\x12\x1e\n" +
+	"\n" +
+	"topBlocker\x18\v \x01(\tR\n" +
+	"topBlocker\x12G\n" +
+	"\vmoodSummary\x18\f \x03(\v2%.client.WeeklyReview.MoodSummaryEntryR\vmoodSummary\x12M\n" +
+	"\renergySummary\x18\r \x03(\v2'.client.WeeklyReview.EnergySummaryEntryR\renergySummary\x12J\n" +
+	"\x0ehabitBreakdown\x18\x0e \x03(\v2\".client.WeeklyReviewHabitBreakdownR\x0ehabitBreakdown\x12\x1c\n" +
+	"\taiSummary\x18\x0f \x01(\tR\taiSummary\x12R\n" +
+	"\x14suggestedAdjustments\x18\x10 \x03(\v2\x1e.client.WeeklyReviewAdjustmentR\x14suggestedAdjustments\x12D\n" +
+	"\fnextWeekPlan\x18\x11 \x01(\v2 .client.WeeklyReviewNextWeekPlanR\fnextWeekPlan\x12 \n" +
+	"\vgeneratedAt\x18\x12 \x01(\x03R\vgeneratedAt\x1a>\n" +
+	"\x10MoodSummaryEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\x1a@\n" +
+	"\x12EnergySummaryEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x05R\x05value:\x028\x01\"}\n" +
+	"\x1bGenerateWeeklyReviewRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x1c\n" +
+	"\tweekStart\x18\x02 \x01(\tR\tweekStart\x12(\n" +
+	"\x0fforceRegenerate\x18\x03 \x01(\bR\x0fforceRegenerate\"L\n" +
+	"\x1cGenerateWeeklyReviewResponse\x12,\n" +
+	"\x06review\x18\x01 \x01(\v2\x14.client.WeeklyReviewR\x06review\"N\n" +
+	"\x16GetWeeklyReviewRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x1c\n" +
+	"\tweekStart\x18\x02 \x01(\tR\tweekStart\"G\n" +
+	"\x17GetWeeklyReviewResponse\x12,\n" +
+	"\x06review\x18\x01 \x01(\v2\x14.client.WeeklyReviewR\x06review\"7\n" +
+	"\x1dGetCurrentWeeklyReviewRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\"N\n" +
+	"\x1eGetCurrentWeeklyReviewResponse\x12,\n" +
+	"\x06review\x18\x01 \x01(\v2\x14.client.WeeklyReviewR\x06review\"\\\n" +
+	"\x18ListWeeklyReviewsRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"a\n" +
+	"\x19ListWeeklyReviewsResponse\x12.\n" +
+	"\areviews\x18\x01 \x03(\v2\x14.client.WeeklyReviewR\areviews\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\xb9\x03\n" +
+	"\x0fCoachingProfile\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x120\n" +
+	"\x13accountabilityStyle\x18\x03 \x01(\tR\x13accountabilityStyle\x12$\n" +
+	"\rpreferredTone\x18\x04 \x01(\tR\rpreferredTone\x122\n" +
+	"\x14difficultyPreference\x18\x05 \x01(\tR\x14difficultyPreference\x12,\n" +
+	"\x11primaryMotivation\x18\x06 \x01(\tR\x11primaryMotivation\x12&\n" +
+	"\x0ecommonBlockers\x18\a \x03(\tR\x0ecommonBlockers\x12,\n" +
+	"\x11coachingNotesJson\x18\b \x01(\tR\x11coachingNotesJson\x122\n" +
+	"\x14lastContextRefreshAt\x18\t \x01(\x03R\x14lastContextRefreshAt\x12\x1c\n" +
+	"\tcreatedAt\x18\n" +
+	" \x01(\x03R\tcreatedAt\x12\x1c\n" +
+	"\tupdatedAt\x18\v \x01(\x03R\tupdatedAt\"\xa2\x04\n" +
+	"\x16PersonalizationContext\x121\n" +
+	"\aprofile\x18\x01 \x01(\v2\x17.client.CoachingProfileR\aprofile\x12.\n" +
+	"\vactiveGoals\x18\x02 \x03(\v2\f.client.GoalR\vactiveGoals\x121\n" +
+	"\factiveHabits\x18\x03 \x03(\v2\r.client.HabitR\factiveHabits\x127\n" +
+	"\x0erecentCheckIns\x18\x04 \x03(\v2\x0f.client.CheckInR\x0erecentCheckIns\x12D\n" +
+	"\x12latestWeeklyReview\x18\x05 \x01(\v2\x14.client.WeeklyReviewR\x12latestWeeklyReview\x12P\n" +
+	"\x12pendingSuggestions\x18\x06 \x03(\v2 .client.PlanAdjustmentSuggestionR\x12pendingSuggestions\x12]\n" +
+	"\x0fpatternInsights\x18\a \x03(\v23.client.PersonalizationContext.PatternInsightsEntryR\x0fpatternInsights\x1aB\n" +
+	"\x14PatternInsightsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe4\x02\n" +
+	"\x18PlanAdjustmentSuggestion\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06goalId\x18\x03 \x01(\tR\x06goalId\x12\x18\n" +
+	"\ahabitId\x18\x04 \x01(\tR\ahabitId\x12\x16\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\x12&\n" +
+	"\x0eadjustmentType\x18\x06 \x01(\tR\x0eadjustmentType\x12\x16\n" +
+	"\x06reason\x18\a \x01(\tR\x06reason\x12\x1e\n" +
+	"\n" +
+	"suggestion\x18\b \x01(\tR\n" +
+	"suggestion\x12\x16\n" +
+	"\x06status\x18\t \x01(\tR\x06status\x12\"\n" +
+	"\fmetadataJson\x18\n" +
+	" \x01(\tR\fmetadataJson\x12\x1c\n" +
+	"\tcreatedAt\x18\v \x01(\x03R\tcreatedAt\x12\x1c\n" +
+	"\tupdatedAt\x18\f \x01(\x03R\tupdatedAt\"3\n" +
+	"\x19GetCoachingProfileRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\"O\n" +
+	"\x1aGetCoachingProfileResponse\x121\n" +
+	"\aprofile\x18\x01 \x01(\v2\x17.client.CoachingProfileR\aprofile\"\xc6\x02\n" +
+	"\x1cUpsertCoachingProfileRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x120\n" +
+	"\x13accountabilityStyle\x18\x02 \x01(\tR\x13accountabilityStyle\x12$\n" +
+	"\rpreferredTone\x18\x03 \x01(\tR\rpreferredTone\x122\n" +
+	"\x14difficultyPreference\x18\x04 \x01(\tR\x14difficultyPreference\x12,\n" +
+	"\x11primaryMotivation\x18\x05 \x01(\tR\x11primaryMotivation\x12&\n" +
+	"\x0ecommonBlockers\x18\x06 \x03(\tR\x0ecommonBlockers\x12,\n" +
+	"\x11coachingNotesJson\x18\a \x01(\tR\x11coachingNotesJson\"R\n" +
+	"\x1dUpsertCoachingProfileResponse\x121\n" +
+	"\aprofile\x18\x01 \x01(\v2\x17.client.CoachingProfileR\aprofile\"\xcd\x01\n" +
+	"'UpdateCoachingProfilePreferencesRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x120\n" +
+	"\x13accountabilityStyle\x18\x02 \x01(\tR\x13accountabilityStyle\x12$\n" +
+	"\rpreferredTone\x18\x03 \x01(\tR\rpreferredTone\x122\n" +
+	"\x14difficultyPreference\x18\x04 \x01(\tR\x14difficultyPreference\"]\n" +
+	"(UpdateCoachingProfilePreferencesResponse\x121\n" +
+	"\aprofile\x18\x01 \x01(\v2\x17.client.CoachingProfileR\aprofile\"^\n" +
+	" GetPersonalizationContextRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\"\n" +
+	"\fforceRefresh\x18\x02 \x01(\bR\fforceRefresh\"]\n" +
+	"!GetPersonalizationContextResponse\x128\n" +
+	"\acontext\x18\x01 \x01(\v2\x1e.client.PersonalizationContextR\acontext\"\x8d\x02\n" +
+	"%CreatePlanAdjustmentSuggestionRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06goalId\x18\x02 \x01(\tR\x06goalId\x12\x18\n" +
+	"\ahabitId\x18\x03 \x01(\tR\ahabitId\x12\x16\n" +
+	"\x06source\x18\x04 \x01(\tR\x06source\x12&\n" +
+	"\x0eadjustmentType\x18\x05 \x01(\tR\x0eadjustmentType\x12\x16\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\x12\x1e\n" +
+	"\n" +
+	"suggestion\x18\a \x01(\tR\n" +
+	"suggestion\x12\"\n" +
+	"\fmetadataJson\x18\b \x01(\tR\fmetadataJson\"j\n" +
+	"&CreatePlanAdjustmentSuggestionResponse\x12@\n" +
+	"\n" +
+	"suggestion\x18\x01 \x01(\v2 .client.PlanAdjustmentSuggestionR\n" +
+	"suggestion\"s\n" +
+	"+ListPendingPlanAdjustmentSuggestionsRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"\x88\x01\n" +
+	",ListPendingPlanAdjustmentSuggestionsResponse\x12B\n" +
+	"\vsuggestions\x18\x01 \x03(\v2 .client.PlanAdjustmentSuggestionR\vsuggestions\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x81\x01\n" +
+	"+UpdatePlanAdjustmentSuggestionStatusRequest\x12\"\n" +
+	"\fsuggestionId\x18\x01 \x01(\tR\fsuggestionId\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\"p\n" +
+	",UpdatePlanAdjustmentSuggestionStatusResponse\x12@\n" +
+	"\n" +
+	"suggestion\x18\x01 \x01(\v2 .client.PlanAdjustmentSuggestionR\n" +
+	"suggestion\"b\n" +
+	"$ApplyPlanAdjustmentSuggestionRequest\x12\"\n" +
+	"\fsuggestionId\x18\x01 \x01(\tR\fsuggestionId\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\"\x83\x01\n" +
+	"%ApplyPlanAdjustmentSuggestionResponse\x12@\n" +
+	"\n" +
+	"suggestion\x18\x01 \x01(\v2 .client.PlanAdjustmentSuggestionR\n" +
+	"suggestion\x12\x18\n" +
+	"\asuccess\x18\x02 \x01(\bR\asuccess\"y\n" +
+	"#GeneratePersonalizedCoachingRequest\x12\x16\n" +
+	"\x06userId\x18\x01 \x01(\tR\x06userId\x12 \n" +
+	"\vuserMessage\x18\x02 \x01(\tR\vuserMessage\x12\x18\n" +
+	"\acontext\x18\x03 \x01(\tR\acontext\"\x8c\x01\n" +
+	"$GeneratePersonalizedCoachingResponse\x12*\n" +
+	"\x10coachingResponse\x18\x01 \x01(\tR\x10coachingResponse\x128\n" +
+	"\acontext\x18\x02 \x01(\v2\x1e.client.PersonalizationContextR\acontext2\xf6\x03\n" +
 	"\bActivity\x12R\n" +
 	"\x0fGetActivityFeed\x12\x1e.client.GetActivityFeedRequest\x1a\x1f.client.GetActivityFeedResponse\x12F\n" +
 	"\vLogActivity\x12\x1a.client.LogActivityRequest\x1a\x1b.client.LogActivityResponse\x12U\n" +
@@ -8380,7 +10746,22 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\rCreateCheckIn\x12\x1c.client.CreateCheckInRequest\x1a\x1d.client.CreateCheckInResponse\x12U\n" +
 	"\x10GetTodayCheckIns\x12\x1f.client.GetTodayCheckInsRequest\x1a .client.GetTodayCheckInsResponse\x12X\n" +
 	"\x11GetCheckInHistory\x12 .client.GetCheckInHistoryRequest\x1a!.client.GetCheckInHistoryResponse\x12X\n" +
-	"\x11HasCheckedInToday\x12 .client.HasCheckedInTodayRequest\x1a!.client.HasCheckedInTodayResponseB\n" +
+	"\x11HasCheckedInToday\x12 .client.HasCheckedInTodayRequest\x1a!.client.HasCheckedInTodayResponse2\x8f\x03\n" +
+	"\x13WeeklyReviewService\x12a\n" +
+	"\x14GenerateWeeklyReview\x12#.client.GenerateWeeklyReviewRequest\x1a$.client.GenerateWeeklyReviewResponse\x12R\n" +
+	"\x0fGetWeeklyReview\x12\x1e.client.GetWeeklyReviewRequest\x1a\x1f.client.GetWeeklyReviewResponse\x12g\n" +
+	"\x16GetCurrentWeeklyReview\x12%.client.GetCurrentWeeklyReviewRequest\x1a&.client.GetCurrentWeeklyReviewResponse\x12X\n" +
+	"\x11ListWeeklyReviews\x12 .client.ListWeeklyReviewsRequest\x1a!.client.ListWeeklyReviewsResponse2\xf7\b\n" +
+	"\x16PersonalizationService\x12[\n" +
+	"\x12GetCoachingProfile\x12!.client.GetCoachingProfileRequest\x1a\".client.GetCoachingProfileResponse\x12d\n" +
+	"\x15UpsertCoachingProfile\x12$.client.UpsertCoachingProfileRequest\x1a%.client.UpsertCoachingProfileResponse\x12\x85\x01\n" +
+	" UpdateCoachingProfilePreferences\x12/.client.UpdateCoachingProfilePreferencesRequest\x1a0.client.UpdateCoachingProfilePreferencesResponse\x12p\n" +
+	"\x19GetPersonalizationContext\x12(.client.GetPersonalizationContextRequest\x1a).client.GetPersonalizationContextResponse\x12\x7f\n" +
+	"\x1eCreatePlanAdjustmentSuggestion\x12-.client.CreatePlanAdjustmentSuggestionRequest\x1a..client.CreatePlanAdjustmentSuggestionResponse\x12\x91\x01\n" +
+	"$ListPendingPlanAdjustmentSuggestions\x123.client.ListPendingPlanAdjustmentSuggestionsRequest\x1a4.client.ListPendingPlanAdjustmentSuggestionsResponse\x12\x91\x01\n" +
+	"$UpdatePlanAdjustmentSuggestionStatus\x123.client.UpdatePlanAdjustmentSuggestionStatusRequest\x1a4.client.UpdatePlanAdjustmentSuggestionStatusResponse\x12|\n" +
+	"\x1dApplyPlanAdjustmentSuggestion\x12,.client.ApplyPlanAdjustmentSuggestionRequest\x1a-.client.ApplyPlanAdjustmentSuggestionResponse\x12y\n" +
+	"\x1cGeneratePersonalizedCoaching\x12+.client.GeneratePersonalizedCoachingRequest\x1a,.client.GeneratePersonalizedCoachingResponseB\n" +
 	"Z\b./clientb\x06proto3"
 
 var (
@@ -8395,172 +10776,208 @@ func file_services_microservices_client_api_v1_client_proto_rawDescGZIP() []byte
 	return file_services_microservices_client_api_v1_client_proto_rawDescData
 }
 
-var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 145)
+var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 181)
 var file_services_microservices_client_api_v1_client_proto_goTypes = []any{
-	(*ActivityItem)(nil),                  // 0: client.ActivityItem
-	(*GetActivityFeedRequest)(nil),        // 1: client.GetActivityFeedRequest
-	(*GetActivityFeedResponse)(nil),       // 2: client.GetActivityFeedResponse
-	(*LogActivityRequest)(nil),            // 3: client.LogActivityRequest
-	(*LogActivityResponse)(nil),           // 4: client.LogActivityResponse
-	(*GetActivityStatsRequest)(nil),       // 5: client.GetActivityStatsRequest
-	(*GetActivityStatsResponse)(nil),      // 6: client.GetActivityStatsResponse
-	(*GetStreaksRequest)(nil),             // 7: client.GetStreaksRequest
-	(*GetStreaksResponse)(nil),            // 8: client.GetStreaksResponse
-	(*GetAchievementsRequest)(nil),        // 9: client.GetAchievementsRequest
-	(*Achievement)(nil),                   // 10: client.Achievement
-	(*GetAchievementsResponse)(nil),       // 11: client.GetAchievementsResponse
-	(*GetActivityCalendarRequest)(nil),    // 12: client.GetActivityCalendarRequest
-	(*CalendarDay)(nil),                   // 13: client.CalendarDay
-	(*GetActivityCalendarResponse)(nil),   // 14: client.GetActivityCalendarResponse
-	(*ReportItem)(nil),                    // 15: client.ReportItem
-	(*SubmitReportRequest)(nil),           // 16: client.SubmitReportRequest
-	(*SubmitReportResponse)(nil),          // 17: client.SubmitReportResponse
-	(*GetReportRequest)(nil),              // 18: client.GetReportRequest
-	(*GetReportResponse)(nil),             // 19: client.GetReportResponse
-	(*ListReportsRequest)(nil),            // 20: client.ListReportsRequest
-	(*ListReportsResponse)(nil),           // 21: client.ListReportsResponse
-	(*UpdateReportRequest)(nil),           // 22: client.UpdateReportRequest
-	(*UpdateReportResponse)(nil),          // 23: client.UpdateReportResponse
-	(*GetReportCategoriesRequest)(nil),    // 24: client.GetReportCategoriesRequest
-	(*ReportCategory)(nil),                // 25: client.ReportCategory
-	(*GetReportCategoriesResponse)(nil),   // 26: client.GetReportCategoriesResponse
-	(*UploadAttachmentRequest)(nil),       // 27: client.UploadAttachmentRequest
-	(*UploadAttachmentResponse)(nil),      // 28: client.UploadAttachmentResponse
-	(*GetReportStatusRequest)(nil),        // 29: client.GetReportStatusRequest
-	(*GetReportStatusResponse)(nil),       // 30: client.GetReportStatusResponse
-	(*CloseReportRequest)(nil),            // 31: client.CloseReportRequest
-	(*CloseReportResponse)(nil),           // 32: client.CloseReportResponse
-	(*AddReportCommentRequest)(nil),       // 33: client.AddReportCommentRequest
-	(*AddReportCommentResponse)(nil),      // 34: client.AddReportCommentResponse
-	(*ReportComment)(nil),                 // 35: client.ReportComment
-	(*GetReportCommentsRequest)(nil),      // 36: client.GetReportCommentsRequest
-	(*GetReportCommentsResponse)(nil),     // 37: client.GetReportCommentsResponse
-	(*SavedItem)(nil),                     // 38: client.SavedItem
-	(*Collection)(nil),                    // 39: client.Collection
-	(*SaveItemRequest)(nil),               // 40: client.SaveItemRequest
-	(*SaveItemResponse)(nil),              // 41: client.SaveItemResponse
-	(*RemoveSavedRequest)(nil),            // 42: client.RemoveSavedRequest
-	(*RemoveSavedResponse)(nil),           // 43: client.RemoveSavedResponse
-	(*ListSavedRequest)(nil),              // 44: client.ListSavedRequest
-	(*ListSavedResponse)(nil),             // 45: client.ListSavedResponse
-	(*GetSavedItemRequest)(nil),           // 46: client.GetSavedItemRequest
-	(*GetSavedItemResponse)(nil),          // 47: client.GetSavedItemResponse
-	(*CreateCollectionRequest)(nil),       // 48: client.CreateCollectionRequest
-	(*CreateCollectionResponse)(nil),      // 49: client.CreateCollectionResponse
-	(*UpdateCollectionRequest)(nil),       // 50: client.UpdateCollectionRequest
-	(*UpdateCollectionResponse)(nil),      // 51: client.UpdateCollectionResponse
-	(*DeleteCollectionRequest)(nil),       // 52: client.DeleteCollectionRequest
-	(*DeleteCollectionResponse)(nil),      // 53: client.DeleteCollectionResponse
-	(*ListCollectionsRequest)(nil),        // 54: client.ListCollectionsRequest
-	(*ListCollectionsResponse)(nil),       // 55: client.ListCollectionsResponse
-	(*GetCollectionRequest)(nil),          // 56: client.GetCollectionRequest
-	(*GetCollectionResponse)(nil),         // 57: client.GetCollectionResponse
-	(*MoveToCollectionRequest)(nil),       // 58: client.MoveToCollectionRequest
-	(*MoveToCollectionResponse)(nil),      // 59: client.MoveToCollectionResponse
-	(*GetSavedStatsRequest)(nil),          // 60: client.GetSavedStatsRequest
-	(*GetSavedStatsResponse)(nil),         // 61: client.GetSavedStatsResponse
-	(*ExportSavedRequest)(nil),            // 62: client.ExportSavedRequest
-	(*ExportSavedResponse)(nil),           // 63: client.ExportSavedResponse
-	(*UserSettings)(nil),                  // 64: client.UserSettings
-	(*GetSettingsRequest)(nil),            // 65: client.GetSettingsRequest
-	(*GetSettingsResponse)(nil),           // 66: client.GetSettingsResponse
-	(*UpdateSettingsRequest)(nil),         // 67: client.UpdateSettingsRequest
-	(*UpdateSettingsResponse)(nil),        // 68: client.UpdateSettingsResponse
-	(*GetPreferencesRequest)(nil),         // 69: client.GetPreferencesRequest
-	(*Preference)(nil),                    // 70: client.Preference
-	(*GetPreferencesResponse)(nil),        // 71: client.GetPreferencesResponse
-	(*UpdatePreferencesRequest)(nil),      // 72: client.UpdatePreferencesRequest
-	(*UpdatePreferencesResponse)(nil),     // 73: client.UpdatePreferencesResponse
-	(*UploadAvatarRequest)(nil),           // 74: client.UploadAvatarRequest
-	(*UploadAvatarResponse)(nil),          // 75: client.UploadAvatarResponse
-	(*DeleteAccountRequest)(nil),          // 76: client.DeleteAccountRequest
-	(*DeleteAccountResponse)(nil),         // 77: client.DeleteAccountResponse
-	(*ExportDataRequest)(nil),             // 78: client.ExportDataRequest
-	(*ExportDataResponse)(nil),            // 79: client.ExportDataResponse
-	(*PrivacySettings)(nil),               // 80: client.PrivacySettings
-	(*GetPrivacySettingsRequest)(nil),     // 81: client.GetPrivacySettingsRequest
-	(*GetPrivacySettingsResponse)(nil),    // 82: client.GetPrivacySettingsResponse
-	(*UpdatePrivacySettingsRequest)(nil),  // 83: client.UpdatePrivacySettingsRequest
-	(*UpdatePrivacySettingsResponse)(nil), // 84: client.UpdatePrivacySettingsResponse
-	(*ArticleCategory)(nil),               // 85: client.ArticleCategory
-	(*Article)(nil),                       // 86: client.Article
-	(*ListArticlesRequest)(nil),           // 87: client.ListArticlesRequest
-	(*ListArticlesResponse)(nil),          // 88: client.ListArticlesResponse
-	(*GetArticleRequest)(nil),             // 89: client.GetArticleRequest
-	(*GetArticleResponse)(nil),            // 90: client.GetArticleResponse
-	(*LikeArticleRequest)(nil),            // 91: client.LikeArticleRequest
-	(*LikeArticleResponse)(nil),           // 92: client.LikeArticleResponse
-	(*ShareArticleRequest)(nil),           // 93: client.ShareArticleRequest
-	(*ShareArticleResponse)(nil),          // 94: client.ShareArticleResponse
-	(*GetAuthorArticlesRequest)(nil),      // 95: client.GetAuthorArticlesRequest
-	(*GetAuthorArticlesResponse)(nil),     // 96: client.GetAuthorArticlesResponse
-	(*Habit)(nil),                         // 97: client.Habit
-	(*ListHabitsRequest)(nil),             // 98: client.ListHabitsRequest
-	(*ListHabitsResponse)(nil),            // 99: client.ListHabitsResponse
-	(*GetHabitRequest)(nil),               // 100: client.GetHabitRequest
-	(*GetHabitResponse)(nil),              // 101: client.GetHabitResponse
-	(*CreateHabitRequest)(nil),            // 102: client.CreateHabitRequest
-	(*CreateHabitResponse)(nil),           // 103: client.CreateHabitResponse
-	(*UpdateHabitRequest)(nil),            // 104: client.UpdateHabitRequest
-	(*UpdateHabitResponse)(nil),           // 105: client.UpdateHabitResponse
-	(*DeleteHabitRequest)(nil),            // 106: client.DeleteHabitRequest
-	(*DeleteHabitResponse)(nil),           // 107: client.DeleteHabitResponse
-	(*ToggleHabitRequest)(nil),            // 108: client.ToggleHabitRequest
-	(*ToggleHabitResponse)(nil),           // 109: client.ToggleHabitResponse
-	(*ResetTodayHabitsRequest)(nil),       // 110: client.ResetTodayHabitsRequest
-	(*ResetTodayHabitsResponse)(nil),      // 111: client.ResetTodayHabitsResponse
-	(*Goal)(nil),                          // 112: client.Goal
-	(*ListGoalsRequest)(nil),              // 113: client.ListGoalsRequest
-	(*ListGoalsResponse)(nil),             // 114: client.ListGoalsResponse
-	(*GetGoalRequest)(nil),                // 115: client.GetGoalRequest
-	(*GetGoalResponse)(nil),               // 116: client.GetGoalResponse
-	(*CreateGoalRequest)(nil),             // 117: client.CreateGoalRequest
-	(*CreateGoalResponse)(nil),            // 118: client.CreateGoalResponse
-	(*UpdateGoalRequest)(nil),             // 119: client.UpdateGoalRequest
-	(*UpdateGoalResponse)(nil),            // 120: client.UpdateGoalResponse
-	(*DeleteGoalRequest)(nil),             // 121: client.DeleteGoalRequest
-	(*DeleteGoalResponse)(nil),            // 122: client.DeleteGoalResponse
-	(*ToggleGoalRequest)(nil),             // 123: client.ToggleGoalRequest
-	(*ToggleGoalResponse)(nil),            // 124: client.ToggleGoalResponse
-	(*UpdateGoalProgressRequest)(nil),     // 125: client.UpdateGoalProgressRequest
-	(*UpdateGoalProgressResponse)(nil),    // 126: client.UpdateGoalProgressResponse
-	(*Category)(nil),                      // 127: client.Category
-	(*ListCategoriesRequest)(nil),         // 128: client.ListCategoriesRequest
-	(*ListCategoriesResponse)(nil),        // 129: client.ListCategoriesResponse
-	(*CheckIn)(nil),                       // 130: client.CheckIn
-	(*CreateCheckInRequest)(nil),          // 131: client.CreateCheckInRequest
-	(*CreateCheckInResponse)(nil),         // 132: client.CreateCheckInResponse
-	(*GetTodayCheckInsRequest)(nil),       // 133: client.GetTodayCheckInsRequest
-	(*GetTodayCheckInsResponse)(nil),      // 134: client.GetTodayCheckInsResponse
-	(*GetCheckInHistoryRequest)(nil),      // 135: client.GetCheckInHistoryRequest
-	(*GetCheckInHistoryResponse)(nil),     // 136: client.GetCheckInHistoryResponse
-	(*HasCheckedInTodayRequest)(nil),      // 137: client.HasCheckedInTodayRequest
-	(*HasCheckedInTodayResponse)(nil),     // 138: client.HasCheckedInTodayResponse
-	nil,                                   // 139: client.ActivityItem.MetadataEntry
-	nil,                                   // 140: client.LogActivityRequest.MetadataEntry
-	nil,                                   // 141: client.GetActivityStatsResponse.ActivityCountsEntry
-	nil,                                   // 142: client.SavedItem.MetadataEntry
-	nil,                                   // 143: client.SaveItemRequest.MetadataEntry
-	nil,                                   // 144: client.GetSavedStatsResponse.TypeCountsEntry
+	(*ActivityItem)(nil),                                 // 0: client.ActivityItem
+	(*GetActivityFeedRequest)(nil),                       // 1: client.GetActivityFeedRequest
+	(*GetActivityFeedResponse)(nil),                      // 2: client.GetActivityFeedResponse
+	(*LogActivityRequest)(nil),                           // 3: client.LogActivityRequest
+	(*LogActivityResponse)(nil),                          // 4: client.LogActivityResponse
+	(*GetActivityStatsRequest)(nil),                      // 5: client.GetActivityStatsRequest
+	(*GetActivityStatsResponse)(nil),                     // 6: client.GetActivityStatsResponse
+	(*GetStreaksRequest)(nil),                            // 7: client.GetStreaksRequest
+	(*GetStreaksResponse)(nil),                           // 8: client.GetStreaksResponse
+	(*GetAchievementsRequest)(nil),                       // 9: client.GetAchievementsRequest
+	(*Achievement)(nil),                                  // 10: client.Achievement
+	(*GetAchievementsResponse)(nil),                      // 11: client.GetAchievementsResponse
+	(*GetActivityCalendarRequest)(nil),                   // 12: client.GetActivityCalendarRequest
+	(*CalendarDay)(nil),                                  // 13: client.CalendarDay
+	(*GetActivityCalendarResponse)(nil),                  // 14: client.GetActivityCalendarResponse
+	(*ReportItem)(nil),                                   // 15: client.ReportItem
+	(*SubmitReportRequest)(nil),                          // 16: client.SubmitReportRequest
+	(*SubmitReportResponse)(nil),                         // 17: client.SubmitReportResponse
+	(*GetReportRequest)(nil),                             // 18: client.GetReportRequest
+	(*GetReportResponse)(nil),                            // 19: client.GetReportResponse
+	(*ListReportsRequest)(nil),                           // 20: client.ListReportsRequest
+	(*ListReportsResponse)(nil),                          // 21: client.ListReportsResponse
+	(*UpdateReportRequest)(nil),                          // 22: client.UpdateReportRequest
+	(*UpdateReportResponse)(nil),                         // 23: client.UpdateReportResponse
+	(*GetReportCategoriesRequest)(nil),                   // 24: client.GetReportCategoriesRequest
+	(*ReportCategory)(nil),                               // 25: client.ReportCategory
+	(*GetReportCategoriesResponse)(nil),                  // 26: client.GetReportCategoriesResponse
+	(*UploadAttachmentRequest)(nil),                      // 27: client.UploadAttachmentRequest
+	(*UploadAttachmentResponse)(nil),                     // 28: client.UploadAttachmentResponse
+	(*GetReportStatusRequest)(nil),                       // 29: client.GetReportStatusRequest
+	(*GetReportStatusResponse)(nil),                      // 30: client.GetReportStatusResponse
+	(*CloseReportRequest)(nil),                           // 31: client.CloseReportRequest
+	(*CloseReportResponse)(nil),                          // 32: client.CloseReportResponse
+	(*AddReportCommentRequest)(nil),                      // 33: client.AddReportCommentRequest
+	(*AddReportCommentResponse)(nil),                     // 34: client.AddReportCommentResponse
+	(*ReportComment)(nil),                                // 35: client.ReportComment
+	(*GetReportCommentsRequest)(nil),                     // 36: client.GetReportCommentsRequest
+	(*GetReportCommentsResponse)(nil),                    // 37: client.GetReportCommentsResponse
+	(*SavedItem)(nil),                                    // 38: client.SavedItem
+	(*Collection)(nil),                                   // 39: client.Collection
+	(*SaveItemRequest)(nil),                              // 40: client.SaveItemRequest
+	(*SaveItemResponse)(nil),                             // 41: client.SaveItemResponse
+	(*RemoveSavedRequest)(nil),                           // 42: client.RemoveSavedRequest
+	(*RemoveSavedResponse)(nil),                          // 43: client.RemoveSavedResponse
+	(*ListSavedRequest)(nil),                             // 44: client.ListSavedRequest
+	(*ListSavedResponse)(nil),                            // 45: client.ListSavedResponse
+	(*GetSavedItemRequest)(nil),                          // 46: client.GetSavedItemRequest
+	(*GetSavedItemResponse)(nil),                         // 47: client.GetSavedItemResponse
+	(*CreateCollectionRequest)(nil),                      // 48: client.CreateCollectionRequest
+	(*CreateCollectionResponse)(nil),                     // 49: client.CreateCollectionResponse
+	(*UpdateCollectionRequest)(nil),                      // 50: client.UpdateCollectionRequest
+	(*UpdateCollectionResponse)(nil),                     // 51: client.UpdateCollectionResponse
+	(*DeleteCollectionRequest)(nil),                      // 52: client.DeleteCollectionRequest
+	(*DeleteCollectionResponse)(nil),                     // 53: client.DeleteCollectionResponse
+	(*ListCollectionsRequest)(nil),                       // 54: client.ListCollectionsRequest
+	(*ListCollectionsResponse)(nil),                      // 55: client.ListCollectionsResponse
+	(*GetCollectionRequest)(nil),                         // 56: client.GetCollectionRequest
+	(*GetCollectionResponse)(nil),                        // 57: client.GetCollectionResponse
+	(*MoveToCollectionRequest)(nil),                      // 58: client.MoveToCollectionRequest
+	(*MoveToCollectionResponse)(nil),                     // 59: client.MoveToCollectionResponse
+	(*GetSavedStatsRequest)(nil),                         // 60: client.GetSavedStatsRequest
+	(*GetSavedStatsResponse)(nil),                        // 61: client.GetSavedStatsResponse
+	(*ExportSavedRequest)(nil),                           // 62: client.ExportSavedRequest
+	(*ExportSavedResponse)(nil),                          // 63: client.ExportSavedResponse
+	(*UserSettings)(nil),                                 // 64: client.UserSettings
+	(*GetSettingsRequest)(nil),                           // 65: client.GetSettingsRequest
+	(*GetSettingsResponse)(nil),                          // 66: client.GetSettingsResponse
+	(*UpdateSettingsRequest)(nil),                        // 67: client.UpdateSettingsRequest
+	(*UpdateSettingsResponse)(nil),                       // 68: client.UpdateSettingsResponse
+	(*GetPreferencesRequest)(nil),                        // 69: client.GetPreferencesRequest
+	(*Preference)(nil),                                   // 70: client.Preference
+	(*GetPreferencesResponse)(nil),                       // 71: client.GetPreferencesResponse
+	(*UpdatePreferencesRequest)(nil),                     // 72: client.UpdatePreferencesRequest
+	(*UpdatePreferencesResponse)(nil),                    // 73: client.UpdatePreferencesResponse
+	(*UploadAvatarRequest)(nil),                          // 74: client.UploadAvatarRequest
+	(*UploadAvatarResponse)(nil),                         // 75: client.UploadAvatarResponse
+	(*DeleteAccountRequest)(nil),                         // 76: client.DeleteAccountRequest
+	(*DeleteAccountResponse)(nil),                        // 77: client.DeleteAccountResponse
+	(*ExportDataRequest)(nil),                            // 78: client.ExportDataRequest
+	(*ExportDataResponse)(nil),                           // 79: client.ExportDataResponse
+	(*PrivacySettings)(nil),                              // 80: client.PrivacySettings
+	(*GetPrivacySettingsRequest)(nil),                    // 81: client.GetPrivacySettingsRequest
+	(*GetPrivacySettingsResponse)(nil),                   // 82: client.GetPrivacySettingsResponse
+	(*UpdatePrivacySettingsRequest)(nil),                 // 83: client.UpdatePrivacySettingsRequest
+	(*UpdatePrivacySettingsResponse)(nil),                // 84: client.UpdatePrivacySettingsResponse
+	(*ArticleCategory)(nil),                              // 85: client.ArticleCategory
+	(*Article)(nil),                                      // 86: client.Article
+	(*ListArticlesRequest)(nil),                          // 87: client.ListArticlesRequest
+	(*ListArticlesResponse)(nil),                         // 88: client.ListArticlesResponse
+	(*GetArticleRequest)(nil),                            // 89: client.GetArticleRequest
+	(*GetArticleResponse)(nil),                           // 90: client.GetArticleResponse
+	(*LikeArticleRequest)(nil),                           // 91: client.LikeArticleRequest
+	(*LikeArticleResponse)(nil),                          // 92: client.LikeArticleResponse
+	(*ShareArticleRequest)(nil),                          // 93: client.ShareArticleRequest
+	(*ShareArticleResponse)(nil),                         // 94: client.ShareArticleResponse
+	(*GetAuthorArticlesRequest)(nil),                     // 95: client.GetAuthorArticlesRequest
+	(*GetAuthorArticlesResponse)(nil),                    // 96: client.GetAuthorArticlesResponse
+	(*Habit)(nil),                                        // 97: client.Habit
+	(*ListHabitsRequest)(nil),                            // 98: client.ListHabitsRequest
+	(*ListHabitsResponse)(nil),                           // 99: client.ListHabitsResponse
+	(*GetHabitRequest)(nil),                              // 100: client.GetHabitRequest
+	(*GetHabitResponse)(nil),                             // 101: client.GetHabitResponse
+	(*CreateHabitRequest)(nil),                           // 102: client.CreateHabitRequest
+	(*CreateHabitResponse)(nil),                          // 103: client.CreateHabitResponse
+	(*UpdateHabitRequest)(nil),                           // 104: client.UpdateHabitRequest
+	(*UpdateHabitResponse)(nil),                          // 105: client.UpdateHabitResponse
+	(*DeleteHabitRequest)(nil),                           // 106: client.DeleteHabitRequest
+	(*DeleteHabitResponse)(nil),                          // 107: client.DeleteHabitResponse
+	(*ToggleHabitRequest)(nil),                           // 108: client.ToggleHabitRequest
+	(*ToggleHabitResponse)(nil),                          // 109: client.ToggleHabitResponse
+	(*ResetTodayHabitsRequest)(nil),                      // 110: client.ResetTodayHabitsRequest
+	(*ResetTodayHabitsResponse)(nil),                     // 111: client.ResetTodayHabitsResponse
+	(*Goal)(nil),                                         // 112: client.Goal
+	(*ListGoalsRequest)(nil),                             // 113: client.ListGoalsRequest
+	(*ListGoalsResponse)(nil),                            // 114: client.ListGoalsResponse
+	(*GetGoalRequest)(nil),                               // 115: client.GetGoalRequest
+	(*GetGoalResponse)(nil),                              // 116: client.GetGoalResponse
+	(*CreateGoalRequest)(nil),                            // 117: client.CreateGoalRequest
+	(*CreateGoalResponse)(nil),                           // 118: client.CreateGoalResponse
+	(*UpdateGoalRequest)(nil),                            // 119: client.UpdateGoalRequest
+	(*UpdateGoalResponse)(nil),                           // 120: client.UpdateGoalResponse
+	(*DeleteGoalRequest)(nil),                            // 121: client.DeleteGoalRequest
+	(*DeleteGoalResponse)(nil),                           // 122: client.DeleteGoalResponse
+	(*ToggleGoalRequest)(nil),                            // 123: client.ToggleGoalRequest
+	(*ToggleGoalResponse)(nil),                           // 124: client.ToggleGoalResponse
+	(*UpdateGoalProgressRequest)(nil),                    // 125: client.UpdateGoalProgressRequest
+	(*UpdateGoalProgressResponse)(nil),                   // 126: client.UpdateGoalProgressResponse
+	(*Category)(nil),                                     // 127: client.Category
+	(*ListCategoriesRequest)(nil),                        // 128: client.ListCategoriesRequest
+	(*ListCategoriesResponse)(nil),                       // 129: client.ListCategoriesResponse
+	(*CheckIn)(nil),                                      // 130: client.CheckIn
+	(*CreateCheckInRequest)(nil),                         // 131: client.CreateCheckInRequest
+	(*CreateCheckInResponse)(nil),                        // 132: client.CreateCheckInResponse
+	(*GetTodayCheckInsRequest)(nil),                      // 133: client.GetTodayCheckInsRequest
+	(*GetTodayCheckInsResponse)(nil),                     // 134: client.GetTodayCheckInsResponse
+	(*GetCheckInHistoryRequest)(nil),                     // 135: client.GetCheckInHistoryRequest
+	(*GetCheckInHistoryResponse)(nil),                    // 136: client.GetCheckInHistoryResponse
+	(*HasCheckedInTodayRequest)(nil),                     // 137: client.HasCheckedInTodayRequest
+	(*HasCheckedInTodayResponse)(nil),                    // 138: client.HasCheckedInTodayResponse
+	(*WeeklyReviewHabitBreakdown)(nil),                   // 139: client.WeeklyReviewHabitBreakdown
+	(*WeeklyReviewAdjustment)(nil),                       // 140: client.WeeklyReviewAdjustment
+	(*WeeklyReviewNextWeekPlan)(nil),                     // 141: client.WeeklyReviewNextWeekPlan
+	(*WeeklyReview)(nil),                                 // 142: client.WeeklyReview
+	(*GenerateWeeklyReviewRequest)(nil),                  // 143: client.GenerateWeeklyReviewRequest
+	(*GenerateWeeklyReviewResponse)(nil),                 // 144: client.GenerateWeeklyReviewResponse
+	(*GetWeeklyReviewRequest)(nil),                       // 145: client.GetWeeklyReviewRequest
+	(*GetWeeklyReviewResponse)(nil),                      // 146: client.GetWeeklyReviewResponse
+	(*GetCurrentWeeklyReviewRequest)(nil),                // 147: client.GetCurrentWeeklyReviewRequest
+	(*GetCurrentWeeklyReviewResponse)(nil),               // 148: client.GetCurrentWeeklyReviewResponse
+	(*ListWeeklyReviewsRequest)(nil),                     // 149: client.ListWeeklyReviewsRequest
+	(*ListWeeklyReviewsResponse)(nil),                    // 150: client.ListWeeklyReviewsResponse
+	(*CoachingProfile)(nil),                              // 151: client.CoachingProfile
+	(*PersonalizationContext)(nil),                       // 152: client.PersonalizationContext
+	(*PlanAdjustmentSuggestion)(nil),                     // 153: client.PlanAdjustmentSuggestion
+	(*GetCoachingProfileRequest)(nil),                    // 154: client.GetCoachingProfileRequest
+	(*GetCoachingProfileResponse)(nil),                   // 155: client.GetCoachingProfileResponse
+	(*UpsertCoachingProfileRequest)(nil),                 // 156: client.UpsertCoachingProfileRequest
+	(*UpsertCoachingProfileResponse)(nil),                // 157: client.UpsertCoachingProfileResponse
+	(*UpdateCoachingProfilePreferencesRequest)(nil),      // 158: client.UpdateCoachingProfilePreferencesRequest
+	(*UpdateCoachingProfilePreferencesResponse)(nil),     // 159: client.UpdateCoachingProfilePreferencesResponse
+	(*GetPersonalizationContextRequest)(nil),             // 160: client.GetPersonalizationContextRequest
+	(*GetPersonalizationContextResponse)(nil),            // 161: client.GetPersonalizationContextResponse
+	(*CreatePlanAdjustmentSuggestionRequest)(nil),        // 162: client.CreatePlanAdjustmentSuggestionRequest
+	(*CreatePlanAdjustmentSuggestionResponse)(nil),       // 163: client.CreatePlanAdjustmentSuggestionResponse
+	(*ListPendingPlanAdjustmentSuggestionsRequest)(nil),  // 164: client.ListPendingPlanAdjustmentSuggestionsRequest
+	(*ListPendingPlanAdjustmentSuggestionsResponse)(nil), // 165: client.ListPendingPlanAdjustmentSuggestionsResponse
+	(*UpdatePlanAdjustmentSuggestionStatusRequest)(nil),  // 166: client.UpdatePlanAdjustmentSuggestionStatusRequest
+	(*UpdatePlanAdjustmentSuggestionStatusResponse)(nil), // 167: client.UpdatePlanAdjustmentSuggestionStatusResponse
+	(*ApplyPlanAdjustmentSuggestionRequest)(nil),         // 168: client.ApplyPlanAdjustmentSuggestionRequest
+	(*ApplyPlanAdjustmentSuggestionResponse)(nil),        // 169: client.ApplyPlanAdjustmentSuggestionResponse
+	(*GeneratePersonalizedCoachingRequest)(nil),          // 170: client.GeneratePersonalizedCoachingRequest
+	(*GeneratePersonalizedCoachingResponse)(nil),         // 171: client.GeneratePersonalizedCoachingResponse
+	nil, // 172: client.ActivityItem.MetadataEntry
+	nil, // 173: client.LogActivityRequest.MetadataEntry
+	nil, // 174: client.GetActivityStatsResponse.ActivityCountsEntry
+	nil, // 175: client.SavedItem.MetadataEntry
+	nil, // 176: client.SaveItemRequest.MetadataEntry
+	nil, // 177: client.GetSavedStatsResponse.TypeCountsEntry
+	nil, // 178: client.WeeklyReview.MoodSummaryEntry
+	nil, // 179: client.WeeklyReview.EnergySummaryEntry
+	nil, // 180: client.PersonalizationContext.PatternInsightsEntry
 }
 var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
-	139, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
+	172, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
 	0,   // 1: client.GetActivityFeedResponse.activities:type_name -> client.ActivityItem
-	140, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
-	141, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
+	173, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
+	174, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
 	10,  // 4: client.GetAchievementsResponse.achievements:type_name -> client.Achievement
 	13,  // 5: client.GetActivityCalendarResponse.days:type_name -> client.CalendarDay
 	15,  // 6: client.GetReportResponse.report:type_name -> client.ReportItem
 	15,  // 7: client.ListReportsResponse.reports:type_name -> client.ReportItem
 	25,  // 8: client.GetReportCategoriesResponse.categories:type_name -> client.ReportCategory
 	35,  // 9: client.GetReportCommentsResponse.comments:type_name -> client.ReportComment
-	142, // 10: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
-	143, // 11: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
+	175, // 10: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
+	176, // 11: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
 	38,  // 12: client.ListSavedResponse.items:type_name -> client.SavedItem
 	38,  // 13: client.GetSavedItemResponse.item:type_name -> client.SavedItem
 	39,  // 14: client.ListCollectionsResponse.collections:type_name -> client.Collection
 	39,  // 15: client.GetCollectionResponse.collection:type_name -> client.Collection
-	144, // 16: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
+	177, // 16: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
 	64,  // 17: client.GetSettingsResponse.settings:type_name -> client.UserSettings
 	64,  // 18: client.UpdateSettingsRequest.settings:type_name -> client.UserSettings
 	70,  // 19: client.GetPreferencesResponse.preferences:type_name -> client.Preference
@@ -8587,133 +11004,184 @@ var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
 	97,  // 40: client.CreateCheckInResponse.habit:type_name -> client.Habit
 	130, // 41: client.GetTodayCheckInsResponse.checkIns:type_name -> client.CheckIn
 	130, // 42: client.GetCheckInHistoryResponse.checkIns:type_name -> client.CheckIn
-	1,   // 43: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
-	3,   // 44: client.Activity.LogActivity:input_type -> client.LogActivityRequest
-	5,   // 45: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
-	7,   // 46: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
-	9,   // 47: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
-	12,  // 48: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
-	16,  // 49: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
-	18,  // 50: client.Report.GetReport:input_type -> client.GetReportRequest
-	20,  // 51: client.Report.ListReports:input_type -> client.ListReportsRequest
-	22,  // 52: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
-	24,  // 53: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
-	27,  // 54: client.Report.UploadAttachment:input_type -> client.UploadAttachmentRequest
-	29,  // 55: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
-	31,  // 56: client.Report.CloseReport:input_type -> client.CloseReportRequest
-	33,  // 57: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
-	36,  // 58: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
-	40,  // 59: client.Saved.SaveItem:input_type -> client.SaveItemRequest
-	42,  // 60: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
-	44,  // 61: client.Saved.ListSaved:input_type -> client.ListSavedRequest
-	46,  // 62: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
-	48,  // 63: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
-	50,  // 64: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
-	52,  // 65: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
-	54,  // 66: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
-	56,  // 67: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
-	58,  // 68: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
-	60,  // 69: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
-	62,  // 70: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
-	65,  // 71: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
-	67,  // 72: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
-	69,  // 73: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
-	72,  // 74: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
-	74,  // 75: client.Settings.UploadAvatar:input_type -> client.UploadAvatarRequest
-	76,  // 76: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
-	78,  // 77: client.Settings.ExportData:input_type -> client.ExportDataRequest
-	81,  // 78: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
-	83,  // 79: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
-	87,  // 80: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
-	89,  // 81: client.Articles.GetArticle:input_type -> client.GetArticleRequest
-	91,  // 82: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
-	93,  // 83: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
-	95,  // 84: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
-	98,  // 85: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
-	100, // 86: client.Habits.GetHabit:input_type -> client.GetHabitRequest
-	102, // 87: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
-	104, // 88: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
-	106, // 89: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
-	108, // 90: client.Habits.ToggleHabit:input_type -> client.ToggleHabitRequest
-	110, // 91: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
-	113, // 92: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
-	115, // 93: client.Goals.GetGoal:input_type -> client.GetGoalRequest
-	117, // 94: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
-	119, // 95: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
-	121, // 96: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
-	123, // 97: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
-	125, // 98: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
-	128, // 99: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
-	131, // 100: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
-	133, // 101: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
-	135, // 102: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
-	137, // 103: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
-	2,   // 104: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
-	4,   // 105: client.Activity.LogActivity:output_type -> client.LogActivityResponse
-	6,   // 106: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
-	8,   // 107: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
-	11,  // 108: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
-	14,  // 109: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
-	17,  // 110: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
-	19,  // 111: client.Report.GetReport:output_type -> client.GetReportResponse
-	21,  // 112: client.Report.ListReports:output_type -> client.ListReportsResponse
-	23,  // 113: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
-	26,  // 114: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
-	28,  // 115: client.Report.UploadAttachment:output_type -> client.UploadAttachmentResponse
-	30,  // 116: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
-	32,  // 117: client.Report.CloseReport:output_type -> client.CloseReportResponse
-	34,  // 118: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
-	37,  // 119: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
-	41,  // 120: client.Saved.SaveItem:output_type -> client.SaveItemResponse
-	43,  // 121: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
-	45,  // 122: client.Saved.ListSaved:output_type -> client.ListSavedResponse
-	47,  // 123: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
-	49,  // 124: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
-	51,  // 125: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
-	53,  // 126: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
-	55,  // 127: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
-	57,  // 128: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
-	59,  // 129: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
-	61,  // 130: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
-	63,  // 131: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
-	66,  // 132: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
-	68,  // 133: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
-	71,  // 134: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
-	73,  // 135: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
-	75,  // 136: client.Settings.UploadAvatar:output_type -> client.UploadAvatarResponse
-	77,  // 137: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
-	79,  // 138: client.Settings.ExportData:output_type -> client.ExportDataResponse
-	82,  // 139: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
-	84,  // 140: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
-	88,  // 141: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
-	90,  // 142: client.Articles.GetArticle:output_type -> client.GetArticleResponse
-	92,  // 143: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
-	94,  // 144: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
-	96,  // 145: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
-	99,  // 146: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
-	101, // 147: client.Habits.GetHabit:output_type -> client.GetHabitResponse
-	103, // 148: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
-	105, // 149: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
-	107, // 150: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
-	109, // 151: client.Habits.ToggleHabit:output_type -> client.ToggleHabitResponse
-	111, // 152: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
-	114, // 153: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
-	116, // 154: client.Goals.GetGoal:output_type -> client.GetGoalResponse
-	118, // 155: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
-	120, // 156: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
-	122, // 157: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
-	124, // 158: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
-	126, // 159: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
-	129, // 160: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
-	132, // 161: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
-	134, // 162: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
-	136, // 163: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
-	138, // 164: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
-	104, // [104:165] is the sub-list for method output_type
-	43,  // [43:104] is the sub-list for method input_type
-	43,  // [43:43] is the sub-list for extension type_name
-	43,  // [43:43] is the sub-list for extension extendee
-	0,   // [0:43] is the sub-list for field type_name
+	178, // 43: client.WeeklyReview.moodSummary:type_name -> client.WeeklyReview.MoodSummaryEntry
+	179, // 44: client.WeeklyReview.energySummary:type_name -> client.WeeklyReview.EnergySummaryEntry
+	139, // 45: client.WeeklyReview.habitBreakdown:type_name -> client.WeeklyReviewHabitBreakdown
+	140, // 46: client.WeeklyReview.suggestedAdjustments:type_name -> client.WeeklyReviewAdjustment
+	141, // 47: client.WeeklyReview.nextWeekPlan:type_name -> client.WeeklyReviewNextWeekPlan
+	142, // 48: client.GenerateWeeklyReviewResponse.review:type_name -> client.WeeklyReview
+	142, // 49: client.GetWeeklyReviewResponse.review:type_name -> client.WeeklyReview
+	142, // 50: client.GetCurrentWeeklyReviewResponse.review:type_name -> client.WeeklyReview
+	142, // 51: client.ListWeeklyReviewsResponse.reviews:type_name -> client.WeeklyReview
+	151, // 52: client.PersonalizationContext.profile:type_name -> client.CoachingProfile
+	112, // 53: client.PersonalizationContext.activeGoals:type_name -> client.Goal
+	97,  // 54: client.PersonalizationContext.activeHabits:type_name -> client.Habit
+	130, // 55: client.PersonalizationContext.recentCheckIns:type_name -> client.CheckIn
+	142, // 56: client.PersonalizationContext.latestWeeklyReview:type_name -> client.WeeklyReview
+	153, // 57: client.PersonalizationContext.pendingSuggestions:type_name -> client.PlanAdjustmentSuggestion
+	180, // 58: client.PersonalizationContext.patternInsights:type_name -> client.PersonalizationContext.PatternInsightsEntry
+	151, // 59: client.GetCoachingProfileResponse.profile:type_name -> client.CoachingProfile
+	151, // 60: client.UpsertCoachingProfileResponse.profile:type_name -> client.CoachingProfile
+	151, // 61: client.UpdateCoachingProfilePreferencesResponse.profile:type_name -> client.CoachingProfile
+	152, // 62: client.GetPersonalizationContextResponse.context:type_name -> client.PersonalizationContext
+	153, // 63: client.CreatePlanAdjustmentSuggestionResponse.suggestion:type_name -> client.PlanAdjustmentSuggestion
+	153, // 64: client.ListPendingPlanAdjustmentSuggestionsResponse.suggestions:type_name -> client.PlanAdjustmentSuggestion
+	153, // 65: client.UpdatePlanAdjustmentSuggestionStatusResponse.suggestion:type_name -> client.PlanAdjustmentSuggestion
+	153, // 66: client.ApplyPlanAdjustmentSuggestionResponse.suggestion:type_name -> client.PlanAdjustmentSuggestion
+	152, // 67: client.GeneratePersonalizedCoachingResponse.context:type_name -> client.PersonalizationContext
+	1,   // 68: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
+	3,   // 69: client.Activity.LogActivity:input_type -> client.LogActivityRequest
+	5,   // 70: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
+	7,   // 71: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
+	9,   // 72: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
+	12,  // 73: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
+	16,  // 74: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
+	18,  // 75: client.Report.GetReport:input_type -> client.GetReportRequest
+	20,  // 76: client.Report.ListReports:input_type -> client.ListReportsRequest
+	22,  // 77: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
+	24,  // 78: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
+	27,  // 79: client.Report.UploadAttachment:input_type -> client.UploadAttachmentRequest
+	29,  // 80: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
+	31,  // 81: client.Report.CloseReport:input_type -> client.CloseReportRequest
+	33,  // 82: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
+	36,  // 83: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
+	40,  // 84: client.Saved.SaveItem:input_type -> client.SaveItemRequest
+	42,  // 85: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
+	44,  // 86: client.Saved.ListSaved:input_type -> client.ListSavedRequest
+	46,  // 87: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
+	48,  // 88: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
+	50,  // 89: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
+	52,  // 90: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
+	54,  // 91: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
+	56,  // 92: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
+	58,  // 93: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
+	60,  // 94: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
+	62,  // 95: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
+	65,  // 96: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
+	67,  // 97: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
+	69,  // 98: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
+	72,  // 99: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
+	74,  // 100: client.Settings.UploadAvatar:input_type -> client.UploadAvatarRequest
+	76,  // 101: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
+	78,  // 102: client.Settings.ExportData:input_type -> client.ExportDataRequest
+	81,  // 103: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
+	83,  // 104: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
+	87,  // 105: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
+	89,  // 106: client.Articles.GetArticle:input_type -> client.GetArticleRequest
+	91,  // 107: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
+	93,  // 108: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
+	95,  // 109: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
+	98,  // 110: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
+	100, // 111: client.Habits.GetHabit:input_type -> client.GetHabitRequest
+	102, // 112: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
+	104, // 113: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
+	106, // 114: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
+	108, // 115: client.Habits.ToggleHabit:input_type -> client.ToggleHabitRequest
+	110, // 116: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
+	113, // 117: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
+	115, // 118: client.Goals.GetGoal:input_type -> client.GetGoalRequest
+	117, // 119: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
+	119, // 120: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
+	121, // 121: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
+	123, // 122: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
+	125, // 123: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
+	128, // 124: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
+	131, // 125: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
+	133, // 126: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
+	135, // 127: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
+	137, // 128: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
+	143, // 129: client.WeeklyReviewService.GenerateWeeklyReview:input_type -> client.GenerateWeeklyReviewRequest
+	145, // 130: client.WeeklyReviewService.GetWeeklyReview:input_type -> client.GetWeeklyReviewRequest
+	147, // 131: client.WeeklyReviewService.GetCurrentWeeklyReview:input_type -> client.GetCurrentWeeklyReviewRequest
+	149, // 132: client.WeeklyReviewService.ListWeeklyReviews:input_type -> client.ListWeeklyReviewsRequest
+	154, // 133: client.PersonalizationService.GetCoachingProfile:input_type -> client.GetCoachingProfileRequest
+	156, // 134: client.PersonalizationService.UpsertCoachingProfile:input_type -> client.UpsertCoachingProfileRequest
+	158, // 135: client.PersonalizationService.UpdateCoachingProfilePreferences:input_type -> client.UpdateCoachingProfilePreferencesRequest
+	160, // 136: client.PersonalizationService.GetPersonalizationContext:input_type -> client.GetPersonalizationContextRequest
+	162, // 137: client.PersonalizationService.CreatePlanAdjustmentSuggestion:input_type -> client.CreatePlanAdjustmentSuggestionRequest
+	164, // 138: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:input_type -> client.ListPendingPlanAdjustmentSuggestionsRequest
+	166, // 139: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:input_type -> client.UpdatePlanAdjustmentSuggestionStatusRequest
+	168, // 140: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:input_type -> client.ApplyPlanAdjustmentSuggestionRequest
+	170, // 141: client.PersonalizationService.GeneratePersonalizedCoaching:input_type -> client.GeneratePersonalizedCoachingRequest
+	2,   // 142: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
+	4,   // 143: client.Activity.LogActivity:output_type -> client.LogActivityResponse
+	6,   // 144: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
+	8,   // 145: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
+	11,  // 146: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
+	14,  // 147: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
+	17,  // 148: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
+	19,  // 149: client.Report.GetReport:output_type -> client.GetReportResponse
+	21,  // 150: client.Report.ListReports:output_type -> client.ListReportsResponse
+	23,  // 151: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
+	26,  // 152: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
+	28,  // 153: client.Report.UploadAttachment:output_type -> client.UploadAttachmentResponse
+	30,  // 154: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
+	32,  // 155: client.Report.CloseReport:output_type -> client.CloseReportResponse
+	34,  // 156: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
+	37,  // 157: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
+	41,  // 158: client.Saved.SaveItem:output_type -> client.SaveItemResponse
+	43,  // 159: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
+	45,  // 160: client.Saved.ListSaved:output_type -> client.ListSavedResponse
+	47,  // 161: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
+	49,  // 162: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
+	51,  // 163: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
+	53,  // 164: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
+	55,  // 165: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
+	57,  // 166: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
+	59,  // 167: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
+	61,  // 168: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
+	63,  // 169: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
+	66,  // 170: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
+	68,  // 171: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
+	71,  // 172: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
+	73,  // 173: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
+	75,  // 174: client.Settings.UploadAvatar:output_type -> client.UploadAvatarResponse
+	77,  // 175: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
+	79,  // 176: client.Settings.ExportData:output_type -> client.ExportDataResponse
+	82,  // 177: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
+	84,  // 178: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
+	88,  // 179: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
+	90,  // 180: client.Articles.GetArticle:output_type -> client.GetArticleResponse
+	92,  // 181: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
+	94,  // 182: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
+	96,  // 183: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
+	99,  // 184: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
+	101, // 185: client.Habits.GetHabit:output_type -> client.GetHabitResponse
+	103, // 186: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
+	105, // 187: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
+	107, // 188: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
+	109, // 189: client.Habits.ToggleHabit:output_type -> client.ToggleHabitResponse
+	111, // 190: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
+	114, // 191: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
+	116, // 192: client.Goals.GetGoal:output_type -> client.GetGoalResponse
+	118, // 193: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
+	120, // 194: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
+	122, // 195: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
+	124, // 196: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
+	126, // 197: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
+	129, // 198: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
+	132, // 199: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
+	134, // 200: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
+	136, // 201: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
+	138, // 202: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
+	144, // 203: client.WeeklyReviewService.GenerateWeeklyReview:output_type -> client.GenerateWeeklyReviewResponse
+	146, // 204: client.WeeklyReviewService.GetWeeklyReview:output_type -> client.GetWeeklyReviewResponse
+	148, // 205: client.WeeklyReviewService.GetCurrentWeeklyReview:output_type -> client.GetCurrentWeeklyReviewResponse
+	150, // 206: client.WeeklyReviewService.ListWeeklyReviews:output_type -> client.ListWeeklyReviewsResponse
+	155, // 207: client.PersonalizationService.GetCoachingProfile:output_type -> client.GetCoachingProfileResponse
+	157, // 208: client.PersonalizationService.UpsertCoachingProfile:output_type -> client.UpsertCoachingProfileResponse
+	159, // 209: client.PersonalizationService.UpdateCoachingProfilePreferences:output_type -> client.UpdateCoachingProfilePreferencesResponse
+	161, // 210: client.PersonalizationService.GetPersonalizationContext:output_type -> client.GetPersonalizationContextResponse
+	163, // 211: client.PersonalizationService.CreatePlanAdjustmentSuggestion:output_type -> client.CreatePlanAdjustmentSuggestionResponse
+	165, // 212: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:output_type -> client.ListPendingPlanAdjustmentSuggestionsResponse
+	167, // 213: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:output_type -> client.UpdatePlanAdjustmentSuggestionStatusResponse
+	169, // 214: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:output_type -> client.ApplyPlanAdjustmentSuggestionResponse
+	171, // 215: client.PersonalizationService.GeneratePersonalizedCoaching:output_type -> client.GeneratePersonalizedCoachingResponse
+	142, // [142:216] is the sub-list for method output_type
+	68,  // [68:142] is the sub-list for method input_type
+	68,  // [68:68] is the sub-list for extension type_name
+	68,  // [68:68] is the sub-list for extension extendee
+	0,   // [0:68] is the sub-list for field type_name
 }
 
 func init() { file_services_microservices_client_api_v1_client_proto_init() }
@@ -8727,9 +11195,9 @@ func file_services_microservices_client_api_v1_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_client_api_v1_client_proto_rawDesc), len(file_services_microservices_client_api_v1_client_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   145,
+			NumMessages:   181,
 			NumExtensions: 0,
-			NumServices:   9,
+			NumServices:   11,
 		},
 		GoTypes:           file_services_microservices_client_api_v1_client_proto_goTypes,
 		DependencyIndexes: file_services_microservices_client_api_v1_client_proto_depIdxs,

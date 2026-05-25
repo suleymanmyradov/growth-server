@@ -2,8 +2,6 @@ package scheduler
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/events"
@@ -107,33 +105,5 @@ func (s *Scheduler) tick(ctx context.Context) {
 		}
 
 		logx.WithContext(ctx).Infof("published reminder %s type=%s", r.ID, r.Type)
-	}
-}
-
-// marshalMetadata is a helper for optional metadata.
-func marshalMetadata(v any) json.RawMessage {
-	if v == nil {
-		return json.RawMessage(`{}`)
-	}
-	b, err := json.Marshal(v)
-	if err != nil {
-		return json.RawMessage(`{}`)
-	}
-	return b
-}
-
-// fmtReminder formats a reminder message for a given type and context.
-func fmtReminder(reminderType string, habitCount int64) string {
-	switch reminderType {
-	case "habit_reminder":
-		return fmt.Sprintf("You have %d habits to check in on today", habitCount)
-	case "missed_check_in":
-		return "You missed your check-in today. Don't worry, tomorrow is a fresh start!"
-	case "weekly_review":
-		return "Reflect on your week"
-	case "encouragement":
-		return "Great job keeping up your streak!"
-	default:
-		return ""
 	}
 }

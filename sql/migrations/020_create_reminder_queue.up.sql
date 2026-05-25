@@ -14,7 +14,7 @@ CREATE TABLE reminder_queue (
 CREATE INDEX idx_reminder_queue_due ON reminder_queue(scheduled_at) WHERE sent = FALSE;
 
 CREATE UNIQUE INDEX uniq_reminder_queue_pending_per_day
-    ON reminder_queue(user_id, type, (scheduled_at::date)) WHERE sent = FALSE;
+    ON reminder_queue(user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent = FALSE;
 
 CREATE TRIGGER update_reminder_queue_updated_at
     BEFORE UPDATE ON reminder_queue

@@ -62,7 +62,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	}
 
 	// Create check-in record
-	params := protoToCheckInParams(in.UserId, in.HabitId, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
+	params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
 	checkIn, err := l.svcCtx.Repo.CheckIns.CreateCheckIn(l.ctx, params)
 	if err != nil {
 		l.Errorf("Failed to create check-in: %v", err)
@@ -77,14 +77,15 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	}
 
 	// If completed, toggle habit to mark as completed and bump streak
-	if in.Status == "completed" {
+	switch in.Status {
+	case "completed":
 		updatedHabit, err := l.svcCtx.Repo.Habits.ToggleHabit(l.ctx, habitID)
 		if err != nil {
 			l.Errorf("Failed to toggle habit: %v", err)
 		} else {
 			habit = updatedHabit
 		}
-	} else if in.Status == "missed" {
+	case "missed":
 		// Reset streak on missed check-in
 		_, err := l.svcCtx.Repo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
 		if err != nil {
@@ -138,7 +139,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		feedback := l.generateAIFeedback(ctx, in, habit, checkIn)
+		feedback := l.generateAIFeedback(ctx, in, habit)
 		if feedback != "" {
 			l.Infof("AI feedback generated for check-in %s: %s", checkIn.ID, feedback)
 		}
@@ -151,7 +152,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	}, nil
 }
 
-func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.Habit, checkIn db.CheckIn) string {
+func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.Habit) string {
 	// Fetch user settings for accountability style
 	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID)
 	accountabilityStyle := "balanced"

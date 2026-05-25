@@ -1,5 +1,5 @@
 // Code scaffolded by goctl. Safe to edit.
-// goctl 1.9.2
+// goctl 1.10.1
 
 package main
 
@@ -12,7 +12,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 
 	"github.com/zeromicro/go-zero/core/conf"
-	"github.com/zeromicro/go-zero/core/prometheus"
 	"github.com/zeromicro/go-zero/rest"
 )
 
@@ -24,17 +23,8 @@ func main() {
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
 
-	corsOrigins := c.CORS.Origins
-	if len(corsOrigins) == 0 {
-		corsOrigins = []string{"http://localhost:3000"}
-	}
-
-	server := rest.MustNewServer(c.RestConf, rest.WithCors(corsOrigins...))
+	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()
-
-	if c.Prometheus.Host != "" {
-		prometheus.StartAgent(c.Prometheus)
-	}
 
 	ctx := svc.NewServiceContext(c)
 	handler.RegisterHandlers(server, ctx)

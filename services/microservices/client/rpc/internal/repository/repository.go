@@ -75,6 +75,7 @@ type IHabits interface {
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
 	ToggleHabit(ctx context.Context, id uuid.UUID) (db.Habit, error)
 	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.Habit, error)
+	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.Habit, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
@@ -104,34 +105,80 @@ type ICategories interface {
 type ICheckIns interface {
 	CreateCheckIn(ctx context.Context, params db.CreateCheckInParams) (db.CheckIn, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]db.CheckIn, error)
-	GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
+	GetCheckInsByHabit(ctx context.Context, habitID, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
+	GetCheckInHistory(ctx context.Context, userID uuid.UUID, start, end time.Time, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.CheckIn, error)
 	HasCheckedInToday(ctx context.Context, userID, habitID uuid.UUID) (bool, error)
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
 }
 
+type IWeeklyReviews interface {
+	CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.WeeklyReview, error)
+	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart time.Time) (db.WeeklyReview, error)
+	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (db.WeeklyReview, error)
+	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.WeeklyReview, error)
+	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
+	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetCheckInStatsForWeekRow, error)
+	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetDailyCheckInStatsForWeekRow, error)
+	GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetBlockerStatsForWeekRow, error)
+	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetMoodStatsForWeekRow, error)
+	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetEnergyStatsForWeekRow, error)
+}
+
+type ICoachingProfiles interface {
+	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
+	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.UserCoachingProfile, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, params db.UpdateCoachingProfilePreferencesParams) (db.UserCoachingProfile, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, params db.UpdateCoachingProfileBlockersParams) (db.UserCoachingProfile, error)
+	UpdateCoachingProfileNotes(ctx context.Context, params db.UpdateCoachingProfileNotesParams) (db.UserCoachingProfile, error)
+	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
+	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
+}
+
+type IPlanAdjustmentSuggestions interface {
+	CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+	GetPlanAdjustmentSuggestion(ctx context.Context, params db.GetPlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, params db.ListPendingPlanAdjustmentSuggestionsParams) ([]db.PlanAdjustmentSuggestion, error)
+	ListAllPlanAdjustmentSuggestions(ctx context.Context, params db.ListAllPlanAdjustmentSuggestionsParams) ([]db.PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, params db.ListPlanAdjustmentSuggestionsByHabitParams) ([]db.PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, params db.ListPlanAdjustmentSuggestionsByGoalParams) ([]db.PlanAdjustmentSuggestion, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionStatusParams) (db.PlanAdjustmentSuggestion, error)
+	UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+	DeletePlanAdjustmentSuggestion(ctx context.Context, params db.DeletePlanAdjustmentSuggestionParams) error
+	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
+	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, params db.ApplyPlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+}
+
 type Repository struct {
-	Articles     IArticles
-	SavedItems   ISavedItems
-	Activities   IActivities
-	UserSettings IUserSettings
-	Habits       IHabits
-	Goals        IGoals
-	Categories   ICategories
-	CheckIns     ICheckIns
+	Articles                  IArticles
+	SavedItems                ISavedItems
+	Activities                IActivities
+	UserSettings              IUserSettings
+	Habits                    IHabits
+	Goals                     IGoals
+	Categories                ICategories
+	CheckIns                  ICheckIns
+	WeeklyReviews             IWeeklyReviews
+	CoachingProfiles          ICoachingProfiles
+	PlanAdjustmentSuggestions IPlanAdjustmentSuggestions
 }
 
 func NewRepository(db *db.Queries) *Repository {
+
 	return &Repository{
-		Articles:     NewArticlesRepo(db),
-		SavedItems:   NewSavedItemsRepo(db),
-		Activities:   NewActivitiesRepo(db),
-		UserSettings: NewUserSettingsRepo(db),
-		Habits:       NewHabitsRepo(db),
-		Goals:        NewGoalsRepo(db),
-		Categories:   NewCategoriesRepo(db),
-		CheckIns:     NewCheckInsRepo(db),
+		Articles:                  NewArticlesRepo(db),
+		SavedItems:                NewSavedItemsRepo(db),
+		Activities:                NewActivitiesRepo(db),
+		UserSettings:              NewUserSettingsRepo(db),
+		Habits:                    NewHabitsRepo(db),
+		Goals:                     NewGoalsRepo(db),
+		Categories:                NewCategoriesRepo(db),
+		CheckIns:                  NewCheckInsRepo(db),
+		WeeklyReviews:             NewWeeklyReviewsRepo(db),
+		CoachingProfiles:          NewCoachingProfilesRepo(db),
+		PlanAdjustmentSuggestions: NewPlanAdjustmentSuggestionsRepo(db),
 	}
 }

@@ -38,9 +38,12 @@ func (q *Queries) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (in
 }
 
 const createCheckIn = `-- name: CreateCheckIn :one
-INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, user_id, habit_id, status, mood, energy, blocker, note, created_at
+INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
+SELECT $1, $2, $3, $4, $5, $6, $7, (NOW() AT TIME ZONE COALESCE(
+  (SELECT timezone FROM user_settings WHERE user_id = $1),
+  'UTC'
+))::date
+RETURNING id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
 `
 
 type CreateCheckInParams struct {
@@ -74,25 +77,36 @@ func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (C
 		&i.Blocker,
 		&i.Note,
 		&i.CreatedAt,
+		&i.LocalDate,
 	)
 	return i, err
 }
 
-const getCheckInsByHabit = `-- name: GetCheckInsByHabit :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at FROM check_ins
-WHERE habit_id = $1
+const getCheckInHistory = `-- name: GetCheckInHistory :many
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+WHERE user_id = $1
+  AND created_at >= $2
+  AND created_at < $3
 ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+LIMIT $4 OFFSET $5
 `
 
-type GetCheckInsByHabitParams struct {
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-	Limit   int32     `db:"limit" json:"limit"`
-	Offset  int32     `db:"offset" json:"offset"`
+type GetCheckInHistoryParams struct {
+	UserID      uuid.UUID `db:"user_id" json:"user_id"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
+	Limit       int32     `db:"limit" json:"limit"`
+	Offset      int32     `db:"offset" json:"offset"`
 }
 
-func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabitParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInsByHabit, arg.HabitID, arg.Limit, arg.Offset)
+func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryParams) ([]CheckIn, error) {
+	rows, err := q.db.QueryContext(ctx, getCheckInHistory,
+		arg.UserID,
+		arg.CreatedAt,
+		arg.CreatedAt_2,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -110,6 +124,60 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabit
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.LocalDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCheckInsByHabit = `-- name: GetCheckInsByHabit :many
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+WHERE habit_id = $1 AND user_id = $2
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4
+`
+
+type GetCheckInsByHabitParams struct {
+	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
+	UserID  uuid.UUID `db:"user_id" json:"user_id"`
+	Limit   int32     `db:"limit" json:"limit"`
+	Offset  int32     `db:"offset" json:"offset"`
+}
+
+func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabitParams) ([]CheckIn, error) {
+	rows, err := q.db.QueryContext(ctx, getCheckInsByHabit,
+		arg.HabitID,
+		arg.UserID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CheckIn
+	for rows.Next() {
+		var i CheckIn
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.HabitID,
+			&i.Status,
+			&i.Mood,
+			&i.Energy,
+			&i.Blocker,
+			&i.Note,
+			&i.CreatedAt,
+			&i.LocalDate,
 		); err != nil {
 			return nil, err
 		}
@@ -125,7 +193,7 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabit
 }
 
 const getCheckInsByUser = `-- name: GetCheckInsByUser :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -156,6 +224,7 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserPa
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.LocalDate,
 		); err != nil {
 			return nil, err
 		}
@@ -171,7 +240,7 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserPa
 }
 
 const getCheckInsForWeek = `-- name: GetCheckInsForWeek :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
   AND created_at < $3
@@ -179,13 +248,13 @@ ORDER BY created_at DESC
 `
 
 type GetCheckInsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	WeekStart time.Time `db:"week_start" json:"week_start"`
+	WeekEnd   time.Time `db:"week_end" json:"week_end"`
 }
 
 func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeekParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+	rows, err := q.db.QueryContext(ctx, getCheckInsForWeek, arg.UserID, arg.WeekStart, arg.WeekEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -203,6 +272,7 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.LocalDate,
 		); err != nil {
 			return nil, err
 		}
@@ -218,9 +288,10 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 }
 
 const getTodayCheckIns = `-- name: GetTodayCheckIns :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at FROM check_ins
-WHERE user_id = $1
-  AND created_at::date = CURRENT_DATE
+SELECT ci.id, ci.user_id, ci.habit_id, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.local_date FROM check_ins ci
+LEFT JOIN user_settings us ON ci.user_id = us.user_id
+WHERE ci.user_id = $1
+  AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
 `
 
 func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error) {
@@ -242,6 +313,7 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.LocalDate,
 		); err != nil {
 			return nil, err
 		}
@@ -258,9 +330,10 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 
 const hasCheckedInToday = `-- name: HasCheckedInToday :one
 SELECT EXISTS(
-    SELECT 1 FROM check_ins
-    WHERE user_id = $1 AND habit_id = $2
-      AND created_at::date = CURRENT_DATE
+    SELECT 1 FROM check_ins ci
+    LEFT JOIN user_settings us ON ci.user_id = us.user_id
+    WHERE ci.user_id = $1 AND ci.habit_id = $2
+      AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
 ) AS exists
 `
 

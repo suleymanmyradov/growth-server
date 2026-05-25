@@ -18,6 +18,10 @@ type ActivityResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type ApplyPlanAdjustmentSuggestionRequest struct {
+	Id string `path:"id"`
+}
+
 type Article struct {
 	Id          string           `json:"id,example=article-123"`
 	Title       string           `json:"title,example=10 Habits for Personal Growth"`
@@ -88,6 +92,24 @@ type CheckIn struct {
 	CreatedAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
 }
 
+type CoachingProfile struct {
+	Id                   string            `json:"id,example=profile-123"`
+	UserId               string            `json:"userId,example=user-123"`
+	AccountabilityStyle  string            `json:"accountabilityStyle,example=balanced"`
+	PreferredTone        string            `json:"preferredTone,example=supportive"`
+	DifficultyPreference string            `json:"difficultyPreference,example=adaptive"`
+	PrimaryMotivation    string            `json:"primaryMotivation,optional,example=personal_growth"`
+	CommonBlockers       []string          `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+	CoachingNotes        map[string]string `json:"coachingNotes,optional"`
+	LastContextRefreshAt string            `json:"lastContextRefreshAt,optional,example=2024-01-15T00:00:00Z"`
+	CreatedAt            string            `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	UpdatedAt            string            `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type CoachingProfileResponse struct {
+	Data CoachingProfile `json:"data"`
+}
+
 type Conversation struct {
 	Id          string `json:"id,example=conv-123"`
 	Title       string `json:"title,example=My Growth Journey"`
@@ -154,7 +176,32 @@ type CreateHabitRequest struct {
 	Category    string `json:"category,example=fitness"`
 }
 
+type CreatePlanAdjustmentSuggestionRequest struct {
+	AdjustmentType string            `json:"adjustmentType,example=reduce_frequency"`
+	GoalId         string            `json:"goalId,optional,example=goal-123"`
+	HabitId        string            `json:"habitId,optional,example=habit-123"`
+	Source         string            `json:"source,example=weekly_review"`
+	Reason         string            `json:"reason,optional,example=Based on your recent completion patterns"`
+	Suggestion     string            `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+	Metadata       map[string]string `json:"metadata,optional"`
+}
+
 type EmptyResponse struct {
+}
+
+type GeneratePersonalizedCoachingRequest struct {
+	UserMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+	Context     string `json:"context,optional,example=User has been struggling with motivation"`
+}
+
+type GeneratePersonalizedCoachingResponse struct {
+	CoachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
+	Context          string `json:"context,optional,example=User has been struggling with motivation"`
+}
+
+type GenerateWeeklyReviewRequest struct {
+	WeekStart       string `json:"weekStart,optional"`
+	ForceRegenerate bool   `json:"forceRegenerate,optional"`
 }
 
 type GetAuthorArticlesRequest struct {
@@ -180,11 +227,19 @@ type GetMessagesRequest struct {
 	Limit int    `form:"limit,default=50"`
 }
 
+type GetPersonalizationContextRequest struct {
+	ForceRefresh bool `form:"forceRefresh,default=false,example=false"`
+}
+
 type GetTodayCheckInsRequest struct {
 }
 
 type GetTodayCheckInsResponse struct {
 	CheckIns []CheckIn `json:"checkIns"`
+}
+
+type GetWeeklyReviewRequest struct {
+	WeekStart string `path:"weekStart"`
 }
 
 type Goal struct {
@@ -326,6 +381,43 @@ type PageResponse struct {
 	TotalPages int   `json:"totalPages,example=5"`
 }
 
+type PersonalizationContext struct {
+	Profile            CoachingProfile            `json:"profile"`
+	ActiveGoals        []Goal                     `json:"activeGoals"`
+	ActiveHabits       []Habit                    `json:"activeHabits"`
+	RecentCheckIns     []CheckIn                  `json:"recentCheckIns"`
+	LatestWeeklyReview WeeklyReview               `json:"latestWeeklyReview,optional"`
+	PendingSuggestions []PlanAdjustmentSuggestion `json:"pendingSuggestions"`
+	PatternInsights    map[string]string          `json:"patternInsights,optional"`
+}
+
+type PersonalizationContextResponse struct {
+	Data PersonalizationContext `json:"data"`
+}
+
+type PlanAdjustmentSuggestion struct {
+	Id             string            `json:"id,example=suggestion-123"`
+	UserId         string            `json:"userId,example=user-123"`
+	AdjustmentType string            `json:"adjustmentType,example=reduce_frequency"`
+	GoalId         string            `json:"goalId,optional,example=goal-123"`
+	HabitId        string            `json:"habitId,optional,example=habit-123"`
+	Source         string            `json:"source,example=weekly_review"`
+	Reason         string            `json:"reason,optional,example=Based on your recent completion patterns"`
+	Suggestion     string            `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+	Metadata       map[string]string `json:"metadata,optional"`
+	Status         string            `json:"status,example=pending"`
+	CreatedAt      string            `json:"createdAt,example=2024-01-15T00:00:00Z"`
+	UpdatedAt      string            `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type PlanAdjustmentSuggestionResponse struct {
+	Data PlanAdjustmentSuggestion `json:"data"`
+}
+
+type PlanAdjustmentSuggestionsResponse struct {
+	Data []PlanAdjustmentSuggestion `json:"data"`
+}
+
 type Profile struct {
 	Id        string   `json:"id,example=user-123"`
 	FullName  string   `json:"fullName,example=John Doe"`
@@ -450,6 +542,12 @@ type StartConversationRequest struct {
 	InitialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
 }
 
+type UpdateCoachingProfilePreferencesRequest struct {
+	AccountabilityStyle  string `json:"accountabilityStyle,example=balanced"`
+	PreferredTone        string `json:"preferredTone,example=supportive"`
+	DifficultyPreference string `json:"difficultyPreference,example=adaptive"`
+}
+
 type UpdateGoalRequest struct {
 	Title           string   `json:"title,optional"`
 	Description     string   `json:"description,optional"`
@@ -462,6 +560,11 @@ type UpdateHabitRequest struct {
 	Name        string `json:"name,optional"`
 	Description string `json:"description,optional"`
 	Category    string `json:"category,optional"`
+}
+
+type UpdatePlanAdjustmentSuggestionStatusRequest struct {
+	Id     string `path:"id"`
+	Status string `json:"status,example=accepted"`
 }
 
 type UpdateProfileRequest struct {
@@ -489,4 +592,68 @@ type UpdateSettingsRequest struct {
 	AccountabilityStyle string `json:"accountabilityStyle,optional"`
 	CheckInTime         string `json:"checkInTime,optional"`
 	OnboardingCompleted bool   `json:"onboardingCompleted,optional"`
+}
+
+type UpsertCoachingProfileRequest struct {
+	AccountabilityStyle  string            `json:"accountabilityStyle,optional,example=balanced"`
+	PreferredTone        string            `json:"preferredTone,optional,example=supportive"`
+	DifficultyPreference string            `json:"difficultyPreference,optional,example=adaptive"`
+	CommonBlockers       []string          `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+	CoachingNotes        map[string]string `json:"coachingNotes,optional"`
+}
+
+type WeeklyReview struct {
+	Id                   string                       `json:"id"`
+	UserId               string                       `json:"userId"`
+	WeekStart            string                       `json:"weekStart"`
+	WeekEnd              string                       `json:"weekEnd"`
+	TotalHabits          int                          `json:"totalHabits"`
+	CompletedCheckIns    int                          `json:"completedCheckIns"`
+	MissedCheckIns       int                          `json:"missedCheckIns"`
+	CompletionRate       float64                      `json:"completionRate"`
+	BestDay              string                       `json:"bestDay,optional"`
+	HardestDay           string                       `json:"hardestDay,optional"`
+	TopBlocker           string                       `json:"topBlocker,optional"`
+	MoodSummary          map[string]int32             `json:"moodSummary"`
+	EnergySummary        map[string]int32             `json:"energySummary"`
+	HabitBreakdown       []WeeklyReviewHabitBreakdown `json:"habitBreakdown"`
+	AiSummary            string                       `json:"aiSummary,optional"`
+	SuggestedAdjustments []WeeklyReviewAdjustment     `json:"suggestedAdjustments"`
+	NextWeekPlan         WeeklyReviewNextWeekPlan     `json:"nextWeekPlan"`
+	GeneratedAt          string                       `json:"generatedAt"`
+}
+
+type WeeklyReviewAdjustment struct {
+	HabitId        string `json:"habitId,optional"`
+	HabitName      string `json:"habitName"`
+	AdjustmentType string `json:"adjustmentType"`
+	Reason         string `json:"reason"`
+	Suggestion     string `json:"suggestion"`
+}
+
+type WeeklyReviewHabitBreakdown struct {
+	HabitId        string  `json:"habitId"`
+	HabitName      string  `json:"habitName"`
+	Category       string  `json:"category,optional"`
+	TotalCheckIns  int     `json:"totalCheckIns"`
+	CompletedCount int     `json:"completedCount"`
+	MissedCount    int     `json:"missedCount"`
+	CompletionRate float64 `json:"completionRate"`
+	LastCheckInAt  string  `json:"lastCheckInAt,optional"`
+}
+
+type WeeklyReviewNextWeekPlan struct {
+	Focus           string   `json:"focus"`
+	Commitments     []string `json:"commitments"`
+	Risks           []string `json:"risks"`
+	RecoveryActions []string `json:"recoveryActions"`
+}
+
+type WeeklyReviewResponse struct {
+	Data WeeklyReview `json:"data"`
+}
+
+type WeeklyReviewsResponse struct {
+	Data []WeeklyReview `json:"data"`
+	Page PageResponse   `json:"page"`
 }

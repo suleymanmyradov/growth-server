@@ -136,9 +136,9 @@ func TestEventsHandler_CheckInCreated_HappyPath(t *testing.T) {
 
 // testHandler uses interfaces for all dependencies.
 type testHandler struct {
-	repo   *fakeRepo
-	ai     AIClient
-	pub    Publisher
+	repo *fakeRepo
+	ai   AIClient
+	pub  Publisher
 }
 
 func (h *testHandler) Consume(ctx context.Context, _ string, raw string) error {
@@ -173,7 +173,7 @@ func (h *testHandler) Consume(ctx context.Context, _ string, raw string) error {
 
 	resp, err := h.ai.Generate(ctx, ai.GenerateRequest{
 		ModelProfile: ai.ModelCheap,
-		System:       "test",
+		System:       "test for " + style,
 		Messages:     []ai.Message{{Role: ai.RoleUser, Content: "test"}},
 		Metadata:     ai.Metadata{UserID: p.UserID, Feature: "check-in-feedback"},
 	})
@@ -264,6 +264,6 @@ func TestCheckInCreated_DuplicateSkipped(t *testing.T) {
 
 	// Second call: skipped as duplicate.
 	require.NoError(t, h.Consume(context.Background(), "", string(raw)))
-	assert.Len(t, repo.feedback, 1) // still 1
+	assert.Len(t, repo.feedback, 1)   // still 1
 	assert.Len(t, pub.published(), 1) // still 1
 }

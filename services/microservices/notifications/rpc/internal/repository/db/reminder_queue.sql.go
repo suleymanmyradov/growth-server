@@ -88,7 +88,7 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminde
 const enqueueReminder = `-- name: EnqueueReminder :one
 INSERT INTO reminder_queue (user_id, type, scheduled_at, metadata)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, type, (scheduled_at::date)) WHERE sent = FALSE
+ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent = FALSE
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
               metadata = EXCLUDED.metadata,
               updated_at = CURRENT_TIMESTAMP

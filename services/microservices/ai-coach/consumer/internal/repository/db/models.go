@@ -33,8 +33,8 @@ type CheckIn struct {
 
 // UserSetting represents the subset of user_settings needed by ai-coach.
 type UserSetting struct {
-	UserID            uuid.UUID `db:"user_id" json:"user_id"`
-	AccountabilityStyle string  `db:"accountability_style" json:"accountability_style"`
+	UserID              uuid.UUID `db:"user_id" json:"user_id"`
+	AccountabilityStyle string    `db:"accountability_style" json:"accountability_style"`
 }
 
 // InsertAIFeedbackParams holds parameters for inserting into ai_feedback.
@@ -49,8 +49,8 @@ type InsertAIFeedbackParams struct {
 
 // GetCheckInsForWeekParams holds parameters for the weekly check-in query.
 type GetCheckInsForWeekParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	UserID     uuid.UUID `db:"user_id" json:"user_id"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 	CreatedAt2 time.Time `db:"created_at_2" json:"created_at_2"`
 }
 

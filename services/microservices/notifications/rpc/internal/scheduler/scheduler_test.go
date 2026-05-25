@@ -24,7 +24,7 @@ func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]db.ReminderQ
 
 type fakePub struct {
 	published []events.Envelope
-	err      error
+	err       error
 }
 
 func (f *fakePub) Publish(_ context.Context, env events.Envelope) error {

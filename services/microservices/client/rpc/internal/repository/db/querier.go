@@ -11,6 +11,7 @@ import (
 )
 
 type Querier interface {
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, arg ApplyPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
 	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error)
@@ -24,10 +25,12 @@ type Querier interface {
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error)
 	CountUserSettings(ctx context.Context) (int64, error)
+	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
 	CreateArticleShare(ctx context.Context, arg CreateArticleShareParams) (ArticleShare, error)
@@ -35,19 +38,24 @@ type Querier interface {
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
 	CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error)
+	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
 	CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error)
+	CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (WeeklyReview, error)
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShare(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShareByUserAndArticle(ctx context.Context, arg DeleteArticleShareByUserAndArticleParams) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
+	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
+	DeletePlanAdjustmentSuggestion(ctx context.Context, arg DeletePlanAdjustmentSuggestionParams) error
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItemByUserAndItem(ctx context.Context, arg DeleteSavedItemByUserAndItemParams) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
+	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
 	GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error)
 	GetActivity(ctx context.Context, id uuid.UUID) (Activity, error)
 	GetActivityCalendar(ctx context.Context, arg GetActivityCalendarParams) ([]GetActivityCalendarRow, error)
@@ -57,25 +65,39 @@ type Querier interface {
 	GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error)
 	GetArticleShare(ctx context.Context, id uuid.UUID) (ArticleShare, error)
 	GetArticleShareByUserAndArticle(ctx context.Context, arg GetArticleShareByUserAndArticleParams) (ArticleShare, error)
+	GetBlockerStatsForWeek(ctx context.Context, arg GetBlockerStatsForWeekParams) ([]GetBlockerStatsForWeekRow, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (Category, error)
 	GetCategoryBySlug(ctx context.Context, arg GetCategoryBySlugParams) (Category, error)
+	GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryParams) ([]CheckIn, error)
+	GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStatsForWeekParams) ([]GetCheckInStatsForWeekRow, error)
 	GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabitParams) ([]CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserParams) ([]CheckIn, error)
 	GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeekParams) ([]CheckIn, error)
+	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error)
+	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (WeeklyReview, error)
+	// NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
+	// check-ins outside the user's week are included, but best/hardest day
+	// attribution may be off by one day near midnight for non-UTC users.
+	GetDailyCheckInStatsForWeek(ctx context.Context, arg GetDailyCheckInStatsForWeekParams) ([]GetDailyCheckInStatsForWeekRow, error)
+	GetEnergyStatsForWeek(ctx context.Context, arg GetEnergyStatsForWeekParams) ([]GetEnergyStatsForWeekRow, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (Goal, error)
 	GetHabit(ctx context.Context, id uuid.UUID) (Habit, error)
+	GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWeekParams) ([]GetMoodStatsForWeekRow, error)
+	GetPlanAdjustmentSuggestion(ctx context.Context, arg GetPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
 	GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error)
 	GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error)
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error)
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error)
+	GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error)
 	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
 	IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error)
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
 	ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error)
 	ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error)
 	ListAllCategories(ctx context.Context) ([]Category, error)
+	ListAllPlanAdjustmentSuggestions(ctx context.Context, arg ListAllPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
 	ListArticleShares(ctx context.Context, arg ListArticleSharesParams) ([]ArticleShare, error)
 	ListArticleSharesByArticle(ctx context.Context, arg ListArticleSharesByArticleParams) ([]ArticleShare, error)
 	ListArticleSharesByUser(ctx context.Context, arg ListArticleSharesByUserParams) ([]ArticleShare, error)
@@ -85,22 +107,34 @@ type Querier interface {
 	ListCategories(ctx context.Context, entityType EntityType) ([]Category, error)
 	ListGoals(ctx context.Context, arg ListGoalsParams) ([]Goal, error)
 	ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg ListPendingPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg ListPlanAdjustmentSuggestionsByGoalParams) ([]PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg ListPlanAdjustmentSuggestionsByHabitParams) ([]PlanAdjustmentSuggestion, error)
 	ListSavedItems(ctx context.Context, arg ListSavedItemsParams) ([]SavedItem, error)
 	ListSavedItemsByType(ctx context.Context, arg ListSavedItemsByTypeParams) ([]SavedItem, error)
 	ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsByUserParams) ([]SavedItem, error)
+	ListWeeklyReviews(ctx context.Context, arg ListWeeklyReviewsParams) ([]WeeklyReview, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
+	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	SearchArticles(ctx context.Context, arg SearchArticlesParams) ([]SearchArticlesRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error)
 	ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
 	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, arg UpdateCoachingProfileBlockersParams) (UserCoachingProfile, error)
+	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error)
+	UpdateCoachingProfileNotes(ctx context.Context, arg UpdateCoachingProfileNotesParams) (UserCoachingProfile, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, arg UpdateCoachingProfilePreferencesParams) (UserCoachingProfile, error)
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, error)
 	UpdateGoalProgress(ctx context.Context, arg UpdateGoalProgressParams) (Goal, error)
 	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Habit, error)
 	UpdateHabitStreak(ctx context.Context, arg UpdateHabitStreakParams) (Habit, error)
 	UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error)
+	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg UpdatePlanAdjustmentSuggestionStatusParams) (PlanAdjustmentSuggestion, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error)
+	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -38,6 +38,14 @@ SET completed = NOT completed,
 WHERE id = $1
 RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at;
 
+-- name: MarkHabitCompleted :one
+UPDATE habits
+SET completed = true,
+    streak = CASE WHEN NOT completed THEN streak + 1 ELSE streak END,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at;
+
 -- name: ResetTodayHabits :execrows
 UPDATE habits
 SET completed = false, updated_at = CURRENT_TIMESTAMP
