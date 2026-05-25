@@ -5,9 +5,9 @@ import (
 )
 
 type Repository struct {
-	Notifications    *NotificationsRepo
-	Reminders        *RemindersRepo
-	ProcessedEvents  *ProcessedEventsRepo
+	Notifications   *NotificationsRepo
+	Reminders       *RemindersRepo
+	ProcessedEvents *ProcessedEventsRepo
 }
 
 func NewRepository(q *db.Queries) *Repository {

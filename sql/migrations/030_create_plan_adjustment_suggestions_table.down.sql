@@ -1,0 +1,5 @@
+DROP TRIGGER IF EXISTS update_plan_adjustment_suggestions_updated_at ON plan_adjustment_suggestions;
+DROP INDEX IF EXISTS idx_plan_adjustment_suggestions_status;
+DROP INDEX IF EXISTS idx_plan_adjustment_suggestions_habit_id;
+DROP INDEX IF EXISTS idx_plan_adjustment_suggestions_user_id;
+DROP TABLE IF EXISTS plan_adjustment_suggestions;

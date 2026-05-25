@@ -137,6 +137,32 @@ func (q *Queries) ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit
 	return items, nil
 }
 
+const markHabitCompleted = `-- name: MarkHabitCompleted :one
+UPDATE habits
+SET completed = true,
+    streak = CASE WHEN NOT completed THEN streak + 1 ELSE streak END,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+`
+
+func (q *Queries) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error) {
+	row := q.db.QueryRowContext(ctx, markHabitCompleted, id)
+	var i Habit
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Streak,
+		&i.Completed,
+		&i.Category,
+		&i.UserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const resetTodayHabits = `-- name: ResetTodayHabits :execrows
 UPDATE habits
 SET completed = false, updated_at = CURRENT_TIMESTAMP

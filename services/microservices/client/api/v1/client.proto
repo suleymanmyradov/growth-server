@@ -853,3 +853,247 @@ service CheckInService {
   rpc GetCheckInHistory(GetCheckInHistoryRequest) returns (GetCheckInHistoryResponse);
   rpc HasCheckedInToday(HasCheckedInTodayRequest) returns (HasCheckedInTodayResponse);
 }
+
+message WeeklyReviewHabitBreakdown {
+  string habitId = 1;
+  string habitName = 2;
+  string category = 3;
+  int32 totalCheckIns = 4;
+  int32 completedCount = 5;
+  int32 missedCount = 6;
+  double completionRate = 7;
+  int64 lastCheckInAt = 8;
+}
+
+message WeeklyReviewAdjustment {
+  string habitId = 1;
+  string habitName = 2;
+  string reason = 3;
+  string suggestion = 4;
+  string adjustmentType = 5; // reduce_difficulty | change_time | clarify_plan | keep_same | pause
+}
+
+message WeeklyReviewNextWeekPlan {
+  string focus = 1;
+  repeated string commitments = 2;
+  repeated string risks = 3;
+  repeated string recoveryActions = 4;
+}
+
+message WeeklyReview {
+  string id = 1;
+  string userId = 2;
+  string weekStart = 3;
+  string weekEnd = 4;
+  int32 totalHabits = 5;
+  int32 completedCheckIns = 6;
+  int32 missedCheckIns = 7;
+  double completionRate = 8;
+  string bestDay = 9;
+  string hardestDay = 10;
+  string topBlocker = 11;
+  map<string, int32> moodSummary = 12;
+  map<string, int32> energySummary = 13;
+  repeated WeeklyReviewHabitBreakdown habitBreakdown = 14;
+  string aiSummary = 15;
+  repeated WeeklyReviewAdjustment suggestedAdjustments = 16;
+  WeeklyReviewNextWeekPlan nextWeekPlan = 17;
+  int64 generatedAt = 18;
+}
+
+message GenerateWeeklyReviewRequest {
+  string userId = 1;
+  string weekStart = 2; // optional, YYYY-MM-DD. Defaults to current week start.
+  bool forceRegenerate = 3;
+}
+
+message GenerateWeeklyReviewResponse {
+  WeeklyReview review = 1;
+}
+
+message GetWeeklyReviewRequest {
+  string userId = 1;
+  string weekStart = 2;
+}
+
+message GetWeeklyReviewResponse {
+  WeeklyReview review = 1;
+}
+
+message GetCurrentWeeklyReviewRequest {
+  string userId = 1;
+}
+
+message GetCurrentWeeklyReviewResponse {
+  WeeklyReview review = 1;
+}
+
+message ListWeeklyReviewsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListWeeklyReviewsResponse {
+  repeated WeeklyReview reviews = 1;
+  int32 total = 2;
+}
+
+service WeeklyReviewService {
+  rpc GenerateWeeklyReview(GenerateWeeklyReviewRequest) returns (GenerateWeeklyReviewResponse);
+  rpc GetWeeklyReview(GetWeeklyReviewRequest) returns (GetWeeklyReviewResponse);
+  rpc GetCurrentWeeklyReview(GetCurrentWeeklyReviewRequest) returns (GetCurrentWeeklyReviewResponse);
+  rpc ListWeeklyReviews(ListWeeklyReviewsRequest) returns (ListWeeklyReviewsResponse);
+}
+
+// Personalization Service
+message CoachingProfile {
+  string id = 1;
+  string userId = 2;
+  string accountabilityStyle = 3;
+  string preferredTone = 4;
+  string difficultyPreference = 5;
+  string primaryMotivation = 6;
+  repeated string commonBlockers = 7;
+  string coachingNotesJson = 8;
+  int64 lastContextRefreshAt = 9;
+  int64 createdAt = 10;
+  int64 updatedAt = 11;
+}
+
+message PersonalizationContext {
+  CoachingProfile profile = 1;
+  repeated Goal activeGoals = 2;
+  repeated Habit activeHabits = 3;
+  repeated CheckIn recentCheckIns = 4;
+  WeeklyReview latestWeeklyReview = 5;
+  repeated PlanAdjustmentSuggestion pendingSuggestions = 6;
+  map<string, string> patternInsights = 7;
+}
+
+message PlanAdjustmentSuggestion {
+  string id = 1;
+  string userId = 2;
+  string goalId = 3;
+  string habitId = 4;
+  string source = 5;
+  string adjustmentType = 6;
+  string reason = 7;
+  string suggestion = 8;
+  string status = 9;
+  string metadataJson = 10;
+  int64 createdAt = 11;
+  int64 updatedAt = 12;
+}
+
+message GetCoachingProfileRequest {
+  string userId = 1;
+}
+
+message GetCoachingProfileResponse {
+  CoachingProfile profile = 1;
+}
+
+message UpsertCoachingProfileRequest {
+  string userId = 1;
+  string accountabilityStyle = 2;
+  string preferredTone = 3;
+  string difficultyPreference = 4;
+  string primaryMotivation = 5;
+  repeated string commonBlockers = 6;
+  string coachingNotesJson = 7;
+}
+
+message UpsertCoachingProfileResponse {
+  CoachingProfile profile = 1;
+}
+
+message UpdateCoachingProfilePreferencesRequest {
+  string userId = 1;
+  string accountabilityStyle = 2;
+  string preferredTone = 3;
+  string difficultyPreference = 4;
+}
+
+message UpdateCoachingProfilePreferencesResponse {
+  CoachingProfile profile = 1;
+}
+
+message GetPersonalizationContextRequest {
+  string userId = 1;
+  bool forceRefresh = 2;
+}
+
+message GetPersonalizationContextResponse {
+  PersonalizationContext context = 1;
+}
+
+message CreatePlanAdjustmentSuggestionRequest {
+  string userId = 1;
+  string goalId = 2;
+  string habitId = 3;
+  string source = 4;
+  string adjustmentType = 5;
+  string reason = 6;
+  string suggestion = 7;
+  string metadataJson = 8;
+}
+
+message CreatePlanAdjustmentSuggestionResponse {
+  PlanAdjustmentSuggestion suggestion = 1;
+}
+
+message ListPendingPlanAdjustmentSuggestionsRequest {
+  string userId = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListPendingPlanAdjustmentSuggestionsResponse {
+  repeated PlanAdjustmentSuggestion suggestions = 1;
+  int32 total = 2;
+}
+
+message UpdatePlanAdjustmentSuggestionStatusRequest {
+  string suggestionId = 1;
+  string userId = 2;
+  string status = 3;
+}
+
+message UpdatePlanAdjustmentSuggestionStatusResponse {
+  PlanAdjustmentSuggestion suggestion = 1;
+}
+
+message ApplyPlanAdjustmentSuggestionRequest {
+  string suggestionId = 1;
+  string userId = 2;
+}
+
+message ApplyPlanAdjustmentSuggestionResponse {
+  PlanAdjustmentSuggestion suggestion = 1;
+  bool success = 2;
+}
+
+message GeneratePersonalizedCoachingRequest {
+  string userId = 1;
+  string userMessage = 2;
+  string context = 3;
+}
+
+message GeneratePersonalizedCoachingResponse {
+  string coachingResponse = 1;
+  PersonalizationContext context = 2;
+}
+
+service PersonalizationService {
+  rpc GetCoachingProfile(GetCoachingProfileRequest) returns (GetCoachingProfileResponse);
+  rpc UpsertCoachingProfile(UpsertCoachingProfileRequest) returns (UpsertCoachingProfileResponse);
+  rpc UpdateCoachingProfilePreferences(UpdateCoachingProfilePreferencesRequest) returns (UpdateCoachingProfilePreferencesResponse);
+  rpc GetPersonalizationContext(GetPersonalizationContextRequest) returns (GetPersonalizationContextResponse);
+  rpc CreatePlanAdjustmentSuggestion(CreatePlanAdjustmentSuggestionRequest) returns (CreatePlanAdjustmentSuggestionResponse);
+  rpc ListPendingPlanAdjustmentSuggestions(ListPendingPlanAdjustmentSuggestionsRequest) returns (ListPendingPlanAdjustmentSuggestionsResponse);
+  rpc UpdatePlanAdjustmentSuggestionStatus(UpdatePlanAdjustmentSuggestionStatusRequest) returns (UpdatePlanAdjustmentSuggestionStatusResponse);
+  rpc ApplyPlanAdjustmentSuggestion(ApplyPlanAdjustmentSuggestionRequest) returns (ApplyPlanAdjustmentSuggestionResponse);
+  rpc GeneratePersonalizedCoaching(GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse);
+}
+

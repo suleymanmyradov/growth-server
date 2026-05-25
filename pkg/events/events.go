@@ -18,9 +18,9 @@ const (
 type EventType string
 
 const (
-	TypeCheckInCreated  EventType = "check_in_created"
-	TypeUserOnboarded   EventType = "user_onboarded"
-	TypeSettingsChanged EventType = "settings_changed"
+	TypeCheckInCreated           EventType = "check_in_created"
+	TypeUserOnboarded            EventType = "user_onboarded"
+	TypeSettingsChanged          EventType = "settings_changed"
 	TypeReminderDue              EventType = "reminder_due"
 	TypeCheckInFeedbackGenerated EventType = "check_in_feedback_generated"
 )
@@ -28,11 +28,11 @@ const (
 // Envelope wraps every event published to Kafka with stable metadata.
 // Consumers must inspect EventType to determine how to decode Payload.
 type Envelope struct {
-	EventID     string          `json:"eventId"`
-	EventType   string          `json:"eventType"`
-	Version     int             `json:"version"`
-	OccurredAt  time.Time       `json:"occurredAt"`
-	Payload     json.RawMessage `json:"payload"`
+	EventID    string          `json:"eventId"`
+	EventType  string          `json:"eventType"`
+	Version    int             `json:"version"`
+	OccurredAt time.Time       `json:"occurredAt"`
+	Payload    json.RawMessage `json:"payload"`
 }
 
 // CheckInCreated is the payload for TypeCheckInCreated events.
@@ -52,10 +52,10 @@ type UserOnboarded struct {
 
 // SettingsChanged is the payload for TypeSettingsChanged events.
 type SettingsChanged struct {
-	UserID        string `json:"userId"`
-	Timezone      string `json:"timezone"`
-	CheckInTime   string `json:"checkInTime"`
-	HabitReminders bool  `json:"habitReminders"`
+	UserID         string `json:"userId"`
+	Timezone       string `json:"timezone"`
+	CheckInTime    string `json:"checkInTime"`
+	HabitReminders bool   `json:"habitReminders"`
 }
 
 // CheckInFeedbackGenerated is the payload for TypeCheckInFeedbackGenerated events.
@@ -68,11 +68,11 @@ type CheckInFeedbackGenerated struct {
 
 // ReminderDue is the payload for TypeReminderDue events.
 type ReminderDue struct {
-	ReminderID   string `json:"reminderId"`
-	UserID       string `json:"userId"`
-	Type         string `json:"type"`
-	ScheduledAt  string `json:"scheduledAt"`
-	Metadata     string `json:"metadata,omitempty"`
+	ReminderID  string `json:"reminderId"`
+	UserID      string `json:"userId"`
+	Type        string `json:"type"`
+	ScheduledAt string `json:"scheduledAt"`
+	Metadata    string `json:"metadata,omitempty"`
 }
 
 // NewEnvelope creates a new Envelope with a UUID v7 event ID, the given

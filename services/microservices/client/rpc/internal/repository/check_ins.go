@@ -31,12 +31,13 @@ func (r *checkInsRepo) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) (
 	return r.db.GetTodayCheckIns(ctx, userID)
 }
 
-func (r *checkInsRepo) GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, limit, offset int32) ([]db.CheckIn, error) {
+func (r *checkInsRepo) GetCheckInsByHabit(ctx context.Context, habitID, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInsByHabit")
 	defer span.End()
 
 	return r.db.GetCheckInsByHabit(ctx, db.GetCheckInsByHabitParams{
 		HabitID: habitID,
+		UserID:  userID,
 		Limit:   limit,
 		Offset:  offset,
 	})
@@ -53,14 +54,27 @@ func (r *checkInsRepo) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, 
 	})
 }
 
+func (r *checkInsRepo) GetCheckInHistory(ctx context.Context, userID uuid.UUID, start, end time.Time, limit, offset int32) ([]db.CheckIn, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInHistory")
+	defer span.End()
+
+	return r.db.GetCheckInHistory(ctx, db.GetCheckInHistoryParams{
+		UserID:      userID,
+		CreatedAt:   start,
+		CreatedAt_2: end,
+		Limit:       limit,
+		Offset:      offset,
+	})
+}
+
 func (r *checkInsRepo) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.CheckIn, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInsForWeek")
 	defer span.End()
 
 	return r.db.GetCheckInsForWeek(ctx, db.GetCheckInsForWeekParams{
-		UserID:      userID,
-		CreatedAt:   start,
-		CreatedAt_2: end,
+		UserID:    userID,
+		WeekStart: start,
+		WeekEnd:   end,
 	})
 }
 

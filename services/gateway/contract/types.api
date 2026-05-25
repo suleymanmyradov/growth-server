@@ -508,6 +508,74 @@ type (
     }
 )
 
+// Weekly Review types
+type (
+    WeeklyReviewHabitBreakdown {
+        habitId string `json:"habitId"`
+        habitName string `json:"habitName"`
+        category string `json:"category,optional"`
+        totalCheckIns int `json:"totalCheckIns"`
+        completedCount int `json:"completedCount"`
+        missedCount int `json:"missedCount"`
+        completionRate float64 `json:"completionRate"`
+        lastCheckInAt string `json:"lastCheckInAt,optional"`
+    }
+
+    WeeklyReviewAdjustment {
+        habitId string `json:"habitId,optional"`
+        habitName string `json:"habitName"`
+        adjustmentType string `json:"adjustmentType"`
+        reason string `json:"reason"`
+        suggestion string `json:"suggestion"`
+    }
+
+    WeeklyReviewNextWeekPlan {
+        focus string `json:"focus"`
+        commitments []string `json:"commitments"`
+        risks []string `json:"risks"`
+        recoveryActions []string `json:"recoveryActions"`
+    }
+
+    WeeklyReview {
+        id string `json:"id"`
+        userId string `json:"userId"`
+        weekStart string `json:"weekStart"`
+        weekEnd string `json:"weekEnd"`
+        totalHabits int `json:"totalHabits"`
+        completedCheckIns int `json:"completedCheckIns"`
+        missedCheckIns int `json:"missedCheckIns"`
+        completionRate float64 `json:"completionRate"`
+        bestDay string `json:"bestDay,optional"`
+        hardestDay string `json:"hardestDay,optional"`
+        topBlocker string `json:"topBlocker,optional"`
+        moodSummary map[string]int32 `json:"moodSummary"`
+        energySummary map[string]int32 `json:"energySummary"`
+        habitBreakdown []WeeklyReviewHabitBreakdown `json:"habitBreakdown"`
+        aiSummary string `json:"aiSummary,optional"`
+        suggestedAdjustments []WeeklyReviewAdjustment `json:"suggestedAdjustments"`
+        nextWeekPlan WeeklyReviewNextWeekPlan `json:"nextWeekPlan"`
+        generatedAt string `json:"generatedAt"`
+    }
+
+    GenerateWeeklyReviewRequest {
+        weekStart string `json:"weekStart,optional"`
+        forceRegenerate bool `json:"forceRegenerate,optional"`
+    }
+
+    GetWeeklyReviewRequest {
+        weekStart string `path:"weekStart"`
+    }
+
+    WeeklyReviewResponse {
+        data WeeklyReview `json:"data"`
+    }
+
+    WeeklyReviewsResponse {
+        data []WeeklyReview `json:"data"`
+        page PageResponse `json:"page"`
+    }
+)
+
 // Category types
 type (
     Category {
@@ -530,5 +598,110 @@ type (
     
     ListCategoriesRequest {
         entityType string `form:"entityType,example=habit"`
+    }
+)
+
+// Personalization types
+type (
+    CoachingProfile {
+        id string `json:"id,example=profile-123"`
+        userId string `json:"userId,example=user-123"`
+        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
+        preferredTone string `json:"preferredTone,example=supportive"`
+        difficultyPreference string `json:"difficultyPreference,example=adaptive"`
+        primaryMotivation string `json:"primaryMotivation,optional,example=personal_growth"`
+        commonBlockers []string `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+        coachingNotes map[string]string `json:"coachingNotes,optional"`
+        lastContextRefreshAt string `json:"lastContextRefreshAt,optional,example=2024-01-15T00:00:00Z"`
+        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+
+    CoachingProfileResponse {
+        data CoachingProfile `json:"data"`
+    }
+
+    UpsertCoachingProfileRequest {
+        accountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
+        preferredTone string `json:"preferredTone,optional,example=supportive"`
+        difficultyPreference string `json:"difficultyPreference,optional,example=adaptive"`
+        commonBlockers []string `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+        coachingNotes map[string]string `json:"coachingNotes,optional"`
+    }
+
+    UpdateCoachingProfilePreferencesRequest {
+        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
+        preferredTone string `json:"preferredTone,example=supportive"`
+        difficultyPreference string `json:"difficultyPreference,example=adaptive"`
+    }
+
+    PersonalizationContext {
+        profile CoachingProfile `json:"profile"`
+        activeGoals []Goal `json:"activeGoals"`
+        activeHabits []Habit `json:"activeHabits"`
+        recentCheckIns []CheckIn `json:"recentCheckIns"`
+        latestWeeklyReview WeeklyReview `json:"latestWeeklyReview,optional"`
+        pendingSuggestions []PlanAdjustmentSuggestion `json:"pendingSuggestions"`
+        patternInsights map[string]string `json:"patternInsights,optional"`
+    }
+
+    PersonalizationContextResponse {
+        data PersonalizationContext `json:"data"`
+    }
+
+    GetPersonalizationContextRequest {
+        forceRefresh bool `form:"forceRefresh,default=false,example=false"`
+    }
+
+    GeneratePersonalizedCoachingRequest {
+        userMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+        context string `json:"context,optional,example=User has been struggling with motivation"`
+    }
+
+    GeneratePersonalizedCoachingResponse {
+        coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
+        context string `json:"context,optional,example=User has been struggling with motivation"`
+    }
+
+    PlanAdjustmentSuggestion {
+        id string `json:"id,example=suggestion-123"`
+        userId string `json:"userId,example=user-123"`
+        adjustmentType string `json:"adjustmentType,example=reduce_frequency"`
+        goalId string `json:"goalId,optional,example=goal-123"`
+        habitId string `json:"habitId,optional,example=habit-123"`
+        source string `json:"source,example=weekly_review"`
+        reason string `json:"reason,optional,example=Based on your recent completion patterns"`
+        suggestion string `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+        metadata map[string]string `json:"metadata,optional"`
+        status string `json:"status,example=pending"`
+        createdAt string `json:"createdAt,example=2024-01-15T00:00:00Z"`
+        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+    }
+
+    PlanAdjustmentSuggestionResponse {
+        data PlanAdjustmentSuggestion `json:"data"`
+    }
+
+    PlanAdjustmentSuggestionsResponse {
+        data []PlanAdjustmentSuggestion `json:"data"`
+    }
+
+    CreatePlanAdjustmentSuggestionRequest {
+        adjustmentType string `json:"adjustmentType,example=reduce_frequency"`
+        goalId string `json:"goalId,optional,example=goal-123"`
+        habitId string `json:"habitId,optional,example=habit-123"`
+        source string `json:"source,example=weekly_review"`
+        reason string `json:"reason,optional,example=Based on your recent completion patterns"`
+        suggestion string `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+        metadata map[string]string `json:"metadata,optional"`
+    }
+
+    UpdatePlanAdjustmentSuggestionStatusRequest {
+        id string `path:"id"`
+        status string `json:"status,example=accepted"`
+    }
+
+    ApplyPlanAdjustmentSuggestionRequest {
+        id string `path:"id"`
     }
 )

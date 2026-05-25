@@ -87,7 +87,7 @@ func (h *ReminderDueHandler) Consume(ctx context.Context, _ string, raw string) 
 	return nil
 }
 
-func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UUID, p events.ReminderDue) error {
+func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
 	rc, err := h.repo.Reminders.GetContext(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get reminder context: %w", err)

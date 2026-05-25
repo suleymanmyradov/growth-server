@@ -1,3 +1,6 @@
+// Code scaffolded by goctl. Safe to edit.
+// goctl 1.10.1
+
 package config
 
 import (
@@ -5,21 +8,16 @@ import (
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
-type AuthConfig struct {
-	Secret   string
-	Issuer   string
-	Audience string
-}
-
 type Config struct {
 	rest.RestConf
-	CORS struct {
-		Origins []string
-	}
-	Auth             AuthConfig
 	AuthRpc          zrpc.RpcClientConf
-	ClientRpc        zrpc.RpcClientConf
 	NotificationsRpc zrpc.RpcClientConf
+	ClientRpc        zrpc.RpcClientConf
 	SearchRpc        zrpc.RpcClientConf
 	ConversationsRpc zrpc.RpcClientConf
+	Auth             struct {
+		Secret   string
+		Issuer   string
+		Audience string
+	}
 }

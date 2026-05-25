@@ -27,8 +27,8 @@ func (realClock) Now() time.Time { return time.Now() }
 // EventsHandler consumes domain events from the growth.events topic and
 // manages reminder_queue rows accordingly.
 type EventsHandler struct {
-	repo *repository.Repository
-	pub  Publisher
+	repo  *repository.Repository
+	pub   Publisher
 	clock Clock
 }
 

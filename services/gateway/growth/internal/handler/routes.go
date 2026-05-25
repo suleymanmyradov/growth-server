@@ -15,11 +15,13 @@ import (
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
 	notifications "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/notifications"
+	personalization "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/personalization"
 	profile "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/profile"
 	report "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/report"
 	saved "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/saved"
 	search "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/search"
 	settings "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/settings"
+	weeklyreview "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/weeklyreview"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -306,6 +308,60 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.Auth},
 			[]rest.Route{
 				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/coaching",
+					Handler: personalization.GeneratePersonalizedCoachingHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/personalization/coaching-profile",
+					Handler: personalization.GetCoachingProfileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/coaching-profile",
+					Handler: personalization.UpsertCoachingProfileHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/personalization/coaching-profile/preferences",
+					Handler: personalization.UpdateCoachingProfilePreferencesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/personalization/context",
+					Handler: personalization.GetPersonalizationContextHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/personalization/plan-adjustments",
+					Handler: personalization.ListPendingPlanAdjustmentSuggestionsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/plan-adjustments",
+					Handler: personalization.CreatePlanAdjustmentSuggestionHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/plan-adjustments/:id/apply",
+					Handler: personalization.ApplyPlanAdjustmentSuggestionHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/personalization/plan-adjustments/:id/status",
+					Handler: personalization.UpdatePlanAdjustmentSuggestionStatusHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
 					Method:  http.MethodPut,
 					Path:    "/profile",
 					Handler: profile.UpdateProfileHandler(serverCtx),
@@ -382,6 +438,35 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPut,
 					Path:    "/settings",
 					Handler: settings.UpdateSettingsHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/weekly-reviews",
+					Handler: weeklyreview.ListWeeklyReviewsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/weekly-reviews/:weekStart",
+					Handler: weeklyreview.GetWeeklyReviewHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/weekly-reviews/current",
+					Handler: weeklyreview.GetCurrentWeeklyReviewHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/weekly-reviews/generate",
+					Handler: weeklyreview.GenerateWeeklyReviewHandler(serverCtx),
 				},
 			}...,
 		),

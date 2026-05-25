@@ -1,0 +1,74 @@
+// Code scaffolded by goctl. Safe to edit.
+// goctl 1.10.1
+
+package personalization
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
+	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
+
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type UpdateCoachingProfilePreferencesLogic struct {
+	logx.Logger
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+}
+
+func NewUpdateCoachingProfilePreferencesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateCoachingProfilePreferencesLogic {
+	return &UpdateCoachingProfilePreferencesLogic{
+		Logger: logx.WithContext(ctx),
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
+}
+
+func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences(req *types.UpdateCoachingProfilePreferencesRequest) (resp *types.CoachingProfileResponse, err error) {
+	principal, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, errors.New("unauthorized")
+	}
+
+	rpcResp, err := l.svcCtx.PersonalizationRpc.UpdateCoachingProfilePreferences(l.ctx, &clientpersonalization.UpdateCoachingProfilePreferencesRequest{
+		UserId:               principal.UserID,
+		AccountabilityStyle:  req.AccountabilityStyle,
+		PreferredTone:        req.PreferredTone,
+		DifficultyPreference: req.DifficultyPreference,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse coaching notes JSON
+	var coachingNotes map[string]string
+	if rpcResp.Profile.CoachingNotesJson != "" {
+		if err := json.Unmarshal([]byte(rpcResp.Profile.CoachingNotesJson), &coachingNotes); err != nil {
+			coachingNotes = make(map[string]string)
+		}
+	} else {
+		coachingNotes = make(map[string]string)
+	}
+
+	return &types.CoachingProfileResponse{
+		Data: types.CoachingProfile{
+			Id:                   rpcResp.Profile.Id,
+			UserId:               rpcResp.Profile.UserId,
+			AccountabilityStyle:  rpcResp.Profile.AccountabilityStyle,
+			PreferredTone:        rpcResp.Profile.PreferredTone,
+			DifficultyPreference: rpcResp.Profile.DifficultyPreference,
+			PrimaryMotivation:    rpcResp.Profile.PrimaryMotivation,
+			CommonBlockers:       rpcResp.Profile.CommonBlockers,
+			CoachingNotes:        coachingNotes,
+			LastContextRefreshAt: formatTimestamp(rpcResp.Profile.LastContextRefreshAt),
+			CreatedAt:            formatTimestamp(rpcResp.Profile.CreatedAt),
+			UpdatedAt:            formatTimestamp(rpcResp.Profile.UpdatedAt),
+		},
+	}, nil
+}

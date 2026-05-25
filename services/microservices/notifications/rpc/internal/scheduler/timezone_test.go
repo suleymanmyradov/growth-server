@@ -8,7 +8,7 @@ import (
 
 func TestNextOccurrence_TodayStillAhead(t *testing.T) {
 	now := time.Date(2025, 5, 16, 8, 0, 0, 0, time.UTC) // 08:00 UTC
-	loc, _ := time.LoadLocation("America/New_York")       // UTC-4/5
+	loc, _ := time.LoadLocation("America/New_York")     // UTC-4/5
 
 	// check_in_time = 10:00 local = 14:00/15:00 UTC → still ahead
 	cit := sql.NullTime{Time: time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC), Valid: true}
@@ -29,7 +29,7 @@ func TestNextOccurrence_TodayStillAhead(t *testing.T) {
 
 func TestNextOccurrence_Tomorrow(t *testing.T) {
 	now := time.Date(2025, 5, 16, 22, 0, 0, 0, time.UTC) // 22:00 UTC
-	loc, _ := time.LoadLocation("America/New_York")       // 18:00 local
+	loc, _ := time.LoadLocation("America/New_York")      // 18:00 local
 
 	// check_in_time = 10:00 local → already passed today
 	cit := sql.NullTime{Time: time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC), Valid: true}

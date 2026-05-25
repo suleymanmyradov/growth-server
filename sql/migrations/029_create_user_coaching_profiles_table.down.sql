@@ -1,0 +1,3 @@
+DROP TRIGGER IF EXISTS update_user_coaching_profiles_updated_at ON user_coaching_profiles;
+DROP INDEX IF EXISTS idx_user_coaching_profiles_user_id;
+DROP TABLE IF EXISTS user_coaching_profiles;

@@ -117,6 +117,7 @@ type Category struct {
 	UpdatedAt  time.Time     `db:"updated_at" json:"updated_at"`
 }
 
+// Check-in records are immutable events - they have no updated_at column and should never be modified after creation
 type CheckIn struct {
 	ID        uuid.UUID      `db:"id" json:"id"`
 	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
@@ -127,6 +128,8 @@ type CheckIn struct {
 	Blocker   sql.NullString `db:"blocker" json:"blocker"`
 	Note      sql.NullString `db:"note" json:"note"`
 	CreatedAt time.Time      `db:"created_at" json:"created_at"`
+	// User's local date at time of check-in, used for timezone-aware deduplication
+	LocalDate time.Time `db:"local_date" json:"local_date"`
 }
 
 type Conversation struct {
@@ -190,6 +193,22 @@ type Notification struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+type PlanAdjustmentSuggestion struct {
+	ID             uuid.UUID       `db:"id" json:"id"`
+	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
+	GoalID         uuid.NullUUID   `db:"goal_id" json:"goal_id"`
+	HabitID        uuid.NullUUID   `db:"habit_id" json:"habit_id"`
+	Source         string          `db:"source" json:"source"`
+	AdjustmentType string          `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string          `db:"reason" json:"reason"`
+	Suggestion     string          `db:"suggestion" json:"suggestion"`
+	Status         string          `db:"status" json:"status"`
+	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time       `db:"updated_at" json:"updated_at"`
+	WeekStart      sql.NullTime    `db:"week_start" json:"week_start"`
+}
+
 type ProcessedEvent struct {
 	EventID     uuid.UUID `db:"event_id" json:"event_id"`
 	ProcessedAt time.Time `db:"processed_at" json:"processed_at"`
@@ -237,6 +256,20 @@ type User struct {
 	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
 }
 
+type UserCoachingProfile struct {
+	ID                   uuid.UUID       `db:"id" json:"id"`
+	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string          `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string          `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string          `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    sql.NullString  `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       json.RawMessage `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        json.RawMessage `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt sql.NullTime    `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time       `db:"updated_at" json:"updated_at"`
+}
+
 type UserSetting struct {
 	ID                  uuid.UUID    `db:"id" json:"id"`
 	Theme               string       `db:"theme" json:"theme"`
@@ -252,4 +285,27 @@ type UserSetting struct {
 	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
 	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
+}
+
+type WeeklyReview struct {
+	ID                   uuid.UUID       `db:"id" json:"id"`
+	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
+	WeekStart            time.Time       `db:"week_start" json:"week_start"`
+	WeekEnd              time.Time       `db:"week_end" json:"week_end"`
+	TotalHabits          int32           `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32           `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32           `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       string          `db:"completion_rate" json:"completion_rate"`
+	BestDay              sql.NullString  `db:"best_day" json:"best_day"`
+	HardestDay           sql.NullString  `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           sql.NullString  `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          json.RawMessage `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        json.RawMessage `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       json.RawMessage `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            sql.NullString  `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments json.RawMessage `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         json.RawMessage `db:"next_week_plan" json:"next_week_plan"`
+	GeneratedAt          time.Time       `db:"generated_at" json:"generated_at"`
+	CreatedAt            time.Time       `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time       `db:"updated_at" json:"updated_at"`
 }

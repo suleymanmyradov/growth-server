@@ -7,7 +7,7 @@ package server
 import (
 	"context"
 
-	"github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/internal/logic/conversationsservice"
+	conversationsservicelogic "github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/internal/logic/conversationsservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/pb/conversations"
 )

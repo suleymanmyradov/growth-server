@@ -1,17 +1,23 @@
 -- name: GetReminderContext :one
 SELECT
-    us.timezone,
+    COALESCE(us.timezone, 'UTC') AS timezone,
     us.check_in_time,
     COALESCE(us.habit_reminders, FALSE) AS habit_reminders,
-    us.onboarding_completed,
+    COALESCE(us.onboarding_completed, FALSE) AS onboarding_completed,
     (SELECT COUNT(*) FROM habits h WHERE h.user_id = $1) AS active_habit_count,
-    EXISTS(
-        SELECT 1 FROM check_ins ci
-        WHERE ci.user_id = $1
-          AND ci.created_at::date = (NOW() AT TIME ZONE us.timezone)::date
+    -- checked_in_today is TRUE only if the user has checked in on ALL active habits today
+    -- This prevents reminder spam while still sending reminders for incomplete habits
+    (SELECT COUNT(*) = 0
+     FROM habits h
+     WHERE h.user_id = $1
+       AND NOT EXISTS (
+           SELECT 1 FROM check_ins ci
+           WHERE ci.habit_id = h.id
+             AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
+       )
     ) AS checked_in_today
-FROM user_settings us
-WHERE us.user_id = $1;
+FROM (SELECT $1 AS user_id) dummy
+LEFT JOIN user_settings us ON us.user_id = dummy.user_id;
 
 -- name: MarkReminderSent :one
 UPDATE reminder_queue

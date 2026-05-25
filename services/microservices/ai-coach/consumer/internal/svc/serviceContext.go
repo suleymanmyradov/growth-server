@@ -18,12 +18,12 @@ import (
 )
 
 type ServiceContext struct {
-	Config   config.Config
-	Repo     *repository.Repository
-	AI       ai.Client
-	EventsQ  queue.MessageQueue
+	Config    config.Config
+	Repo      *repository.Repository
+	AI        ai.Client
+	EventsQ   queue.MessageQueue
 	EventsPub *events.Publisher
-	sqlDB    *sql.DB
+	sqlDB     *sql.DB
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {

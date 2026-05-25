@@ -81,7 +81,3 @@ func getPasswordReset(token string) (PasswordReset, bool) {
 func deletePasswordReset(token string) {
 	delete(globalPasswordResetStore.resets, token)
 }
-
-func savePasswordReset(token string, reset PasswordReset) {
-	globalPasswordResetStore.resets[token] = reset
-}

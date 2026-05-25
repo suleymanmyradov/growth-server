@@ -13,9 +13,11 @@ import (
 	checkInServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/checkinservice"
 	goalsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/goals"
 	habitsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/habits"
+	personalizationServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/personalizationservice"
 	reportServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/report"
 	savedServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/saved"
 	settingsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/settings"
+	weeklyReviewServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/weeklyreviewservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -45,6 +47,8 @@ func main() {
 		client.RegisterHabitsServer(grpcServer, habitsServer.NewHabitsServer(ctx))
 		client.RegisterCategoriesServer(grpcServer, categoriesServer.NewCategoriesServer(ctx))
 		client.RegisterCheckInServiceServer(grpcServer, checkInServiceServer.NewCheckInServiceServer(ctx))
+		client.RegisterWeeklyReviewServiceServer(grpcServer, weeklyReviewServer.NewWeeklyReviewServiceServer(ctx))
+		client.RegisterPersonalizationServiceServer(grpcServer, personalizationServiceServer.NewPersonalizationServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)
