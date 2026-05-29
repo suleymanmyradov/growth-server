@@ -705,3 +705,100 @@ type (
         id string `path:"id"`
     }
 )
+
+// Billing types
+type (
+    Plan {
+        id string `json:"id,example=plan-123"`
+        code string `json:"code,example=free"`
+        name string `json:"name,example=Free"`
+        description string `json:"description,optional,example=Start with the core accountability loop"`
+        priceMonthlyCents int `json:"priceMonthlyCents,example=0"`
+        priceAnnualCents int `json:"priceAnnualCents,example=0"`
+        activeGoalLimit int `json:"activeGoalLimit,optional,example=1"`
+        activeHabitLimit int `json:"activeHabitLimit,optional,example=3"`
+        weeklyReviewHistoryLimit int `json:"weeklyReviewHistoryLimit,optional,example=1"`
+        planAdjustmentLimit int `json:"planAdjustmentLimit,optional,example=3"`
+        personalizedAiEnabled bool `json:"personalizedAiEnabled,example=false"`
+        isActive bool `json:"isActive,example=true"`
+    }
+
+    UserSubscription {
+        id string `json:"id,example=sub-123"`
+        userId string `json:"userId,example=user-123"`
+        planId string `json:"planId,example=plan-123"`
+        planCode string `json:"planCode,example=free"`
+        planName string `json:"planName,example=Free"`
+        status string `json:"status,example=free"`
+        billingInterval string `json:"billingInterval,optional,example=monthly"`
+        currentPeriodStart string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
+        currentPeriodEnd string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
+        trialEnd string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
+        cancelAtPeriodEnd bool `json:"cancelAtPeriodEnd,example=false"`
+        stripeCustomerId string `json:"stripeCustomerId,optional"`
+        stripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
+    }
+
+    Entitlements {
+        planCode string `json:"planCode,example=free"`
+        status string `json:"status,example=free"`
+        activeGoalLimit int `json:"activeGoalLimit,optional,example=1"`
+        activeHabitLimit int `json:"activeHabitLimit,optional,example=3"`
+        weeklyReviewHistoryLimit int `json:"weeklyReviewHistoryLimit,optional,example=1"`
+        planAdjustmentLimit int `json:"planAdjustmentLimit,optional,example=3"`
+        personalizedAiEnabled bool `json:"personalizedAiEnabled,example=false"`
+        canCreateGoal bool `json:"canCreateGoal,example=true"`
+        canCreateHabit bool `json:"canCreateHabit,example=true"`
+        canViewWeeklyReviewHistory bool `json:"canViewWeeklyReviewHistory,example=false"`
+        canUsePersonalizedAi bool `json:"canUsePersonalizedAi,example=false"`
+        canCreatePlanAdjustment bool `json:"canCreatePlanAdjustment,example=false"`
+        currentActiveGoals int `json:"currentActiveGoals,example=1"`
+        currentActiveHabits int `json:"currentActiveHabits,example=2"`
+        currentPendingAdjustments int `json:"currentPendingAdjustments,example=1"`
+    }
+
+    BillingOverviewResponse {
+        plans []Plan `json:"plans"`
+        subscription UserSubscription `json:"subscription"`
+        entitlements Entitlements `json:"entitlements"`
+        billingMode string `json:"billingMode,example=fake_door"`
+    }
+
+    TrackUpgradeEventRequest {
+        eventType string `json:"eventType,example=prompt_viewed"`
+        surface string `json:"surface,example=goal_create_limit"`
+        trigger string `json:"trigger,optional,example=goal_limit"`
+        planCode string `json:"planCode,optional,example=pro"`
+        billingInterval string `json:"billingInterval,optional,example=monthly"`
+        feedbackReason string `json:"feedbackReason,optional,example=too_expensive"`
+        feedbackNote string `json:"feedbackNote,optional"`
+        metadataJson string `json:"metadataJson,optional"`
+    }
+
+    TrackUpgradeEventResponse {
+        eventId string `json:"eventId,example=event-123"`
+    }
+
+    CreateCheckoutSessionRequest {
+        planCode string `json:"planCode,example=pro"`
+        billingInterval string `json:"billingInterval,example=monthly"`
+    }
+
+    CreateCheckoutSessionResponse {
+        checkoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
+        sessionId string `json:"sessionId,optional,example=cs_test_..."`
+    }
+
+    CreateCustomerPortalSessionResponse {
+        portalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
+    }
+
+    StripeWebhookRequest {
+        eventType string `json:"eventType,example=checkout.session.completed"`
+        payloadJson string `json:"payloadJson"`
+    }
+
+    StripeWebhookResponse {
+        processed bool `json:"processed,example=true"`
+    }
+)

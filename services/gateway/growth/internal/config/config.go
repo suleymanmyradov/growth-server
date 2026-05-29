@@ -20,4 +20,10 @@ type Config struct {
 		Issuer   string
 		Audience string
 	}
+	Billing struct {
+		Mode                string // disabled, fake_door, stripe_test, stripe_live
+		StripeSecretKey     string
+		StripeWebhookSecret string
+		FrontendURL         string
+	}
 }

@@ -62,6 +62,13 @@ type AuthResponse struct {
 	User         Profile `json:"user,optional"`
 }
 
+type BillingOverviewResponse struct {
+	Plans        []Plan           `json:"plans"`
+	Subscription UserSubscription `json:"subscription"`
+	Entitlements Entitlements     `json:"entitlements"`
+	BillingMode  string           `json:"billingMode,example=fake_door"`
+}
+
 type CategoriesResponse struct {
 	Data []Category `json:"data"`
 }
@@ -162,6 +169,20 @@ type CreateCheckInResponse struct {
 	AiFeedback string  `json:"aiFeedback,optional,example=Great job keeping your streak!"`
 }
 
+type CreateCheckoutSessionRequest struct {
+	PlanCode        string `json:"planCode,example=pro"`
+	BillingInterval string `json:"billingInterval,example=monthly"`
+}
+
+type CreateCheckoutSessionResponse struct {
+	CheckoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
+	SessionId   string `json:"sessionId,optional,example=cs_test_..."`
+}
+
+type CreateCustomerPortalSessionResponse struct {
+	PortalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
+}
+
 type CreateGoalRequest struct {
 	Title           string   `json:"title,example=Run a marathon"`
 	Description     string   `json:"description,example=Complete a 42.195km marathon race"`
@@ -187,6 +208,24 @@ type CreatePlanAdjustmentSuggestionRequest struct {
 }
 
 type EmptyResponse struct {
+}
+
+type Entitlements struct {
+	PlanCode                   string `json:"planCode,example=free"`
+	Status                     string `json:"status,example=free"`
+	ActiveGoalLimit            int    `json:"activeGoalLimit,optional,example=1"`
+	ActiveHabitLimit           int    `json:"activeHabitLimit,optional,example=3"`
+	WeeklyReviewHistoryLimit   int    `json:"weeklyReviewHistoryLimit,optional,example=1"`
+	PlanAdjustmentLimit        int    `json:"planAdjustmentLimit,optional,example=3"`
+	PersonalizedAiEnabled      bool   `json:"personalizedAiEnabled,example=false"`
+	CanCreateGoal              bool   `json:"canCreateGoal,example=true"`
+	CanCreateHabit             bool   `json:"canCreateHabit,example=true"`
+	CanViewWeeklyReviewHistory bool   `json:"canViewWeeklyReviewHistory,example=false"`
+	CanUsePersonalizedAi       bool   `json:"canUsePersonalizedAi,example=false"`
+	CanCreatePlanAdjustment    bool   `json:"canCreatePlanAdjustment,example=false"`
+	CurrentActiveGoals         int    `json:"currentActiveGoals,example=1"`
+	CurrentActiveHabits        int    `json:"currentActiveHabits,example=2"`
+	CurrentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
 }
 
 type GeneratePersonalizedCoachingRequest struct {
@@ -395,6 +434,21 @@ type PersonalizationContextResponse struct {
 	Data PersonalizationContext `json:"data"`
 }
 
+type Plan struct {
+	Id                       string `json:"id,example=plan-123"`
+	Code                     string `json:"code,example=free"`
+	Name                     string `json:"name,example=Free"`
+	Description              string `json:"description,optional,example=Start with the core accountability loop"`
+	PriceMonthlyCents        int    `json:"priceMonthlyCents,example=0"`
+	PriceAnnualCents         int    `json:"priceAnnualCents,example=0"`
+	ActiveGoalLimit          int    `json:"activeGoalLimit,optional,example=1"`
+	ActiveHabitLimit         int    `json:"activeHabitLimit,optional,example=3"`
+	WeeklyReviewHistoryLimit int    `json:"weeklyReviewHistoryLimit,optional,example=1"`
+	PlanAdjustmentLimit      int    `json:"planAdjustmentLimit,optional,example=3"`
+	PersonalizedAiEnabled    bool   `json:"personalizedAiEnabled,example=false"`
+	IsActive                 bool   `json:"isActive,example=true"`
+}
+
 type PlanAdjustmentSuggestion struct {
 	Id             string            `json:"id,example=suggestion-123"`
 	UserId         string            `json:"userId,example=user-123"`
@@ -542,6 +596,30 @@ type StartConversationRequest struct {
 	InitialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
 }
 
+type StripeWebhookRequest struct {
+	EventType   string `json:"eventType,example=checkout.session.completed"`
+	PayloadJson string `json:"payloadJson"`
+}
+
+type StripeWebhookResponse struct {
+	Processed bool `json:"processed,example=true"`
+}
+
+type TrackUpgradeEventRequest struct {
+	EventType       string `json:"eventType,example=prompt_viewed"`
+	Surface         string `json:"surface,example=goal_create_limit"`
+	Trigger         string `json:"trigger,optional,example=goal_limit"`
+	PlanCode        string `json:"planCode,optional,example=pro"`
+	BillingInterval string `json:"billingInterval,optional,example=monthly"`
+	FeedbackReason  string `json:"feedbackReason,optional,example=too_expensive"`
+	FeedbackNote    string `json:"feedbackNote,optional"`
+	MetadataJson    string `json:"metadataJson,optional"`
+}
+
+type TrackUpgradeEventResponse struct {
+	EventId string `json:"eventId,example=event-123"`
+}
+
 type UpdateCoachingProfilePreferencesRequest struct {
 	AccountabilityStyle  string `json:"accountabilityStyle,example=balanced"`
 	PreferredTone        string `json:"preferredTone,example=supportive"`
@@ -600,6 +678,22 @@ type UpsertCoachingProfileRequest struct {
 	DifficultyPreference string            `json:"difficultyPreference,optional,example=adaptive"`
 	CommonBlockers       []string          `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
 	CoachingNotes        map[string]string `json:"coachingNotes,optional"`
+}
+
+type UserSubscription struct {
+	Id                   string `json:"id,example=sub-123"`
+	UserId               string `json:"userId,example=user-123"`
+	PlanId               string `json:"planId,example=plan-123"`
+	PlanCode             string `json:"planCode,example=free"`
+	PlanName             string `json:"planName,example=Free"`
+	Status               string `json:"status,example=free"`
+	BillingInterval      string `json:"billingInterval,optional,example=monthly"`
+	CurrentPeriodStart   string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
+	CurrentPeriodEnd     string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
+	TrialEnd             string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
+	CancelAtPeriodEnd    bool   `json:"cancelAtPeriodEnd,example=false"`
+	StripeCustomerId     string `json:"stripeCustomerId,optional"`
+	StripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
 }
 
 type WeeklyReview struct {

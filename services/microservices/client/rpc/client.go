@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	activityServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/activity"
 	articlesServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/articles"
+	billingServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/billingservice"
 	categoriesServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/categories"
 	checkInServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/checkinservice"
 	goalsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/goals"
@@ -49,6 +50,7 @@ func main() {
 		client.RegisterCheckInServiceServer(grpcServer, checkInServiceServer.NewCheckInServiceServer(ctx))
 		client.RegisterWeeklyReviewServiceServer(grpcServer, weeklyReviewServer.NewWeeklyReviewServiceServer(ctx))
 		client.RegisterPersonalizationServiceServer(grpcServer, personalizationServiceServer.NewPersonalizationServiceServer(ctx))
+		client.RegisterBillingServiceServer(grpcServer, billingServiceServer.NewBillingServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)

@@ -193,6 +193,25 @@ type Notification struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
+type Plan struct {
+	ID                       uuid.UUID      `db:"id" json:"id"`
+	Code                     string         `db:"code" json:"code"`
+	Name                     string         `db:"name" json:"name"`
+	Description              sql.NullString `db:"description" json:"description"`
+	PriceMonthlyCents        int32          `db:"price_monthly_cents" json:"price_monthly_cents"`
+	PriceAnnualCents         int32          `db:"price_annual_cents" json:"price_annual_cents"`
+	ActiveGoalLimit          sql.NullInt32  `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         sql.NullInt32  `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit sql.NullInt32  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      sql.NullInt32  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool           `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+	StripeMonthlyPriceID     sql.NullString `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
+	StripeAnnualPriceID      sql.NullString `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
+	IsActive                 bool           `db:"is_active" json:"is_active"`
+	CreatedAt                time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt                time.Time      `db:"updated_at" json:"updated_at"`
+}
+
 type PlanAdjustmentSuggestion struct {
 	ID             uuid.UUID       `db:"id" json:"id"`
 	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
@@ -246,6 +265,20 @@ type SavedItem struct {
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
+type UpgradeEvent struct {
+	ID              uuid.UUID       `db:"id" json:"id"`
+	UserID          uuid.UUID       `db:"user_id" json:"user_id"`
+	EventType       string          `db:"event_type" json:"event_type"`
+	Surface         string          `db:"surface" json:"surface"`
+	Trigger         sql.NullString  `db:"trigger" json:"trigger"`
+	PlanCode        sql.NullString  `db:"plan_code" json:"plan_code"`
+	BillingInterval sql.NullString  `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  sql.NullString  `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    sql.NullString  `db:"feedback_note" json:"feedback_note"`
+	Metadata        json.RawMessage `db:"metadata" json:"metadata"`
+	CreatedAt       time.Time       `db:"created_at" json:"created_at"`
+}
+
 type User struct {
 	ID           uuid.UUID `db:"id" json:"id"`
 	Username     string    `db:"username" json:"username"`
@@ -285,6 +318,22 @@ type UserSetting struct {
 	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
 	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
+}
+
+type UserSubscription struct {
+	ID                   uuid.UUID      `db:"id" json:"id"`
+	UserID               uuid.UUID      `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID      `db:"plan_id" json:"plan_id"`
+	Status               string         `db:"status" json:"status"`
+	BillingInterval      sql.NullString `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   sql.NullTime   `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     sql.NullTime   `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             sql.NullTime   `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool           `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID     sql.NullString `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt            time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time      `db:"updated_at" json:"updated_at"`
 }
 
 type WeeklyReview struct {

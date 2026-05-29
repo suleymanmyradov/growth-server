@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -29,9 +30,22 @@ func NewCreatePlanAdjustmentSuggestionLogic(ctx context.Context, svcCtx *svc.Ser
 }
 
 func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in *client.CreatePlanAdjustmentSuggestionRequest) (*client.CreatePlanAdjustmentSuggestionResponse, error) {
-	userID, err := uuid.Parse(in.UserId)
+	p, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	// Check plan limit enforcement (auto-create free subscription if missing)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	if subErr == nil {
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		if computeErr == nil && !entitlements.CanCreatePlanAdjustment {
+			return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:plan_adjustments:plan_adjustments")
+		}
 	}
 
 	var goalID, habitID uuid.NullUUID

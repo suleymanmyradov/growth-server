@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,6 +36,15 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
 		return nil, err
+	}
+
+	// Check plan limit enforcement (auto-create free subscription if missing)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	if subErr == nil {
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		if computeErr == nil && !entitlements.CanCreateHabit {
+			return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:active_habits:habit_limit")
+		}
 	}
 
 	params := protoToHabitParams(in.Name, in.Description, in.Category, userID)
