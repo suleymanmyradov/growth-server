@@ -41,6 +41,24 @@ func (l *GetWeeklyReviewLogic) GetWeeklyReview(in *client.GetWeeklyReviewRequest
 		return nil, status.Error(codes.InvalidArgument, "invalid weekStart")
 	}
 
+	// Enforce weekly review history limit server-side
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	if subErr == nil {
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
+			// Compute current week start to determine if requested week is historical
+			now := time.Now().UTC()
+			offset := int(time.Monday - now.Weekday())
+			if offset > 0 {
+				offset -= 7
+			}
+			currentWeekStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).AddDate(0, 0, offset)
+			if weekStart.Before(currentWeekStart) {
+				return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:weekly_review_history:weekly_history")
+			}
+		}
+	}
+
 	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
 	if err != nil {
 		if err == sql.ErrNoRows {

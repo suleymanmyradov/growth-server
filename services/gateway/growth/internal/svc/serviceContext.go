@@ -7,11 +7,13 @@ import (
 	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
+	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 	clientactivity "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
+	clientbilling "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
 	clientcategories "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/categories"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
@@ -48,6 +50,8 @@ type ServiceContext struct {
 	ActivityRpc        clientactivity.Activity
 	WeeklyReviewRpc    clientweeklyreview.WeeklyReviewService
 	PersonalizationRpc clientpersonalization.PersonalizationService
+	BillingRpc         clientbilling.BillingService
+	StripeClient       *stripe.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -67,6 +71,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, clientOpts...))
+	var stripeClient *stripe.Client
+	if c.Billing.StripeSecretKey != "" {
+		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
+	}
+
 	return &ServiceContext{
 		Config: c,
 		Auth: middleware.JWTMiddleware(middleware.JWTVerifierConfig{
@@ -89,5 +98,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		ActivityRpc:        clientactivity.NewActivity(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
 		WeeklyReviewRpc:    clientweeklyreview.NewWeeklyReviewService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
 		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
+		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
+		StripeClient:       stripeClient,
 	}
 }

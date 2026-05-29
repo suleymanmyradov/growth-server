@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -137,6 +138,21 @@ type ICoachingProfiles interface {
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 }
 
+type IBilling interface {
+	ListActivePlans(ctx context.Context) ([]db.Plan, error)
+	GetPlanByCode(ctx context.Context, code string) (db.Plan, error)
+	GetUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
+	GetOrCreateUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
+	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (db.GetUserSubscriptionByStripeCustomerIDRow, error)
+	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.UserSubscription, error)
+	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.UserSubscription, error)
+	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.UpgradeEvent, error)
+	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*EntitlementsResult, error)
+}
+
 type IPlanAdjustmentSuggestions interface {
 	CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
 	GetPlanAdjustmentSuggestion(ctx context.Context, params db.GetPlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
@@ -164,6 +180,7 @@ type Repository struct {
 	WeeklyReviews             IWeeklyReviews
 	CoachingProfiles          ICoachingProfiles
 	PlanAdjustmentSuggestions IPlanAdjustmentSuggestions
+	Billing                   IBilling
 }
 
 func NewRepository(db *db.Queries) *Repository {
@@ -180,5 +197,6 @@ func NewRepository(db *db.Queries) *Repository {
 		WeeklyReviews:             NewWeeklyReviewsRepo(db),
 		CoachingProfiles:          NewCoachingProfilesRepo(db),
 		PlanAdjustmentSuggestions: NewPlanAdjustmentSuggestionsRepo(db),
+		Billing:                   NewBillingRepo(db),
 	}
 }

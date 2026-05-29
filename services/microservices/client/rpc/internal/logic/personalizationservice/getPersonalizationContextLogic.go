@@ -39,6 +39,41 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
+	// Check personalized AI entitlement
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	if subErr == nil {
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		if computeErr == nil && !entitlements.CanUsePersonalizedAi {
+			// Return reduced/basic context for Free users
+			profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
+						UserID:               userID,
+						AccountabilityStyle:  "balanced",
+						PreferredTone:        "supportive",
+						DifficultyPreference: "adaptive",
+						CommonBlockers:       []byte("[]"),
+						CoachingNotes:        []byte("{}"),
+					})
+				}
+			}
+			return &client.GetPersonalizationContextResponse{
+				Context: &client.PersonalizationContext{
+					Profile:         dbCoachingProfileToProto(profile),
+					ActiveGoals:     []*client.Goal{},
+					ActiveHabits:    []*client.Habit{},
+					RecentCheckIns:  []*client.CheckIn{},
+					PendingSuggestions: []*client.PlanAdjustmentSuggestion{},
+					PatternInsights: map[string]string{
+						"personalized_ai": "unavailable",
+						"reason":          "Upgrade to Pro for personalized coaching context",
+					},
+				},
+			}, nil
+		}
+	}
+
 	// Get or create coaching profile
 	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
 	if err != nil {

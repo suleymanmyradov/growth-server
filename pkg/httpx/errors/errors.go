@@ -15,6 +15,8 @@ var snakeCaseRe = regexp.MustCompile("([a-z0-9])([A-Z])")
 type ErrorResponse struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Limit   string `json:"limit,omitempty"`
+	UpgradeTrigger string `json:"upgradeTrigger,omitempty"`
 }
 
 func WriteUnauthorized(w http.ResponseWriter, message string) {
@@ -113,7 +115,31 @@ func HandleGrpcError(w http.ResponseWriter, err error) {
 	}
 
 	httpStatus := GrpcToHTTPStatus(st.Code())
-	sanitizedMessage := SanitizeErrorMessage(st.Code(), st.Message())
+
+	// Check for PLAN_LIMIT_REACHED error with structured details
+	msg := st.Message()
+	if strings.HasPrefix(msg, "PLAN_LIMIT_REACHED:") {
+		parts := strings.SplitN(msg, ":", 3)
+		limit := ""
+		trigger := ""
+		if len(parts) >= 2 {
+			limit = parts[1]
+		}
+		if len(parts) >= 3 {
+			trigger = parts[2]
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusPaymentRequired)
+		_ = json.NewEncoder(w).Encode(ErrorResponse{
+			Code:           "plan_limit_reached",
+			Message:        "You have reached the Free plan limit for this feature",
+			Limit:          limit,
+			UpgradeTrigger: trigger,
+		})
+		return
+	}
+
+	sanitizedMessage := SanitizeErrorMessage(st.Code(), msg)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpStatus)

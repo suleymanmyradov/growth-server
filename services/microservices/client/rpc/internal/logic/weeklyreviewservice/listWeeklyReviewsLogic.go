@@ -43,7 +43,32 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 	if limit > 50 {
 		limit = 50
 	}
+
+	// Enforce weekly review history limit server-side
+	var historyLimit int32
+	var isRestricted bool
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	if subErr == nil {
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
+			isRestricted = true
+			if sub.WeeklyReviewHistoryLimit.Valid && sub.WeeklyReviewHistoryLimit.Int32 > 0 {
+				historyLimit = sub.WeeklyReviewHistoryLimit.Int32
+			} else {
+				historyLimit = 1
+			}
+			if limit > historyLimit {
+				limit = historyLimit
+			}
+		}
+	}
+
 	offset := (page - 1) * limit
+	// For restricted users, always start at offset 0 so pagination cannot leak
+	// older reviews past the allowed history window.
+	if isRestricted {
+		offset = 0
+	}
 
 	reviews, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(l.ctx, userID, limit, offset)
 	if err != nil {
@@ -53,6 +78,11 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 	total, err := l.svcCtx.Repo.WeeklyReviews.CountWeeklyReviews(l.ctx, userID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to count weekly reviews")
+	}
+
+	// Cap total for restricted users so the true count is not leaked.
+	if isRestricted && int32(total) > historyLimit {
+		total = int64(historyLimit)
 	}
 
 	var protoReviews []*client.WeeklyReview

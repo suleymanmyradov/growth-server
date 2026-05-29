@@ -19,5 +19,11 @@ type Config struct {
 		Brokers     []string
 		EventsTopic string
 	}
-	AI ai.Config
+	AI      ai.Config
+	Billing struct {
+		Mode            string // disabled, fake_door, stripe_test, stripe_live
+		StripeSecretKey string
+		StripeWebhookSecret string
+		FrontendURL     string
+	}
 }

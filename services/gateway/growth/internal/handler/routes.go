@@ -9,6 +9,7 @@ import (
 	activity "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/activity"
 	articles "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/articles"
 	auth "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/auth"
+	billing "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/billing"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
 	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
 	conversations "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
@@ -114,6 +115,46 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 			}...,
 		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/billing/checkout",
+					Handler: billing.CreateCheckoutSessionHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/billing/overview",
+					Handler: billing.GetBillingOverviewHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/billing/portal",
+					Handler: billing.CreateCustomerPortalSessionHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/billing/upgrade-events",
+					Handler: billing.TrackUpgradeEventHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/billing/webhook",
+				Handler: billing.HandleStripeWebhookHandler(serverCtx),
+			},
+		},
 		rest.WithPrefix("/api/v1"),
 	)
 

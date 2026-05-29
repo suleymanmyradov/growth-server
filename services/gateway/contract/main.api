@@ -329,3 +329,33 @@ service growthapi {
 	post /personalization/plan-adjustments/:id/apply returns (PlanAdjustmentSuggestionResponse)
 }
 
+@server (
+	prefix:     /api/v1
+	group:      billing
+	middleware: Auth
+	tags:       "Billing"
+)
+service growthapi {
+	@handler GetBillingOverview
+	get /billing/overview returns (BillingOverviewResponse)
+
+	@handler TrackUpgradeEvent
+	post /billing/upgrade-events (TrackUpgradeEventRequest) returns (TrackUpgradeEventResponse)
+
+	@handler CreateCheckoutSession
+	post /billing/checkout (CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse)
+
+	@handler CreateCustomerPortalSession
+	post /billing/portal returns (CreateCustomerPortalSessionResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  billing
+	tags:   "Billing"
+)
+service growthapi {
+	@handler HandleStripeWebhook
+	post /billing/webhook (StripeWebhookRequest) returns (StripeWebhookResponse)
+}
+

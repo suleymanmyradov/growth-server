@@ -3534,3 +3534,257 @@ var PersonalizationService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
+
+const (
+	BillingService_GetBillingOverview_FullMethodName          = "/client.BillingService/GetBillingOverview"
+	BillingService_TrackUpgradeEvent_FullMethodName           = "/client.BillingService/TrackUpgradeEvent"
+	BillingService_CreateCheckoutSession_FullMethodName       = "/client.BillingService/CreateCheckoutSession"
+	BillingService_CreateCustomerPortalSession_FullMethodName = "/client.BillingService/CreateCustomerPortalSession"
+	BillingService_HandleStripeWebhook_FullMethodName         = "/client.BillingService/HandleStripeWebhook"
+)
+
+// BillingServiceClient is the client API for BillingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type BillingServiceClient interface {
+	GetBillingOverview(ctx context.Context, in *GetBillingOverviewRequest, opts ...grpc.CallOption) (*GetBillingOverviewResponse, error)
+	TrackUpgradeEvent(ctx context.Context, in *TrackUpgradeEventRequest, opts ...grpc.CallOption) (*TrackUpgradeEventResponse, error)
+	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
+	CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
+	HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
+}
+
+type billingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewBillingServiceClient(cc grpc.ClientConnInterface) BillingServiceClient {
+	return &billingServiceClient{cc}
+}
+
+func (c *billingServiceClient) GetBillingOverview(ctx context.Context, in *GetBillingOverviewRequest, opts ...grpc.CallOption) (*GetBillingOverviewResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBillingOverviewResponse)
+	err := c.cc.Invoke(ctx, BillingService_GetBillingOverview_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingServiceClient) TrackUpgradeEvent(ctx context.Context, in *TrackUpgradeEventRequest, opts ...grpc.CallOption) (*TrackUpgradeEventResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TrackUpgradeEventResponse)
+	err := c.cc.Invoke(ctx, BillingService_TrackUpgradeEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingServiceClient) CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateCheckoutSessionResponse)
+	err := c.cc.Invoke(ctx, BillingService_CreateCheckoutSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingServiceClient) CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateCustomerPortalSessionResponse)
+	err := c.cc.Invoke(ctx, BillingService_CreateCustomerPortalSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *billingServiceClient) HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HandleStripeWebhookResponse)
+	err := c.cc.Invoke(ctx, BillingService_HandleStripeWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// BillingServiceServer is the server API for BillingService service.
+// All implementations must embed UnimplementedBillingServiceServer
+// for forward compatibility.
+type BillingServiceServer interface {
+	GetBillingOverview(context.Context, *GetBillingOverviewRequest) (*GetBillingOverviewResponse, error)
+	TrackUpgradeEvent(context.Context, *TrackUpgradeEventRequest) (*TrackUpgradeEventResponse, error)
+	CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error)
+	CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error)
+	HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error)
+	mustEmbedUnimplementedBillingServiceServer()
+}
+
+// UnimplementedBillingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedBillingServiceServer struct{}
+
+func (UnimplementedBillingServiceServer) GetBillingOverview(context.Context, *GetBillingOverviewRequest) (*GetBillingOverviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBillingOverview not implemented")
+}
+func (UnimplementedBillingServiceServer) TrackUpgradeEvent(context.Context, *TrackUpgradeEventRequest) (*TrackUpgradeEventResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TrackUpgradeEvent not implemented")
+}
+func (UnimplementedBillingServiceServer) CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateCheckoutSession not implemented")
+}
+func (UnimplementedBillingServiceServer) CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateCustomerPortalSession not implemented")
+}
+func (UnimplementedBillingServiceServer) HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HandleStripeWebhook not implemented")
+}
+func (UnimplementedBillingServiceServer) mustEmbedUnimplementedBillingServiceServer() {}
+func (UnimplementedBillingServiceServer) testEmbeddedByValue()                        {}
+
+// UnsafeBillingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to BillingServiceServer will
+// result in compilation errors.
+type UnsafeBillingServiceServer interface {
+	mustEmbedUnimplementedBillingServiceServer()
+}
+
+func RegisterBillingServiceServer(s grpc.ServiceRegistrar, srv BillingServiceServer) {
+	// If the following call panics, it indicates UnimplementedBillingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&BillingService_ServiceDesc, srv)
+}
+
+func _BillingService_GetBillingOverview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBillingOverviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).GetBillingOverview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_GetBillingOverview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).GetBillingOverview(ctx, req.(*GetBillingOverviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingService_TrackUpgradeEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TrackUpgradeEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).TrackUpgradeEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_TrackUpgradeEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).TrackUpgradeEvent(ctx, req.(*TrackUpgradeEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingService_CreateCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCheckoutSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).CreateCheckoutSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_CreateCheckoutSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).CreateCheckoutSession(ctx, req.(*CreateCheckoutSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingService_CreateCustomerPortalSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCustomerPortalSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).CreateCustomerPortalSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_CreateCustomerPortalSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).CreateCustomerPortalSession(ctx, req.(*CreateCustomerPortalSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BillingService_HandleStripeWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandleStripeWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).HandleStripeWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_HandleStripeWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).HandleStripeWebhook(ctx, req.(*HandleStripeWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// BillingService_ServiceDesc is the grpc.ServiceDesc for BillingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var BillingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.BillingService",
+	HandlerType: (*BillingServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetBillingOverview",
+			Handler:    _BillingService_GetBillingOverview_Handler,
+		},
+		{
+			MethodName: "TrackUpgradeEvent",
+			Handler:    _BillingService_TrackUpgradeEvent_Handler,
+		},
+		{
+			MethodName: "CreateCheckoutSession",
+			Handler:    _BillingService_CreateCheckoutSession_Handler,
+		},
+		{
+			MethodName: "CreateCustomerPortalSession",
+			Handler:    _BillingService_CreateCustomerPortalSession_Handler,
+		},
+		{
+			MethodName: "HandleStripeWebhook",
+			Handler:    _BillingService_HandleStripeWebhook_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}

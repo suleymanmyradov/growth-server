@@ -6,12 +6,15 @@ package db
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
 
 type Querier interface {
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, arg ApplyPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error)
@@ -26,6 +29,7 @@ type Querier interface {
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error)
@@ -36,10 +40,12 @@ type Querier interface {
 	CreateArticleShare(ctx context.Context, arg CreateArticleShareParams) (ArticleShare, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
+	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (UserSubscription, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
 	CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error)
 	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
 	CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error)
+	CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (UpgradeEvent, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error)
 	CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (WeeklyReview, error)
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
@@ -84,15 +90,19 @@ type Querier interface {
 	GetHabit(ctx context.Context, id uuid.UUID) (Habit, error)
 	GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWeekParams) ([]GetMoodStatsForWeekRow, error)
 	GetPlanAdjustmentSuggestion(ctx context.Context, arg GetPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	GetPlanByCode(ctx context.Context, code string) (Plan, error)
 	GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error)
 	GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error)
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error)
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error)
+	GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error)
+	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (GetUserSubscriptionByStripeCustomerIDRow, error)
 	GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error)
 	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
 	IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error)
+	ListActivePlans(ctx context.Context) ([]Plan, error)
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
 	ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error)
 	ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error)
@@ -135,6 +145,7 @@ type Querier interface {
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg UpdatePlanAdjustmentSuggestionStatusParams) (PlanAdjustmentSuggestion, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error)
+	UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (UserSubscription, error)
 }
 
 var _ Querier = (*Queries)(nil)

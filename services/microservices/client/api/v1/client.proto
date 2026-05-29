@@ -1097,3 +1097,116 @@ service PersonalizationService {
   rpc GeneratePersonalizedCoaching(GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse);
 }
 
+// Billing Service
+message Plan {
+  string id = 1;
+  string code = 2;
+  string name = 3;
+  string description = 4;
+  int32 priceMonthlyCents = 5;
+  int32 priceAnnualCents = 6;
+  int32 activeGoalLimit = 7;
+  int32 activeHabitLimit = 8;
+  int32 weeklyReviewHistoryLimit = 9;
+  int32 planAdjustmentLimit = 10;
+  bool personalizedAiEnabled = 11;
+  bool isActive = 12;
+}
+
+message UserSubscription {
+  string id = 1;
+  string userId = 2;
+  string planId = 3;
+  string planCode = 4;
+  string planName = 5;
+  string status = 6;
+  string billingInterval = 7;
+  string currentPeriodStart = 8;
+  string currentPeriodEnd = 9;
+  string trialEnd = 10;
+  bool cancelAtPeriodEnd = 11;
+  string stripeCustomerId = 12;
+  string stripeSubscriptionId = 13;
+}
+
+message Entitlements {
+  string planCode = 1;
+  string status = 2;
+  int32 activeGoalLimit = 3;
+  int32 activeHabitLimit = 4;
+  int32 weeklyReviewHistoryLimit = 5;
+  int32 planAdjustmentLimit = 6;
+  bool personalizedAiEnabled = 7;
+  bool canCreateGoal = 8;
+  bool canCreateHabit = 9;
+  bool canViewWeeklyReviewHistory = 10;
+  bool canUsePersonalizedAi = 11;
+  int32 currentActiveGoals = 12;
+  int32 currentActiveHabits = 13;
+  int32 currentPendingAdjustments = 14;
+  bool canCreatePlanAdjustment = 15;
+}
+
+message GetBillingOverviewRequest {
+  string userId = 1;
+}
+
+message GetBillingOverviewResponse {
+  repeated Plan plans = 1;
+  UserSubscription subscription = 2;
+  Entitlements entitlements = 3;
+  string billingMode = 4;
+}
+
+message TrackUpgradeEventRequest {
+  string userId = 1;
+  string eventType = 2;
+  string surface = 3;
+  string trigger = 4;
+  string planCode = 5;
+  string billingInterval = 6;
+  string feedbackReason = 7;
+  string feedbackNote = 8;
+  string metadataJson = 9;
+}
+
+message TrackUpgradeEventResponse {
+  string eventId = 1;
+}
+
+message CreateCheckoutSessionRequest {
+  string userId = 1;
+  string planCode = 2;
+  string billingInterval = 3;
+}
+
+message CreateCheckoutSessionResponse {
+  string checkoutUrl = 1;
+  string sessionId = 2;
+}
+
+message CreateCustomerPortalSessionRequest {
+  string userId = 1;
+}
+
+message CreateCustomerPortalSessionResponse {
+  string portalUrl = 1;
+}
+
+message HandleStripeWebhookRequest {
+  string eventType = 1;
+  string payloadJson = 2;
+}
+
+message HandleStripeWebhookResponse {
+  bool processed = 1;
+}
+
+service BillingService {
+  rpc GetBillingOverview(GetBillingOverviewRequest) returns (GetBillingOverviewResponse);
+  rpc TrackUpgradeEvent(TrackUpgradeEventRequest) returns (TrackUpgradeEventResponse);
+  rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
+  rpc CreateCustomerPortalSession(CreateCustomerPortalSessionRequest) returns (CreateCustomerPortalSessionResponse);
+  rpc HandleStripeWebhook(HandleStripeWebhookRequest) returns (HandleStripeWebhookResponse);
+}
+
