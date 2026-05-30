@@ -201,7 +201,7 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, arg List
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PlanAdjustmentSuggestion
+	items := []PlanAdjustmentSuggestion{}
 	for rows.Next() {
 		var i PlanAdjustmentSuggestion
 		if err := rows.Scan(
@@ -251,7 +251,7 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PlanAdjustmentSuggestion
+	items := []PlanAdjustmentSuggestion{}
 	for rows.Next() {
 		var i PlanAdjustmentSuggestion
 		if err := rows.Scan(
@@ -307,7 +307,7 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg L
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PlanAdjustmentSuggestion
+	items := []PlanAdjustmentSuggestion{}
 	for rows.Next() {
 		var i PlanAdjustmentSuggestion
 		if err := rows.Scan(
@@ -363,7 +363,7 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []PlanAdjustmentSuggestion
+	items := []PlanAdjustmentSuggestion{}
 	for rows.Next() {
 		var i PlanAdjustmentSuggestion
 		if err := rows.Scan(

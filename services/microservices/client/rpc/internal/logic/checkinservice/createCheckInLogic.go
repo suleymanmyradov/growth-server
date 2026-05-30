@@ -51,65 +51,73 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	// Check for duplicate check-in
-	alreadyCheckedIn, err := l.svcCtx.Repo.CheckIns.HasCheckedInToday(l.ctx, userID, habitID)
-	if err != nil {
-		l.Errorf("Failed to check existing check-in: %v", err)
-		return nil, status.Error(codes.Internal, "failed to check existing check-in")
-	}
-	if alreadyCheckedIn {
-		return nil, status.Error(codes.AlreadyExists, "already checked in on this habit today")
-	}
+	// Wrap all state-mutating operations in a transaction with RLS context.
+	var checkIn db.CheckIn
+	var habit db.Habit
+	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx *sql.Tx) error {
+		txRepo := l.svcCtx.WithTx(tx)
 
-	// Create check-in record
-	params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
-	checkIn, err := l.svcCtx.Repo.CheckIns.CreateCheckIn(l.ctx, params)
-	if err != nil {
-		l.Errorf("Failed to create check-in: %v", err)
-		return nil, status.Error(codes.Internal, "failed to create check-in")
-	}
-
-	// Get habit to return in response
-	habit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
-	if err != nil {
-		l.Errorf("Failed to get habit: %v", err)
-		return nil, status.Error(codes.Internal, "failed to get habit")
-	}
-
-	// If completed, toggle habit to mark as completed and bump streak
-	switch in.Status {
-	case "completed":
-		updatedHabit, err := l.svcCtx.Repo.Habits.ToggleHabit(l.ctx, habitID)
+		// Check for duplicate check-in
+		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(l.ctx, userID, habitID)
 		if err != nil {
-			l.Errorf("Failed to toggle habit: %v", err)
-		} else {
+			return fmt.Errorf("check existing check-in: %w", err)
+		}
+		if alreadyCheckedIn {
+			return status.Error(codes.AlreadyExists, "already checked in on this habit today")
+		}
+
+		// Create check-in record
+		params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
+		checkIn, err = txRepo.CheckIns.CreateCheckIn(l.ctx, params)
+		if err != nil {
+			return fmt.Errorf("create check-in: %w", err)
+		}
+
+		// Get habit to return in response
+		habit, err = txRepo.Habits.GetHabitByID(l.ctx, habitID)
+		if err != nil {
+			return fmt.Errorf("get habit: %w", err)
+		}
+
+		// If completed, toggle habit to mark as completed and bump streak
+		switch in.Status {
+		case "completed":
+			updatedHabit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID)
+			if err != nil {
+				return fmt.Errorf("toggle habit: %w", err)
+			}
 			habit = updatedHabit
+		case "missed":
+			// Reset streak on missed check-in
+			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
+			if err != nil {
+				return fmt.Errorf("reset habit streak: %w", err)
+			}
 		}
-	case "missed":
-		// Reset streak on missed check-in
-		_, err := l.svcCtx.Repo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
+
+		// Log activity record
+		activityType := "check_in_missed"
+		activityTitle := fmt.Sprintf("Missed %s", habit.Name)
+		if in.Status == "completed" {
+			activityType = "check_in_completed"
+			activityTitle = fmt.Sprintf("Completed %s", habit.Name)
+		}
+
+		_, err = txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
+			ItemType:    db.ActivityType(activityType),
+			Title:       activityTitle,
+			Description: sql.NullString{String: fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name), Valid: true},
+			Metadata:    pqtype.NullRawMessage{},
+			UserID:      userID,
+		})
 		if err != nil {
-			l.Errorf("Failed to reset habit streak: %v", err)
+			return fmt.Errorf("create activity: %w", err)
 		}
-	}
-
-	// Log activity record
-	activityType := "check_in_missed"
-	activityTitle := fmt.Sprintf("Missed %s", habit.Name)
-	if in.Status == "completed" {
-		activityType = "check_in_completed"
-		activityTitle = fmt.Sprintf("Completed %s", habit.Name)
-	}
-
-	_, err = l.svcCtx.Repo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
-		ItemType:    db.ActivityType(activityType),
-		Title:       activityTitle,
-		Description: sql.NullString{String: fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name), Valid: true},
-		Metadata:    pqtype.NullRawMessage{},
-		UserID:      userID,
+		return nil
 	})
 	if err != nil {
-		l.Errorf("Failed to create activity: %v", err)
+		l.Errorf("Failed check-in workflow: %v", err)
+		return nil, err
 	}
 
 	// Fire-and-forget publish check-in event to Kafka.

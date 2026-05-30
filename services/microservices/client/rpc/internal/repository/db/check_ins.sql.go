@@ -115,7 +115,7 @@ func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CheckIn
+	items := []CheckIn{}
 	for rows.Next() {
 		var i CheckIn
 		if err := rows.Scan(
@@ -168,7 +168,7 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabit
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CheckIn
+	items := []CheckIn{}
 	for rows.Next() {
 		var i CheckIn
 		if err := rows.Scan(
@@ -215,7 +215,7 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CheckIn
+	items := []CheckIn{}
 	for rows.Next() {
 		var i CheckIn
 		if err := rows.Scan(
@@ -263,7 +263,7 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CheckIn
+	items := []CheckIn{}
 	for rows.Next() {
 		var i CheckIn
 		if err := rows.Scan(
@@ -309,7 +309,7 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 		return nil, err
 	}
 	defer rows.Close()
-	var items []CheckIn
+	items := []CheckIn{}
 	for rows.Next() {
 		var i CheckIn
 		if err := rows.Scan(

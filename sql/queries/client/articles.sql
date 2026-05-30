@@ -81,3 +81,26 @@ SELECT COUNT(*) FROM articles;
 SELECT COUNT(*) FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1;
+
+-- name: SearchArticlesSemantic :many
+-- Semantic search using pgvector cosine similarity.
+-- $1 is the query embedding vector(1536); $2 is the similarity threshold (e.g. 0.7); $3 is the limit.
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    1 - (a.embedding <=> $1) AS similarity
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.embedding IS NOT NULL
+  AND 1 - (a.embedding <=> $1) >= $2
+ORDER BY a.embedding <=> $1
+LIMIT $3;
+
+-- name: UpdateArticleEmbedding :exec
+-- Update the embedding vector for an article after AI processing.
+UPDATE articles
+SET embedding = $2,
+    ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || $3::jsonb,
+    updated_at = CURRENT_TIMESTAMP
+WHERE id = $1;

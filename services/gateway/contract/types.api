@@ -2,803 +2,723 @@ syntax = "v1"
 
 // Base types
 type (
-    EmptyResponse {
-    }
-    
-    PageRequest {
-        page int `form:"page,default=1,example=1"`
-        limit int `form:"limit,default=20,example=20"`
-    }
-    
-    PageResponse {
-        total int64 `json:"total,example=100"`
-        page int `json:"page,example=1"`
-        limit int `json:"limit,example=20"`
-        totalPages int `json:"totalPages,example=5"`
-    }
+	EmptyResponse  {}
+	PageRequest {
+		page  int `form:"page,default=1,example=1"`
+		limit int `form:"limit,default=20,example=20"`
+	}
+	PageResponse {
+		total      int64 `json:"total,example=100"`
+		page       int   `json:"page,example=1"`
+		limit      int   `json:"limit,example=20"`
+		totalPages int   `json:"totalPages,example=5"`
+	}
 )
 
 // Authentication types
 type (
-    RegisterRequest {
-        username string `json:"username,example=johndoe"`
-        email string `json:"email,example=john@example.com"`
-        password string `json:"password,example=securePassword123"`
-        fullName string `json:"fullName,example=John Doe"`
-        deviceId string `header:"X-Device-Id,optional,example=device-12345"`
-    }
-    
-    LoginRequest {
-        email string `json:"email,example=john@example.com"`
-        password string `json:"password,example=securePassword123"`
-        deviceId string `header:"X-Device-Id,optional,example=device-12345"`
-    }
-    
-    RefreshRequest {
-        refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-    }
-    
-    AuthResponse {
-        accessToken string `json:"accessToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-        refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
-        expiresIn int64 `json:"expiresIn,example=3600"`
-        user Profile `json:"user,optional"`
-    }
+	RegisterRequest {
+		username string `json:"username,example=johndoe"`
+		email    string `json:"email,example=john@example.com"`
+		password string `json:"password,example=securePassword123"`
+		fullName string `json:"fullName,example=John Doe"`
+		deviceId string `header:"X-Device-Id,optional,example=device-12345"`
+	}
+	LoginRequest {
+		email    string `json:"email,example=john@example.com"`
+		password string `json:"password,example=securePassword123"`
+		deviceId string `header:"X-Device-Id,optional,example=device-12345"`
+	}
+	RefreshRequest {
+		refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	}
+	AuthResponse {
+		accessToken  string  `json:"accessToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+		refreshToken string  `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+		expiresIn    int64   `json:"expiresIn,example=3600"`
+		user         Profile `json:"user,optional"`
+	}
 )
 
 // Profile types
 type (
-    Profile {
-        id string `json:"id,example=user-123"`
-        fullName string `json:"fullName,example=John Doe"`
-        username string `json:"username,example=johndoe"`
-        email string `json:"email,example=john@example.com"`
-        bio string `json:"bio,optional,example=Passionate about personal growth"`
-        location string `json:"location,optional,example=San Francisco"`
-        website string `json:"website,optional,example=https://johndoe.com"`
-        interests []string `json:"interests,optional,example=[\"fitness\",\"reading\"]"`
-        avatarUrl string `json:"avatarUrl,optional,example=https://example.com/avatar.jpg"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    ProfileResponse {
-        data Profile `json:"data"`
-    }
-    
-    UpdateProfileRequest {
-        fullName string `json:"fullName,optional"`
-        bio string `json:"bio,optional"`
-        location string `json:"location,optional"`
-        website string `json:"website,optional"`
-        interests []string `json:"interests,optional"`
-        avatarUrl string `json:"avatarUrl,optional"`
-    }
+	Profile {
+		id        string   `json:"id,example=user-123"`
+		fullName  string   `json:"fullName,example=John Doe"`
+		username  string   `json:"username,example=johndoe"`
+		email     string   `json:"email,example=john@example.com"`
+		bio       string   `json:"bio,optional,example=Passionate about personal growth"`
+		location  string   `json:"location,optional,example=San Francisco"`
+		website   string   `json:"website,optional,example=https://johndoe.com"`
+		interests []string `json:"interests,optional,example=[\"fitness\",\"reading\"]"`
+		avatarUrl string   `json:"avatarUrl,optional,example=https://example.com/avatar.jpg"`
+		createdAt string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	ProfileResponse {
+		data Profile `json:"data"`
+	}
+	UpdateProfileRequest {
+		fullName  string   `json:"fullName,optional"`
+		bio       string   `json:"bio,optional"`
+		location  string   `json:"location,optional"`
+		website   string   `json:"website,optional"`
+		interests []string `json:"interests,optional"`
+		avatarUrl string   `json:"avatarUrl,optional"`
+	}
 )
 
 // Habit types
 type (
-    Habit {
-        id string `json:"id,example=habit-123"`
-        name string `json:"name,example=Morning Exercise"`
-        description string `json:"description,example=30 minutes of cardio every morning"`
-        streak int `json:"streak,example=7"`
-        completed bool `json:"completed,example=false"`
-        category string `json:"category,example=fitness"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    HabitResponse {
-        data Habit `json:"data"`
-    }
-    
-    HabitsResponse {
-        data []Habit `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    CreateHabitRequest {
-        name string `json:"name,example=Morning Exercise"`
-        description string `json:"description,example=30 minutes of cardio every morning"`
-        category string `json:"category,example=fitness"`
-    }
-    
-    UpdateHabitRequest {
-        name string `json:"name,optional"`
-        description string `json:"description,optional"`
-        category string `json:"category,optional"`
-    }
-    
-    HabitRequest {
-        id string `path:"id"`
-    }
+	Habit {
+		id          string `json:"id,example=habit-123"`
+		name        string `json:"name,example=Morning Exercise"`
+		description string `json:"description,example=30 minutes of cardio every morning"`
+		streak      int    `json:"streak,example=7"`
+		completed   bool   `json:"completed,example=false"`
+		category    string `json:"category,example=fitness"`
+		userId      string `json:"userId,example=user-123"`
+		createdAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	HabitResponse {
+		data Habit `json:"data"`
+	}
+	HabitsResponse {
+		data []Habit      `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	CreateHabitRequest {
+		name        string `json:"name,example=Morning Exercise"`
+		description string `json:"description,example=30 minutes of cardio every morning"`
+		category    string `json:"category,example=fitness"`
+	}
+	UpdateHabitRequest {
+		name        string `json:"name,optional"`
+		description string `json:"description,optional"`
+		category    string `json:"category,optional"`
+	}
+	HabitRequest {
+		id string `path:"id"`
+	}
 )
 
 // Goal types
 type (
-    Goal {
-        id string `json:"id,example=goal-123"`
-        title string `json:"title,example=Run a marathon"`
-        description string `json:"description,example=Complete a 42.195km marathon race"`
-        category string `json:"category,example=fitness"`
-        dueDate string `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
-        progress int `json:"progress,example=50"`
-        completed bool `json:"completed,example=false"`
-        relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    GoalResponse {
-        data Goal `json:"data"`
-    }
-    
-    GoalsResponse {
-        data []Goal `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    CreateGoalRequest {
-        title string `json:"title,example=Run a marathon"`
-        description string `json:"description,example=Complete a 42.195km marathon race"`
-        category string `json:"category,example=fitness"`
-        dueDate string `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
-        relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
-    }
-    
-    UpdateGoalRequest {
-        title string `json:"title,optional"`
-        description string `json:"description,optional"`
-        category string `json:"category,optional"`
-        dueDate string `json:"dueDate,optional"`
-        relatedHabitIds []string `json:"relatedHabitIds,optional"`
-    }
-    
-    GoalRequest {
-        id string `path:"id"`
-    }
-    
-    UpdateProgressRequest {
-        id string `path:"id"`
-        progress int `json:"progress"`
-    }
+	Goal {
+		id              string   `json:"id,example=goal-123"`
+		title           string   `json:"title,example=Run a marathon"`
+		description     string   `json:"description,example=Complete a 42.195km marathon race"`
+		category        string   `json:"category,example=fitness"`
+		dueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+		progress        int      `json:"progress,example=50"`
+		completed       bool     `json:"completed,example=false"`
+		relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+		userId          string   `json:"userId,example=user-123"`
+		createdAt       string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt       string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	GoalResponse {
+		data Goal `json:"data"`
+	}
+	GoalsResponse {
+		data []Goal       `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	CreateGoalRequest {
+		title           string   `json:"title,example=Run a marathon"`
+		description     string   `json:"description,example=Complete a 42.195km marathon race"`
+		category        string   `json:"category,example=fitness"`
+		dueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+		relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+	}
+	UpdateGoalRequest {
+		title           string   `json:"title,optional"`
+		description     string   `json:"description,optional"`
+		category        string   `json:"category,optional"`
+		dueDate         string   `json:"dueDate,optional"`
+		relatedHabitIds []string `json:"relatedHabitIds,optional"`
+	}
+	GoalRequest {
+		id string `path:"id"`
+	}
+	UpdateProgressRequest {
+		id       string `path:"id"`
+		progress int    `json:"progress"`
+	}
 )
 
 // Check-In types
 type (
-    CheckIn {
-        id string `json:"id,example=checkin-123"`
-        userId string `json:"userId,example=user-123"`
-        habitId string `json:"habitId,example=habit-123"`
-        status string `json:"status,example=completed"`
-        mood string `json:"mood,optional,example=great"`
-        energy string `json:"energy,optional,example=high"`
-        blocker string `json:"blocker,optional,example=lack_of_time"`
-        note string `json:"note,optional,example=Felt motivated today"`
-        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
-    }
-
-    CreateCheckInRequest {
-        habitId string `json:"habitId,example=habit-123"`
-        status string `json:"status,example=completed"`
-        mood string `json:"mood,optional,example=great"`
-        energy string `json:"energy,optional,example=high"`
-        blocker string `json:"blocker,optional,example=lack_of_time"`
-        note string `json:"note,optional,example=Felt motivated today"`
-    }
-
-    CreateCheckInResponse {
-        checkIn CheckIn `json:"checkIn"`
-        habit Habit `json:"habit"`
-        aiFeedback string `json:"aiFeedback,optional,example=Great job keeping your streak!"`
-    }
-
-    GetTodayCheckInsRequest {
-    }
-
-    GetTodayCheckInsResponse {
-        checkIns []CheckIn `json:"checkIns"`
-    }
-
-    GetCheckInHistoryRequest {
-        habitId string `json:"habitId,optional,example=habit-123"`
-        page int `json:"page,default=1"`
-        limit int `json:"limit,default=20"`
-    }
-
-    GetCheckInHistoryResponse {
-        checkIns []CheckIn `json:"checkIns"`
-        total int `json:"total,example=10"`
-    }
-
-    HasCheckedInTodayRequest {
-        habitId string `form:"habitId"`
-    }
-
-    HasCheckedInTodayResponse {
-        checkedIn bool `json:"checkedIn"`
-    }
+	CheckIn {
+		id        string `json:"id,example=checkin-123"`
+		userId    string `json:"userId,example=user-123"`
+		habitId   string `json:"habitId,example=habit-123"`
+		status    string `json:"status,example=completed"`
+		mood      string `json:"mood,optional,example=great"`
+		energy    string `json:"energy,optional,example=high"`
+		blocker   string `json:"blocker,optional,example=lack_of_time"`
+		note      string `json:"note,optional,example=Felt motivated today"`
+		createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+	}
+	CreateCheckInRequest {
+		habitId string `json:"habitId,example=habit-123"`
+		status  string `json:"status,example=completed"`
+		mood    string `json:"mood,optional,example=great"`
+		energy  string `json:"energy,optional,example=high"`
+		blocker string `json:"blocker,optional,example=lack_of_time"`
+		note    string `json:"note,optional,example=Felt motivated today"`
+	}
+	CreateCheckInResponse {
+		checkIn    CheckIn `json:"checkIn"`
+		habit      Habit   `json:"habit"`
+		aiFeedback string  `json:"aiFeedback,optional,example=Great job keeping your streak!"`
+	}
+	GetTodayCheckInsRequest  {}
+	GetTodayCheckInsResponse {
+		checkIns []CheckIn `json:"checkIns"`
+	}
+	GetCheckInHistoryRequest {
+		habitId string `json:"habitId,optional,example=habit-123"`
+		page    int    `json:"page,default=1"`
+		limit   int    `json:"limit,default=20"`
+	}
+	GetCheckInHistoryResponse {
+		checkIns []CheckIn `json:"checkIns"`
+		total    int       `json:"total,example=10"`
+	}
+	HasCheckedInTodayRequest {
+		habitId string `form:"habitId"`
+	}
+	HasCheckedInTodayResponse {
+		checkedIn bool `json:"checkedIn"`
+	}
 )
 
 // Article types
 type (
-    ArticleCategory {
-        id string `json:"id,example=cat-123"`
-        name string `json:"name,example=Personal Development"`
-        slug string `json:"slug,example=personal-development"`
-    }
-    
-    Article {
-        id string `json:"id,example=article-123"`
-        title string `json:"title,example=10 Habits for Personal Growth"`
-        excerpt string `json:"excerpt,example=Discover the top habits that can transform your life..."`
-        content string `json:"content,example=Full article content here..."`
-        category *ArticleCategory `json:"category,optional"`
-        readTime int `json:"readTime,example=5"`
-        imageUrl string `json:"imageUrl,example=https://example.com/article.jpg"`
-        author string `json:"author,example=John Smith"`
-        publishedAt string `json:"publishedAt,example=2024-01-01T00:00:00Z"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    ArticleResponse {
-        data Article `json:"data"`
-    }
-    
-    ArticlesResponse {
-        data []Article `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    ArticleRequest {
-        id string `path:"id"`
-    }
-    
-    ListArticlesRequest {
-        categorySlug string `form:"category,optional"`
-        page int `form:"page,default=1"`
-        limit int `form:"limit,default=20"`
-    }
-    
-    LikeArticleRequest {
-        id string `path:"id"`
-    }
-    
-    LikeArticleResponse {
-        success bool `json:"success"`
-        newLikeCount int `json:"newLikeCount"`
-    }
-    
-    ShareArticleRequest {
-        id string `path:"id"`
-        platform string `json:"platform"`
-    }
-    
-    ShareArticleResponse {
-        success bool `json:"success"`
-    }
-    
-    GetAuthorArticlesRequest {
-        authorId string `form:"authorId"`
-        page int `form:"page,default=1"`
-        limit int `form:"limit,default=20"`
-    }
+	ArticleCategory {
+		id   string `json:"id,example=cat-123"`
+		name string `json:"name,example=Personal Development"`
+		slug string `json:"slug,example=personal-development"`
+	}
+	Article {
+		id          string           `json:"id,example=article-123"`
+		title       string           `json:"title,example=10 Habits for Personal Growth"`
+		excerpt     string           `json:"excerpt,example=Discover the top habits that can transform your life..."`
+		content     string           `json:"content,example=Full article content here..."`
+		category    *ArticleCategory `json:"category,optional"`
+		readTime    int              `json:"readTime,example=5"`
+		imageUrl    string           `json:"imageUrl,example=https://example.com/article.jpg"`
+		author      string           `json:"author,example=John Smith"`
+		publishedAt string           `json:"publishedAt,example=2024-01-01T00:00:00Z"`
+		createdAt   string           `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt   string           `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	ArticleResponse {
+		data Article `json:"data"`
+	}
+	ArticlesResponse {
+		data []Article    `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	ArticleRequest {
+		id string `path:"id"`
+	}
+	ListArticlesRequest {
+		categorySlug string `form:"category,optional"`
+		page         int    `form:"page,default=1"`
+		limit        int    `form:"limit,default=20"`
+	}
+	LikeArticleRequest {
+		id string `path:"id"`
+	}
+	LikeArticleResponse {
+		success      bool `json:"success"`
+		newLikeCount int  `json:"newLikeCount"`
+	}
+	ShareArticleRequest {
+		id       string `path:"id"`
+		platform string `json:"platform"`
+	}
+	ShareArticleResponse {
+		success bool `json:"success"`
+	}
+	GetAuthorArticlesRequest {
+		authorId string `form:"authorId"`
+		page     int    `form:"page,default=1"`
+		limit    int    `form:"limit,default=20"`
+	}
 )
 
 // Saved items types
 type (
-    SavedItem {
-        id string `json:"id"`
-        itemType string `json:"itemType"` // "article", "goal", "habit"
-        itemId string `json:"itemId"`
-        userId string `json:"userId"`
-        createdAt string `json:"createdAt"`
-    }
-    
-    SavedItemResponse {
-        data SavedItem `json:"data"`
-    }
-    
-    SavedItemsResponse {
-        data []SavedItem `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    SaveItemRequest {
-        itemType string `json:"itemType"`
-        itemId string `json:"itemId"`
-    }
-    
-    SavedItemRequest {
-        id string `path:"id"`
-    }
+	SavedItem {
+		id        string `json:"id"`
+		itemType  string `json:"itemType"` // "article", "goal", "habit"
+		itemId    string `json:"itemId"`
+		userId    string `json:"userId"`
+		createdAt string `json:"createdAt"`
+	}
+	SavedItemResponse {
+		data SavedItem `json:"data"`
+	}
+	SavedItemsResponse {
+		data []SavedItem  `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	SavedItemDetailed {
+		id        string  `json:"id"`
+		itemType  string  `json:"itemType"` // "article", "goal", "habit"
+		itemId    string  `json:"itemId"`
+		userId    string  `json:"userId"`
+		createdAt string  `json:"createdAt"`
+		article   Article `json:"article,optional"`
+		habit     Habit   `json:"habit,optional"`
+		goal      Goal    `json:"goal,optional"`
+	}
+	SavedItemsDetailedResponse {
+		data []SavedItemDetailed `json:"data"`
+		page PageResponse        `json:"page"`
+	}
+	SaveItemRequest {
+		itemType string `json:"itemType"`
+		itemId   string `json:"itemId"`
+	}
+	SavedItemRequest {
+		id string `path:"id"`
+	}
 )
 
 // Conversation types
 type (
-    Conversation {
-        id string `json:"id,example=conv-123"`
-        title string `json:"title,example=My Growth Journey"`
-        itemType string `json:"type,example=coach"`
-        lastMessage string `json:"lastMessage,example=How can I improve my daily habits?"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    ConversationResponse {
-        data Conversation `json:"data"`
-    }
-    
-    ConversationsResponse {
-        data []Conversation `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    ConversationDetail {
-        id string `json:"id"`
-        title string `json:"title"`
-        itemType string `json:"type"`
-        messages []Message `json:"messages"`
-        userId string `json:"userId"`
-        createdAt string `json:"createdAt"`
-        updatedAt string `json:"updatedAt"`
-    }
-    
-    ConversationDetailResponse {
-        data ConversationDetail `json:"data"`
-    }
-    
-    Message {
-        id string `json:"id,example=msg-123"`
-        content string `json:"content,example=Hello, I need help with my goals"`
-        role string `json:"role,example=user"`
-        conversationId string `json:"conversationId,example=conv-123"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-    }
-    
-    MessageResponse {
-        data Message `json:"data"`
-    }
-    
-    MessagesResponse {
-        data []Message `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    StartConversationRequest {
-        itemType string `json:"type,example=coach"`
-        title string `json:"title,optional,example=My Growth Journey"`
-        initialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
-    }
-    
-    ConversationRequest {
-        id string `path:"id"`
-    }
-    
-    SendMessageRequest {
-        content string `json:"content,example=How can I stay motivated?"`
-    }
-    
-    GetMessagesRequest {
-        id string `path:"id"`
-        page int `form:"page,default=1"`
-        limit int `form:"limit,default=50"`
-    }
-    
-    ListConversationsRequest {
-        itemType string `form:"type,optional"` // "coach" or "therapist"
-        page int `form:"page,default=1"`
-        limit int `form:"limit,default=20"`
-    }
+	Conversation {
+		id          string `json:"id,example=conv-123"`
+		title       string `json:"title,example=My Growth Journey"`
+		itemType    string `json:"type,example=coach"`
+		lastMessage string `json:"lastMessage,example=How can I improve my daily habits?"`
+		userId      string `json:"userId,example=user-123"`
+		createdAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	ConversationResponse {
+		data Conversation `json:"data"`
+	}
+	ConversationsResponse {
+		data []Conversation `json:"data"`
+		page PageResponse   `json:"page"`
+	}
+	ConversationDetail {
+		id        string    `json:"id"`
+		title     string    `json:"title"`
+		itemType  string    `json:"type"`
+		messages  []Message `json:"messages"`
+		userId    string    `json:"userId"`
+		createdAt string    `json:"createdAt"`
+		updatedAt string    `json:"updatedAt"`
+	}
+	ConversationDetailResponse {
+		data ConversationDetail `json:"data"`
+	}
+	Message {
+		id             string `json:"id,example=msg-123"`
+		content        string `json:"content,example=Hello, I need help with my goals"`
+		role           string `json:"role,example=user"`
+		conversationId string `json:"conversationId,example=conv-123"`
+		createdAt      string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	}
+	MessageResponse {
+		data Message `json:"data"`
+	}
+	MessagesResponse {
+		data []Message    `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	StartConversationRequest {
+		itemType       string `json:"type,example=coach"`
+		title          string `json:"title,optional,example=My Growth Journey"`
+		initialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
+	}
+	ConversationRequest {
+		id string `path:"id"`
+	}
+	SendMessageRequest {
+		content string `json:"content,example=How can I stay motivated?"`
+	}
+	GetMessagesRequest {
+		id    string `path:"id"`
+		page  int    `form:"page,default=1"`
+		limit int    `form:"limit,default=50"`
+	}
+	ListConversationsRequest {
+		itemType string `form:"type,optional"` // "coach" or "therapist"
+		page     int    `form:"page,default=1"`
+		limit    int    `form:"limit,default=20"`
+	}
 )
 
 // Search types
 type (
-    SearchResult {
-        id string `json:"id"`
-        itemType string `json:"type"` // "article", "goal", "habit", "conversation"
-        title string `json:"title"`
-        description string `json:"description"`
-        score float64 `json:"score"`
-        highlight string `json:"highlight,optional"`
-    }
-    
-    SearchResponse {
-        data []SearchResult `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    SearchRequest {
-        q string `form:"q"`
-        itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
-        page int `form:"page,default=1"`
-        limit int `form:"limit,default=20"`
-    }
+	SearchResult {
+		id          string  `json:"id"`
+		itemType    string  `json:"type"` // "article", "goal", "habit", "conversation"
+		title       string  `json:"title"`
+		description string  `json:"description"`
+		score       float64 `json:"score"`
+		highlight   string  `json:"highlight,optional"`
+	}
+	SearchResponse {
+		data []SearchResult `json:"data"`
+		page PageResponse   `json:"page"`
+	}
+	SearchRequest {
+		q        string `form:"q"`
+		itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+		page     int    `form:"page,default=1"`
+		limit    int    `form:"limit,default=20"`
+	}
 )
 
 // Notification types
 type (
-    Notification {
-        id string `json:"id,example=notif-123"`
-        title string `json:"title,example=Habit Reminder"`
-        message string `json:"message,example=Don't forget to complete your morning exercise!"`
-        itemType string `json:"type,example=habit_reminder"`
-        read bool `json:"read,example=false"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
-    }
-    
-    NotificationsResponse {
-        data []Notification `json:"data"`
-        page PageResponse `json:"page"`
-    }
-    
-    NotificationRequest {
-        id string `path:"id"`
-    }
+	Notification {
+		id        string `json:"id,example=notif-123"`
+		title     string `json:"title,example=Habit Reminder"`
+		message   string `json:"message,example=Don't forget to complete your morning exercise!"`
+		itemType  string `json:"type,example=habit_reminder"`
+		read      bool   `json:"read,example=false"`
+		userId    string `json:"userId,example=user-123"`
+		createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+	}
+	NotificationsResponse {
+		data []Notification `json:"data"`
+		page PageResponse   `json:"page"`
+	}
+	NotificationRequest {
+		id string `path:"id"`
+	}
 )
 
 // Activity types
 type (
-    Activity {
-        id string `json:"id,example=activity-123"`
-        itemType string `json:"type,example=habit_completed"`
-        title string `json:"title,example=Habit Completed"`
-        description string `json:"description,example=You completed Morning Exercise"`
-        metadata string `json:"metadata,optional,example={\"habitId\":\"habit-123\"}"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
-    }
-    
-    ActivityResponse {
-        data []Activity `json:"data"`
-        page PageResponse `json:"page"`
-    }
+	Activity {
+		id          string `json:"id,example=activity-123"`
+		itemType    string `json:"type,example=habit_completed"`
+		title       string `json:"title,example=Habit Completed"`
+		description string `json:"description,example=You completed Morning Exercise"`
+		metadata    string `json:"metadata,optional,example={\"habitId\":\"habit-123\"}"`
+		userId      string `json:"userId,example=user-123"`
+		createdAt   string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+	}
+	ActivityResponse {
+		data []Activity   `json:"data"`
+		page PageResponse `json:"page"`
+	}
 )
 
 // Settings types
 type (
-    Settings {
-        id string `json:"id,example=settings-123"`
-        theme string `json:"theme,example=dark"`
-        language string `json:"language,example=en"`
-        timezone string `json:"timezone,example=UTC"`
-        emailNotifications bool `json:"emailNotifications,example=true"`
-        pushNotifications bool `json:"pushNotifications,example=true"`
-        habitReminders bool `json:"habitReminders,example=true"`
-        goalReminders bool `json:"goalReminders,example=true"`
-        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
-        checkInTime string `json:"checkInTime,example=09:00"`
-        onboardingCompleted bool `json:"onboardingCompleted,example=false"`
-        userId string `json:"userId,example=user-123"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-
-    SettingsResponse {
-        data Settings `json:"data"`
-    }
-
-    UpdateSettingsRequest {
-        theme string `json:"theme,optional"`
-        language string `json:"language,optional"`
-        timezone string `json:"timezone,optional"`
-        emailNotifications bool `json:"emailNotifications,optional"`
-        pushNotifications bool `json:"pushNotifications,optional"`
-        habitReminders bool `json:"habitReminders,optional"`
-        goalReminders bool `json:"goalReminders,optional"`
-        accountabilityStyle string `json:"accountabilityStyle,optional"`
-        checkInTime string `json:"checkInTime,optional"`
-        onboardingCompleted bool `json:"onboardingCompleted,optional"`
-    }
+	Settings {
+		id                  string `json:"id,example=settings-123"`
+		theme               string `json:"theme,example=dark"`
+		language            string `json:"language,example=en"`
+		timezone            string `json:"timezone,example=UTC"`
+		emailNotifications  bool   `json:"emailNotifications,example=true"`
+		pushNotifications   bool   `json:"pushNotifications,example=true"`
+		habitReminders      bool   `json:"habitReminders,example=true"`
+		goalReminders       bool   `json:"goalReminders,example=true"`
+		accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
+		checkInTime         string `json:"checkInTime,example=09:00"`
+		onboardingCompleted bool   `json:"onboardingCompleted,example=false"`
+		userId              string `json:"userId,example=user-123"`
+		createdAt           string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt           string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	SettingsResponse {
+		data Settings `json:"data"`
+	}
+	UpdateSettingsRequest {
+		theme               string `json:"theme,optional"`
+		language            string `json:"language,optional"`
+		timezone            string `json:"timezone,optional"`
+		emailNotifications  bool   `json:"emailNotifications,optional"`
+		pushNotifications   bool   `json:"pushNotifications,optional"`
+		habitReminders      bool   `json:"habitReminders,optional"`
+		goalReminders       bool   `json:"goalReminders,optional"`
+		accountabilityStyle string `json:"accountabilityStyle,optional"`
+		checkInTime         string `json:"checkInTime,optional"`
+		onboardingCompleted bool   `json:"onboardingCompleted,optional"`
+	}
 )
 
 // Report types
 type (
-    ReportRequest {
-        itemType string `json:"type"` // "bug", "feedback", "abuse"
-        title string `json:"title"`
-        description string `json:"description"`
-        email string `json:"email,optional"`
-    }
+	ReportRequest {
+		itemType    string `json:"type"` // "bug", "feedback", "abuse"
+		title       string `json:"title"`
+		description string `json:"description"`
+		email       string `json:"email,optional"`
+	}
 )
 
 // Weekly Review types
 type (
-    WeeklyReviewHabitBreakdown {
-        habitId string `json:"habitId"`
-        habitName string `json:"habitName"`
-        category string `json:"category,optional"`
-        totalCheckIns int `json:"totalCheckIns"`
-        completedCount int `json:"completedCount"`
-        missedCount int `json:"missedCount"`
-        completionRate float64 `json:"completionRate"`
-        lastCheckInAt string `json:"lastCheckInAt,optional"`
-    }
-
-    WeeklyReviewAdjustment {
-        habitId string `json:"habitId,optional"`
-        habitName string `json:"habitName"`
-        adjustmentType string `json:"adjustmentType"`
-        reason string `json:"reason"`
-        suggestion string `json:"suggestion"`
-    }
-
-    WeeklyReviewNextWeekPlan {
-        focus string `json:"focus"`
-        commitments []string `json:"commitments"`
-        risks []string `json:"risks"`
-        recoveryActions []string `json:"recoveryActions"`
-    }
-
-    WeeklyReview {
-        id string `json:"id"`
-        userId string `json:"userId"`
-        weekStart string `json:"weekStart"`
-        weekEnd string `json:"weekEnd"`
-        totalHabits int `json:"totalHabits"`
-        completedCheckIns int `json:"completedCheckIns"`
-        missedCheckIns int `json:"missedCheckIns"`
-        completionRate float64 `json:"completionRate"`
-        bestDay string `json:"bestDay,optional"`
-        hardestDay string `json:"hardestDay,optional"`
-        topBlocker string `json:"topBlocker,optional"`
-        moodSummary map[string]int32 `json:"moodSummary"`
-        energySummary map[string]int32 `json:"energySummary"`
-        habitBreakdown []WeeklyReviewHabitBreakdown `json:"habitBreakdown"`
-        aiSummary string `json:"aiSummary,optional"`
-        suggestedAdjustments []WeeklyReviewAdjustment `json:"suggestedAdjustments"`
-        nextWeekPlan WeeklyReviewNextWeekPlan `json:"nextWeekPlan"`
-        generatedAt string `json:"generatedAt"`
-    }
-
-    GenerateWeeklyReviewRequest {
-        weekStart string `json:"weekStart,optional"`
-        forceRegenerate bool `json:"forceRegenerate,optional"`
-    }
-
-    GetWeeklyReviewRequest {
-        weekStart string `path:"weekStart"`
-    }
-
-    WeeklyReviewResponse {
-        data WeeklyReview `json:"data"`
-    }
-
-    WeeklyReviewsResponse {
-        data []WeeklyReview `json:"data"`
-        page PageResponse `json:"page"`
-    }
+	WeeklyReviewHabitBreakdown {
+		habitId        string  `json:"habitId"`
+		habitName      string  `json:"habitName"`
+		category       string  `json:"category,optional"`
+		totalCheckIns  int     `json:"totalCheckIns"`
+		completedCount int     `json:"completedCount"`
+		missedCount    int     `json:"missedCount"`
+		completionRate float64 `json:"completionRate"`
+		lastCheckInAt  string  `json:"lastCheckInAt,optional"`
+	}
+	WeeklyReviewAdjustment {
+		habitId        string `json:"habitId,optional"`
+		habitName      string `json:"habitName"`
+		adjustmentType string `json:"adjustmentType"`
+		reason         string `json:"reason"`
+		suggestion     string `json:"suggestion"`
+	}
+	WeeklyReviewNextWeekPlan {
+		focus           string   `json:"focus"`
+		commitments     []string `json:"commitments"`
+		risks           []string `json:"risks"`
+		recoveryActions []string `json:"recoveryActions"`
+	}
+	WeeklyReview {
+		id                   string                       `json:"id"`
+		userId               string                       `json:"userId"`
+		weekStart            string                       `json:"weekStart"`
+		weekEnd              string                       `json:"weekEnd"`
+		totalHabits          int                          `json:"totalHabits"`
+		completedCheckIns    int                          `json:"completedCheckIns"`
+		missedCheckIns       int                          `json:"missedCheckIns"`
+		completionRate       float64                      `json:"completionRate"`
+		bestDay              string                       `json:"bestDay,optional"`
+		hardestDay           string                       `json:"hardestDay,optional"`
+		topBlocker           string                       `json:"topBlocker,optional"`
+		moodSummary          map[string]int32             `json:"moodSummary"`
+		energySummary        map[string]int32             `json:"energySummary"`
+		habitBreakdown       []WeeklyReviewHabitBreakdown `json:"habitBreakdown"`
+		aiSummary            string                       `json:"aiSummary,optional"`
+		suggestedAdjustments []WeeklyReviewAdjustment     `json:"suggestedAdjustments"`
+		nextWeekPlan         WeeklyReviewNextWeekPlan     `json:"nextWeekPlan"`
+		generatedAt          string                       `json:"generatedAt"`
+	}
+	GenerateWeeklyReviewRequest {
+		weekStart       string `json:"weekStart,optional"`
+		forceRegenerate bool   `json:"forceRegenerate,optional"`
+	}
+	GetWeeklyReviewRequest {
+		weekStart string `path:"weekStart"`
+	}
+	WeeklyReviewResponse {
+		data WeeklyReview `json:"data"`
+	}
+	WeeklyReviewsResponse {
+		data []WeeklyReview `json:"data"`
+		page PageResponse   `json:"page"`
+	}
 )
 
 // Category types
 type (
-    Category {
-        id string `json:"id,example=cat-123"`
-        name string `json:"name,example=Fitness"`
-        slug string `json:"slug,example=fitness"`
-        entityType string `json:"entityType,example=habit"`
-        sortOrder int `json:"sortOrder,example=1"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-    
-    CategoryResponse {
-        data Category `json:"data"`
-    }
-    
-    CategoriesResponse {
-        data []Category `json:"data"`
-    }
-    
-    ListCategoriesRequest {
-        entityType string `form:"entityType,example=habit"`
-    }
+	Category {
+		id         string `json:"id,example=cat-123"`
+		name       string `json:"name,example=Fitness"`
+		slug       string `json:"slug,example=fitness"`
+		entityType string `json:"entityType,example=habit"`
+		sortOrder  int    `json:"sortOrder,example=1"`
+		createdAt  string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt  string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	CategoryResponse {
+		data Category `json:"data"`
+	}
+	CategoriesResponse {
+		data []Category `json:"data"`
+	}
+	ListCategoriesRequest {
+		entityType string `form:"entityType,example=habit"`
+	}
 )
 
 // Personalization types
 type (
-    CoachingProfile {
-        id string `json:"id,example=profile-123"`
-        userId string `json:"userId,example=user-123"`
-        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
-        preferredTone string `json:"preferredTone,example=supportive"`
-        difficultyPreference string `json:"difficultyPreference,example=adaptive"`
-        primaryMotivation string `json:"primaryMotivation,optional,example=personal_growth"`
-        commonBlockers []string `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
-        coachingNotes map[string]string `json:"coachingNotes,optional"`
-        lastContextRefreshAt string `json:"lastContextRefreshAt,optional,example=2024-01-15T00:00:00Z"`
-        createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-
-    CoachingProfileResponse {
-        data CoachingProfile `json:"data"`
-    }
-
-    UpsertCoachingProfileRequest {
-        accountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
-        preferredTone string `json:"preferredTone,optional,example=supportive"`
-        difficultyPreference string `json:"difficultyPreference,optional,example=adaptive"`
-        commonBlockers []string `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
-        coachingNotes map[string]string `json:"coachingNotes,optional"`
-    }
-
-    UpdateCoachingProfilePreferencesRequest {
-        accountabilityStyle string `json:"accountabilityStyle,example=balanced"`
-        preferredTone string `json:"preferredTone,example=supportive"`
-        difficultyPreference string `json:"difficultyPreference,example=adaptive"`
-    }
-
-    PersonalizationContext {
-        profile CoachingProfile `json:"profile"`
-        activeGoals []Goal `json:"activeGoals"`
-        activeHabits []Habit `json:"activeHabits"`
-        recentCheckIns []CheckIn `json:"recentCheckIns"`
-        latestWeeklyReview WeeklyReview `json:"latestWeeklyReview,optional"`
-        pendingSuggestions []PlanAdjustmentSuggestion `json:"pendingSuggestions"`
-        patternInsights map[string]string `json:"patternInsights,optional"`
-    }
-
-    PersonalizationContextResponse {
-        data PersonalizationContext `json:"data"`
-    }
-
-    GetPersonalizationContextRequest {
-        forceRefresh bool `form:"forceRefresh,default=false,example=false"`
-    }
-
-    GeneratePersonalizedCoachingRequest {
-        userMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
-        context string `json:"context,optional,example=User has been struggling with motivation"`
-    }
-
-    GeneratePersonalizedCoachingResponse {
-        coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
-        context string `json:"context,optional,example=User has been struggling with motivation"`
-    }
-
-    PlanAdjustmentSuggestion {
-        id string `json:"id,example=suggestion-123"`
-        userId string `json:"userId,example=user-123"`
-        adjustmentType string `json:"adjustmentType,example=reduce_frequency"`
-        goalId string `json:"goalId,optional,example=goal-123"`
-        habitId string `json:"habitId,optional,example=habit-123"`
-        source string `json:"source,example=weekly_review"`
-        reason string `json:"reason,optional,example=Based on your recent completion patterns"`
-        suggestion string `json:"suggestion,example=Consider reducing from daily to 3x per week"`
-        metadata map[string]string `json:"metadata,optional"`
-        status string `json:"status,example=pending"`
-        createdAt string `json:"createdAt,example=2024-01-15T00:00:00Z"`
-        updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-    }
-
-    PlanAdjustmentSuggestionResponse {
-        data PlanAdjustmentSuggestion `json:"data"`
-    }
-
-    PlanAdjustmentSuggestionsResponse {
-        data []PlanAdjustmentSuggestion `json:"data"`
-    }
-
-    CreatePlanAdjustmentSuggestionRequest {
-        adjustmentType string `json:"adjustmentType,example=reduce_frequency"`
-        goalId string `json:"goalId,optional,example=goal-123"`
-        habitId string `json:"habitId,optional,example=habit-123"`
-        source string `json:"source,example=weekly_review"`
-        reason string `json:"reason,optional,example=Based on your recent completion patterns"`
-        suggestion string `json:"suggestion,example=Consider reducing from daily to 3x per week"`
-        metadata map[string]string `json:"metadata,optional"`
-    }
-
-    UpdatePlanAdjustmentSuggestionStatusRequest {
-        id string `path:"id"`
-        status string `json:"status,example=accepted"`
-    }
-
-    ApplyPlanAdjustmentSuggestionRequest {
-        id string `path:"id"`
-    }
+	CoachingProfile {
+		id                   string            `json:"id,example=profile-123"`
+		userId               string            `json:"userId,example=user-123"`
+		accountabilityStyle  string            `json:"accountabilityStyle,example=balanced"`
+		preferredTone        string            `json:"preferredTone,example=supportive"`
+		difficultyPreference string            `json:"difficultyPreference,example=adaptive"`
+		primaryMotivation    string            `json:"primaryMotivation,optional,example=personal_growth"`
+		commonBlockers       []string          `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+		coachingNotes        map[string]string `json:"coachingNotes,optional"`
+		lastContextRefreshAt string            `json:"lastContextRefreshAt,optional,example=2024-01-15T00:00:00Z"`
+		createdAt            string            `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt            string            `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	CoachingProfileResponse {
+		data CoachingProfile `json:"data"`
+	}
+	UpsertCoachingProfileRequest {
+		accountabilityStyle  string            `json:"accountabilityStyle,optional,example=balanced"`
+		preferredTone        string            `json:"preferredTone,optional,example=supportive"`
+		difficultyPreference string            `json:"difficultyPreference,optional,example=adaptive"`
+		commonBlockers       []string          `json:"commonBlockers,optional,example=[\"lack_of_time\",\"motivation\"]"`
+		coachingNotes        map[string]string `json:"coachingNotes,optional"`
+	}
+	UpdateCoachingProfilePreferencesRequest {
+		accountabilityStyle  string `json:"accountabilityStyle,example=balanced"`
+		preferredTone        string `json:"preferredTone,example=supportive"`
+		difficultyPreference string `json:"difficultyPreference,example=adaptive"`
+	}
+	PersonalizationContext {
+		profile            CoachingProfile            `json:"profile"`
+		activeGoals        []Goal                     `json:"activeGoals"`
+		activeHabits       []Habit                    `json:"activeHabits"`
+		recentCheckIns     []CheckIn                  `json:"recentCheckIns"`
+		latestWeeklyReview WeeklyReview               `json:"latestWeeklyReview,optional"`
+		pendingSuggestions []PlanAdjustmentSuggestion `json:"pendingSuggestions"`
+		patternInsights    map[string]string          `json:"patternInsights,optional"`
+	}
+	PersonalizationContextResponse {
+		data PersonalizationContext `json:"data"`
+	}
+	GetPersonalizationContextRequest {
+		forceRefresh bool `form:"forceRefresh,default=false,example=false"`
+	}
+	GeneratePersonalizedCoachingRequest {
+		userMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+		context     string `json:"context,optional,example=User has been struggling with motivation"`
+	}
+	GeneratePersonalizedCoachingResponse {
+		coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
+		context          string `json:"context,optional,example=User has been struggling with motivation"`
+	}
+	PlanAdjustmentSuggestion {
+		id             string            `json:"id,example=suggestion-123"`
+		userId         string            `json:"userId,example=user-123"`
+		adjustmentType string            `json:"adjustmentType,example=reduce_frequency"`
+		goalId         string            `json:"goalId,optional,example=goal-123"`
+		habitId        string            `json:"habitId,optional,example=habit-123"`
+		source         string            `json:"source,example=weekly_review"`
+		reason         string            `json:"reason,optional,example=Based on your recent completion patterns"`
+		suggestion     string            `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+		metadata       map[string]string `json:"metadata,optional"`
+		status         string            `json:"status,example=pending"`
+		createdAt      string            `json:"createdAt,example=2024-01-15T00:00:00Z"`
+		updatedAt      string            `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+	PlanAdjustmentSuggestionResponse {
+		data PlanAdjustmentSuggestion `json:"data"`
+	}
+	PlanAdjustmentSuggestionsResponse {
+		data []PlanAdjustmentSuggestion `json:"data"`
+	}
+	CreatePlanAdjustmentSuggestionRequest {
+		adjustmentType string            `json:"adjustmentType,example=reduce_frequency"`
+		goalId         string            `json:"goalId,optional,example=goal-123"`
+		habitId        string            `json:"habitId,optional,example=habit-123"`
+		source         string            `json:"source,example=weekly_review"`
+		reason         string            `json:"reason,optional,example=Based on your recent completion patterns"`
+		suggestion     string            `json:"suggestion,example=Consider reducing from daily to 3x per week"`
+		metadata       map[string]string `json:"metadata,optional"`
+	}
+	UpdatePlanAdjustmentSuggestionStatusRequest {
+		id     string `path:"id"`
+		status string `json:"status,example=accepted"`
+	}
+	ApplyPlanAdjustmentSuggestionRequest {
+		id string `path:"id"`
+	}
 )
 
 // Billing types
 type (
-    Plan {
-        id string `json:"id,example=plan-123"`
-        code string `json:"code,example=free"`
-        name string `json:"name,example=Free"`
-        description string `json:"description,optional,example=Start with the core accountability loop"`
-        priceMonthlyCents int `json:"priceMonthlyCents,example=0"`
-        priceAnnualCents int `json:"priceAnnualCents,example=0"`
-        activeGoalLimit int `json:"activeGoalLimit,optional,example=1"`
-        activeHabitLimit int `json:"activeHabitLimit,optional,example=3"`
-        weeklyReviewHistoryLimit int `json:"weeklyReviewHistoryLimit,optional,example=1"`
-        planAdjustmentLimit int `json:"planAdjustmentLimit,optional,example=3"`
-        personalizedAiEnabled bool `json:"personalizedAiEnabled,example=false"`
-        isActive bool `json:"isActive,example=true"`
-    }
-
-    UserSubscription {
-        id string `json:"id,example=sub-123"`
-        userId string `json:"userId,example=user-123"`
-        planId string `json:"planId,example=plan-123"`
-        planCode string `json:"planCode,example=free"`
-        planName string `json:"planName,example=Free"`
-        status string `json:"status,example=free"`
-        billingInterval string `json:"billingInterval,optional,example=monthly"`
-        currentPeriodStart string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
-        currentPeriodEnd string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
-        trialEnd string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
-        cancelAtPeriodEnd bool `json:"cancelAtPeriodEnd,example=false"`
-        stripeCustomerId string `json:"stripeCustomerId,optional"`
-        stripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
-    }
-
-    Entitlements {
-        planCode string `json:"planCode,example=free"`
-        status string `json:"status,example=free"`
-        activeGoalLimit int `json:"activeGoalLimit,optional,example=1"`
-        activeHabitLimit int `json:"activeHabitLimit,optional,example=3"`
-        weeklyReviewHistoryLimit int `json:"weeklyReviewHistoryLimit,optional,example=1"`
-        planAdjustmentLimit int `json:"planAdjustmentLimit,optional,example=3"`
-        personalizedAiEnabled bool `json:"personalizedAiEnabled,example=false"`
-        canCreateGoal bool `json:"canCreateGoal,example=true"`
-        canCreateHabit bool `json:"canCreateHabit,example=true"`
-        canViewWeeklyReviewHistory bool `json:"canViewWeeklyReviewHistory,example=false"`
-        canUsePersonalizedAi bool `json:"canUsePersonalizedAi,example=false"`
-        canCreatePlanAdjustment bool `json:"canCreatePlanAdjustment,example=false"`
-        currentActiveGoals int `json:"currentActiveGoals,example=1"`
-        currentActiveHabits int `json:"currentActiveHabits,example=2"`
-        currentPendingAdjustments int `json:"currentPendingAdjustments,example=1"`
-    }
-
-    BillingOverviewResponse {
-        plans []Plan `json:"plans"`
-        subscription UserSubscription `json:"subscription"`
-        entitlements Entitlements `json:"entitlements"`
-        billingMode string `json:"billingMode,example=fake_door"`
-    }
-
-    TrackUpgradeEventRequest {
-        eventType string `json:"eventType,example=prompt_viewed"`
-        surface string `json:"surface,example=goal_create_limit"`
-        trigger string `json:"trigger,optional,example=goal_limit"`
-        planCode string `json:"planCode,optional,example=pro"`
-        billingInterval string `json:"billingInterval,optional,example=monthly"`
-        feedbackReason string `json:"feedbackReason,optional,example=too_expensive"`
-        feedbackNote string `json:"feedbackNote,optional"`
-        metadataJson string `json:"metadataJson,optional"`
-    }
-
-    TrackUpgradeEventResponse {
-        eventId string `json:"eventId,example=event-123"`
-    }
-
-    CreateCheckoutSessionRequest {
-        planCode string `json:"planCode,example=pro"`
-        billingInterval string `json:"billingInterval,example=monthly"`
-    }
-
-    CreateCheckoutSessionResponse {
-        checkoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
-        sessionId string `json:"sessionId,optional,example=cs_test_..."`
-    }
-
-    CreateCustomerPortalSessionResponse {
-        portalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
-    }
-
-    StripeWebhookRequest {
-        eventType string `json:"eventType,example=checkout.session.completed"`
-        payloadJson string `json:"payloadJson"`
-    }
-
-    StripeWebhookResponse {
-        processed bool `json:"processed,example=true"`
-    }
+	Plan {
+		id                       string `json:"id,example=plan-123"`
+		code                     string `json:"code,example=free"`
+		name                     string `json:"name,example=Free"`
+		description              string `json:"description,optional,example=Start with the core accountability loop"`
+		priceMonthlyCents        int    `json:"priceMonthlyCents,example=0"`
+		priceAnnualCents         int    `json:"priceAnnualCents,example=0"`
+		activeGoalLimit          int    `json:"activeGoalLimit,optional,example=1"`
+		activeHabitLimit         int    `json:"activeHabitLimit,optional,example=3"`
+		weeklyReviewHistoryLimit int    `json:"weeklyReviewHistoryLimit,optional,example=1"`
+		planAdjustmentLimit      int    `json:"planAdjustmentLimit,optional,example=3"`
+		personalizedAiEnabled    bool   `json:"personalizedAiEnabled,example=false"`
+		isActive                 bool   `json:"isActive,example=true"`
+	}
+	UserSubscription {
+		id                   string `json:"id,example=sub-123"`
+		userId               string `json:"userId,example=user-123"`
+		planId               string `json:"planId,example=plan-123"`
+		planCode             string `json:"planCode,example=free"`
+		planName             string `json:"planName,example=Free"`
+		status               string `json:"status,example=free"`
+		billingInterval      string `json:"billingInterval,optional,example=monthly"`
+		currentPeriodStart   string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
+		currentPeriodEnd     string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
+		trialEnd             string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
+		cancelAtPeriodEnd    bool   `json:"cancelAtPeriodEnd,example=false"`
+		stripeCustomerId     string `json:"stripeCustomerId,optional"`
+		stripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
+	}
+	Entitlements {
+		planCode                   string `json:"planCode,example=free"`
+		status                     string `json:"status,example=free"`
+		activeGoalLimit            int    `json:"activeGoalLimit,optional,example=1"`
+		activeHabitLimit           int    `json:"activeHabitLimit,optional,example=3"`
+		weeklyReviewHistoryLimit   int    `json:"weeklyReviewHistoryLimit,optional,example=1"`
+		planAdjustmentLimit        int    `json:"planAdjustmentLimit,optional,example=3"`
+		personalizedAiEnabled      bool   `json:"personalizedAiEnabled,example=false"`
+		canCreateGoal              bool   `json:"canCreateGoal,example=true"`
+		canCreateHabit             bool   `json:"canCreateHabit,example=true"`
+		canViewWeeklyReviewHistory bool   `json:"canViewWeeklyReviewHistory,example=false"`
+		canUsePersonalizedAi       bool   `json:"canUsePersonalizedAi,example=false"`
+		canCreatePlanAdjustment    bool   `json:"canCreatePlanAdjustment,example=false"`
+		currentActiveGoals         int    `json:"currentActiveGoals,example=1"`
+		currentActiveHabits        int    `json:"currentActiveHabits,example=2"`
+		currentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
+	}
+	BillingOverviewResponse {
+		plans        []Plan           `json:"plans"`
+		subscription UserSubscription `json:"subscription"`
+		entitlements Entitlements     `json:"entitlements"`
+		billingMode  string           `json:"billingMode,example=fake_door"`
+	}
+	TrackUpgradeEventRequest {
+		eventType       string `json:"eventType,example=prompt_viewed"`
+		surface         string `json:"surface,example=goal_create_limit"`
+		trigger         string `json:"trigger,optional,example=goal_limit"`
+		planCode        string `json:"planCode,optional,example=pro"`
+		billingInterval string `json:"billingInterval,optional,example=monthly"`
+		feedbackReason  string `json:"feedbackReason,optional,example=too_expensive"`
+		feedbackNote    string `json:"feedbackNote,optional"`
+		metadataJson    string `json:"metadataJson,optional"`
+	}
+	TrackUpgradeEventResponse {
+		eventId string `json:"eventId,example=event-123"`
+	}
+	CreateCheckoutSessionRequest {
+		planCode        string `json:"planCode,example=pro"`
+		billingInterval string `json:"billingInterval,example=monthly"`
+	}
+	CreateCheckoutSessionResponse {
+		checkoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
+		sessionId   string `json:"sessionId,optional,example=cs_test_..."`
+	}
+	CreateCustomerPortalSessionResponse {
+		portalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
+	}
+	StripeWebhookRequest {
+		eventType   string `json:"eventType,example=checkout.session.completed"`
+		payloadJson string `json:"payloadJson"`
+	}
+	StripeWebhookResponse {
+		processed bool `json:"processed,example=true"`
+	}
 )
+

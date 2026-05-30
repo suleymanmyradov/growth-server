@@ -2,6 +2,8 @@
 
 -- Helper: drop a CHECK constraint by table + expression fragment
 -- check_ins
+-- Drop partial index referencing status::text before converting to enum
+DROP INDEX IF EXISTS idx_check_ins_missed_blocker;
 DO $$
 DECLARE cname TEXT;
 BEGIN
@@ -19,6 +21,8 @@ ALTER TABLE check_ins
     ALTER COLUMN mood TYPE mood_type USING mood::mood_type,
     ALTER COLUMN energy TYPE energy_level USING energy::energy_level,
     ALTER COLUMN blocker TYPE blocker_type USING blocker::blocker_type;
+-- Recreate partial index using enum comparison (no ::text cast needed)
+CREATE INDEX IF NOT EXISTS idx_check_ins_missed_blocker ON check_ins USING btree (user_id, created_at) WHERE (status = 'missed' AND blocker IS NOT NULL);
 
 -- notifications
 ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_item_type_check;
@@ -77,8 +81,13 @@ BEGIN
     IF cname IS NOT NULL THEN EXECUTE format('ALTER TABLE user_settings DROP CONSTRAINT %I', cname); END IF;
 END $$;
 ALTER TABLE user_settings
+    ALTER COLUMN theme DROP DEFAULT,
+    ALTER COLUMN accountability_style DROP DEFAULT,
     ALTER COLUMN theme TYPE theme_type USING theme::theme_type,
     ALTER COLUMN accountability_style TYPE accountability_style_type USING accountability_style::accountability_style_type;
+ALTER TABLE user_settings
+    ALTER COLUMN theme SET DEFAULT 'system',
+    ALTER COLUMN accountability_style SET DEFAULT 'balanced';
 
 -- user_coaching_profiles
 DO $$
@@ -89,9 +98,16 @@ BEGIN
     END LOOP;
 END $$;
 ALTER TABLE user_coaching_profiles
+    ALTER COLUMN accountability_style DROP DEFAULT,
+    ALTER COLUMN preferred_tone DROP DEFAULT,
+    ALTER COLUMN difficulty_preference DROP DEFAULT,
     ALTER COLUMN accountability_style TYPE accountability_style_type USING accountability_style::accountability_style_type,
     ALTER COLUMN preferred_tone TYPE coach_tone_type USING preferred_tone::coach_tone_type,
     ALTER COLUMN difficulty_preference TYPE difficulty_level_type USING difficulty_preference::difficulty_level_type;
+ALTER TABLE user_coaching_profiles
+    ALTER COLUMN accountability_style SET DEFAULT 'balanced',
+    ALTER COLUMN preferred_tone SET DEFAULT 'supportive',
+    ALTER COLUMN difficulty_preference SET DEFAULT 'adaptive';
 
 -- user_subscriptions
 DO $$
@@ -103,8 +119,11 @@ BEGIN
     IF cname IS NOT NULL THEN EXECUTE format('ALTER TABLE user_subscriptions DROP CONSTRAINT %I', cname); END IF;
 END $$;
 ALTER TABLE user_subscriptions
+    ALTER COLUMN status DROP DEFAULT,
     ALTER COLUMN status TYPE subscription_status_type USING status::subscription_status_type,
     ALTER COLUMN billing_interval TYPE billing_interval_type USING billing_interval::billing_interval_type;
+ALTER TABLE user_subscriptions
+    ALTER COLUMN status SET DEFAULT 'free';
 
 -- upgrade_events
 DO $$
@@ -116,6 +135,8 @@ END $$;
 ALTER TABLE upgrade_events ALTER COLUMN event_type TYPE upgrade_event_type USING event_type::upgrade_event_type;
 
 -- reminder_queue
+-- Drop index that uses AT TIME ZONE (STABLE function) before table rewrite
+DROP INDEX IF EXISTS uniq_reminder_queue_pending_per_day;
 DO $$
 DECLARE cname TEXT;
 BEGIN
@@ -123,6 +144,8 @@ BEGIN
     IF cname IS NOT NULL THEN EXECUTE format('ALTER TABLE reminder_queue DROP CONSTRAINT %I', cname); END IF;
 END $$;
 ALTER TABLE reminder_queue ALTER COLUMN type TYPE reminder_type USING type::reminder_type;
+-- Recreate index after table rewrite
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_reminder_queue_pending_per_day ON reminder_queue USING btree (user_id, type, CAST((scheduled_at AT TIME ZONE 'UTC') AS date)) WHERE (sent = false);
 
 -- plan_adjustment_suggestions
 DO $$
@@ -133,6 +156,9 @@ BEGIN
     END LOOP;
 END $$;
 ALTER TABLE plan_adjustment_suggestions
+    ALTER COLUMN status DROP DEFAULT,
     ALTER COLUMN source TYPE plan_adjustment_source_type USING source::plan_adjustment_source_type,
     ALTER COLUMN adjustment_type TYPE plan_adjustment_type_type USING adjustment_type::plan_adjustment_type_type,
     ALTER COLUMN status TYPE plan_adjustment_status_type USING status::plan_adjustment_status_type;
+ALTER TABLE plan_adjustment_suggestions
+    ALTER COLUMN status SET DEFAULT 'pending';

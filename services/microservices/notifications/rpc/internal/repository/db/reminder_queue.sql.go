@@ -58,7 +58,7 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminde
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ReminderQueue
+	items := []ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(
@@ -136,7 +136,7 @@ func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Rem
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ReminderQueue
+	items := []ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(

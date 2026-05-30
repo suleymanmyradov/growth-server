@@ -3,8 +3,8 @@
 -- check_ins: local_date is used for timezone-aware "today" queries
 CREATE INDEX IF NOT EXISTS idx_check_ins_user_local_date ON check_ins(user_id, local_date);
 
--- activities: calendar queries group by DATE(created_at)
-CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, DATE(created_at));
+-- activities: calendar queries group by created_at date range (DATE(created_at) is STABLE on timestamptz)
+CREATE INDEX IF NOT EXISTS idx_activities_user_date ON activities(user_id, created_at);
 
 -- articles: feed queries by category + published date
 CREATE INDEX IF NOT EXISTS idx_articles_category_published ON articles(category_id, published_at DESC);

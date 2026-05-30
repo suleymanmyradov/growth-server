@@ -11,7 +11,7 @@ INSERT INTO plan_adjustment_suggestions (
     week_start
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT (user_id, source, week_start, habit_id, adjustment_type)
+ON CONFLICT ON CONSTRAINT plan_adjustment_suggestions_unique_key
 DO UPDATE SET
     reason = EXCLUDED.reason,
     suggestion = EXCLUDED.suggestion,

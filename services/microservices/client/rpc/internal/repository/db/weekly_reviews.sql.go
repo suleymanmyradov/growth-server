@@ -160,7 +160,7 @@ func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, arg GetBlockerStat
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetBlockerStatsForWeekRow
+	items := []GetBlockerStatsForWeekRow{}
 	for rows.Next() {
 		var i GetBlockerStatsForWeekRow
 		if err := rows.Scan(&i.Blocker, &i.Count); err != nil {
@@ -227,7 +227,7 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStat
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetCheckInStatsForWeekRow
+	items := []GetCheckInStatsForWeekRow{}
 	for rows.Next() {
 		var i GetCheckInStatsForWeekRow
 		if err := rows.Scan(
@@ -324,7 +324,7 @@ func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, arg GetDailyC
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetDailyCheckInStatsForWeekRow
+	items := []GetDailyCheckInStatsForWeekRow{}
 	for rows.Next() {
 		var i GetDailyCheckInStatsForWeekRow
 		if err := rows.Scan(
@@ -374,7 +374,7 @@ func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, arg GetEnergyStatsF
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetEnergyStatsForWeekRow
+	items := []GetEnergyStatsForWeekRow{}
 	for rows.Next() {
 		var i GetEnergyStatsForWeekRow
 		if err := rows.Scan(&i.Energy, &i.Count); err != nil {
@@ -419,7 +419,7 @@ func (q *Queries) GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWe
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetMoodStatsForWeekRow
+	items := []GetMoodStatsForWeekRow{}
 	for rows.Next() {
 		var i GetMoodStatsForWeekRow
 		if err := rows.Scan(&i.Mood, &i.Count); err != nil {
@@ -493,7 +493,7 @@ func (q *Queries) ListWeeklyReviews(ctx context.Context, arg ListWeeklyReviewsPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []WeeklyReview
+	items := []WeeklyReview{}
 	for rows.Next() {
 		var i WeeklyReview
 		if err := rows.Scan(

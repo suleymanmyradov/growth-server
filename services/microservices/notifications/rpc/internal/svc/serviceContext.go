@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/lib/pq"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
@@ -23,6 +24,7 @@ type ServiceContext struct {
 	Repo         *repository.Repository
 	EventsPub    *events.Publisher
 	Scheduler    *scheduler.Scheduler
+	TxRunner     *postgres.TxRunner
 	EventsQ      queue.MessageQueue
 	ReminderDueQ queue.MessageQueue
 	sqlDB        *sql.DB
@@ -48,6 +50,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 	queries := db.New(sqlDB)
 	repo := repository.NewRepository(queries)
+	txRunner := postgres.NewTxRunner(sqlDB)
 
 	reminderPub := events.NewPublisher(c.Kafka.Brokers, c.Kafka.ReminderDueTopic)
 
@@ -79,10 +82,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Repo:         repo,
 		EventsPub:    reminderPub,
 		Scheduler:    sched,
+		TxRunner:     txRunner,
 		EventsQ:      eventsQ,
 		ReminderDueQ: reminderDueQ,
 		sqlDB:        sqlDB,
 	}
+}
+
+// WithTx returns a new Repository backed by the given transaction.
+func (s *ServiceContext) WithTx(tx *sql.Tx) *repository.Repository {
+	return repository.NewRepository(db.New(tx))
 }
 
 // StartConsumers launches the scheduler goroutine and both kq queues.

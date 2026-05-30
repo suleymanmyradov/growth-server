@@ -100,5 +100,5 @@ type DBTX interface {
 
 // NewWithTx creates a Queries using the given DBTX.
 func NewWithTx(db DBTX) *Queries {
-	return &Queries{db: db.(*sql.DB)}
+	return &Queries{db: db}
 }

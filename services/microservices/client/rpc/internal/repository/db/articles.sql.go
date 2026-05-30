@@ -233,7 +233,7 @@ func (q *Queries) ListArticles(ctx context.Context, arg ListArticlesParams) ([]L
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArticlesRow
+	items := []ListArticlesRow{}
 	for rows.Next() {
 		var i ListArticlesRow
 		if err := rows.Scan(
@@ -304,7 +304,7 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, arg ListArticlesByAu
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArticlesByAuthorRow
+	items := []ListArticlesByAuthorRow{}
 	for rows.Next() {
 		var i ListArticlesByAuthorRow
 		if err := rows.Scan(
@@ -375,7 +375,7 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, arg ListArticl
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArticlesByCategorySlugRow
+	items := []ListArticlesByCategorySlugRow{}
 	for rows.Next() {
 		var i ListArticlesByCategorySlugRow
 		if err := rows.Scan(
@@ -446,7 +446,7 @@ func (q *Queries) SearchArticles(ctx context.Context, arg SearchArticlesParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SearchArticlesRow
+	items := []SearchArticlesRow{}
 	for rows.Next() {
 		var i SearchArticlesRow
 		if err := rows.Scan(

@@ -145,7 +145,7 @@ func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetA
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAchievementsRow
+	items := []GetAchievementsRow{}
 	for rows.Next() {
 		var i GetAchievementsRow
 		if err := rows.Scan(
@@ -215,7 +215,7 @@ func (q *Queries) GetActivityCalendar(ctx context.Context, arg GetActivityCalend
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetActivityCalendarRow
+	items := []GetActivityCalendarRow{}
 	for rows.Next() {
 		var i GetActivityCalendarRow
 		if err := rows.Scan(&i.Day, &i.ActivityCount); err != nil {
@@ -252,7 +252,7 @@ func (q *Queries) GetActivityFeed(ctx context.Context, arg GetActivityFeedParams
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Activity
+	items := []Activity{}
 	for rows.Next() {
 		var i Activity
 		if err := rows.Scan(
@@ -374,7 +374,7 @@ func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Activity
+	items := []Activity{}
 	for rows.Next() {
 		var i Activity
 		if err := rows.Scan(
@@ -423,7 +423,7 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, arg ListActivitiesBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Activity
+	items := []Activity{}
 	for rows.Next() {
 		var i Activity
 		if err := rows.Scan(
@@ -466,7 +466,7 @@ func (q *Queries) ListActivitiesByUser(ctx context.Context, arg ListActivitiesBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Activity
+	items := []Activity{}
 	for rows.Next() {
 		var i Activity
 		if err := rows.Scan(

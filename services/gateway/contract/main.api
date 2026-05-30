@@ -151,6 +151,9 @@ service growthapi {
 	@handler ListSaved
 	get /saved (PageRequest) returns (SavedItemsResponse)
 
+	@handler ListSavedDetailed
+	get /saved/detailed (PageRequest) returns (SavedItemsDetailedResponse)
+
 	@handler SaveItem
 	post /saved (SaveItemRequest) returns (SavedItemResponse)
 
