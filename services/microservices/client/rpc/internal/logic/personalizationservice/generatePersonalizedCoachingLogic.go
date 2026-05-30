@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/prompts"
+	"github.com/suleymanmyradov/growth-server/pkg/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
