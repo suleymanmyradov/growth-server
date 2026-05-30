@@ -450,6 +450,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/saved/:id",
 					Handler: saved.RemoveSavedHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/saved/detailed",
+					Handler: saved.ListSavedDetailedHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),

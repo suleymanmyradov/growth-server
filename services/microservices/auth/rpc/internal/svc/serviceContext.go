@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
+	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
@@ -19,6 +20,7 @@ type ServiceContext struct {
 	Config     config.Config
 	Repo       *repository.Repository
 	TokenMaker *jwt.TokenMaker
+	TxRunner   *postgres.TxRunner
 	cancel     context.CancelFunc
 	sqlDB      *sql.DB
 }
@@ -54,6 +56,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	queries := db.New(sqlDB)
 	repo := repository.NewRepository(queries)
+	txRunner := postgres.NewTxRunner(sqlDB)
 
 	redisClient := mustNewRedis(c.Cache.Redis.Addr, c.Cache.Redis.Password, c.Cache.Redis.DB)
 
@@ -84,6 +87,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:     c,
 		Repo:       repo,
 		TokenMaker: tokenMaker,
+		TxRunner:   txRunner,
 		cancel:     cancel,
 		sqlDB:      sqlDB,
 	}

@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
@@ -22,6 +23,7 @@ type ServiceContext struct {
 	AIClient         ai.Client
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
+	TxRunner         *postgres.TxRunner
 	sqlDB            *sql.DB
 }
 
@@ -44,6 +46,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 
 	queries := db.New(sqlDB)
+	txRunner := postgres.NewTxRunner(sqlDB)
 
 	var eventsPub *events.Publisher
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
@@ -70,8 +73,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		AIClient:         aiClient,
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
+		TxRunner:         txRunner,
 		sqlDB:            sqlDB,
 	}
+}
+
+// WithTx returns a new Repository backed by the given transaction.
+// Use this inside TxRunner.Run to perform multiple repo operations atomically.
+func (s *ServiceContext) WithTx(tx *sql.Tx) *repository.Repository {
+	return repository.NewRepository(db.New(tx))
 }
 
 func (s *ServiceContext) Close() {

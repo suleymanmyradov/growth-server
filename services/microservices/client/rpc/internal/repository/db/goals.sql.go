@@ -114,7 +114,7 @@ func (q *Queries) ListGoals(ctx context.Context, arg ListGoalsParams) ([]Goal, e
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Goal
+	items := []Goal{}
 	for rows.Next() {
 		var i Goal
 		if err := rows.Scan(

@@ -58,6 +58,24 @@ func (ns NullAccountabilityStyleType) Value() (driver.Value, error) {
 	return string(ns.AccountabilityStyleType), nil
 }
 
+func (e AccountabilityStyleType) Valid() bool {
+	switch e {
+	case AccountabilityStyleTypeGentle,
+		AccountabilityStyleTypeBalanced,
+		AccountabilityStyleTypeStrict:
+		return true
+	}
+	return false
+}
+
+func AllAccountabilityStyleTypeValues() []AccountabilityStyleType {
+	return []AccountabilityStyleType{
+		AccountabilityStyleTypeGentle,
+		AccountabilityStyleTypeBalanced,
+		AccountabilityStyleTypeStrict,
+	}
+}
+
 type ActivityType string
 
 const (
@@ -105,6 +123,32 @@ func (ns NullActivityType) Value() (driver.Value, error) {
 	return string(ns.ActivityType), nil
 }
 
+func (e ActivityType) Valid() bool {
+	switch e {
+	case ActivityTypeHabitCompleted,
+		ActivityTypeGoalCreated,
+		ActivityTypeGoalCompleted,
+		ActivityTypeArticleSaved,
+		ActivityTypeCheckInCompleted,
+		ActivityTypeCheckInMissed,
+		ActivityTypeWeeklyReviewGenerated:
+		return true
+	}
+	return false
+}
+
+func AllActivityTypeValues() []ActivityType {
+	return []ActivityType{
+		ActivityTypeHabitCompleted,
+		ActivityTypeGoalCreated,
+		ActivityTypeGoalCompleted,
+		ActivityTypeArticleSaved,
+		ActivityTypeCheckInCompleted,
+		ActivityTypeCheckInMissed,
+		ActivityTypeWeeklyReviewGenerated,
+	}
+}
+
 type BillingIntervalType string
 
 const (
@@ -145,6 +189,22 @@ func (ns NullBillingIntervalType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.BillingIntervalType), nil
+}
+
+func (e BillingIntervalType) Valid() bool {
+	switch e {
+	case BillingIntervalTypeMonthly,
+		BillingIntervalTypeAnnual:
+		return true
+	}
+	return false
+}
+
+func AllBillingIntervalTypeValues() []BillingIntervalType {
+	return []BillingIntervalType{
+		BillingIntervalTypeMonthly,
+		BillingIntervalTypeAnnual,
+	}
 }
 
 type BlockerType string
@@ -192,6 +252,28 @@ func (ns NullBlockerType) Value() (driver.Value, error) {
 	return string(ns.BlockerType), nil
 }
 
+func (e BlockerType) Valid() bool {
+	switch e {
+	case BlockerTypeLackOfTime,
+		BlockerTypeLowMotivation,
+		BlockerTypeTooDistracted,
+		BlockerTypeUnclearPlan,
+		BlockerTypeOther:
+		return true
+	}
+	return false
+}
+
+func AllBlockerTypeValues() []BlockerType {
+	return []BlockerType{
+		BlockerTypeLackOfTime,
+		BlockerTypeLowMotivation,
+		BlockerTypeTooDistracted,
+		BlockerTypeUnclearPlan,
+		BlockerTypeOther,
+	}
+}
+
 type CheckInStatus string
 
 const (
@@ -232,6 +314,22 @@ func (ns NullCheckInStatus) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.CheckInStatus), nil
+}
+
+func (e CheckInStatus) Valid() bool {
+	switch e {
+	case CheckInStatusCompleted,
+		CheckInStatusMissed:
+		return true
+	}
+	return false
+}
+
+func AllCheckInStatusValues() []CheckInStatus {
+	return []CheckInStatus{
+		CheckInStatusCompleted,
+		CheckInStatusMissed,
+	}
 }
 
 type CoachToneType string
@@ -279,6 +377,28 @@ func (ns NullCoachToneType) Value() (driver.Value, error) {
 	return string(ns.CoachToneType), nil
 }
 
+func (e CoachToneType) Valid() bool {
+	switch e {
+	case CoachToneTypeSupportive,
+		CoachToneTypeDirect,
+		CoachToneTypeWarm,
+		CoachToneTypePractical,
+		CoachToneTypeChallenging:
+		return true
+	}
+	return false
+}
+
+func AllCoachToneTypeValues() []CoachToneType {
+	return []CoachToneType{
+		CoachToneTypeSupportive,
+		CoachToneTypeDirect,
+		CoachToneTypeWarm,
+		CoachToneTypePractical,
+		CoachToneTypeChallenging,
+	}
+}
+
 type ConversationType string
 
 const (
@@ -319,6 +439,22 @@ func (ns NullConversationType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ConversationType), nil
+}
+
+func (e ConversationType) Valid() bool {
+	switch e {
+	case ConversationTypeCoach,
+		ConversationTypeTherapist:
+		return true
+	}
+	return false
+}
+
+func AllConversationTypeValues() []ConversationType {
+	return []ConversationType{
+		ConversationTypeCoach,
+		ConversationTypeTherapist,
+	}
 }
 
 type DifficultyLevelType string
@@ -364,6 +500,24 @@ func (ns NullDifficultyLevelType) Value() (driver.Value, error) {
 	return string(ns.DifficultyLevelType), nil
 }
 
+func (e DifficultyLevelType) Valid() bool {
+	switch e {
+	case DifficultyLevelTypeEasy,
+		DifficultyLevelTypeAdaptive,
+		DifficultyLevelTypeAmbitious:
+		return true
+	}
+	return false
+}
+
+func AllDifficultyLevelTypeValues() []DifficultyLevelType {
+	return []DifficultyLevelType{
+		DifficultyLevelTypeEasy,
+		DifficultyLevelTypeAdaptive,
+		DifficultyLevelTypeAmbitious,
+	}
+}
+
 type EnergyLevel string
 
 const (
@@ -405,6 +559,24 @@ func (ns NullEnergyLevel) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.EnergyLevel), nil
+}
+
+func (e EnergyLevel) Valid() bool {
+	switch e {
+	case EnergyLevelHigh,
+		EnergyLevelMedium,
+		EnergyLevelLow:
+		return true
+	}
+	return false
+}
+
+func AllEnergyLevelValues() []EnergyLevel {
+	return []EnergyLevel{
+		EnergyLevelHigh,
+		EnergyLevelMedium,
+		EnergyLevelLow,
+	}
 }
 
 type EntityType string
@@ -450,6 +622,24 @@ func (ns NullEntityType) Value() (driver.Value, error) {
 	return string(ns.EntityType), nil
 }
 
+func (e EntityType) Valid() bool {
+	switch e {
+	case EntityTypeArticle,
+		EntityTypeHabit,
+		EntityTypeGoal:
+		return true
+	}
+	return false
+}
+
+func AllEntityTypeValues() []EntityType {
+	return []EntityType{
+		EntityTypeArticle,
+		EntityTypeHabit,
+		EntityTypeGoal,
+	}
+}
+
 type MessageRoleType string
 
 const (
@@ -490,6 +680,22 @@ func (ns NullMessageRoleType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.MessageRoleType), nil
+}
+
+func (e MessageRoleType) Valid() bool {
+	switch e {
+	case MessageRoleTypeUser,
+		MessageRoleTypeAssistant:
+		return true
+	}
+	return false
+}
+
+func AllMessageRoleTypeValues() []MessageRoleType {
+	return []MessageRoleType{
+		MessageRoleTypeUser,
+		MessageRoleTypeAssistant,
+	}
 }
 
 type MoodType string
@@ -534,6 +740,26 @@ func (ns NullMoodType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.MoodType), nil
+}
+
+func (e MoodType) Valid() bool {
+	switch e {
+	case MoodTypeGreat,
+		MoodTypeOkay,
+		MoodTypeLow,
+		MoodTypeStressed:
+		return true
+	}
+	return false
+}
+
+func AllMoodTypeValues() []MoodType {
+	return []MoodType{
+		MoodTypeGreat,
+		MoodTypeOkay,
+		MoodTypeLow,
+		MoodTypeStressed,
+	}
 }
 
 type NotificationType string
@@ -583,6 +809,32 @@ func (ns NullNotificationType) Value() (driver.Value, error) {
 	return string(ns.NotificationType), nil
 }
 
+func (e NotificationType) Valid() bool {
+	switch e {
+	case NotificationTypeHabitReminder,
+		NotificationTypeMissedCheckIn,
+		NotificationTypeGoalDeadline,
+		NotificationTypeAchievement,
+		NotificationTypeWeeklyReview,
+		NotificationTypeEncouragement,
+		NotificationTypeSystem:
+		return true
+	}
+	return false
+}
+
+func AllNotificationTypeValues() []NotificationType {
+	return []NotificationType{
+		NotificationTypeHabitReminder,
+		NotificationTypeMissedCheckIn,
+		NotificationTypeGoalDeadline,
+		NotificationTypeAchievement,
+		NotificationTypeWeeklyReview,
+		NotificationTypeEncouragement,
+		NotificationTypeSystem,
+	}
+}
+
 type PlanAdjustmentSourceType string
 
 const (
@@ -627,6 +879,26 @@ func (ns NullPlanAdjustmentSourceType) Value() (driver.Value, error) {
 	return string(ns.PlanAdjustmentSourceType), nil
 }
 
+func (e PlanAdjustmentSourceType) Valid() bool {
+	switch e {
+	case PlanAdjustmentSourceTypeCheckIn,
+		PlanAdjustmentSourceTypeWeeklyReview,
+		PlanAdjustmentSourceTypeAssistant,
+		PlanAdjustmentSourceTypePatternAnalysis:
+		return true
+	}
+	return false
+}
+
+func AllPlanAdjustmentSourceTypeValues() []PlanAdjustmentSourceType {
+	return []PlanAdjustmentSourceType{
+		PlanAdjustmentSourceTypeCheckIn,
+		PlanAdjustmentSourceTypeWeeklyReview,
+		PlanAdjustmentSourceTypeAssistant,
+		PlanAdjustmentSourceTypePatternAnalysis,
+	}
+}
+
 type PlanAdjustmentStatusType string
 
 const (
@@ -669,6 +941,26 @@ func (ns NullPlanAdjustmentStatusType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.PlanAdjustmentStatusType), nil
+}
+
+func (e PlanAdjustmentStatusType) Valid() bool {
+	switch e {
+	case PlanAdjustmentStatusTypePending,
+		PlanAdjustmentStatusTypeAccepted,
+		PlanAdjustmentStatusTypeDismissed,
+		PlanAdjustmentStatusTypeApplied:
+		return true
+	}
+	return false
+}
+
+func AllPlanAdjustmentStatusTypeValues() []PlanAdjustmentStatusType {
+	return []PlanAdjustmentStatusType{
+		PlanAdjustmentStatusTypePending,
+		PlanAdjustmentStatusTypeAccepted,
+		PlanAdjustmentStatusTypeDismissed,
+		PlanAdjustmentStatusTypeApplied,
+	}
 }
 
 type PlanAdjustmentTypeType string
@@ -717,6 +1009,30 @@ func (ns NullPlanAdjustmentTypeType) Value() (driver.Value, error) {
 	return string(ns.PlanAdjustmentTypeType), nil
 }
 
+func (e PlanAdjustmentTypeType) Valid() bool {
+	switch e {
+	case PlanAdjustmentTypeTypeReduceDifficulty,
+		PlanAdjustmentTypeTypeIncreaseDifficulty,
+		PlanAdjustmentTypeTypeChangeTime,
+		PlanAdjustmentTypeTypeClarifyPlan,
+		PlanAdjustmentTypeTypePause,
+		PlanAdjustmentTypeTypeKeepSame:
+		return true
+	}
+	return false
+}
+
+func AllPlanAdjustmentTypeTypeValues() []PlanAdjustmentTypeType {
+	return []PlanAdjustmentTypeType{
+		PlanAdjustmentTypeTypeReduceDifficulty,
+		PlanAdjustmentTypeTypeIncreaseDifficulty,
+		PlanAdjustmentTypeTypeChangeTime,
+		PlanAdjustmentTypeTypeClarifyPlan,
+		PlanAdjustmentTypeTypePause,
+		PlanAdjustmentTypeTypeKeepSame,
+	}
+}
+
 type ReminderType string
 
 const (
@@ -761,6 +1077,26 @@ func (ns NullReminderType) Value() (driver.Value, error) {
 	return string(ns.ReminderType), nil
 }
 
+func (e ReminderType) Valid() bool {
+	switch e {
+	case ReminderTypeHabitReminder,
+		ReminderTypeMissedCheckIn,
+		ReminderTypeWeeklyReview,
+		ReminderTypeEncouragement:
+		return true
+	}
+	return false
+}
+
+func AllReminderTypeValues() []ReminderType {
+	return []ReminderType{
+		ReminderTypeHabitReminder,
+		ReminderTypeMissedCheckIn,
+		ReminderTypeWeeklyReview,
+		ReminderTypeEncouragement,
+	}
+}
+
 type SavedItemType string
 
 const (
@@ -802,6 +1138,24 @@ func (ns NullSavedItemType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.SavedItemType), nil
+}
+
+func (e SavedItemType) Valid() bool {
+	switch e {
+	case SavedItemTypeArticle,
+		SavedItemTypeGoal,
+		SavedItemTypeHabit:
+		return true
+	}
+	return false
+}
+
+func AllSavedItemTypeValues() []SavedItemType {
+	return []SavedItemType{
+		SavedItemTypeArticle,
+		SavedItemTypeGoal,
+		SavedItemTypeHabit,
+	}
 }
 
 type SubscriptionStatusType string
@@ -850,6 +1204,30 @@ func (ns NullSubscriptionStatusType) Value() (driver.Value, error) {
 	return string(ns.SubscriptionStatusType), nil
 }
 
+func (e SubscriptionStatusType) Valid() bool {
+	switch e {
+	case SubscriptionStatusTypeFree,
+		SubscriptionStatusTypeTrialing,
+		SubscriptionStatusTypeActive,
+		SubscriptionStatusTypePastDue,
+		SubscriptionStatusTypeCanceled,
+		SubscriptionStatusTypeExpired:
+		return true
+	}
+	return false
+}
+
+func AllSubscriptionStatusTypeValues() []SubscriptionStatusType {
+	return []SubscriptionStatusType{
+		SubscriptionStatusTypeFree,
+		SubscriptionStatusTypeTrialing,
+		SubscriptionStatusTypeActive,
+		SubscriptionStatusTypePastDue,
+		SubscriptionStatusTypeCanceled,
+		SubscriptionStatusTypeExpired,
+	}
+}
+
 type ThemeType string
 
 const (
@@ -891,6 +1269,24 @@ func (ns NullThemeType) Value() (driver.Value, error) {
 		return nil, nil
 	}
 	return string(ns.ThemeType), nil
+}
+
+func (e ThemeType) Valid() bool {
+	switch e {
+	case ThemeTypeLight,
+		ThemeTypeDark,
+		ThemeTypeSystem:
+		return true
+	}
+	return false
+}
+
+func AllThemeTypeValues() []ThemeType {
+	return []ThemeType{
+		ThemeTypeLight,
+		ThemeTypeDark,
+		ThemeTypeSystem,
+	}
 }
 
 type UpgradeEventType string
@@ -941,6 +1337,34 @@ func (ns NullUpgradeEventType) Value() (driver.Value, error) {
 	return string(ns.UpgradeEventType), nil
 }
 
+func (e UpgradeEventType) Valid() bool {
+	switch e {
+	case UpgradeEventTypePromptViewed,
+		UpgradeEventTypePromptClicked,
+		UpgradeEventTypePromptDismissed,
+		UpgradeEventTypeCheckoutStarted,
+		UpgradeEventTypeCheckoutCompleted,
+		UpgradeEventTypeCheckoutCanceled,
+		UpgradeEventTypeSubscriptionStarted,
+		UpgradeEventTypeSubscriptionCanceled:
+		return true
+	}
+	return false
+}
+
+func AllUpgradeEventTypeValues() []UpgradeEventType {
+	return []UpgradeEventType{
+		UpgradeEventTypePromptViewed,
+		UpgradeEventTypePromptClicked,
+		UpgradeEventTypePromptDismissed,
+		UpgradeEventTypeCheckoutStarted,
+		UpgradeEventTypeCheckoutCompleted,
+		UpgradeEventTypeCheckoutCanceled,
+		UpgradeEventTypeSubscriptionStarted,
+		UpgradeEventTypeSubscriptionCanceled,
+	}
+}
+
 type Activity struct {
 	ID          uuid.UUID             `db:"id" json:"id"`
 	ItemType    ActivityType          `db:"item_type" json:"item_type"`
@@ -977,7 +1401,7 @@ type Article struct {
 	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
 	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
 	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	SearchVector interface{}    `db:"search_vector" json:"search_vector"`
+	SearchVector string         `db:"search_vector" json:"search_vector"`
 	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
 }
 

@@ -316,7 +316,7 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Plan
+	items := []Plan{}
 	for rows.Next() {
 		var i Plan
 		if err := rows.Scan(

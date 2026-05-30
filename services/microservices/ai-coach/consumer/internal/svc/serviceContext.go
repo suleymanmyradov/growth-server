@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository"
@@ -21,6 +22,7 @@ type ServiceContext struct {
 	Config    config.Config
 	Repo      *repository.Repository
 	AI        ai.Client
+	TxRunner  *postgres.TxRunner
 	EventsQ   queue.MessageQueue
 	EventsPub *events.Publisher
 	sqlDB     *sql.DB
@@ -45,6 +47,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 	queries := db.New(sqlDB)
 	repo := repository.NewRepository(queries)
+	txRunner := postgres.NewTxRunner(sqlDB)
 
 	// AI client.
 	var aiClient ai.Client
@@ -80,10 +83,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:    c,
 		Repo:      repo,
 		AI:        aiClient,
+		TxRunner:  txRunner,
 		EventsQ:   eventsQ,
 		EventsPub: eventsPub,
 		sqlDB:     sqlDB,
 	}
+}
+
+// WithTx returns a new Repository backed by the given transaction.
+func (s *ServiceContext) WithTx(tx *sql.Tx) *repository.Repository {
+	return repository.NewRepository(db.NewWithTx(tx))
 }
 
 // StartConsumers launches the kq queue.

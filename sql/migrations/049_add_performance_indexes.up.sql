@@ -33,11 +33,6 @@ CREATE INDEX IF NOT EXISTS idx_habits_user_completed
     ON habits(user_id)
     WHERE completed = TRUE;
 
--- Bonus: partial index aligned with CountActiveGoalsForUser query predicate
-CREATE INDEX IF NOT EXISTS idx_goals_active_status
-    ON goals(user_id)
-    WHERE status != 'completed';
-
 -- Bonus: index-only scan support for ClaimDueReminders job queue
 CREATE INDEX IF NOT EXISTS idx_reminder_queue_due_id
     ON reminder_queue(scheduled_at, id)

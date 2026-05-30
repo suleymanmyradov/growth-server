@@ -35,27 +35,44 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 		return nil, err
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.ToggleHabit(l.ctx, habitID)
+	// Fetch habit first to get the owner user ID for RLS context.
+	preHabit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
 	if err != nil {
-		l.Errorf("Failed to toggle habit: %v", err)
+		l.Errorf("Failed to get habit: %v", err)
 		return nil, err
 	}
 
-	// Log activity if habit was marked completed
-	if habit.Completed.Bool {
-		_, err := l.svcCtx.Repo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
-			ItemType:    "habit_completed",
-			Title:       fmt.Sprintf("Completed %s", habit.Name),
-			Description: sql.NullString{String: fmt.Sprintf("Completed habit: %s (streak: %d)", habit.Name, habit.Streak.Int32), Valid: true},
-			Metadata:    pqtype.NullRawMessage{},
-			UserID:      habit.UserID,
-		})
+	var resultHabit db.Habit
+	err = l.svcCtx.TxRunner.Run(l.ctx, preHabit.UserID.String(), func(tx *sql.Tx) error {
+		txRepo := l.svcCtx.WithTx(tx)
+
+		habit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID)
 		if err != nil {
-			l.Errorf("Failed to create activity: %v", err)
+			return fmt.Errorf("toggle habit: %w", err)
 		}
+		resultHabit = habit
+
+		// Log activity if habit was marked completed
+		if habit.Completed.Bool {
+			_, err := txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
+				ItemType:    "habit_completed",
+				Title:       fmt.Sprintf("Completed %s", habit.Name),
+				Description: sql.NullString{String: fmt.Sprintf("Completed habit: %s (streak: %d)", habit.Name, habit.Streak.Int32), Valid: true},
+				Metadata:    pqtype.NullRawMessage{},
+				UserID:      habit.UserID,
+			})
+			if err != nil {
+				return fmt.Errorf("create activity: %w", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		l.Errorf("Failed to toggle habit in tx: %v", err)
+		return nil, err
 	}
 
 	return &client.ToggleHabitResponse{
-		Habit: habitToProto(habit),
+		Habit: habitToProto(resultHabit),
 	}, nil
 }

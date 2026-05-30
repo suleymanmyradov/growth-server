@@ -421,7 +421,7 @@ func (q *Queries) ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedI
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListAllSavedItemsByUserRow
+	items := []ListAllSavedItemsByUserRow{}
 	for rows.Next() {
 		var i ListAllSavedItemsByUserRow
 		if err := rows.Scan(
@@ -468,7 +468,7 @@ func (q *Queries) ListSavedArticlesByUser(ctx context.Context, arg ListSavedArti
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListSavedArticlesByUserRow
+	items := []ListSavedArticlesByUserRow{}
 	for rows.Next() {
 		var i ListSavedArticlesByUserRow
 		if err := rows.Scan(
@@ -515,7 +515,7 @@ func (q *Queries) ListSavedGoalsByUser(ctx context.Context, arg ListSavedGoalsBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListSavedGoalsByUserRow
+	items := []ListSavedGoalsByUserRow{}
 	for rows.Next() {
 		var i ListSavedGoalsByUserRow
 		if err := rows.Scan(
@@ -562,7 +562,7 @@ func (q *Queries) ListSavedHabitsByUser(ctx context.Context, arg ListSavedHabits
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListSavedHabitsByUserRow
+	items := []ListSavedHabitsByUserRow{}
 	for rows.Next() {
 		var i ListSavedHabitsByUserRow
 		if err := rows.Scan(
@@ -608,7 +608,7 @@ func (q *Queries) ListSavedItems(ctx context.Context, arg ListSavedItemsParams) 
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SavedItem
+	items := []SavedItem{}
 	for rows.Next() {
 		var i SavedItem
 		if err := rows.Scan(
@@ -655,7 +655,7 @@ func (q *Queries) ListSavedItemsByType(ctx context.Context, arg ListSavedItemsBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SavedItem
+	items := []SavedItem{}
 	for rows.Next() {
 		var i SavedItem
 		if err := rows.Scan(
@@ -696,7 +696,7 @@ func (q *Queries) ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsBy
 		return nil, err
 	}
 	defer rows.Close()
-	var items []SavedItem
+	items := []SavedItem{}
 	for rows.Next() {
 		var i SavedItem
 		if err := rows.Scan(

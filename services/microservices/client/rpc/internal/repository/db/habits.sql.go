@@ -110,7 +110,7 @@ func (q *Queries) ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Habit
+	items := []Habit{}
 	for rows.Next() {
 		var i Habit
 		if err := rows.Scan(

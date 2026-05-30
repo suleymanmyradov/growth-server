@@ -173,7 +173,7 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListNotificationsRow
+	items := []ListNotificationsRow{}
 	for rows.Next() {
 		var i ListNotificationsRow
 		if err := rows.Scan(
@@ -232,7 +232,7 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, arg ListNotificat
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListNotificationsByTypeRow
+	items := []ListNotificationsByTypeRow{}
 	for rows.Next() {
 		var i ListNotificationsByTypeRow
 		if err := rows.Scan(
@@ -285,7 +285,7 @@ func (q *Queries) ListNotificationsByUser(ctx context.Context, arg ListNotificat
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListNotificationsByUserRow
+	items := []ListNotificationsByUserRow{}
 	for rows.Next() {
 		var i ListNotificationsByUserRow
 		if err := rows.Scan(
@@ -340,7 +340,7 @@ func (q *Queries) ListNotificationsForUser(ctx context.Context, arg ListNotifica
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListNotificationsForUserRow
+	items := []ListNotificationsForUserRow{}
 	for rows.Next() {
 		var i ListNotificationsForUserRow
 		if err := rows.Scan(
@@ -393,7 +393,7 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, arg ListUnreadNot
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListUnreadNotificationsRow
+	items := []ListUnreadNotificationsRow{}
 	for rows.Next() {
 		var i ListUnreadNotificationsRow
 		if err := rows.Scan(

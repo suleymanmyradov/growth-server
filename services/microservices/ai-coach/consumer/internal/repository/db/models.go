@@ -56,7 +56,7 @@ type GetCheckInsForWeekParams struct {
 
 // Queries is the set of database queries used by ai-coach.
 type Queries struct {
-	db *sql.DB
+	db DBTX
 }
 
 // New creates a new Queries instance.

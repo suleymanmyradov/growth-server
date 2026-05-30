@@ -148,7 +148,7 @@ func (q *Queries) ListArticleShares(ctx context.Context, arg ListArticleSharesPa
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ArticleShare
+	items := []ArticleShare{}
 	for rows.Next() {
 		var i ArticleShare
 		if err := rows.Scan(
@@ -189,7 +189,7 @@ func (q *Queries) ListArticleSharesByArticle(ctx context.Context, arg ListArticl
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ArticleShare
+	items := []ArticleShare{}
 	for rows.Next() {
 		var i ArticleShare
 		if err := rows.Scan(
@@ -230,7 +230,7 @@ func (q *Queries) ListArticleSharesByUser(ctx context.Context, arg ListArticleSh
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ArticleShare
+	items := []ArticleShare{}
 	for rows.Next() {
 		var i ArticleShare
 		if err := rows.Scan(
