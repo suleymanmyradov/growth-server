@@ -22,7 +22,9 @@ type Querier interface {
 	EnqueueReminder(ctx context.Context, arg EnqueueReminderParams) (ReminderQueue, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
 	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error)
-	GetReminderContext(ctx context.Context, userID uuid.UUID) (GetReminderContextRow, error)
+	// Optimized: single scan of habits + one lookup of user_settings.
+	// Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
+	GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	IsEventProcessed(ctx context.Context, eventID uuid.UUID) (bool, error)
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error)

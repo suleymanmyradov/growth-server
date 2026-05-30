@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -53,7 +52,7 @@ type CreateUserSettingsRow struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
@@ -114,7 +113,7 @@ type GetUserSettingsRow struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
@@ -157,7 +156,7 @@ type GetUserSettingsByIDRow struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
@@ -199,7 +198,7 @@ RETURNING id, theme, language, timezone, email_notifications, push_notifications
 type UpdateOnboardingSettingsParams struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 }
 
@@ -213,7 +212,7 @@ type UpdateOnboardingSettingsRow struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
@@ -276,7 +275,7 @@ type UpdateUserSettingsRow struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`

@@ -1169,18 +1169,18 @@ type SavedItem struct {
 }
 
 type UpgradeEvent struct {
-	ID              uuid.UUID        `db:"id" json:"id"`
-	UserID          uuid.UUID        `db:"user_id" json:"user_id"`
-	EventType       UpgradeEventType `db:"event_type" json:"event_type"`
-	Surface         string           `db:"surface" json:"surface"`
-	Trigger         sql.NullString   `db:"trigger" json:"trigger"`
-	PlanCode        sql.NullString   `db:"plan_code" json:"plan_code"`
-	BillingInterval sql.NullString   `db:"billing_interval" json:"billing_interval"`
-	FeedbackReason  sql.NullString   `db:"feedback_reason" json:"feedback_reason"`
-	FeedbackNote    sql.NullString   `db:"feedback_note" json:"feedback_note"`
-	Metadata        json.RawMessage  `db:"metadata" json:"metadata"`
-	CreatedAt       time.Time        `db:"created_at" json:"created_at"`
-	PlanID          uuid.NullUUID    `db:"plan_id" json:"plan_id"`
+	ID              uuid.UUID               `db:"id" json:"id"`
+	UserID          uuid.UUID               `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType        `db:"event_type" json:"event_type"`
+	Surface         string                  `db:"surface" json:"surface"`
+	Trigger         sql.NullString          `db:"trigger" json:"trigger"`
+	PlanCode        sql.NullString          `db:"plan_code" json:"plan_code"`
+	BillingInterval NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  sql.NullString          `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    sql.NullString          `db:"feedback_note" json:"feedback_note"`
+	Metadata        json.RawMessage         `db:"metadata" json:"metadata"`
+	CreatedAt       time.Time               `db:"created_at" json:"created_at"`
+	PlanID          uuid.NullUUID           `db:"plan_id" json:"plan_id"`
 }
 
 type User struct {
@@ -1220,7 +1220,7 @@ type UserSetting struct {
 	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
 	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 }
 

@@ -52,7 +52,7 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 		Surface:         in.Surface,
 		Trigger:         stringToNullString(in.Trigger),
 		PlanCode:        stringToNullString(in.PlanCode),
-		BillingInterval: stringToNullString(in.BillingInterval),
+		BillingInterval: stringToNullBillingInterval(in.BillingInterval),
 		FeedbackReason:  stringToNullString(in.FeedbackReason),
 		FeedbackNote:    stringToNullString(in.FeedbackNote),
 		Metadata:        metadata,
@@ -72,4 +72,11 @@ func stringToNullString(s string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: s, Valid: true}
+}
+
+func stringToNullBillingInterval(s string) db.NullBillingIntervalType {
+	if s == "" {
+		return db.NullBillingIntervalType{}
+	}
+	return db.NullBillingIntervalType{BillingIntervalType: db.BillingIntervalType(s), Valid: true}
 }

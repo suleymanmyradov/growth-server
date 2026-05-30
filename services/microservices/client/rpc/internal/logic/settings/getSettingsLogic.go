@@ -60,8 +60,8 @@ func convertDbUserSettingsToPb(s db.GetUserSettingsRow) *client.UserSettings {
 		OnboardingCompleted: s.OnboardingCompleted,
 	}
 	pb.MarketingEmails = s.EmailNotifications
-	if s.CheckInTime.Valid {
-		pb.CheckInTime = s.CheckInTime.Time.Format("15:04")
+	if !s.CheckInTime.IsZero() {
+		pb.CheckInTime = s.CheckInTime.Format("15:04")
 	}
 	return pb
 }

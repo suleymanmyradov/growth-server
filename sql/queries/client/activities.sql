@@ -1,7 +1,9 @@
 -- name: ListActivities :many
+-- NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities
+WHERE user_id = $1
 ORDER BY created_at DESC
-LIMIT $1 OFFSET $2;
+LIMIT $2 OFFSET $3;
 
 -- name: ListActivitiesByUser :many
 SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
@@ -61,31 +63,30 @@ FROM activities
 WHERE user_id = $1;
 
 -- name: GetStreaks :one
+-- Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
+-- Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 WITH days AS (
-    SELECT DISTINCT DATE(created_at) AS day
-    FROM activities
+    SELECT DISTINCT local_date AS day
+    FROM check_ins
     WHERE user_id = $1
-), ordered_days AS (
+      AND status = 'completed'
+), numbered AS (
     SELECT day, ROW_NUMBER() OVER (ORDER BY day) AS rn
     FROM days
-), streak_groups AS (
-    SELECT day, rn, day - (rn || ' days')::interval AS grp
-    FROM ordered_days
-), streak_lengths AS (
-    SELECT MIN(day) AS start_day, MAX(day) AS end_day, COUNT(*) AS length
-    FROM streak_groups
+), groups AS (
+    SELECT day, day - rn::int AS grp
+    FROM numbered
+), streaks AS (
+    SELECT grp, COUNT(*) AS length, MAX(day) AS max_day
+    FROM groups
     GROUP BY grp
-), current_streak AS (
-    SELECT length
-    FROM streak_lengths
-    WHERE end_day = (SELECT MAX(day) FROM days)
-    LIMIT 1
-), longest_streak AS (
-    SELECT MAX(length) AS length FROM streak_lengths
 )
 SELECT
-    COALESCE((SELECT length FROM current_streak), 0) AS current_streak,
-    COALESCE((SELECT length FROM longest_streak), 0) AS longest_streak;
+    COALESCE(
+        (SELECT length FROM streaks WHERE max_day = (SELECT MAX(day) FROM days) LIMIT 1),
+        0
+    ) AS current_streak,
+    COALESCE((SELECT MAX(length) FROM streaks), 0) AS longest_streak;
 
 -- name: GetAchievements :many
 WITH user_activities AS (

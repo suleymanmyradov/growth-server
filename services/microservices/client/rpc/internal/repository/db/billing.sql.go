@@ -102,15 +102,15 @@ RETURNING id, user_id, event_type, surface, trigger, plan_code, billing_interval
 `
 
 type CreateUpgradeEventParams struct {
-	UserID          uuid.UUID        `db:"user_id" json:"user_id"`
-	EventType       UpgradeEventType `db:"event_type" json:"event_type"`
-	Surface         string           `db:"surface" json:"surface"`
-	Trigger         sql.NullString   `db:"trigger" json:"trigger"`
-	PlanCode        sql.NullString   `db:"plan_code" json:"plan_code"`
-	BillingInterval sql.NullString   `db:"billing_interval" json:"billing_interval"`
-	FeedbackReason  sql.NullString   `db:"feedback_reason" json:"feedback_reason"`
-	FeedbackNote    sql.NullString   `db:"feedback_note" json:"feedback_note"`
-	Metadata        json.RawMessage  `db:"metadata" json:"metadata"`
+	UserID          uuid.UUID               `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType        `db:"event_type" json:"event_type"`
+	Surface         string                  `db:"surface" json:"surface"`
+	Trigger         sql.NullString          `db:"trigger" json:"trigger"`
+	PlanCode        sql.NullString          `db:"plan_code" json:"plan_code"`
+	BillingInterval NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  sql.NullString          `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    sql.NullString          `db:"feedback_note" json:"feedback_note"`
+	Metadata        json.RawMessage         `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (UpgradeEvent, error) {

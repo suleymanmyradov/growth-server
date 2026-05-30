@@ -13,25 +13,27 @@ import (
 )
 
 const getReminderContext = `-- name: GetReminderContext :one
+WITH user_settings_row AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz,
+           check_in_time,
+           COALESCE(habit_reminders, FALSE) AS habit_reminders,
+           COALESCE(onboarding_completed, FALSE) AS onboarding_completed
+    FROM user_settings
+    WHERE user_id = $1
+)
 SELECT
-    COALESCE(us.timezone, 'UTC') AS timezone,
-    us.check_in_time,
-    COALESCE(us.habit_reminders, FALSE) AS habit_reminders,
-    COALESCE(us.onboarding_completed, FALSE) AS onboarding_completed,
-    (SELECT COUNT(*) FROM habits h WHERE h.user_id = $1) AS active_habit_count,
-    -- checked_in_today is TRUE only if the user has checked in on ALL active habits today
-    -- This prevents reminder spam while still sending reminders for incomplete habits
-    (SELECT COUNT(*) = 0
-     FROM habits h
-     WHERE h.user_id = $1
-       AND NOT EXISTS (
-           SELECT 1 FROM check_ins ci
-           WHERE ci.habit_id = h.id
-             AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
-       )
-    ) AS checked_in_today
-FROM (SELECT $1 AS user_id) dummy
-LEFT JOIN user_settings us ON us.user_id = dummy.user_id
+    COALESCE(usr.tz, 'UTC') AS timezone,
+    usr.check_in_time,
+    COALESCE(usr.habit_reminders, FALSE) AS habit_reminders,
+    COALESCE(usr.onboarding_completed, FALSE) AS onboarding_completed,
+    COUNT(h.id) AS active_habit_count,
+    (COUNT(h.id) = COUNT(ci.id)) AS checked_in_today
+FROM (SELECT $1::uuid AS uid) dummy
+LEFT JOIN user_settings_row usr ON true
+LEFT JOIN habits h ON h.user_id = dummy.uid
+LEFT JOIN check_ins ci ON ci.habit_id = h.id
+    AND ci.local_date = (NOW() AT TIME ZONE COALESCE(usr.tz, 'UTC'))::date
+GROUP BY usr.tz, usr.check_in_time, usr.habit_reminders, usr.onboarding_completed
 `
 
 type GetReminderContextRow struct {
@@ -43,8 +45,10 @@ type GetReminderContextRow struct {
 	CheckedInToday      bool         `db:"checked_in_today" json:"checked_in_today"`
 }
 
-func (q *Queries) GetReminderContext(ctx context.Context, userID uuid.UUID) (GetReminderContextRow, error) {
-	row := q.db.QueryRowContext(ctx, getReminderContext, userID)
+// Optimized: single scan of habits + one lookup of user_settings.
+// Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
+func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error) {
+	row := q.db.QueryRowContext(ctx, getReminderContext, dollar_1)
 	var i GetReminderContextRow
 	err := row.Scan(
 		&i.Timezone,
