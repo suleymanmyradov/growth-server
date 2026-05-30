@@ -45,7 +45,7 @@ func (r *SavedItemsRepo) ListSavedItemsByType(ctx context.Context, userID uuid.U
 
 	return r.db.ListSavedItemsByType(ctx, db.ListSavedItemsByTypeParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.SavedItemType(itemType),
 		Limit:    limit,
 		Offset:   offset,
 	})
@@ -64,7 +64,7 @@ func (r *SavedItemsRepo) GetSavedItemByUserAndItem(ctx context.Context, userID u
 
 	return r.db.GetSavedItemByUserAndItem(ctx, db.GetSavedItemByUserAndItemParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.SavedItemType(itemType),
 		ItemID:   itemID,
 	})
 }
@@ -89,7 +89,7 @@ func (r *SavedItemsRepo) DeleteSavedItemByUserAndItem(ctx context.Context, userI
 
 	return r.db.DeleteSavedItemByUserAndItem(ctx, db.DeleteSavedItemByUserAndItemParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.SavedItemType(itemType),
 		ItemID:   itemID,
 	})
 }
@@ -100,7 +100,7 @@ func (r *SavedItemsRepo) IsItemSaved(ctx context.Context, userID uuid.UUID, item
 
 	return r.db.IsItemSaved(ctx, db.IsItemSavedParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.SavedItemType(itemType),
 		ItemID:   itemID,
 	})
 }
@@ -125,6 +125,6 @@ func (r *SavedItemsRepo) CountSavedItemsByUserAndType(ctx context.Context, userI
 
 	return r.db.CountSavedItemsByUserAndType(ctx, db.CountSavedItemsByUserAndTypeParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.SavedItemType(itemType),
 	})
 }

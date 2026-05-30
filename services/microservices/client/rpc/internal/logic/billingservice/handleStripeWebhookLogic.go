@@ -191,8 +191,8 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:                 existingSub.UserID,
 		PlanID:                plan.ID,
-		Status:                localStatus,
-		BillingInterval:       stringToNullString(billingInterval),
+		Status:                db.SubscriptionStatusType(localStatus),
+		BillingInterval:       db.NullBillingIntervalType{BillingIntervalType: db.BillingIntervalType(billingInterval), Valid: billingInterval != ""},
 		CurrentPeriodStart:    periodStart,
 		CurrentPeriodEnd:      periodEnd,
 		TrialEnd:              trialEndTime,

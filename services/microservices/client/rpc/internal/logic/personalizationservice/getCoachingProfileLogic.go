@@ -81,9 +81,9 @@ func dbCoachingProfileToProto(profile db.UserCoachingProfile) *client.CoachingPr
 	return &client.CoachingProfile{
 		Id:                   profile.ID.String(),
 		UserId:               profile.UserID.String(),
-		AccountabilityStyle:  profile.AccountabilityStyle,
-		PreferredTone:        profile.PreferredTone,
-		DifficultyPreference: profile.DifficultyPreference,
+		AccountabilityStyle:  string(profile.AccountabilityStyle),
+		PreferredTone:        string(profile.PreferredTone),
+		DifficultyPreference: string(profile.DifficultyPreference),
 		PrimaryMotivation:    profile.PrimaryMotivation.String,
 		CommonBlockers:       commonBlockers,
 		CoachingNotesJson:    coachingNotesJson,

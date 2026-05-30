@@ -9,10 +9,10 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/service"
 )
 
 type ServiceContext struct {
@@ -20,7 +20,7 @@ type ServiceContext struct {
 	Repo             *repository.Repository
 	EventsPub        *events.Publisher
 	AIClient         ai.Client
-	PatternDetection *service.PatternDetectionService
+	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
 	sqlDB            *sql.DB
 }
@@ -56,7 +56,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	repo := repository.NewRepository(queries)
-	patternDetection := service.NewPatternDetectionService(repo)
+	patternDetection := analytics.NewPatternDetection()
 
 	var stripeClient *stripe.Client
 	if c.Billing.StripeSecretKey != "" {

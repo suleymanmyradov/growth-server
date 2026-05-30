@@ -46,7 +46,7 @@ func (r *ActivitiesRepo) ListActivitiesByType(ctx context.Context, userID uuid.U
 
 	return r.db.ListActivitiesByType(ctx, db.ListActivitiesByTypeParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.ActivityType(itemType),
 		Limit:    limit,
 		Offset:   offset,
 	})
@@ -107,7 +107,7 @@ func (r *ActivitiesRepo) CountActivitiesByUserAndType(ctx context.Context, userI
 
 	return r.db.CountActivitiesByUserAndType(ctx, db.CountActivitiesByUserAndTypeParams{
 		UserID:   userID,
-		ItemType: itemType,
+		ItemType: db.ActivityType(itemType),
 	})
 }
 

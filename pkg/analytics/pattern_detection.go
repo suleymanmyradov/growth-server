@@ -1,25 +1,30 @@
-package service
+package analytics
 
 import (
 	"strings"
 	"time"
-
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 )
 
-// PatternDetectionService analyzes user behavior patterns to provide insights
-type PatternDetectionService struct {
-	repo *repository.Repository
+// CheckInData is a domain-agnostic check-in record for pattern analysis.
+type CheckInData struct {
+	Status    string
+	Mood      *string // nil when not recorded
+	Blocker   *string // nil when not recorded
+	CreatedAt time.Time
+	HabitID   string
 }
 
-func NewPatternDetectionService(repo *repository.Repository) *PatternDetectionService {
-	return &PatternDetectionService{
-		repo: repo,
-	}
+// HabitData is a domain-agnostic habit record for pattern analysis.
+type HabitData struct {
+	ID     string
+	Name   string
+	Streak *int32 // nil when not recorded
 }
 
-// PatternInsights contains detected patterns from user behavior
+// PatternDetectionService analyzes user behavior patterns to provide insights.
+type PatternDetectionService struct{}
+
+// PatternInsights contains detected patterns from user behavior.
 type PatternInsights struct {
 	CompletionPattern     string            `json:"completion_pattern"`
 	TopBlocker            string            `json:"top_blocker"`
@@ -32,41 +37,27 @@ type PatternInsights struct {
 	RiskFactors           []string          `json:"risk_factors"`
 }
 
-// AnalyzeFullFromData skips the DB and analyzes already-loaded data.
-func (s *PatternDetectionService) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.Habit, userLoc *time.Location) *PatternInsights {
+// AnalyzeFullFromData analyzes already-loaded data and returns rich insights.
+func (s *PatternDetectionService) AnalyzeFullFromData(checkIns []CheckInData, habits []HabitData, userLoc *time.Location) *PatternInsights {
 	insights := &PatternInsights{
 		BlockerFrequency: make(map[string]int),
 		HabitDifficulty:  make(map[string]string),
 		RiskFactors:      []string{},
 	}
 
-	// Analyze completion patterns
 	insights.CompletionPattern = s.analyzeCompletionPattern(checkIns)
-
-	// Analyze blockers
 	insights.TopBlocker, insights.BlockerFrequency = s.analyzeBlockers(checkIns)
-
-	// Analyze time patterns
 	insights.BestTimeOfDay, insights.HardestTimeOfDay = s.analyzeTimePatterns(checkIns, userLoc)
-
-	// Analyze mood/energy correlation
 	insights.MoodEnergyCorrelation = s.analyzeMoodEnergyCorrelation(checkIns)
-
-	// Analyze streak patterns
 	insights.StreakPattern = s.analyzeStreakPatterns(habits)
-
-	// Analyze habit difficulty
 	insights.HabitDifficulty = s.analyzeHabitDifficulty(checkIns, habits)
-
-	// Identify risk factors
 	insights.RiskFactors = s.identifyRiskFactors(checkIns, insights, userLoc)
 
 	return insights
 }
 
-// AnalyzeLite returns the flat map[string]string used by the proto.
-// Internally calls AnalyzeFullFromData and projects down.
-func (s *PatternDetectionService) AnalyzeLite(checkIns []db.CheckIn, habits []db.Habit, userLoc *time.Location) map[string]string {
+// AnalyzeLite returns a flat map[string]string used by the proto.
+func (s *PatternDetectionService) AnalyzeLite(checkIns []CheckInData, habits []HabitData, userLoc *time.Location) map[string]string {
 	insights := s.AnalyzeFullFromData(checkIns, habits, userLoc)
 	return insights.ToFlatMap()
 }
@@ -93,7 +84,6 @@ func (p *PatternInsights) ToFlatMap() map[string]string {
 		m["streak_pattern"] = p.StreakPattern
 	}
 	if len(p.RiskFactors) > 0 {
-		// RiskFactors are already sorted in identifyRiskFactors, but ensure here too
 		riskFactorsCopy := make([]string, len(p.RiskFactors))
 		copy(riskFactorsCopy, p.RiskFactors)
 		for i := 0; i < len(riskFactorsCopy); i++ {
@@ -108,8 +98,7 @@ func (p *PatternInsights) ToFlatMap() map[string]string {
 	return m
 }
 
-// analyzeCompletionPattern determines the user's consistency level
-func (s *PatternDetectionService) analyzeCompletionPattern(checkIns []db.CheckIn) string {
+func (s *PatternDetectionService) analyzeCompletionPattern(checkIns []CheckInData) string {
 	if len(checkIns) == 0 {
 		return "no_data"
 	}
@@ -135,13 +124,12 @@ func (s *PatternDetectionService) analyzeCompletionPattern(checkIns []db.CheckIn
 	}
 }
 
-// analyzeBlockers identifies the most common blockers
-func (s *PatternDetectionService) analyzeBlockers(checkIns []db.CheckIn) (string, map[string]int) {
+func (s *PatternDetectionService) analyzeBlockers(checkIns []CheckInData) (string, map[string]int) {
 	blockerCounts := make(map[string]int)
 
 	for _, checkIn := range checkIns {
-		if checkIn.Blocker.Valid && checkIn.Blocker.String != "" {
-			blockerCounts[checkIn.Blocker.String]++
+		if checkIn.Blocker != nil && *checkIn.Blocker != "" {
+			blockerCounts[*checkIn.Blocker]++
 		}
 	}
 
@@ -161,14 +149,13 @@ func (s *PatternDetectionService) analyzeBlockers(checkIns []db.CheckIn) (string
 	return topBlocker, blockerCounts
 }
 
-// analyzeTimePatterns identifies best and worst times for habit completion
-func (s *PatternDetectionService) analyzeTimePatterns(checkIns []db.CheckIn, userLoc *time.Location) (string, string) {
+func (s *PatternDetectionService) analyzeTimePatterns(checkIns []CheckInData, userLoc *time.Location) (string, string) {
 	if len(checkIns) == 0 {
 		return "", ""
 	}
 
-	hourlyCompletion := make(map[int]int) // hour -> completed count
-	hourlyTotal := make(map[int]int)      // hour -> total count
+	hourlyCompletion := make(map[int]int)
+	hourlyTotal := make(map[int]int)
 
 	for _, checkIn := range checkIns {
 		localTime := checkIn.CreatedAt.In(userLoc)
@@ -183,7 +170,6 @@ func (s *PatternDetectionService) analyzeTimePatterns(checkIns []db.CheckIn, use
 		return "", ""
 	}
 
-	// Find best and worst hours
 	bestHour := -1
 	bestRate := 0.0
 	worstHour := -1
@@ -218,8 +204,7 @@ func (s *PatternDetectionService) analyzeTimePatterns(checkIns []db.CheckIn, use
 	return bestTime, worstTime
 }
 
-// analyzeMoodEnergyCorrelation analyzes relationship between mood/energy and completion
-func (s *PatternDetectionService) analyzeMoodEnergyCorrelation(checkIns []db.CheckIn) string {
+func (s *PatternDetectionService) analyzeMoodEnergyCorrelation(checkIns []CheckInData) string {
 	if len(checkIns) == 0 {
 		return "no_data"
 	}
@@ -230,12 +215,12 @@ func (s *PatternDetectionService) analyzeMoodEnergyCorrelation(checkIns []db.Che
 	lowMoodTotal := 0
 
 	for _, checkIn := range checkIns {
-		if !checkIn.Mood.Valid {
+		if checkIn.Mood == nil {
 			continue
 		}
 
-		isHighMood := checkIn.Mood.String == "great" || checkIn.Mood.String == "good"
-		isLowMood := checkIn.Mood.String == "bad" || checkIn.Mood.String == "terrible"
+		isHighMood := *checkIn.Mood == "great" || *checkIn.Mood == "okay"
+		isLowMood := *checkIn.Mood == "low" || *checkIn.Mood == "stressed"
 
 		if isHighMood {
 			highMoodTotal++
@@ -273,8 +258,7 @@ func (s *PatternDetectionService) analyzeMoodEnergyCorrelation(checkIns []db.Che
 	}
 }
 
-// analyzeStreakPatterns analyzes streak behavior across habits
-func (s *PatternDetectionService) analyzeStreakPatterns(habits []db.Habit) string {
+func (s *PatternDetectionService) analyzeStreakPatterns(habits []HabitData) string {
 	if len(habits) == 0 {
 		return "no_data"
 	}
@@ -284,10 +268,10 @@ func (s *PatternDetectionService) analyzeStreakPatterns(habits []db.Habit) strin
 	noStreaks := 0
 
 	for _, habit := range habits {
-		if habit.Streak.Valid {
-			if habit.Streak.Int32 >= 7 {
+		if habit.Streak != nil {
+			if *habit.Streak >= 7 {
 				longStreaks++
-			} else if habit.Streak.Int32 >= 3 {
+			} else if *habit.Streak >= 3 {
 				shortStreaks++
 			} else {
 				noStreaks++
@@ -308,13 +292,12 @@ func (s *PatternDetectionService) analyzeStreakPatterns(habits []db.Habit) strin
 	}
 }
 
-// analyzeHabitDifficulty determines which habits are easy vs difficult for the user
-func (s *PatternDetectionService) analyzeHabitDifficulty(checkIns []db.CheckIn, habits []db.Habit) map[string]string {
+func (s *PatternDetectionService) analyzeHabitDifficulty(checkIns []CheckInData, habits []HabitData) map[string]string {
 	habitStats := make(map[string]int)  // habitID -> completed count
 	habitTotals := make(map[string]int) // habitID -> total count
 
 	for _, checkIn := range checkIns {
-		habitID := checkIn.HabitID.String()
+		habitID := checkIn.HabitID
 		habitTotals[habitID]++
 		if checkIn.Status == "completed" {
 			habitStats[habitID]++
@@ -323,14 +306,13 @@ func (s *PatternDetectionService) analyzeHabitDifficulty(checkIns []db.CheckIn, 
 
 	difficulty := make(map[string]string)
 	for _, habit := range habits {
-		habitID := habit.ID.String()
-		total := habitTotals[habitID]
+		total := habitTotals[habit.ID]
 		if total == 0 {
 			difficulty[habit.Name] = "unknown"
 			continue
 		}
 
-		completed := habitStats[habitID]
+		completed := habitStats[habit.ID]
 		rate := float64(completed) / float64(total)
 
 		switch {
@@ -346,8 +328,7 @@ func (s *PatternDetectionService) analyzeHabitDifficulty(checkIns []db.CheckIn, 
 	return difficulty
 }
 
-// identifyRiskFactors finds potential risks to habit consistency
-func (s *PatternDetectionService) identifyRiskFactors(checkIns []db.CheckIn, insights *PatternInsights, userLoc *time.Location) []string {
+func (s *PatternDetectionService) identifyRiskFactors(checkIns []CheckInData, insights *PatternInsights, userLoc *time.Location) []string {
 	risks := []string{}
 
 	if insights.CompletionPattern == "low_consistency" {
@@ -366,7 +347,6 @@ func (s *PatternDetectionService) identifyRiskFactors(checkIns []db.CheckIn, ins
 		risks = append(risks, "low_momentum")
 	}
 
-	// Check for weekend vs weekday patterns
 	weekdayCompleted := 0
 	weekdayTotal := 0
 	weekendCompleted := 0
@@ -401,11 +381,9 @@ func (s *PatternDetectionService) identifyRiskFactors(checkIns []db.CheckIn, ins
 		}
 	}
 
-	// Cap risk factors to top 5 and sort alphabetically for consistency
 	if len(risks) > 5 {
 		risks = risks[:5]
 	}
-	// Sort alphabetically
 	for i := 0; i < len(risks); i++ {
 		for j := i + 1; j < len(risks); j++ {
 			if risks[i] > risks[j] {
@@ -417,7 +395,6 @@ func (s *PatternDetectionService) identifyRiskFactors(checkIns []db.CheckIn, ins
 	return risks
 }
 
-// formatTimeRange converts an hour to a readable time range
 func formatTimeRange(hour int) string {
 	switch {
 	case hour >= 5 && hour < 9:

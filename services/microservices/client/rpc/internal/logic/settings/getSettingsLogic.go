@@ -54,14 +54,12 @@ func convertDbUserSettingsToPb(s db.GetUserSettingsRow) *client.UserSettings {
 	pb := &client.UserSettings{
 		UserId:              s.UserID.String(),
 		Language:            s.Language,
-		Theme:               s.Theme,
+		Theme:               string(s.Theme),
 		Timezone:            s.Timezone,
-		AccountabilityStyle: s.AccountabilityStyle,
+		AccountabilityStyle: string(s.AccountabilityStyle),
 		OnboardingCompleted: s.OnboardingCompleted,
 	}
-	if s.EmailNotifications.Valid {
-		pb.MarketingEmails = s.EmailNotifications.Bool
-	}
+	pb.MarketingEmails = s.EmailNotifications
 	if s.CheckInTime.Valid {
 		pb.CheckInTime = s.CheckInTime.Time.Format("15:04")
 	}

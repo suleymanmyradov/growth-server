@@ -15,6 +15,398 @@ import (
 	"github.com/sqlc-dev/pqtype"
 )
 
+type AccountabilityStyleType string
+
+const (
+	AccountabilityStyleTypeGentle   AccountabilityStyleType = "gentle"
+	AccountabilityStyleTypeBalanced AccountabilityStyleType = "balanced"
+	AccountabilityStyleTypeStrict   AccountabilityStyleType = "strict"
+)
+
+func (e *AccountabilityStyleType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = AccountabilityStyleType(s)
+	case string:
+		*e = AccountabilityStyleType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for AccountabilityStyleType: %T", src)
+	}
+	return nil
+}
+
+type NullAccountabilityStyleType struct {
+	AccountabilityStyleType AccountabilityStyleType `json:"accountability_style_type"`
+	Valid                   bool                    `json:"valid"` // Valid is true if AccountabilityStyleType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullAccountabilityStyleType) Scan(value interface{}) error {
+	if value == nil {
+		ns.AccountabilityStyleType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.AccountabilityStyleType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullAccountabilityStyleType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.AccountabilityStyleType), nil
+}
+
+type ActivityType string
+
+const (
+	ActivityTypeHabitCompleted        ActivityType = "habit_completed"
+	ActivityTypeGoalCreated           ActivityType = "goal_created"
+	ActivityTypeGoalCompleted         ActivityType = "goal_completed"
+	ActivityTypeArticleSaved          ActivityType = "article_saved"
+	ActivityTypeCheckInCompleted      ActivityType = "check_in_completed"
+	ActivityTypeCheckInMissed         ActivityType = "check_in_missed"
+	ActivityTypeWeeklyReviewGenerated ActivityType = "weekly_review_generated"
+)
+
+func (e *ActivityType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ActivityType(s)
+	case string:
+		*e = ActivityType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ActivityType: %T", src)
+	}
+	return nil
+}
+
+type NullActivityType struct {
+	ActivityType ActivityType `json:"activity_type"`
+	Valid        bool         `json:"valid"` // Valid is true if ActivityType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullActivityType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ActivityType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ActivityType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullActivityType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ActivityType), nil
+}
+
+type BillingIntervalType string
+
+const (
+	BillingIntervalTypeMonthly BillingIntervalType = "monthly"
+	BillingIntervalTypeAnnual  BillingIntervalType = "annual"
+)
+
+func (e *BillingIntervalType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BillingIntervalType(s)
+	case string:
+		*e = BillingIntervalType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BillingIntervalType: %T", src)
+	}
+	return nil
+}
+
+type NullBillingIntervalType struct {
+	BillingIntervalType BillingIntervalType `json:"billing_interval_type"`
+	Valid               bool                `json:"valid"` // Valid is true if BillingIntervalType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBillingIntervalType) Scan(value interface{}) error {
+	if value == nil {
+		ns.BillingIntervalType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BillingIntervalType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBillingIntervalType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BillingIntervalType), nil
+}
+
+type BlockerType string
+
+const (
+	BlockerTypeLackOfTime    BlockerType = "lack_of_time"
+	BlockerTypeLowMotivation BlockerType = "low_motivation"
+	BlockerTypeTooDistracted BlockerType = "too_distracted"
+	BlockerTypeUnclearPlan   BlockerType = "unclear_plan"
+	BlockerTypeOther         BlockerType = "other"
+)
+
+func (e *BlockerType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = BlockerType(s)
+	case string:
+		*e = BlockerType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for BlockerType: %T", src)
+	}
+	return nil
+}
+
+type NullBlockerType struct {
+	BlockerType BlockerType `json:"blocker_type"`
+	Valid       bool        `json:"valid"` // Valid is true if BlockerType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullBlockerType) Scan(value interface{}) error {
+	if value == nil {
+		ns.BlockerType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.BlockerType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullBlockerType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.BlockerType), nil
+}
+
+type CheckInStatus string
+
+const (
+	CheckInStatusCompleted CheckInStatus = "completed"
+	CheckInStatusMissed    CheckInStatus = "missed"
+)
+
+func (e *CheckInStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CheckInStatus(s)
+	case string:
+		*e = CheckInStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CheckInStatus: %T", src)
+	}
+	return nil
+}
+
+type NullCheckInStatus struct {
+	CheckInStatus CheckInStatus `json:"check_in_status"`
+	Valid         bool          `json:"valid"` // Valid is true if CheckInStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCheckInStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.CheckInStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CheckInStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCheckInStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CheckInStatus), nil
+}
+
+type CoachToneType string
+
+const (
+	CoachToneTypeSupportive  CoachToneType = "supportive"
+	CoachToneTypeDirect      CoachToneType = "direct"
+	CoachToneTypeWarm        CoachToneType = "warm"
+	CoachToneTypePractical   CoachToneType = "practical"
+	CoachToneTypeChallenging CoachToneType = "challenging"
+)
+
+func (e *CoachToneType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = CoachToneType(s)
+	case string:
+		*e = CoachToneType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for CoachToneType: %T", src)
+	}
+	return nil
+}
+
+type NullCoachToneType struct {
+	CoachToneType CoachToneType `json:"coach_tone_type"`
+	Valid         bool          `json:"valid"` // Valid is true if CoachToneType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullCoachToneType) Scan(value interface{}) error {
+	if value == nil {
+		ns.CoachToneType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.CoachToneType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullCoachToneType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.CoachToneType), nil
+}
+
+type ConversationType string
+
+const (
+	ConversationTypeCoach     ConversationType = "coach"
+	ConversationTypeTherapist ConversationType = "therapist"
+)
+
+func (e *ConversationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ConversationType(s)
+	case string:
+		*e = ConversationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ConversationType: %T", src)
+	}
+	return nil
+}
+
+type NullConversationType struct {
+	ConversationType ConversationType `json:"conversation_type"`
+	Valid            bool             `json:"valid"` // Valid is true if ConversationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullConversationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ConversationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ConversationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullConversationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ConversationType), nil
+}
+
+type DifficultyLevelType string
+
+const (
+	DifficultyLevelTypeEasy      DifficultyLevelType = "easy"
+	DifficultyLevelTypeAdaptive  DifficultyLevelType = "adaptive"
+	DifficultyLevelTypeAmbitious DifficultyLevelType = "ambitious"
+)
+
+func (e *DifficultyLevelType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DifficultyLevelType(s)
+	case string:
+		*e = DifficultyLevelType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DifficultyLevelType: %T", src)
+	}
+	return nil
+}
+
+type NullDifficultyLevelType struct {
+	DifficultyLevelType DifficultyLevelType `json:"difficulty_level_type"`
+	Valid               bool                `json:"valid"` // Valid is true if DifficultyLevelType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDifficultyLevelType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DifficultyLevelType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DifficultyLevelType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDifficultyLevelType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DifficultyLevelType), nil
+}
+
+type EnergyLevel string
+
+const (
+	EnergyLevelHigh   EnergyLevel = "high"
+	EnergyLevelMedium EnergyLevel = "medium"
+	EnergyLevelLow    EnergyLevel = "low"
+)
+
+func (e *EnergyLevel) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EnergyLevel(s)
+	case string:
+		*e = EnergyLevel(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EnergyLevel: %T", src)
+	}
+	return nil
+}
+
+type NullEnergyLevel struct {
+	EnergyLevel EnergyLevel `json:"energy_level"`
+	Valid       bool        `json:"valid"` // Valid is true if EnergyLevel is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEnergyLevel) Scan(value interface{}) error {
+	if value == nil {
+		ns.EnergyLevel, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EnergyLevel.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEnergyLevel) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EnergyLevel), nil
+}
+
 type EntityType string
 
 const (
@@ -58,9 +450,500 @@ func (ns NullEntityType) Value() (driver.Value, error) {
 	return string(ns.EntityType), nil
 }
 
+type MessageRoleType string
+
+const (
+	MessageRoleTypeUser      MessageRoleType = "user"
+	MessageRoleTypeAssistant MessageRoleType = "assistant"
+)
+
+func (e *MessageRoleType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MessageRoleType(s)
+	case string:
+		*e = MessageRoleType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MessageRoleType: %T", src)
+	}
+	return nil
+}
+
+type NullMessageRoleType struct {
+	MessageRoleType MessageRoleType `json:"message_role_type"`
+	Valid           bool            `json:"valid"` // Valid is true if MessageRoleType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMessageRoleType) Scan(value interface{}) error {
+	if value == nil {
+		ns.MessageRoleType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MessageRoleType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMessageRoleType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MessageRoleType), nil
+}
+
+type MoodType string
+
+const (
+	MoodTypeGreat    MoodType = "great"
+	MoodTypeOkay     MoodType = "okay"
+	MoodTypeLow      MoodType = "low"
+	MoodTypeStressed MoodType = "stressed"
+)
+
+func (e *MoodType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = MoodType(s)
+	case string:
+		*e = MoodType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for MoodType: %T", src)
+	}
+	return nil
+}
+
+type NullMoodType struct {
+	MoodType MoodType `json:"mood_type"`
+	Valid    bool     `json:"valid"` // Valid is true if MoodType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullMoodType) Scan(value interface{}) error {
+	if value == nil {
+		ns.MoodType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.MoodType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullMoodType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.MoodType), nil
+}
+
+type NotificationType string
+
+const (
+	NotificationTypeHabitReminder NotificationType = "habit_reminder"
+	NotificationTypeMissedCheckIn NotificationType = "missed_check_in"
+	NotificationTypeGoalDeadline  NotificationType = "goal_deadline"
+	NotificationTypeAchievement   NotificationType = "achievement"
+	NotificationTypeWeeklyReview  NotificationType = "weekly_review"
+	NotificationTypeEncouragement NotificationType = "encouragement"
+	NotificationTypeSystem        NotificationType = "system"
+)
+
+func (e *NotificationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NotificationType(s)
+	case string:
+		*e = NotificationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NotificationType: %T", src)
+	}
+	return nil
+}
+
+type NullNotificationType struct {
+	NotificationType NotificationType `json:"notification_type"`
+	Valid            bool             `json:"valid"` // Valid is true if NotificationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNotificationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.NotificationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NotificationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNotificationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NotificationType), nil
+}
+
+type PlanAdjustmentSourceType string
+
+const (
+	PlanAdjustmentSourceTypeCheckIn         PlanAdjustmentSourceType = "check_in"
+	PlanAdjustmentSourceTypeWeeklyReview    PlanAdjustmentSourceType = "weekly_review"
+	PlanAdjustmentSourceTypeAssistant       PlanAdjustmentSourceType = "assistant"
+	PlanAdjustmentSourceTypePatternAnalysis PlanAdjustmentSourceType = "pattern_analysis"
+)
+
+func (e *PlanAdjustmentSourceType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PlanAdjustmentSourceType(s)
+	case string:
+		*e = PlanAdjustmentSourceType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PlanAdjustmentSourceType: %T", src)
+	}
+	return nil
+}
+
+type NullPlanAdjustmentSourceType struct {
+	PlanAdjustmentSourceType PlanAdjustmentSourceType `json:"plan_adjustment_source_type"`
+	Valid                    bool                     `json:"valid"` // Valid is true if PlanAdjustmentSourceType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPlanAdjustmentSourceType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PlanAdjustmentSourceType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PlanAdjustmentSourceType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPlanAdjustmentSourceType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PlanAdjustmentSourceType), nil
+}
+
+type PlanAdjustmentStatusType string
+
+const (
+	PlanAdjustmentStatusTypePending   PlanAdjustmentStatusType = "pending"
+	PlanAdjustmentStatusTypeAccepted  PlanAdjustmentStatusType = "accepted"
+	PlanAdjustmentStatusTypeDismissed PlanAdjustmentStatusType = "dismissed"
+	PlanAdjustmentStatusTypeApplied   PlanAdjustmentStatusType = "applied"
+)
+
+func (e *PlanAdjustmentStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PlanAdjustmentStatusType(s)
+	case string:
+		*e = PlanAdjustmentStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PlanAdjustmentStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullPlanAdjustmentStatusType struct {
+	PlanAdjustmentStatusType PlanAdjustmentStatusType `json:"plan_adjustment_status_type"`
+	Valid                    bool                     `json:"valid"` // Valid is true if PlanAdjustmentStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPlanAdjustmentStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PlanAdjustmentStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PlanAdjustmentStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPlanAdjustmentStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PlanAdjustmentStatusType), nil
+}
+
+type PlanAdjustmentTypeType string
+
+const (
+	PlanAdjustmentTypeTypeReduceDifficulty   PlanAdjustmentTypeType = "reduce_difficulty"
+	PlanAdjustmentTypeTypeIncreaseDifficulty PlanAdjustmentTypeType = "increase_difficulty"
+	PlanAdjustmentTypeTypeChangeTime         PlanAdjustmentTypeType = "change_time"
+	PlanAdjustmentTypeTypeClarifyPlan        PlanAdjustmentTypeType = "clarify_plan"
+	PlanAdjustmentTypeTypePause              PlanAdjustmentTypeType = "pause"
+	PlanAdjustmentTypeTypeKeepSame           PlanAdjustmentTypeType = "keep_same"
+)
+
+func (e *PlanAdjustmentTypeType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = PlanAdjustmentTypeType(s)
+	case string:
+		*e = PlanAdjustmentTypeType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for PlanAdjustmentTypeType: %T", src)
+	}
+	return nil
+}
+
+type NullPlanAdjustmentTypeType struct {
+	PlanAdjustmentTypeType PlanAdjustmentTypeType `json:"plan_adjustment_type_type"`
+	Valid                  bool                   `json:"valid"` // Valid is true if PlanAdjustmentTypeType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullPlanAdjustmentTypeType) Scan(value interface{}) error {
+	if value == nil {
+		ns.PlanAdjustmentTypeType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.PlanAdjustmentTypeType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullPlanAdjustmentTypeType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.PlanAdjustmentTypeType), nil
+}
+
+type ReminderType string
+
+const (
+	ReminderTypeHabitReminder ReminderType = "habit_reminder"
+	ReminderTypeMissedCheckIn ReminderType = "missed_check_in"
+	ReminderTypeWeeklyReview  ReminderType = "weekly_review"
+	ReminderTypeEncouragement ReminderType = "encouragement"
+)
+
+func (e *ReminderType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ReminderType(s)
+	case string:
+		*e = ReminderType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ReminderType: %T", src)
+	}
+	return nil
+}
+
+type NullReminderType struct {
+	ReminderType ReminderType `json:"reminder_type"`
+	Valid        bool         `json:"valid"` // Valid is true if ReminderType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullReminderType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ReminderType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ReminderType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullReminderType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ReminderType), nil
+}
+
+type SavedItemType string
+
+const (
+	SavedItemTypeArticle SavedItemType = "article"
+	SavedItemTypeGoal    SavedItemType = "goal"
+	SavedItemTypeHabit   SavedItemType = "habit"
+)
+
+func (e *SavedItemType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SavedItemType(s)
+	case string:
+		*e = SavedItemType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SavedItemType: %T", src)
+	}
+	return nil
+}
+
+type NullSavedItemType struct {
+	SavedItemType SavedItemType `json:"saved_item_type"`
+	Valid         bool          `json:"valid"` // Valid is true if SavedItemType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSavedItemType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SavedItemType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SavedItemType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSavedItemType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SavedItemType), nil
+}
+
+type SubscriptionStatusType string
+
+const (
+	SubscriptionStatusTypeFree     SubscriptionStatusType = "free"
+	SubscriptionStatusTypeTrialing SubscriptionStatusType = "trialing"
+	SubscriptionStatusTypeActive   SubscriptionStatusType = "active"
+	SubscriptionStatusTypePastDue  SubscriptionStatusType = "past_due"
+	SubscriptionStatusTypeCanceled SubscriptionStatusType = "canceled"
+	SubscriptionStatusTypeExpired  SubscriptionStatusType = "expired"
+)
+
+func (e *SubscriptionStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SubscriptionStatusType(s)
+	case string:
+		*e = SubscriptionStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SubscriptionStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullSubscriptionStatusType struct {
+	SubscriptionStatusType SubscriptionStatusType `json:"subscription_status_type"`
+	Valid                  bool                   `json:"valid"` // Valid is true if SubscriptionStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSubscriptionStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.SubscriptionStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SubscriptionStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSubscriptionStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SubscriptionStatusType), nil
+}
+
+type ThemeType string
+
+const (
+	ThemeTypeLight  ThemeType = "light"
+	ThemeTypeDark   ThemeType = "dark"
+	ThemeTypeSystem ThemeType = "system"
+)
+
+func (e *ThemeType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ThemeType(s)
+	case string:
+		*e = ThemeType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ThemeType: %T", src)
+	}
+	return nil
+}
+
+type NullThemeType struct {
+	ThemeType ThemeType `json:"theme_type"`
+	Valid     bool      `json:"valid"` // Valid is true if ThemeType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullThemeType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ThemeType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ThemeType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullThemeType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ThemeType), nil
+}
+
+type UpgradeEventType string
+
+const (
+	UpgradeEventTypePromptViewed         UpgradeEventType = "prompt_viewed"
+	UpgradeEventTypePromptClicked        UpgradeEventType = "prompt_clicked"
+	UpgradeEventTypePromptDismissed      UpgradeEventType = "prompt_dismissed"
+	UpgradeEventTypeCheckoutStarted      UpgradeEventType = "checkout_started"
+	UpgradeEventTypeCheckoutCompleted    UpgradeEventType = "checkout_completed"
+	UpgradeEventTypeCheckoutCanceled     UpgradeEventType = "checkout_canceled"
+	UpgradeEventTypeSubscriptionStarted  UpgradeEventType = "subscription_started"
+	UpgradeEventTypeSubscriptionCanceled UpgradeEventType = "subscription_canceled"
+)
+
+func (e *UpgradeEventType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = UpgradeEventType(s)
+	case string:
+		*e = UpgradeEventType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for UpgradeEventType: %T", src)
+	}
+	return nil
+}
+
+type NullUpgradeEventType struct {
+	UpgradeEventType UpgradeEventType `json:"upgrade_event_type"`
+	Valid            bool             `json:"valid"` // Valid is true if UpgradeEventType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullUpgradeEventType) Scan(value interface{}) error {
+	if value == nil {
+		ns.UpgradeEventType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.UpgradeEventType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullUpgradeEventType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.UpgradeEventType), nil
+}
+
 type Activity struct {
 	ID          uuid.UUID             `db:"id" json:"id"`
-	ItemType    string                `db:"item_type" json:"item_type"`
+	ItemType    ActivityType          `db:"item_type" json:"item_type"`
 	Title       string                `db:"title" json:"title"`
 	Description sql.NullString        `db:"description" json:"description"`
 	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
@@ -88,7 +971,6 @@ type Article struct {
 	Title        string         `db:"title" json:"title"`
 	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
 	Content      string         `db:"content" json:"content"`
-	Category     string         `db:"category" json:"category"`
 	ReadTime     int32          `db:"read_time" json:"read_time"`
 	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
 	Author       string         `db:"author" json:"author"`
@@ -119,27 +1001,27 @@ type Category struct {
 
 // Check-in records are immutable events - they have no updated_at column and should never be modified after creation
 type CheckIn struct {
-	ID        uuid.UUID      `db:"id" json:"id"`
-	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
-	HabitID   uuid.UUID      `db:"habit_id" json:"habit_id"`
-	Status    string         `db:"status" json:"status"`
-	Mood      sql.NullString `db:"mood" json:"mood"`
-	Energy    sql.NullString `db:"energy" json:"energy"`
-	Blocker   sql.NullString `db:"blocker" json:"blocker"`
-	Note      sql.NullString `db:"note" json:"note"`
-	CreatedAt time.Time      `db:"created_at" json:"created_at"`
+	ID        uuid.UUID       `db:"id" json:"id"`
+	UserID    uuid.UUID       `db:"user_id" json:"user_id"`
+	HabitID   uuid.UUID       `db:"habit_id" json:"habit_id"`
+	Status    CheckInStatus   `db:"status" json:"status"`
+	Mood      NullMoodType    `db:"mood" json:"mood"`
+	Energy    NullEnergyLevel `db:"energy" json:"energy"`
+	Blocker   NullBlockerType `db:"blocker" json:"blocker"`
+	Note      sql.NullString  `db:"note" json:"note"`
+	CreatedAt time.Time       `db:"created_at" json:"created_at"`
 	// User's local date at time of check-in, used for timezone-aware deduplication
 	LocalDate time.Time `db:"local_date" json:"local_date"`
 }
 
 type Conversation struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Title       string         `db:"title" json:"title"`
-	ItemType    string         `db:"item_type" json:"item_type"`
-	LastMessage sql.NullString `db:"last_message" json:"last_message"`
-	UserID      uuid.UUID      `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID        `db:"id" json:"id"`
+	Title       string           `db:"title" json:"title"`
+	ItemType    ConversationType `db:"item_type" json:"item_type"`
+	LastMessage sql.NullString   `db:"last_message" json:"last_message"`
+	UserID      uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt   time.Time        `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time        `db:"updated_at" json:"updated_at"`
 }
 
 type Goal struct {
@@ -156,7 +1038,6 @@ type Goal struct {
 }
 
 type GoalHabitRelation struct {
-	ID        uuid.UUID `db:"id" json:"id"`
 	GoalID    uuid.UUID `db:"goal_id" json:"goal_id"`
 	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
@@ -175,38 +1056,57 @@ type Habit struct {
 }
 
 type Message struct {
-	ID             uuid.UUID `db:"id" json:"id"`
-	Content        string    `db:"content" json:"content"`
-	Role           string    `db:"role" json:"role"`
-	ConversationID uuid.UUID `db:"conversation_id" json:"conversation_id"`
-	CreatedAt      time.Time `db:"created_at" json:"created_at"`
+	ID             uuid.UUID       `db:"id" json:"id"`
+	Content        string          `db:"content" json:"content"`
+	Role           MessageRoleType `db:"role" json:"role"`
+	ConversationID uuid.UUID       `db:"conversation_id" json:"conversation_id"`
+	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
 }
 
 type Notification struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	UpdatedAt time.Time        `db:"updated_at" json:"updated_at"`
+}
+
+type Plan struct {
+	ID                       uuid.UUID      `db:"id" json:"id"`
+	Code                     string         `db:"code" json:"code"`
+	Name                     string         `db:"name" json:"name"`
+	Description              sql.NullString `db:"description" json:"description"`
+	PriceMonthlyCents        int32          `db:"price_monthly_cents" json:"price_monthly_cents"`
+	PriceAnnualCents         int32          `db:"price_annual_cents" json:"price_annual_cents"`
+	ActiveGoalLimit          sql.NullInt32  `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         sql.NullInt32  `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit sql.NullInt32  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      sql.NullInt32  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool           `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+	StripeMonthlyPriceID     sql.NullString `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
+	StripeAnnualPriceID      sql.NullString `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
+	IsActive                 bool           `db:"is_active" json:"is_active"`
+	CreatedAt                time.Time      `db:"created_at" json:"created_at"`
+	UpdatedAt                time.Time      `db:"updated_at" json:"updated_at"`
 }
 
 type PlanAdjustmentSuggestion struct {
-	ID             uuid.UUID       `db:"id" json:"id"`
-	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
-	GoalID         uuid.NullUUID   `db:"goal_id" json:"goal_id"`
-	HabitID        uuid.NullUUID   `db:"habit_id" json:"habit_id"`
-	Source         string          `db:"source" json:"source"`
-	AdjustmentType string          `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string          `db:"reason" json:"reason"`
-	Suggestion     string          `db:"suggestion" json:"suggestion"`
-	Status         string          `db:"status" json:"status"`
-	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
-	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time       `db:"updated_at" json:"updated_at"`
-	WeekStart      sql.NullTime    `db:"week_start" json:"week_start"`
+	ID             uuid.UUID                `db:"id" json:"id"`
+	UserID         uuid.UUID                `db:"user_id" json:"user_id"`
+	GoalID         uuid.NullUUID            `db:"goal_id" json:"goal_id"`
+	HabitID        uuid.NullUUID            `db:"habit_id" json:"habit_id"`
+	Source         PlanAdjustmentSourceType `db:"source" json:"source"`
+	AdjustmentType PlanAdjustmentTypeType   `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string                   `db:"reason" json:"reason"`
+	Suggestion     string                   `db:"suggestion" json:"suggestion"`
+	Status         PlanAdjustmentStatusType `db:"status" json:"status"`
+	Metadata       json.RawMessage          `db:"metadata" json:"metadata"`
+	CreatedAt      time.Time                `db:"created_at" json:"created_at"`
+	UpdatedAt      time.Time                `db:"updated_at" json:"updated_at"`
+	WeekStart      sql.NullTime             `db:"week_start" json:"week_start"`
 }
 
 type ProcessedEvent struct {
@@ -229,7 +1129,7 @@ type Profile struct {
 type ReminderQueue struct {
 	ID          uuid.UUID       `db:"id" json:"id"`
 	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
-	Type        string          `db:"type" json:"type"`
+	Type        ReminderType    `db:"type" json:"type"`
 	ScheduledAt time.Time       `db:"scheduled_at" json:"scheduled_at"`
 	Sent        bool            `db:"sent" json:"sent"`
 	SentAt      sql.NullTime    `db:"sent_at" json:"sent_at"`
@@ -238,12 +1138,49 @@ type ReminderQueue struct {
 	UpdatedAt   time.Time       `db:"updated_at" json:"updated_at"`
 }
 
-type SavedItem struct {
+type SavedArticle struct {
 	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
+	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
 	UserID    uuid.UUID `db:"user_id" json:"user_id"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+type SavedGoal struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	GoalID    uuid.UUID `db:"goal_id" json:"goal_id"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+type SavedHabit struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+// DEPRECATED: Use saved_articles, saved_goals, saved_habits instead. Kept for backward compatibility during transition.
+type SavedItem struct {
+	ID        uuid.UUID     `db:"id" json:"id"`
+	ItemType  SavedItemType `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID     `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID     `db:"user_id" json:"user_id"`
+	CreatedAt time.Time     `db:"created_at" json:"created_at"`
+}
+
+type UpgradeEvent struct {
+	ID              uuid.UUID        `db:"id" json:"id"`
+	UserID          uuid.UUID        `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType `db:"event_type" json:"event_type"`
+	Surface         string           `db:"surface" json:"surface"`
+	Trigger         sql.NullString   `db:"trigger" json:"trigger"`
+	PlanCode        sql.NullString   `db:"plan_code" json:"plan_code"`
+	BillingInterval sql.NullString   `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  sql.NullString   `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    sql.NullString   `db:"feedback_note" json:"feedback_note"`
+	Metadata        json.RawMessage  `db:"metadata" json:"metadata"`
+	CreatedAt       time.Time        `db:"created_at" json:"created_at"`
+	PlanID          uuid.NullUUID    `db:"plan_id" json:"plan_id"`
 }
 
 type User struct {
@@ -257,34 +1194,50 @@ type User struct {
 }
 
 type UserCoachingProfile struct {
-	ID                   uuid.UUID       `db:"id" json:"id"`
-	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
-	AccountabilityStyle  string          `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        string          `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference string          `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    sql.NullString  `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       json.RawMessage `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        json.RawMessage `db:"coaching_notes" json:"coaching_notes"`
-	LastContextRefreshAt sql.NullTime    `db:"last_context_refresh_at" json:"last_context_refresh_at"`
-	CreatedAt            time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time       `db:"updated_at" json:"updated_at"`
+	ID                   uuid.UUID               `db:"id" json:"id"`
+	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
+	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    sql.NullString          `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       json.RawMessage         `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        json.RawMessage         `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt sql.NullTime            `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 type UserSetting struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+}
+
+type UserSubscription struct {
+	ID                   uuid.UUID               `db:"id" json:"id"`
+	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID               `db:"plan_id" json:"plan_id"`
+	Status               SubscriptionStatusType  `db:"status" json:"status"`
+	BillingInterval      NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   sql.NullTime            `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     sql.NullTime            `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             sql.NullTime            `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool                    `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID     sql.NullString          `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID sql.NullString          `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt            time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt            time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 type WeeklyReview struct {

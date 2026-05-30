@@ -47,13 +47,13 @@ RETURNING id, user_id, habit_id, status, mood, energy, blocker, note, created_at
 `
 
 type CreateCheckInParams struct {
-	UserID  uuid.UUID      `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID      `db:"habit_id" json:"habit_id"`
-	Status  string         `db:"status" json:"status"`
-	Mood    sql.NullString `db:"mood" json:"mood"`
-	Energy  sql.NullString `db:"energy" json:"energy"`
-	Blocker sql.NullString `db:"blocker" json:"blocker"`
-	Note    sql.NullString `db:"note" json:"note"`
+	UserID  uuid.UUID       `db:"user_id" json:"user_id"`
+	HabitID uuid.UUID       `db:"habit_id" json:"habit_id"`
+	Status  CheckInStatus   `db:"status" json:"status"`
+	Mood    NullMoodType    `db:"mood" json:"mood"`
+	Energy  NullEnergyLevel `db:"energy" json:"energy"`
+	Blocker NullBlockerType `db:"blocker" json:"blocker"`
+	Note    sql.NullString  `db:"note" json:"note"`
 }
 
 func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error) {

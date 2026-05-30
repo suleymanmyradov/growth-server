@@ -64,12 +64,17 @@ INSERT INTO upgrade_events (
     surface,
     trigger,
     plan_code,
+    plan_id,
     billing_interval,
     feedback_reason,
     feedback_note,
     metadata
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+VALUES (
+    $1, $2, $3, $4, $5,
+    (SELECT id FROM plans WHERE code = $5),
+    $6, $7, $8, $9
+)
 RETURNING *;
 
 -- name: CountActiveGoalsForUser :one
