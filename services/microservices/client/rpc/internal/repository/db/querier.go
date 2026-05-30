@@ -18,6 +18,7 @@ type Querier interface {
 	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error)
+	CountAllSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int32, error)
 	CountArticleShares(ctx context.Context) (int64, error)
 	CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -30,6 +31,9 @@ type Querier interface {
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error)
@@ -44,6 +48,9 @@ type Querier interface {
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
 	CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error)
 	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	CreateSavedArticle(ctx context.Context, arg CreateSavedArticleParams) (CreateSavedArticleRow, error)
+	CreateSavedGoal(ctx context.Context, arg CreateSavedGoalParams) (CreateSavedGoalRow, error)
+	CreateSavedHabit(ctx context.Context, arg CreateSavedHabitParams) (CreateSavedHabitRow, error)
 	CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error)
 	CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (UpgradeEvent, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error)
@@ -58,6 +65,9 @@ type Querier interface {
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
 	DeletePlanAdjustmentSuggestion(ctx context.Context, arg DeletePlanAdjustmentSuggestionParams) error
+	DeleteSavedArticle(ctx context.Context, arg DeleteSavedArticleParams) error
+	DeleteSavedGoal(ctx context.Context, arg DeleteSavedGoalParams) error
+	DeleteSavedHabit(ctx context.Context, arg DeleteSavedHabitParams) error
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItemByUserAndItem(ctx context.Context, arg DeleteSavedItemByUserAndItemParams) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
@@ -101,6 +111,9 @@ type Querier interface {
 	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (GetUserSubscriptionByStripeCustomerIDRow, error)
 	GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error)
 	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
+	IsArticleSaved(ctx context.Context, arg IsArticleSavedParams) (bool, error)
+	IsGoalSaved(ctx context.Context, arg IsGoalSavedParams) (bool, error)
+	IsHabitSaved(ctx context.Context, arg IsHabitSavedParams) (bool, error)
 	IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error)
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
@@ -108,6 +121,10 @@ type Querier interface {
 	ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error)
 	ListAllCategories(ctx context.Context) ([]Category, error)
 	ListAllPlanAdjustmentSuggestions(ctx context.Context, arg ListAllPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
+	// ============================================================
+	// NEW: Concrete table queries (use these in new code)
+	// ============================================================
+	ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedItemsByUserParams) ([]ListAllSavedItemsByUserRow, error)
 	ListArticleShares(ctx context.Context, arg ListArticleSharesParams) ([]ArticleShare, error)
 	ListArticleSharesByArticle(ctx context.Context, arg ListArticleSharesByArticleParams) ([]ArticleShare, error)
 	ListArticleSharesByUser(ctx context.Context, arg ListArticleSharesByUserParams) ([]ArticleShare, error)
@@ -120,6 +137,14 @@ type Querier interface {
 	ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg ListPendingPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
 	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg ListPlanAdjustmentSuggestionsByGoalParams) ([]PlanAdjustmentSuggestion, error)
 	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg ListPlanAdjustmentSuggestionsByHabitParams) ([]PlanAdjustmentSuggestion, error)
+	ListSavedArticlesByUser(ctx context.Context, arg ListSavedArticlesByUserParams) ([]ListSavedArticlesByUserRow, error)
+	ListSavedGoalsByUser(ctx context.Context, arg ListSavedGoalsByUserParams) ([]ListSavedGoalsByUserRow, error)
+	ListSavedHabitsByUser(ctx context.Context, arg ListSavedHabitsByUserParams) ([]ListSavedHabitsByUserRow, error)
+	// DEPRECATED: The saved_items polymorphic table is deprecated in favor of
+	// saved_articles, saved_goals, and saved_habits. Old queries below are kept
+	// for backward compatibility during transition; new code should use the
+	// concrete table queries at the bottom of this file.
+	// [DEPRECATED] Queries against the polymorphic saved_items table
 	ListSavedItems(ctx context.Context, arg ListSavedItemsParams) ([]SavedItem, error)
 	ListSavedItemsByType(ctx context.Context, arg ListSavedItemsByTypeParams) ([]SavedItem, error)
 	ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsByUserParams) ([]SavedItem, error)

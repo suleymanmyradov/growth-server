@@ -56,7 +56,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		}
 		onboardingParams := db.UpdateOnboardingSettingsParams{
 			UserID:              userID,
-			AccountabilityStyle: style,
+			AccountabilityStyle: db.AccountabilityStyleType(style),
 			CheckInTime:         checkInTime,
 			OnboardingCompleted: in.Settings.OnboardingCompleted,
 		}
@@ -73,7 +73,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 
 	if in.Settings != nil {
 		if in.Settings.Theme != "" {
-			params.Theme = in.Settings.Theme
+			params.Theme = db.ThemeType(in.Settings.Theme)
 		}
 		if in.Settings.Language != "" {
 			params.Language = in.Settings.Language
@@ -81,10 +81,10 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		if in.Settings.Timezone != "" {
 			params.Timezone = in.Settings.Timezone
 		}
-		params.EmailNotifications = sql.NullBool{Bool: in.Settings.MarketingEmails, Valid: true}
-		params.PushNotifications = sql.NullBool{Bool: true, Valid: true}
-		params.HabitReminders = sql.NullBool{Bool: true, Valid: true}
-		params.GoalReminders = sql.NullBool{Bool: true, Valid: true}
+		params.EmailNotifications = in.Settings.MarketingEmails
+		params.PushNotifications = true
+		params.HabitReminders = true
+		params.GoalReminders = true
 	}
 
 	// Only run general settings update if there are non-onboarding fields to update

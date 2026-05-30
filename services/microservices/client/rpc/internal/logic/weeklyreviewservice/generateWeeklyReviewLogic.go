@@ -106,10 +106,10 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	coachingProfile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
 	if err == nil && coachingProfile.ID != uuid.Nil {
 		if coachingProfile.PreferredTone != "" {
-			preferredTone = coachingProfile.PreferredTone
+			preferredTone = string(coachingProfile.PreferredTone)
 		}
 		if coachingProfile.DifficultyPreference != "" {
-			difficultyPreference = coachingProfile.DifficultyPreference
+			difficultyPreference = string(coachingProfile.DifficultyPreference)
 		}
 		if len(coachingProfile.CommonBlockers) > 0 {
 			var blockers []string
@@ -121,7 +121,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 
 	accountabilityStyle := "balanced"
 	if settings.AccountabilityStyle != "" {
-		accountabilityStyle = settings.AccountabilityStyle
+		accountabilityStyle = string(settings.AccountabilityStyle)
 	}
 
 	goals, err := l.svcCtx.Repo.Goals.ListGoals(l.ctx, userID, 10, 0)
@@ -272,8 +272,8 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 				UserID:         userID,
 				GoalID:         goalID,
 				HabitID:        habitID,
-				Source:         "weekly_review",
-				AdjustmentType: adjustment.AdjustmentType,
+				Source:         db.PlanAdjustmentSourceTypeWeeklyReview,
+				AdjustmentType: db.PlanAdjustmentTypeType(adjustment.AdjustmentType),
 				Reason:         adjustment.Reason,
 				Suggestion:     adjustment.Suggestion,
 				Metadata:       metadataJSON,

@@ -147,7 +147,7 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 		return nil, err
 	}
 
-	isPro := sub.PlanCode == "pro" && (sub.Status == "active" || sub.Status == "trialing")
+	isPro := sub.PlanCode == "pro" && (sub.Status == db.SubscriptionStatusTypeActive || sub.Status == db.SubscriptionStatusTypeTrialing)
 
 	canCreateGoal := isPro || (!sub.ActiveGoalLimit.Valid || activeGoals < int64(sub.ActiveGoalLimit.Int32))
 	canCreateHabit := isPro || (!sub.ActiveHabitLimit.Valid || activeHabits < int64(sub.ActiveHabitLimit.Int32))
@@ -157,7 +157,7 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 
 	return &EntitlementsResult{
 		PlanCode:                   sub.PlanCode,
-		Status:                     sub.Status,
+		Status:                     string(sub.Status),
 		ActiveGoalLimit:            sub.ActiveGoalLimit,
 		ActiveHabitLimit:           sub.ActiveHabitLimit,
 		WeeklyReviewHistoryLimit:   sub.WeeklyReviewHistoryLimit,

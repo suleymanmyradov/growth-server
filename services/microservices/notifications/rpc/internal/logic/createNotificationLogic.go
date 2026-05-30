@@ -65,7 +65,7 @@ func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNot
 
 	params := db.CreateNotificationParams{
 		UserID:   userID,
-		ItemType: in.Type,
+		ItemType: db.NotificationType(in.Type),
 		Title:    in.Title,
 		Message:  in.Message,
 	}

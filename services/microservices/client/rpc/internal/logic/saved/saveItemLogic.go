@@ -48,7 +48,7 @@ func (l *SaveItemLogic) SaveItem(in *client.SaveItemRequest) (*client.SaveItemRe
 	params := db.CreateSavedItemParams{
 		UserID:   userID,
 		ItemID:   itemID,
-		ItemType: in.ItemType,
+		ItemType: db.SavedItemType(in.ItemType),
 	}
 
 	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, params)

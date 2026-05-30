@@ -235,14 +235,26 @@ func dbHabitToProto(habit db.Habit) *client.Habit {
 }
 
 func dbCheckInToProto(checkIn db.CheckIn) *client.CheckIn {
+	mood := ""
+	if checkIn.Mood.Valid {
+		mood = string(checkIn.Mood.MoodType)
+	}
+	energy := ""
+	if checkIn.Energy.Valid {
+		energy = string(checkIn.Energy.EnergyLevel)
+	}
+	blocker := ""
+	if checkIn.Blocker.Valid {
+		blocker = string(checkIn.Blocker.BlockerType)
+	}
 	return &client.CheckIn{
 		Id:        checkIn.ID.String(),
 		UserId:    checkIn.UserID.String(),
 		HabitId:   checkIn.HabitID.String(),
-		Status:    checkIn.Status,
-		Mood:      checkIn.Mood.String,
-		Energy:    checkIn.Energy.String,
-		Blocker:   checkIn.Blocker.String,
+		Status:    string(checkIn.Status),
+		Mood:      mood,
+		Energy:    energy,
+		Blocker:   blocker,
 		Note:      checkIn.Note.String,
 		CreatedAt: checkIn.CreatedAt.Unix(),
 	}
@@ -267,11 +279,11 @@ func dbPlanAdjustmentSuggestionToProto(suggestion db.PlanAdjustmentSuggestion) *
 		UserId:         suggestion.UserID.String(),
 		GoalId:         goalID,
 		HabitId:        habitID,
-		Source:         suggestion.Source,
-		AdjustmentType: suggestion.AdjustmentType,
+		Source:         string(suggestion.Source),
+		AdjustmentType: string(suggestion.AdjustmentType),
 		Reason:         suggestion.Reason,
 		Suggestion:     suggestion.Suggestion,
-		Status:         suggestion.Status,
+		Status:         string(suggestion.Status),
 		MetadataJson:   metadataJson,
 		CreatedAt:      suggestion.CreatedAt.Unix(),
 		UpdatedAt:      suggestion.UpdatedAt.Unix(),

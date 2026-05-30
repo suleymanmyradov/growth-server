@@ -9,14 +9,26 @@ import (
 )
 
 func checkInToProto(c db.CheckIn) *client.CheckIn {
+	mood := ""
+	if c.Mood.Valid {
+		mood = string(c.Mood.MoodType)
+	}
+	energy := ""
+	if c.Energy.Valid {
+		energy = string(c.Energy.EnergyLevel)
+	}
+	blocker := ""
+	if c.Blocker.Valid {
+		blocker = string(c.Blocker.BlockerType)
+	}
 	return &client.CheckIn{
 		Id:        c.ID.String(),
 		UserId:    c.UserID.String(),
 		HabitId:   c.HabitID.String(),
-		Status:    c.Status,
-		Mood:      c.Mood.String,
-		Energy:    c.Energy.String,
-		Blocker:   c.Blocker.String,
+		Status:    string(c.Status),
+		Mood:      mood,
+		Energy:    energy,
+		Blocker:   blocker,
 		Note:      c.Note.String,
 		CreatedAt: c.CreatedAt.Unix(),
 	}
@@ -26,10 +38,10 @@ func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, block
 	return db.CreateCheckInParams{
 		UserID:  userID,
 		HabitID: habitID,
-		Status:  status,
-		Mood:    sql.NullString{String: mood, Valid: mood != ""},
-		Energy:  sql.NullString{String: energy, Valid: energy != ""},
-		Blocker: sql.NullString{String: blocker, Valid: blocker != ""},
+		Status:  db.CheckInStatus(status),
+		Mood:    db.NullMoodType{MoodType: db.MoodType(mood), Valid: mood != ""},
+		Energy:  db.NullEnergyLevel{EnergyLevel: db.EnergyLevel(energy), Valid: energy != ""},
+		Blocker: db.NullBlockerType{BlockerType: db.BlockerType(blocker), Valid: blocker != ""},
 		Note:    sql.NullString{String: note, Valid: note != ""},
 	}
 }

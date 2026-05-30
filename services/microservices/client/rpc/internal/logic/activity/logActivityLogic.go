@@ -51,7 +51,7 @@ func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.L
 
 	activity, err := l.svcCtx.Repo.Activities.LogActivity(l.ctx, db.LogActivityParams{
 		UserID:      userID,
-		ItemType:    in.Type,
+		ItemType:    db.ActivityType(in.Type),
 		Title:       in.Description,
 		Description: sql.NullString{String: in.Description, Valid: in.Description != ""},
 		Metadata:    metadata,

@@ -33,31 +33,31 @@ RETURNING id, theme, language, timezone, email_notifications, push_notifications
 `
 
 type CreateUserSettingsParams struct {
-	Theme              string       `db:"theme" json:"theme"`
-	Language           string       `db:"language" json:"language"`
-	Timezone           string       `db:"timezone" json:"timezone"`
-	EmailNotifications sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications  sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders     sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders      sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	UserID             uuid.UUID    `db:"user_id" json:"user_id"`
+	Theme              ThemeType `db:"theme" json:"theme"`
+	Language           string    `db:"language" json:"language"`
+	Timezone           string    `db:"timezone" json:"timezone"`
+	EmailNotifications bool      `db:"email_notifications" json:"email_notifications"`
+	PushNotifications  bool      `db:"push_notifications" json:"push_notifications"`
+	HabitReminders     bool      `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders      bool      `db:"goal_reminders" json:"goal_reminders"`
+	UserID             uuid.UUID `db:"user_id" json:"user_id"`
 }
 
 type CreateUserSettingsRow struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error) {
@@ -105,20 +105,20 @@ SELECT id, theme, language, timezone, email_notifications, push_notifications, h
 `
 
 type GetUserSettingsRow struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error) {
@@ -148,20 +148,20 @@ SELECT id, theme, language, timezone, email_notifications, push_notifications, h
 `
 
 type GetUserSettingsByIDRow struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error) {
@@ -197,27 +197,27 @@ RETURNING id, theme, language, timezone, email_notifications, push_notifications
 `
 
 type UpdateOnboardingSettingsParams struct {
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 }
 
 type UpdateOnboardingSettingsRow struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error) {
@@ -256,31 +256,31 @@ RETURNING id, theme, language, timezone, email_notifications, push_notifications
 `
 
 type UpdateUserSettingsParams struct {
-	UserID             uuid.UUID    `db:"user_id" json:"user_id"`
-	Theme              string       `db:"theme" json:"theme"`
-	Language           string       `db:"language" json:"language"`
-	Timezone           string       `db:"timezone" json:"timezone"`
-	EmailNotifications sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications  sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders     sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders      sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
+	UserID             uuid.UUID `db:"user_id" json:"user_id"`
+	Theme              ThemeType `db:"theme" json:"theme"`
+	Language           string    `db:"language" json:"language"`
+	Timezone           string    `db:"timezone" json:"timezone"`
+	EmailNotifications bool      `db:"email_notifications" json:"email_notifications"`
+	PushNotifications  bool      `db:"push_notifications" json:"push_notifications"`
+	HabitReminders     bool      `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders      bool      `db:"goal_reminders" json:"goal_reminders"`
 }
 
 type UpdateUserSettingsRow struct {
-	ID                  uuid.UUID    `db:"id" json:"id"`
-	Theme               string       `db:"theme" json:"theme"`
-	Language            string       `db:"language" json:"language"`
-	Timezone            string       `db:"timezone" json:"timezone"`
-	EmailNotifications  sql.NullBool `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   sql.NullBool `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      sql.NullBool `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       sql.NullBool `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle string       `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID    `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time    `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time    `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID               `db:"id" json:"id"`
+	Theme               ThemeType               `db:"theme" json:"theme"`
+	Language            string                  `db:"language" json:"language"`
+	Timezone            string                  `db:"timezone" json:"timezone"`
+	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
+	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
+	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         sql.NullTime            `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
+	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error) {

@@ -90,7 +90,7 @@ func (s *Scheduler) tick(ctx context.Context) {
 		env, err := events.NewEnvelope(events.TypeReminderDue, events.ReminderDue{
 			ReminderID:  r.ID.String(),
 			UserID:      r.UserID.String(),
-			Type:        r.Type,
+			Type:        string(r.Type),
 			ScheduledAt: r.ScheduledAt.Format(time.RFC3339),
 			Metadata:    string(r.Metadata),
 		})

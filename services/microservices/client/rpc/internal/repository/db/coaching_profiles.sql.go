@@ -161,10 +161,10 @@ RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preferen
 `
 
 type UpdateCoachingProfilePreferencesParams struct {
-	UserID               uuid.UUID `db:"user_id" json:"user_id"`
-	AccountabilityStyle  string    `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        string    `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference string    `db:"difficulty_preference" json:"difficulty_preference"`
+	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
+	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
 }
 
 func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, arg UpdateCoachingProfilePreferencesParams) (UserCoachingProfile, error) {
@@ -217,13 +217,13 @@ RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preferen
 `
 
 type UpsertCoachingProfileParams struct {
-	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
-	AccountabilityStyle  string          `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        string          `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference string          `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    sql.NullString  `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       json.RawMessage `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        json.RawMessage `db:"coaching_notes" json:"coaching_notes"`
+	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
+	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    sql.NullString          `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       json.RawMessage         `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        json.RawMessage         `db:"coaching_notes" json:"coaching_notes"`
 }
 
 func (q *Queries) UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error) {

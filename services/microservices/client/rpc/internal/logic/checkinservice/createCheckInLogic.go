@@ -102,7 +102,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	}
 
 	_, err = l.svcCtx.Repo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
-		ItemType:    activityType,
+		ItemType:    db.ActivityType(activityType),
 		Title:       activityTitle,
 		Description: sql.NullString{String: fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name), Valid: true},
 		Metadata:    pqtype.NullRawMessage{},
@@ -157,7 +157,7 @@ func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.
 	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID)
 	accountabilityStyle := "balanced"
 	if err == nil && settings.AccountabilityStyle != "" {
-		accountabilityStyle = settings.AccountabilityStyle
+		accountabilityStyle = string(settings.AccountabilityStyle)
 	}
 
 	// Fetch the primary goal for context (best-effort)

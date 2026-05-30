@@ -84,7 +84,7 @@ func convertDbSavedItemToPb(item db.SavedItem) *client.SavedItem {
 		Id:       item.ID.String(),
 		UserId:   item.UserID.String(),
 		ItemId:   item.ItemID.String(),
-		ItemType: item.ItemType,
+		ItemType: string(item.ItemType),
 		SavedAt:  item.CreatedAt.Unix(),
 	}
 }

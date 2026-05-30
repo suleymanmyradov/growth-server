@@ -41,8 +41,8 @@ SELECT COUNT(*) FROM activities WHERE user_id = $1 AND item_type = $2
 `
 
 type CountActivitiesByUserAndTypeParams struct {
-	UserID   uuid.UUID `db:"user_id" json:"user_id"`
-	ItemType string    `db:"item_type" json:"item_type"`
+	UserID   uuid.UUID    `db:"user_id" json:"user_id"`
+	ItemType ActivityType `db:"item_type" json:"item_type"`
 }
 
 func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error) {
@@ -59,7 +59,7 @@ RETURNING id, item_type, title, description, metadata, user_id, created_at
 `
 
 type CreateActivityParams struct {
-	ItemType    string                `db:"item_type" json:"item_type"`
+	ItemType    ActivityType          `db:"item_type" json:"item_type"`
 	Title       string                `db:"title" json:"title"`
 	Description sql.NullString        `db:"description" json:"description"`
 	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
@@ -404,10 +404,10 @@ LIMIT $3 OFFSET $4
 `
 
 type ListActivitiesByTypeParams struct {
-	UserID   uuid.UUID `db:"user_id" json:"user_id"`
-	ItemType string    `db:"item_type" json:"item_type"`
-	Limit    int32     `db:"limit" json:"limit"`
-	Offset   int32     `db:"offset" json:"offset"`
+	UserID   uuid.UUID    `db:"user_id" json:"user_id"`
+	ItemType ActivityType `db:"item_type" json:"item_type"`
+	Limit    int32        `db:"limit" json:"limit"`
+	Offset   int32        `db:"offset" json:"offset"`
 }
 
 func (q *Queries) ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error) {
@@ -496,7 +496,7 @@ RETURNING id, item_type, title, description, metadata, user_id, created_at
 `
 
 type LogActivityParams struct {
-	ItemType    string                `db:"item_type" json:"item_type"`
+	ItemType    ActivityType          `db:"item_type" json:"item_type"`
 	Title       string                `db:"title" json:"title"`
 	Description sql.NullString        `db:"description" json:"description"`
 	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`

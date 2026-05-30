@@ -48,7 +48,7 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 
 	event, err := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
 		UserID:          userID,
-		EventType:       in.EventType,
+		EventType:       db.UpgradeEventType(in.EventType),
 		Surface:         in.Surface,
 		Trigger:         stringToNullString(in.Trigger),
 		PlanCode:        stringToNullString(in.PlanCode),

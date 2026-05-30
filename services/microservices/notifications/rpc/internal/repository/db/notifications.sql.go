@@ -52,20 +52,20 @@ RETURNING id, title, message, item_type, is_read, user_id, created_at
 `
 
 type CreateNotificationParams struct {
-	Title    string    `db:"title" json:"title"`
-	Message  string    `db:"message" json:"message"`
-	ItemType string    `db:"item_type" json:"item_type"`
-	UserID   uuid.UUID `db:"user_id" json:"user_id"`
+	Title    string           `db:"title" json:"title"`
+	Message  string           `db:"message" json:"message"`
+	ItemType NotificationType `db:"item_type" json:"item_type"`
+	UserID   uuid.UUID        `db:"user_id" json:"user_id"`
 }
 
 type CreateNotificationRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error) {
@@ -111,13 +111,13 @@ SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifica
 `
 
 type GetNotificationRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error) {
@@ -158,13 +158,13 @@ type ListNotificationsParams struct {
 }
 
 type ListNotificationsRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error) {
@@ -205,20 +205,20 @@ LIMIT $3 OFFSET $4
 `
 
 type ListNotificationsByTypeParams struct {
-	UserID   uuid.UUID `db:"user_id" json:"user_id"`
-	ItemType string    `db:"item_type" json:"item_type"`
-	Limit    int32     `db:"limit" json:"limit"`
-	Offset   int32     `db:"offset" json:"offset"`
+	UserID   uuid.UUID        `db:"user_id" json:"user_id"`
+	ItemType NotificationType `db:"item_type" json:"item_type"`
+	Limit    int32            `db:"limit" json:"limit"`
+	Offset   int32            `db:"offset" json:"offset"`
 }
 
 type ListNotificationsByTypeRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) ListNotificationsByType(ctx context.Context, arg ListNotificationsByTypeParams) ([]ListNotificationsByTypeRow, error) {
@@ -270,13 +270,13 @@ type ListNotificationsByUserParams struct {
 }
 
 type ListNotificationsByUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) ListNotificationsByUser(ctx context.Context, arg ListNotificationsByUserParams) ([]ListNotificationsByUserRow, error) {
@@ -325,13 +325,13 @@ type ListNotificationsForUserParams struct {
 }
 
 type ListNotificationsForUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) ListNotificationsForUser(ctx context.Context, arg ListNotificationsForUserParams) ([]ListNotificationsForUserRow, error) {
@@ -378,13 +378,13 @@ type ListUnreadNotificationsParams struct {
 }
 
 type ListUnreadNotificationsRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) ListUnreadNotifications(ctx context.Context, arg ListUnreadNotificationsParams) ([]ListUnreadNotificationsRow, error) {
@@ -437,13 +437,13 @@ RETURNING id, title, message, item_type, is_read, user_id, created_at
 `
 
 type MarkNotificationReadRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	Title     string    `db:"title" json:"title"`
-	Message   string    `db:"message" json:"message"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	IsRead    bool      `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID        `db:"id" json:"id"`
+	Title     string           `db:"title" json:"title"`
+	Message   string           `db:"message" json:"message"`
+	ItemType  NotificationType `db:"item_type" json:"item_type"`
+	IsRead    bool             `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
+	CreatedAt time.Time        `db:"created_at" json:"created_at"`
 }
 
 func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error) {

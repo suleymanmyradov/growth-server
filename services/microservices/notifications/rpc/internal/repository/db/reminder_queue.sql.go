@@ -22,10 +22,10 @@ WHERE user_id = $1
 `
 
 type CancelPendingReminderForDateParams struct {
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	Type    string    `db:"type" json:"type"`
-	Column3 time.Time `db:"column_3" json:"column_3"`
-	Column4 string    `db:"column_4" json:"column_4"`
+	UserID  uuid.UUID    `db:"user_id" json:"user_id"`
+	Type    ReminderType `db:"type" json:"type"`
+	Column3 time.Time    `db:"column_3" json:"column_3"`
+	Column4 string       `db:"column_4" json:"column_4"`
 }
 
 func (q *Queries) CancelPendingReminderForDate(ctx context.Context, arg CancelPendingReminderForDateParams) error {
@@ -97,7 +97,7 @@ RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, 
 
 type EnqueueReminderParams struct {
 	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
-	Type        string          `db:"type" json:"type"`
+	Type        ReminderType    `db:"type" json:"type"`
 	ScheduledAt time.Time       `db:"scheduled_at" json:"scheduled_at"`
 	Metadata    json.RawMessage `db:"metadata" json:"metadata"`
 }

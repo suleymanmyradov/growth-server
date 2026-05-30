@@ -58,7 +58,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 		pbActivities = append(pbActivities, &client.ActivityItem{
 			Id:          a.ID.String(),
 			UserId:      a.UserID.String(),
-			Type:        a.ItemType,
+			Type:        string(a.ItemType),
 			Description: a.Title,
 			Timestamp:   a.CreatedAt.Unix(),
 		})

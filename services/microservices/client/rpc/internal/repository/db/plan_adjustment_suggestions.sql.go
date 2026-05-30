@@ -81,15 +81,15 @@ RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, sugge
 `
 
 type CreatePlanAdjustmentSuggestionParams struct {
-	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
-	GoalID         uuid.NullUUID   `db:"goal_id" json:"goal_id"`
-	HabitID        uuid.NullUUID   `db:"habit_id" json:"habit_id"`
-	Source         string          `db:"source" json:"source"`
-	AdjustmentType string          `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string          `db:"reason" json:"reason"`
-	Suggestion     string          `db:"suggestion" json:"suggestion"`
-	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
-	WeekStart      sql.NullTime    `db:"week_start" json:"week_start"`
+	UserID         uuid.UUID                `db:"user_id" json:"user_id"`
+	GoalID         uuid.NullUUID            `db:"goal_id" json:"goal_id"`
+	HabitID        uuid.NullUUID            `db:"habit_id" json:"habit_id"`
+	Source         PlanAdjustmentSourceType `db:"source" json:"source"`
+	AdjustmentType PlanAdjustmentTypeType   `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string                   `db:"reason" json:"reason"`
+	Suggestion     string                   `db:"suggestion" json:"suggestion"`
+	Metadata       json.RawMessage          `db:"metadata" json:"metadata"`
+	WeekStart      sql.NullTime             `db:"week_start" json:"week_start"`
 }
 
 func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
@@ -407,12 +407,12 @@ RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, sugge
 `
 
 type UpdatePlanAdjustmentSuggestionParams struct {
-	ID             uuid.UUID       `db:"id" json:"id"`
-	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
-	AdjustmentType string          `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string          `db:"reason" json:"reason"`
-	Suggestion     string          `db:"suggestion" json:"suggestion"`
-	Metadata       json.RawMessage `db:"metadata" json:"metadata"`
+	ID             uuid.UUID              `db:"id" json:"id"`
+	UserID         uuid.UUID              `db:"user_id" json:"user_id"`
+	AdjustmentType PlanAdjustmentTypeType `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string                 `db:"reason" json:"reason"`
+	Suggestion     string                 `db:"suggestion" json:"suggestion"`
+	Metadata       json.RawMessage        `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
@@ -451,9 +451,9 @@ RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, sugge
 `
 
 type UpdatePlanAdjustmentSuggestionStatusParams struct {
-	ID     uuid.UUID `db:"id" json:"id"`
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Status string    `db:"status" json:"status"`
+	ID     uuid.UUID                `db:"id" json:"id"`
+	UserID uuid.UUID                `db:"user_id" json:"user_id"`
+	Status PlanAdjustmentStatusType `db:"status" json:"status"`
 }
 
 func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg UpdatePlanAdjustmentSuggestionStatusParams) (PlanAdjustmentSuggestion, error) {

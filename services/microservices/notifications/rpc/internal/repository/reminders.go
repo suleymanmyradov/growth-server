@@ -34,7 +34,7 @@ func (r *RemindersRepo) Enqueue(ctx context.Context, userID uuid.UUID, reminderT
 	}
 	return r.db.EnqueueReminder(ctx, db.EnqueueReminderParams{
 		UserID:      userID,
-		Type:        reminderType,
+		Type:        db.ReminderType(reminderType),
 		ScheduledAt: scheduledAt,
 		Metadata:    raw,
 	})
@@ -48,7 +48,7 @@ func (r *RemindersRepo) CancelPendingForDate(ctx context.Context, userID uuid.UU
 
 	return r.db.CancelPendingReminderForDate(ctx, db.CancelPendingReminderForDateParams{
 		UserID:  userID,
-		Type:    reminderType,
+		Type:    db.ReminderType(reminderType),
 		Column3: day,
 		Column4: timezone,
 	})
