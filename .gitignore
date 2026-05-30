@@ -1,5 +1,12 @@
 bin/
 logs/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+rpc
+growth
 
 services/gateway/contract/swagger/gateway.swagger.json.json
 .idea
