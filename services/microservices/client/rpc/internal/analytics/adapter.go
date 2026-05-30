@@ -32,15 +32,15 @@ func mapCheckIns(checkIns []db.CheckIn) []analytics.CheckInData {
 	for i, ci := range checkIns {
 		data := analytics.CheckInData{
 			Status:    string(ci.Status),
-			CreatedAt: ci.CreatedAt,
+			CreatedAt: ci.CreatedAt.Time,
 			HabitID:   ci.HabitID.String(),
 		}
-		if ci.Mood.Valid {
-			mood := string(ci.Mood.MoodType)
+		if ci.Mood != nil {
+			mood := string(*ci.Mood)
 			data.Mood = &mood
 		}
-		if ci.Blocker.Valid {
-			blocker := string(ci.Blocker.BlockerType)
+		if ci.Blocker != nil {
+			blocker := string(*ci.Blocker)
 			data.Blocker = &blocker
 		}
 		result[i] = data
@@ -51,15 +51,12 @@ func mapCheckIns(checkIns []db.CheckIn) []analytics.CheckInData {
 func mapHabits(habits []db.Habit) []analytics.HabitData {
 	result := make([]analytics.HabitData, len(habits))
 	for i, h := range habits {
-		data := analytics.HabitData{
-			ID:   h.ID.String(),
-			Name: h.Name,
+		streak := h.Streak
+		result[i] = analytics.HabitData{
+			ID:     h.ID.String(),
+			Name:   h.Name,
+			Streak: &streak,
 		}
-		if h.Streak.Valid {
-			streak := h.Streak.Int32
-			data.Streak = &streak
-		}
-		result[i] = data
 	}
 	return result
 }

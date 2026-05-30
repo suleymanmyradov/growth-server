@@ -2,10 +2,10 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 )
 
@@ -21,7 +21,7 @@ type IArticles interface {
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
 	CountArticles(ctx context.Context) (int64, error)
 	CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error)
-	CreateArticleShare(ctx context.Context, params db.CreateArticleShareParams) (db.ArticleShare, error)
+	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
 }
 
 type ISavedItems interface {
@@ -30,7 +30,7 @@ type ISavedItems interface {
 	ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.SavedItem, error)
 	GetSavedItemByID(ctx context.Context, id uuid.UUID) (db.SavedItem, error)
 	GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (db.SavedItem, error)
-	CreateSavedItem(ctx context.Context, params db.CreateSavedItemParams) (db.SavedItem, error)
+	CreateSavedItem(ctx context.Context, itemType db.SavedItemType, itemID uuid.UUID, userID uuid.UUID) (db.SavedItem, error)
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) error
 	IsItemSaved(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (bool, error)
@@ -63,7 +63,7 @@ type IUserSettings interface {
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (db.GetUserSettingsByIDRow, error)
 	CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.CreateUserSettingsRow, error)
 	UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UpdateUserSettingsRow, error)
-	UpdateOnboardingSettings(ctx context.Context, params db.UpdateOnboardingSettingsParams) (db.UpdateOnboardingSettingsRow, error)
+	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle db.AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (db.UpdateOnboardingSettingsRow, error)
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 	CountUserSettings(ctx context.Context) (int64, error)
 }
@@ -71,8 +71,8 @@ type IUserSettings interface {
 type IHabits interface {
 	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Habit, error)
 	GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, error)
-	CreateHabit(ctx context.Context, params db.CreateHabitParams) (db.Habit, error)
-	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.Habit, error)
+	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.Habit, error)
+	UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.Habit, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
 	ToggleHabit(ctx context.Context, id uuid.UUID) (db.Habit, error)
 	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.Habit, error)
@@ -88,7 +88,7 @@ type IGoals interface {
 	UpdateGoal(ctx context.Context, params db.UpdateGoalParams) (db.Goal, error)
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	ToggleGoal(ctx context.Context, id uuid.UUID) (db.Goal, error)
-	UpdateGoalProgress(ctx context.Context, params db.UpdateGoalProgressParams) (db.Goal, error)
+	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.Goal, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 
@@ -97,8 +97,8 @@ type ICategories interface {
 	ListAllCategories(ctx context.Context) ([]db.Category, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (db.Category, error)
 	GetCategoryBySlug(ctx context.Context, slug string, entityType db.EntityType) (db.Category, error)
-	CreateCategory(ctx context.Context, params db.CreateCategoryParams) (db.Category, error)
-	UpdateCategory(ctx context.Context, params db.UpdateCategoryParams) (db.Category, error)
+	CreateCategory(ctx context.Context, name string, slug string, entityType db.EntityType, sortOrder int32) (db.Category, error)
+	UpdateCategory(ctx context.Context, id uuid.UUID, name string, slug string, sortOrder int32) (db.Category, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	CountCategoriesByType(ctx context.Context, entityType db.EntityType) (int64, error)
 }
@@ -131,9 +131,9 @@ type IWeeklyReviews interface {
 type ICoachingProfiles interface {
 	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
 	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.UserCoachingProfile, error)
-	UpdateCoachingProfilePreferences(ctx context.Context, params db.UpdateCoachingProfilePreferencesParams) (db.UserCoachingProfile, error)
-	UpdateCoachingProfileBlockers(ctx context.Context, params db.UpdateCoachingProfileBlockersParams) (db.UserCoachingProfile, error)
-	UpdateCoachingProfileNotes(ctx context.Context, params db.UpdateCoachingProfileNotesParams) (db.UserCoachingProfile, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle db.AccountabilityStyleType, preferredTone db.CoachToneType, difficultyPreference db.DifficultyLevelType) (db.UserCoachingProfile, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.UserCoachingProfile, error)
+	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.UserCoachingProfile, error)
 	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 }
@@ -143,10 +143,10 @@ type IBilling interface {
 	GetPlanByCode(ctx context.Context, code string) (db.Plan, error)
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
 	GetOrCreateUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
-	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (db.GetUserSubscriptionByStripeCustomerIDRow, error)
+	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error)
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.UserSubscription, error)
 	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.UserSubscription, error)
-	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.UpgradeEvent, error)
+	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error)
 	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -155,17 +155,17 @@ type IBilling interface {
 
 type IPlanAdjustmentSuggestions interface {
 	CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
-	GetPlanAdjustmentSuggestion(ctx context.Context, params db.GetPlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
-	ListPendingPlanAdjustmentSuggestions(ctx context.Context, params db.ListPendingPlanAdjustmentSuggestionsParams) ([]db.PlanAdjustmentSuggestion, error)
-	ListAllPlanAdjustmentSuggestions(ctx context.Context, params db.ListAllPlanAdjustmentSuggestionsParams) ([]db.PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, params db.ListPlanAdjustmentSuggestionsByHabitParams) ([]db.PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, params db.ListPlanAdjustmentSuggestionsByGoalParams) ([]db.PlanAdjustmentSuggestion, error)
-	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionStatusParams) (db.PlanAdjustmentSuggestion, error)
+	GetPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
+	ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, id uuid.UUID, userID uuid.UUID, status db.PlanAdjustmentStatusType) (db.PlanAdjustmentSuggestion, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
-	DeletePlanAdjustmentSuggestion(ctx context.Context, params db.DeletePlanAdjustmentSuggestionParams) error
+	DeletePlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
-	ApplyPlanAdjustmentSuggestion(ctx context.Context, params db.ApplyPlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error)
 }
 
 type Repository struct {

@@ -7,11 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countWeeklyReviews = `-- name: CountWeeklyReviews :one
@@ -20,7 +18,7 @@ WHERE user_id = $1
 `
 
 func (q *Queries) CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countWeeklyReviews, userID)
+	row := q.db.QueryRow(ctx, countWeeklyReviews, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -68,26 +66,26 @@ RETURNING id, user_id, week_start, week_end, total_habits, completed_check_ins, 
 `
 
 type CreateWeeklyReviewParams struct {
-	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
-	WeekStart            time.Time       `db:"week_start" json:"week_start"`
-	WeekEnd              time.Time       `db:"week_end" json:"week_end"`
-	TotalHabits          int32           `db:"total_habits" json:"total_habits"`
-	CompletedCheckIns    int32           `db:"completed_check_ins" json:"completed_check_ins"`
-	MissedCheckIns       int32           `db:"missed_check_ins" json:"missed_check_ins"`
-	CompletionRate       string          `db:"completion_rate" json:"completion_rate"`
-	BestDay              sql.NullString  `db:"best_day" json:"best_day"`
-	HardestDay           sql.NullString  `db:"hardest_day" json:"hardest_day"`
-	TopBlocker           sql.NullString  `db:"top_blocker" json:"top_blocker"`
-	MoodSummary          json.RawMessage `db:"mood_summary" json:"mood_summary"`
-	EnergySummary        json.RawMessage `db:"energy_summary" json:"energy_summary"`
-	HabitBreakdown       json.RawMessage `db:"habit_breakdown" json:"habit_breakdown"`
-	AiSummary            sql.NullString  `db:"ai_summary" json:"ai_summary"`
-	SuggestedAdjustments json.RawMessage `db:"suggested_adjustments" json:"suggested_adjustments"`
-	NextWeekPlan         json.RawMessage `db:"next_week_plan" json:"next_week_plan"`
+	UserID               uuid.UUID      `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date    `db:"week_start" json:"week_start"`
+	WeekEnd              pgtype.Date    `db:"week_end" json:"week_end"`
+	TotalHabits          int32          `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32          `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32          `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string        `db:"best_day" json:"best_day"`
+	HardestDay           *string        `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string        `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte         `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte         `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte         `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string        `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte         `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte         `db:"next_week_plan" json:"next_week_plan"`
 }
 
 func (q *Queries) CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (WeeklyReview, error) {
-	row := q.db.QueryRowContext(ctx, createWeeklyReview,
+	row := q.db.QueryRow(ctx, createWeeklyReview,
 		arg.UserID,
 		arg.WeekStart,
 		arg.WeekEnd,
@@ -143,19 +141,13 @@ GROUP BY blocker
 ORDER BY count DESC
 `
 
-type GetBlockerStatsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetBlockerStatsForWeekRow struct {
 	Blocker string `db:"blocker" json:"blocker"`
 	Count   int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, arg GetBlockerStatsForWeekParams) ([]GetBlockerStatsForWeekRow, error) {
-	rows, err := q.db.QueryContext(ctx, getBlockerStatsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetBlockerStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getBlockerStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -167,9 +159,6 @@ func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, arg GetBlockerStat
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -204,25 +193,19 @@ GROUP BY h.id, h.name, h.category
 ORDER BY h.created_at DESC
 `
 
-type GetCheckInStatsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetCheckInStatsForWeekRow struct {
-	HabitID        uuid.UUID   `db:"habit_id" json:"habit_id"`
-	HabitName      string      `db:"habit_name" json:"habit_name"`
-	HabitCategory  string      `db:"habit_category" json:"habit_category"`
-	TotalCheckIns  int64       `db:"total_check_ins" json:"total_check_ins"`
-	CompletedCount int64       `db:"completed_count" json:"completed_count"`
-	MissedCount    int64       `db:"missed_count" json:"missed_count"`
-	CompletionRate string      `db:"completion_rate" json:"completion_rate"`
-	LastCheckInAt  interface{} `db:"last_check_in_at" json:"last_check_in_at"`
+	HabitID        uuid.UUID      `db:"habit_id" json:"habit_id"`
+	HabitName      string         `db:"habit_name" json:"habit_name"`
+	HabitCategory  string         `db:"habit_category" json:"habit_category"`
+	TotalCheckIns  int64          `db:"total_check_ins" json:"total_check_ins"`
+	CompletedCount int64          `db:"completed_count" json:"completed_count"`
+	MissedCount    int64          `db:"missed_count" json:"missed_count"`
+	CompletionRate pgtype.Numeric `db:"completion_rate" json:"completion_rate"`
+	LastCheckInAt  interface{}    `db:"last_check_in_at" json:"last_check_in_at"`
 }
 
-func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStatsForWeekParams) ([]GetCheckInStatsForWeekRow, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInStatsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetCheckInStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getCheckInStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -244,9 +227,6 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStat
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -254,14 +234,15 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStat
 }
 
 const getCurrentWeeklyReview = `-- name: GetCurrentWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1
 ORDER BY week_start DESC
 LIMIT 1
 `
 
 func (q *Queries) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (WeeklyReview, error) {
-	row := q.db.QueryRowContext(ctx, getCurrentWeeklyReview, userID)
+	row := q.db.QueryRow(ctx, getCurrentWeeklyReview, userID)
 	var i WeeklyReview
 	err := row.Scan(
 		&i.ID,
@@ -302,24 +283,18 @@ GROUP BY DATE(ci.created_at)
 ORDER BY day ASC
 `
 
-type GetDailyCheckInStatsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetDailyCheckInStatsForWeekRow struct {
-	Day            time.Time `db:"day" json:"day"`
-	TotalCheckIns  int64     `db:"total_check_ins" json:"total_check_ins"`
-	CompletedCount int64     `db:"completed_count" json:"completed_count"`
-	MissedCount    int64     `db:"missed_count" json:"missed_count"`
+	Day            pgtype.Date `db:"day" json:"day"`
+	TotalCheckIns  int64       `db:"total_check_ins" json:"total_check_ins"`
+	CompletedCount int64       `db:"completed_count" json:"completed_count"`
+	MissedCount    int64       `db:"missed_count" json:"missed_count"`
 }
 
 // NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
 // check-ins outside the user's week are included, but best/hardest day
 // attribution may be off by one day near midnight for non-UTC users.
-func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, arg GetDailyCheckInStatsForWeekParams) ([]GetDailyCheckInStatsForWeekRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDailyCheckInStatsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getDailyCheckInStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -336,9 +311,6 @@ func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, arg GetDailyC
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -357,19 +329,13 @@ GROUP BY energy
 ORDER BY count DESC
 `
 
-type GetEnergyStatsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetEnergyStatsForWeekRow struct {
 	Energy string `db:"energy" json:"energy"`
 	Count  int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, arg GetEnergyStatsForWeekParams) ([]GetEnergyStatsForWeekRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEnergyStatsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetEnergyStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getEnergyStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -381,9 +347,6 @@ func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, arg GetEnergyStatsF
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -402,19 +365,13 @@ GROUP BY mood
 ORDER BY count DESC
 `
 
-type GetMoodStatsForWeekParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetMoodStatsForWeekRow struct {
 	Mood  string `db:"mood" json:"mood"`
 	Count int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWeekParams) ([]GetMoodStatsForWeekRow, error) {
-	rows, err := q.db.QueryContext(ctx, getMoodStatsForWeek, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetMoodStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getMoodStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -427,9 +384,6 @@ func (q *Queries) GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWe
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -437,17 +391,13 @@ func (q *Queries) GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWe
 }
 
 const getWeeklyReview = `-- name: GetWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1 AND week_start = $2
 `
 
-type GetWeeklyReviewParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	WeekStart time.Time `db:"week_start" json:"week_start"`
-}
-
-func (q *Queries) GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error) {
-	row := q.db.QueryRowContext(ctx, getWeeklyReview, arg.UserID, arg.WeekStart)
+func (q *Queries) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (WeeklyReview, error) {
+	row := q.db.QueryRow(ctx, getWeeklyReview, userID, weekStart)
 	var i WeeklyReview
 	err := row.Scan(
 		&i.ID,
@@ -475,20 +425,15 @@ func (q *Queries) GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams
 }
 
 const listWeeklyReviews = `-- name: ListWeeklyReviews :many
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1
 ORDER BY week_start DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListWeeklyReviewsParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListWeeklyReviews(ctx context.Context, arg ListWeeklyReviewsParams) ([]WeeklyReview, error) {
-	rows, err := q.db.QueryContext(ctx, listWeeklyReviews, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]WeeklyReview, error) {
+	rows, err := q.db.Query(ctx, listWeeklyReviews, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -521,9 +466,6 @@ func (q *Queries) ListWeeklyReviews(ctx context.Context, arg ListWeeklyReviewsPa
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

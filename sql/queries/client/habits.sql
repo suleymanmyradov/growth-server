@@ -51,5 +51,11 @@ UPDATE habits
 SET completed = false, updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1 AND completed = true;
 
+-- name: GetHabitsByIDs :many
+-- Bulk lookup for habit list views (e.g. resolving saved habits).
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
+FROM habits
+WHERE id = ANY($1::uuid[]);
+
 -- name: CountHabitsByUser :one
 SELECT COUNT(*) FROM habits WHERE user_id = $1;

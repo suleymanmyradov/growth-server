@@ -9,12 +9,12 @@ import (
 
 // IUsers defines the interface for user repository operations
 type IUsers interface {
-	CreateUser(ctx context.Context, params db.CreateUserParams) (db.User, error)
+	CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (db.User, error)
 	GetUserByEmail(ctx context.Context, email string) (db.User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (db.User, error)
 	GetUserByUsername(ctx context.Context, username string) (db.User, error)
-	UpdateUserPassword(ctx context.Context, params db.UpdateUserPasswordParams) (db.User, error)
-	UpdateUserFullName(ctx context.Context, params db.UpdateUserFullNameParams) (db.User, error)
+	UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) (db.User, error)
+	UpdateUserFullName(ctx context.Context, id uuid.UUID, fullName string) (db.User, error)
 }
 
 // IProfiles defines the interface for profile repository operations

@@ -7,26 +7,20 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const applyPlanAdjustmentSuggestion = `-- name: ApplyPlanAdjustmentSuggestion :one
 UPDATE plan_adjustment_suggestions
 SET status = 'applied', updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
 `
 
-type ApplyPlanAdjustmentSuggestionParams struct {
-	ID     uuid.UUID `db:"id" json:"id"`
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-}
-
-func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, arg ApplyPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
-	row := q.db.QueryRowContext(ctx, applyPlanAdjustmentSuggestion, arg.ID, arg.UserID)
+func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error) {
+	row := q.db.QueryRow(ctx, applyPlanAdjustmentSuggestion, iD, userID)
 	var i PlanAdjustmentSuggestion
 	err := row.Scan(
 		&i.ID,
@@ -42,6 +36,7 @@ func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, arg ApplyPl
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WeekStart,
+		&i.TargetID,
 	)
 	return i, err
 }
@@ -52,7 +47,7 @@ WHERE user_id = $1 AND status = 'pending'
 `
 
 func (q *Queries) CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countPendingPlanAdjustmentSuggestions, userID)
+	row := q.db.QueryRow(ctx, countPendingPlanAdjustmentSuggestions, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -71,13 +66,13 @@ INSERT INTO plan_adjustment_suggestions (
     week_start
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT (user_id, source, week_start, habit_id, adjustment_type)
+ON CONFLICT ON CONSTRAINT plan_adjustment_suggestions_unique_key
 DO UPDATE SET
     reason = EXCLUDED.reason,
     suggestion = EXCLUDED.suggestion,
     metadata = EXCLUDED.metadata,
     updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
 `
 
 type CreatePlanAdjustmentSuggestionParams struct {
@@ -88,12 +83,12 @@ type CreatePlanAdjustmentSuggestionParams struct {
 	AdjustmentType PlanAdjustmentTypeType   `db:"adjustment_type" json:"adjustment_type"`
 	Reason         string                   `db:"reason" json:"reason"`
 	Suggestion     string                   `db:"suggestion" json:"suggestion"`
-	Metadata       json.RawMessage          `db:"metadata" json:"metadata"`
-	WeekStart      sql.NullTime             `db:"week_start" json:"week_start"`
+	Metadata       []byte                   `db:"metadata" json:"metadata"`
+	WeekStart      pgtype.Date              `db:"week_start" json:"week_start"`
 }
 
 func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
-	row := q.db.QueryRowContext(ctx, createPlanAdjustmentSuggestion,
+	row := q.db.QueryRow(ctx, createPlanAdjustmentSuggestion,
 		arg.UserID,
 		arg.GoalID,
 		arg.HabitID,
@@ -119,6 +114,7 @@ func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg Create
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WeekStart,
+		&i.TargetID,
 	)
 	return i, err
 }
@@ -128,13 +124,8 @@ DELETE FROM plan_adjustment_suggestions
 WHERE id = $1 AND user_id = $2
 `
 
-type DeletePlanAdjustmentSuggestionParams struct {
-	ID     uuid.UUID `db:"id" json:"id"`
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-}
-
-func (q *Queries) DeletePlanAdjustmentSuggestion(ctx context.Context, arg DeletePlanAdjustmentSuggestionParams) error {
-	_, err := q.db.ExecContext(ctx, deletePlanAdjustmentSuggestion, arg.ID, arg.UserID)
+func (q *Queries) DeletePlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deletePlanAdjustmentSuggestion, iD, userID)
 	return err
 }
 
@@ -147,22 +138,17 @@ WHERE user_id = $1
 `
 
 func (q *Queries) DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, dismissOldPendingSuggestions, userID)
+	_, err := q.db.Exec(ctx, dismissOldPendingSuggestions, userID)
 	return err
 }
 
 const getPlanAdjustmentSuggestion = `-- name: GetPlanAdjustmentSuggestion :one
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
 WHERE id = $1 AND user_id = $2
 `
 
-type GetPlanAdjustmentSuggestionParams struct {
-	ID     uuid.UUID `db:"id" json:"id"`
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-}
-
-func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, arg GetPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
-	row := q.db.QueryRowContext(ctx, getPlanAdjustmentSuggestion, arg.ID, arg.UserID)
+func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error) {
+	row := q.db.QueryRow(ctx, getPlanAdjustmentSuggestion, iD, userID)
 	var i PlanAdjustmentSuggestion
 	err := row.Scan(
 		&i.ID,
@@ -178,25 +164,20 @@ func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, arg GetPlanAd
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WeekStart,
+		&i.TargetID,
 	)
 	return i, err
 }
 
 const listAllPlanAdjustmentSuggestions = `-- name: ListAllPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListAllPlanAdjustmentSuggestionsParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, arg ListAllPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error) {
-	rows, err := q.db.QueryContext(ctx, listAllPlanAdjustmentSuggestions, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+	rows, err := q.db.Query(ctx, listAllPlanAdjustmentSuggestions, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -218,13 +199,11 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, arg List
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.WeekStart,
+			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -233,20 +212,14 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, arg List
 }
 
 const listPendingPlanAdjustmentSuggestions = `-- name: ListPendingPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND status = 'pending'
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListPendingPlanAdjustmentSuggestionsParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg ListPendingPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error) {
-	rows, err := q.db.QueryContext(ctx, listPendingPlanAdjustmentSuggestions, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+	rows, err := q.db.Query(ctx, listPendingPlanAdjustmentSuggestions, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -268,13 +241,11 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.WeekStart,
+			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -283,25 +254,18 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg 
 }
 
 const listPlanAdjustmentSuggestionsByGoal = `-- name: ListPlanAdjustmentSuggestionsByGoal :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND goal_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type ListPlanAdjustmentSuggestionsByGoalParams struct {
-	UserID uuid.UUID     `db:"user_id" json:"user_id"`
-	GoalID uuid.NullUUID `db:"goal_id" json:"goal_id"`
-	Limit  int32         `db:"limit" json:"limit"`
-	Offset int32         `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg ListPlanAdjustmentSuggestionsByGoalParams) ([]PlanAdjustmentSuggestion, error) {
-	rows, err := q.db.QueryContext(ctx, listPlanAdjustmentSuggestionsByGoal,
-		arg.UserID,
-		arg.GoalID,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+	rows, err := q.db.Query(ctx, listPlanAdjustmentSuggestionsByGoal,
+		userID,
+		goalID,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
@@ -324,13 +288,11 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg L
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.WeekStart,
+			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -339,25 +301,18 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg L
 }
 
 const listPlanAdjustmentSuggestionsByHabit = `-- name: ListPlanAdjustmentSuggestionsByHabit :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND habit_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type ListPlanAdjustmentSuggestionsByHabitParams struct {
-	UserID  uuid.UUID     `db:"user_id" json:"user_id"`
-	HabitID uuid.NullUUID `db:"habit_id" json:"habit_id"`
-	Limit   int32         `db:"limit" json:"limit"`
-	Offset  int32         `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg ListPlanAdjustmentSuggestionsByHabitParams) ([]PlanAdjustmentSuggestion, error) {
-	rows, err := q.db.QueryContext(ctx, listPlanAdjustmentSuggestionsByHabit,
-		arg.UserID,
-		arg.HabitID,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+	rows, err := q.db.Query(ctx, listPlanAdjustmentSuggestionsByHabit,
+		userID,
+		habitID,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
@@ -380,13 +335,11 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.WeekStart,
+			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -403,7 +356,7 @@ SET
     metadata = $6,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
 `
 
 type UpdatePlanAdjustmentSuggestionParams struct {
@@ -412,11 +365,11 @@ type UpdatePlanAdjustmentSuggestionParams struct {
 	AdjustmentType PlanAdjustmentTypeType `db:"adjustment_type" json:"adjustment_type"`
 	Reason         string                 `db:"reason" json:"reason"`
 	Suggestion     string                 `db:"suggestion" json:"suggestion"`
-	Metadata       json.RawMessage        `db:"metadata" json:"metadata"`
+	Metadata       []byte                 `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
-	row := q.db.QueryRowContext(ctx, updatePlanAdjustmentSuggestion,
+	row := q.db.QueryRow(ctx, updatePlanAdjustmentSuggestion,
 		arg.ID,
 		arg.UserID,
 		arg.AdjustmentType,
@@ -439,6 +392,7 @@ func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg Update
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WeekStart,
+		&i.TargetID,
 	)
 	return i, err
 }
@@ -447,17 +401,11 @@ const updatePlanAdjustmentSuggestionStatus = `-- name: UpdatePlanAdjustmentSugge
 UPDATE plan_adjustment_suggestions
 SET status = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
 `
 
-type UpdatePlanAdjustmentSuggestionStatusParams struct {
-	ID     uuid.UUID                `db:"id" json:"id"`
-	UserID uuid.UUID                `db:"user_id" json:"user_id"`
-	Status PlanAdjustmentStatusType `db:"status" json:"status"`
-}
-
-func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg UpdatePlanAdjustmentSuggestionStatusParams) (PlanAdjustmentSuggestion, error) {
-	row := q.db.QueryRowContext(ctx, updatePlanAdjustmentSuggestionStatus, arg.ID, arg.UserID, arg.Status)
+func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status PlanAdjustmentStatusType) (PlanAdjustmentSuggestion, error) {
+	row := q.db.QueryRow(ctx, updatePlanAdjustmentSuggestionStatus, iD, userID, status)
 	var i PlanAdjustmentSuggestion
 	err := row.Scan(
 		&i.ID,
@@ -473,6 +421,7 @@ func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.WeekStart,
+		&i.TargetID,
 	)
 	return i, err
 }

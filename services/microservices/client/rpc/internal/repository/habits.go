@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -21,11 +20,7 @@ func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, of
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ListHabits")
 	defer span.End()
 
-	return r.db.ListHabits(ctx, db.ListHabitsParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListHabits(ctx, userID, limit, offset)
 }
 
 func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, error) {
@@ -35,18 +30,18 @@ func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, 
 	return r.db.GetHabit(ctx, id)
 }
 
-func (r *habitsRepo) CreateHabit(ctx context.Context, params db.CreateHabitParams) (db.Habit, error) {
+func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.Habit, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.CreateHabit")
 	defer span.End()
 
-	return r.db.CreateHabit(ctx, params)
+	return r.db.CreateHabit(ctx, name, description, category, userID)
 }
 
-func (r *habitsRepo) UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.Habit, error) {
+func (r *habitsRepo) UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.Habit, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabit")
 	defer span.End()
 
-	return r.db.UpdateHabit(ctx, params)
+	return r.db.UpdateHabit(ctx, id, name, description, category)
 }
 
 func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {
@@ -67,10 +62,7 @@ func (r *habitsRepo) UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitStreak")
 	defer span.End()
 
-	return r.db.UpdateHabitStreak(ctx, db.UpdateHabitStreakParams{
-		ID:     id,
-		Streak: sql.NullInt32{Int32: streak, Valid: true},
-	})
+	return r.db.UpdateHabitStreak(ctx, id, streak)
 }
 
 func (r *habitsRepo) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.Habit, error) {

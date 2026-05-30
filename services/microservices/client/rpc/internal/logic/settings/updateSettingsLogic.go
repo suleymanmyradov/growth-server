@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -47,19 +48,13 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		if style == "" {
 			style = "balanced"
 		}
-		var checkInTime time.Time
+		var checkInTime pgtype.Time
 		if in.Settings.CheckInTime != "" {
 			if t, err := time.Parse("15:04", in.Settings.CheckInTime); err == nil {
-				checkInTime = t
+				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
 			}
 		}
-		onboardingParams := db.UpdateOnboardingSettingsParams{
-			UserID:              userID,
-			AccountabilityStyle: db.AccountabilityStyleType(style),
-			CheckInTime:         checkInTime,
-			OnboardingCompleted: in.Settings.OnboardingCompleted,
-		}
-		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, onboardingParams)
+		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, userID, db.AccountabilityStyleType(style), checkInTime, in.Settings.OnboardingCompleted)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
 			return nil, err

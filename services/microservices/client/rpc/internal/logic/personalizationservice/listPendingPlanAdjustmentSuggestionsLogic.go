@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -40,11 +39,7 @@ func (l *ListPendingPlanAdjustmentSuggestionsLogic) ListPendingPlanAdjustmentSug
 	}
 	offset := in.Offset
 
-	suggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(l.ctx, db.ListPendingPlanAdjustmentSuggestionsParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	suggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(l.ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("failed to list pending plan adjustment suggestions: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list pending plan adjustment suggestions")

@@ -1,11 +1,12 @@
 package svc
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -22,32 +23,37 @@ type ServiceContext struct {
 	Config    config.Config
 	Repo      *repository.Repository
 	AI        ai.Client
-	TxRunner  *postgres.TxRunner
+	TxRunner  *postgres.PgxTxRunner
 	EventsQ   queue.MessageQueue
 	EventsPub *events.Publisher
-	sqlDB     *sql.DB
+	pool      *pgxpool.Pool
 }
 
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {
-	db, err := sql.Open("postgres", datasource)
+func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
+	config, err := pgxpool.ParseConfig(datasource)
 	if err != nil {
-		panic(fmt.Errorf("postgres open: %w", err))
+		panic(fmt.Errorf("parse pgx config: %w", err))
 	}
-	db.SetMaxOpenConns(maxOpen)
-	db.SetMaxIdleConns(maxIdle)
-	db.SetConnMaxLifetime(maxLifetime)
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		panic(fmt.Errorf("postgres ping: %w", err))
+	config.MaxConns = int32(maxOpen)
+	config.MinConns = int32(maxIdle)
+	config.MaxConnLifetime = maxLifetime
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		panic(fmt.Errorf("pgx pool: %w", err))
 	}
-	return db
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		panic(fmt.Errorf("pgx ping: %w", err))
+	}
+	return pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
-	queries := db.New(sqlDB)
+	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	queries := db.New(pool)
 	repo := repository.NewRepository(queries)
-	txRunner := postgres.NewTxRunner(sqlDB)
+	txRunner := postgres.NewPgxTxRunner(pool)
 
 	// AI client.
 	var aiClient ai.Client
@@ -86,12 +92,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TxRunner:  txRunner,
 		EventsQ:   eventsQ,
 		EventsPub: eventsPub,
-		sqlDB:     sqlDB,
+		pool:      pool,
 	}
 }
 
 // WithTx returns a new Repository backed by the given transaction.
-func (s *ServiceContext) WithTx(tx *sql.Tx) *repository.Repository {
+func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 	return repository.NewRepository(db.NewWithTx(tx))
 }
 
@@ -108,7 +114,7 @@ func (s *ServiceContext) Close() {
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
 	}
-	if s.sqlDB != nil {
-		_ = s.sqlDB.Close()
+	if s.pool != nil {
+		s.pool.Close()
 	}
 }

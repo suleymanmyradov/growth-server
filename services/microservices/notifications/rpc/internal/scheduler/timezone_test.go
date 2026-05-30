@@ -1,9 +1,10 @@
 package scheduler
 
 import (
-	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 func TestNextOccurrence_TodayStillAhead(t *testing.T) {
@@ -11,7 +12,7 @@ func TestNextOccurrence_TodayStillAhead(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")     // UTC-4/5
 
 	// check_in_time = 10:00 local = 14:00/15:00 UTC → still ahead
-	cit := sql.NullTime{Time: time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC), Valid: true}
+	cit := pgtype.Time{Microseconds: 10 * 3600 * 1_000_000, Valid: true}
 
 	got, err := NextOccurrence(now, "America/New_York", cit)
 	if err != nil {
@@ -32,7 +33,7 @@ func TestNextOccurrence_Tomorrow(t *testing.T) {
 	loc, _ := time.LoadLocation("America/New_York")      // 18:00 local
 
 	// check_in_time = 10:00 local → already passed today
-	cit := sql.NullTime{Time: time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC), Valid: true}
+	cit := pgtype.Time{Microseconds: 10 * 3600 * 1_000_000, Valid: true}
 
 	got, err := NextOccurrence(now, "America/New_York", cit)
 	if err != nil {
@@ -50,7 +51,7 @@ func TestNextOccurrence_Tomorrow(t *testing.T) {
 
 func TestNextOccurrence_NullCheckInTime(t *testing.T) {
 	now := time.Date(2025, 5, 16, 8, 0, 0, 0, time.UTC)
-	_, err := NextOccurrence(now, "UTC", sql.NullTime{Valid: false})
+	_, err := NextOccurrence(now, "UTC", pgtype.Time{Valid: false})
 	if err == nil {
 		t.Fatal("expected error for null check_in_time")
 	}
@@ -58,7 +59,7 @@ func TestNextOccurrence_NullCheckInTime(t *testing.T) {
 
 func TestNextOccurrence_InvalidTimezone(t *testing.T) {
 	now := time.Date(2025, 5, 16, 8, 0, 0, 0, time.UTC)
-	cit := sql.NullTime{Time: time.Date(0, 0, 0, 10, 0, 0, 0, time.UTC), Valid: true}
+	cit := pgtype.Time{Microseconds: 10 * 3600 * 1_000_000, Valid: true}
 
 	// Invalid timezone should return an error.
 	_, err := NextOccurrence(now, "Invalid/Zone", cit)

@@ -22,43 +22,28 @@ func (r *ArticlesRepo) ListArticles(ctx context.Context, limit, offset int32) ([
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticles")
 	defer span.End()
 
-	return r.db.ListArticles(ctx, db.ListArticlesParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListArticles(ctx, limit, offset)
 }
 
 func (r *ArticlesRepo) ListArticlesByCategorySlug(ctx context.Context, slug string, limit, offset int32) ([]db.ListArticlesByCategorySlugRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByCategorySlug")
 	defer span.End()
 
-	return r.db.ListArticlesByCategorySlug(ctx, db.ListArticlesByCategorySlugParams{
-		Slug:   slug,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListArticlesByCategorySlug(ctx, slug, limit, offset)
 }
 
 func (r *ArticlesRepo) ListArticlesByAuthor(ctx context.Context, author string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByAuthor")
 	defer span.End()
 
-	return r.db.ListArticlesByAuthor(ctx, db.ListArticlesByAuthorParams{
-		Author: author,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListArticlesByAuthor(ctx, author, limit, offset)
 }
 
 func (r *ArticlesRepo) SearchArticles(ctx context.Context, query string, limit, offset int32) ([]db.SearchArticlesRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.SearchArticles")
 	defer span.End()
 
-	return r.db.SearchArticles(ctx, db.SearchArticlesParams{
-		PlaintoTsquery: query,
-		Limit:          limit,
-		Offset:         offset,
-	})
+	return r.db.SearchArticles(ctx, query, limit, offset)
 }
 
 func (r *ArticlesRepo) GetArticleByID(ctx context.Context, id uuid.UUID) (db.GetArticleRow, error) {
@@ -110,9 +95,9 @@ func (r *ArticlesRepo) CountArticlesByCategorySlug(ctx context.Context, slug str
 	return r.db.CountArticlesByCategorySlug(ctx, slug)
 }
 
-func (r *ArticlesRepo) CreateArticleShare(ctx context.Context, params db.CreateArticleShareParams) (db.ArticleShare, error) {
+func (r *ArticlesRepo) CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CreateArticleShare")
 	defer span.End()
 
-	return r.db.CreateArticleShare(ctx, params)
+	return r.db.CreateArticleShare(ctx, articleID, userID, platform)
 }

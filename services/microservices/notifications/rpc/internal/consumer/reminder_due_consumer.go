@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
-	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -97,12 +96,7 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, db.CreateNotificationParams{
-		Title:    "Time to check in",
-		Message:  fmt.Sprintf("You have %d habits to check in on today", rc.ActiveHabitCount),
-		ItemType: "habit_reminder",
-		UserID:   userID,
-	})
+	_, err = h.repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rc.ActiveHabitCount), "habit_reminder", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -138,12 +132,7 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UU
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, db.CreateNotificationParams{
-		Title:    "Missed check-in",
-		Message:  "You missed your check-in today. Don't worry, tomorrow is a fresh start!",
-		ItemType: "missed_check_in",
-		UserID:   userID,
-	})
+	_, err = h.repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -152,12 +141,7 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UU
 }
 
 func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	_, err := h.repo.Notifications.CreateNotification(ctx, db.CreateNotificationParams{
-		Title:    "Weekly review",
-		Message:  "Reflect on your week",
-		ItemType: "weekly_review",
-		UserID:   userID,
-	})
+	_, err := h.repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -201,12 +185,7 @@ func (h *ReminderDueHandler) onEncouragement(ctx context.Context, userID uuid.UU
 		msg = fmt.Sprintf("You've maintained a %d-day streak on %s! Keep it up!", streak, habitName)
 	}
 
-	_, err := h.repo.Notifications.CreateNotification(ctx, db.CreateNotificationParams{
-		Title:    title,
-		Message:  msg,
-		ItemType: "encouragement",
-		UserID:   userID,
-	})
+	_, err := h.repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}

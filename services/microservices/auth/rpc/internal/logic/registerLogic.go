@@ -5,7 +5,8 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
@@ -54,33 +55,37 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 		return nil, status.Error(codes.Internal, "failed to process password")
 	}
 
-	user, err := l.svcCtx.Repo.Users.CreateUser(l.ctx, db.CreateUserParams{
-		Username:     in.Username,
-		Email:        in.Email,
-		PasswordHash: string(hashedPassword),
-		FullName:     in.FullName,
-	})
-	if err != nil {
-		l.Errorf("failed to create user: %v", err)
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			// Unique constraint violation - email or username already exists
-			return nil, status.Error(codes.AlreadyExists, "user already exists")
+	var user db.User
+	var profile db.Profile
+	err = l.svcCtx.TxRunner.Run(l.ctx, "", func(tx pgx.Tx) error {
+		q := db.New(tx)
+		var err error
+		user, err = q.CreateUser(l.ctx, in.Username, in.Email, string(hashedPassword), in.FullName)
+		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				// Unique constraint violation - email or username already exists
+				return status.Error(codes.AlreadyExists, "user already exists")
+			}
+			return status.Error(codes.Internal, "failed to create user")
 		}
-		return nil, status.Error(codes.Internal, "failed to create user")
-	}
 
-	profile, err := l.svcCtx.Repo.Profiles.CreateProfile(l.ctx, db.CreateProfileParams{
-		UserID:    user.ID,
-		Bio:       toNullString(""),
-		Location:  toNullString(""),
-		Website:   toNullString(""),
-		Interests: []string{},
-		AvatarUrl: toNullString(""),
+		profile, err = q.CreateProfile(l.ctx, db.CreateProfileParams{
+			UserID:    user.ID,
+			Bio:       toNullString(""),
+			Location:  toNullString(""),
+			Website:   toNullString(""),
+			Interests: []string{},
+			AvatarUrl: toNullString(""),
+		})
+		if err != nil {
+			return status.Error(codes.Internal, "failed to create profile")
+		}
+		return nil
 	})
 	if err != nil {
-		l.Errorf("failed to create profile: %v", err)
-		return nil, status.Error(codes.Internal, "failed to create profile")
+		l.Errorf("failed to create user and profile: %v", err)
+		return nil, err
 	}
 
 	sessionID := uuid.New()

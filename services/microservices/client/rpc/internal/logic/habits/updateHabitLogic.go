@@ -2,10 +2,8 @@ package habitslogic
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -33,14 +31,12 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		return nil, err
 	}
 
-	params := db.UpdateHabitParams{
-		ID:          habitID,
-		Name:        in.Name,
-		Description: sql.NullString{String: in.Description, Valid: in.Description != ""},
-		Category:    in.Category,
+	var desc *string
+	if in.Description != "" {
+		desc = &in.Description
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(l.ctx, params)
+	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(l.ctx, habitID, in.Name, desc, in.Category)
 	if err != nil {
 		l.Errorf("Failed to update habit: %v", err)
 		return nil, err

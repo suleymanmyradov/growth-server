@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -17,7 +16,7 @@ SELECT COUNT(*) FROM habits WHERE user_id = $1
 `
 
 func (q *Queries) CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countHabitsByUser, userID)
+	row := q.db.QueryRow(ctx, countHabitsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -29,19 +28,12 @@ VALUES ($1, $2, $3, $4)
 RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
 `
 
-type CreateHabitParams struct {
-	Name        string         `db:"name" json:"name"`
-	Description sql.NullString `db:"description" json:"description"`
-	Category    string         `db:"category" json:"category"`
-	UserID      uuid.UUID      `db:"user_id" json:"user_id"`
-}
-
-func (q *Queries) CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, createHabit,
-		arg.Name,
-		arg.Description,
-		arg.Category,
-		arg.UserID,
+func (q *Queries) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (Habit, error) {
+	row := q.db.QueryRow(ctx, createHabit,
+		name,
+		description,
+		category,
+		userID,
 	)
 	var i Habit
 	err := row.Scan(
@@ -63,7 +55,7 @@ DELETE FROM habits WHERE id = $1
 `
 
 func (q *Queries) DeleteHabit(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteHabit, id)
+	_, err := q.db.Exec(ctx, deleteHabit, id)
 	return err
 }
 
@@ -74,7 +66,7 @@ WHERE id = $1
 `
 
 func (q *Queries) GetHabit(ctx context.Context, id uuid.UUID) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, getHabit, id)
+	row := q.db.QueryRow(ctx, getHabit, id)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -90,22 +82,15 @@ func (q *Queries) GetHabit(ctx context.Context, id uuid.UUID) (Habit, error) {
 	return i, err
 }
 
-const listHabits = `-- name: ListHabits :many
+const getHabitsByIDs = `-- name: GetHabitsByIDs :many
 SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
 FROM habits
-WHERE user_id = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+WHERE id = ANY($1::uuid[])
 `
 
-type ListHabitsParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit, error) {
-	rows, err := q.db.QueryContext(ctx, listHabits, arg.UserID, arg.Limit, arg.Offset)
+// Bulk lookup for habit list views (e.g. resolving saved habits).
+func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Habit, error) {
+	rows, err := q.db.Query(ctx, getHabitsByIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +113,43 @@ func (q *Queries) ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	return items, nil
+}
+
+const listHabits = `-- name: ListHabits :many
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
+FROM habits
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Habit, error) {
+	rows, err := q.db.Query(ctx, listHabits, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Habit{}
+	for rows.Next() {
+		var i Habit
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Streak,
+			&i.Completed,
+			&i.Category,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -147,7 +167,7 @@ RETURNING id, name, description, streak, completed, category, user_id, created_a
 `
 
 func (q *Queries) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, markHabitCompleted, id)
+	row := q.db.QueryRow(ctx, markHabitCompleted, id)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -170,11 +190,11 @@ WHERE user_id = $1 AND completed = true
 `
 
 func (q *Queries) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {
-	result, err := q.db.ExecContext(ctx, resetTodayHabits, userID)
+	result, err := q.db.Exec(ctx, resetTodayHabits, userID)
 	if err != nil {
 		return 0, err
 	}
-	return result.RowsAffected()
+	return result.RowsAffected(), nil
 }
 
 const toggleHabit = `-- name: ToggleHabit :one
@@ -187,7 +207,7 @@ RETURNING id, name, description, streak, completed, category, user_id, created_a
 `
 
 func (q *Queries) ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, toggleHabit, id)
+	row := q.db.QueryRow(ctx, toggleHabit, id)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -210,19 +230,12 @@ WHERE id = $1
 RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
 `
 
-type UpdateHabitParams struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Name        string         `db:"name" json:"name"`
-	Description sql.NullString `db:"description" json:"description"`
-	Category    string         `db:"category" json:"category"`
-}
-
-func (q *Queries) UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, updateHabit,
-		arg.ID,
-		arg.Name,
-		arg.Description,
-		arg.Category,
+func (q *Queries) UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, category string) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabit,
+		iD,
+		name,
+		description,
+		category,
 	)
 	var i Habit
 	err := row.Scan(
@@ -246,13 +259,8 @@ WHERE id = $1
 RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
 `
 
-type UpdateHabitStreakParams struct {
-	ID     uuid.UUID     `db:"id" json:"id"`
-	Streak sql.NullInt32 `db:"streak" json:"streak"`
-}
-
-func (q *Queries) UpdateHabitStreak(ctx context.Context, arg UpdateHabitStreakParams) (Habit, error) {
-	row := q.db.QueryRowContext(ctx, updateHabitStreak, arg.ID, arg.Streak)
+func (q *Queries) UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabitStreak, iD, streak)
 	var i Habit
 	err := row.Scan(
 		&i.ID,

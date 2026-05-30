@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -53,11 +54,11 @@ func (r *UserSettingsRepo) DeleteUserSettings(ctx context.Context, userID uuid.U
 	return r.db.DeleteUserSettings(ctx, userID)
 }
 
-func (r *UserSettingsRepo) UpdateOnboardingSettings(ctx context.Context, params db.UpdateOnboardingSettingsParams) (db.UpdateOnboardingSettingsRow, error) {
+func (r *UserSettingsRepo) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle db.AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (db.UpdateOnboardingSettingsRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.UpdateOnboardingSettings")
 	defer span.End()
 
-	return r.db.UpdateOnboardingSettings(ctx, params)
+	return r.db.UpdateOnboardingSettings(ctx, userID, accountabilityStyle, checkInTime, onboardingCompleted)
 }
 
 func (r *UserSettingsRepo) CountUserSettings(ctx context.Context) (int64, error) {

@@ -52,11 +52,15 @@ func (l *GetAchievementsLogic) GetAchievements(in *client.GetAchievementsRequest
 			l.Errorf("Invalid UnlockedAt type for achievement %s", r.ID)
 			continue
 		}
+		iconUrl := ""
+		if r.IconUrl != nil {
+			iconUrl = *r.IconUrl
+		}
 		achievements = append(achievements, &client.Achievement{
 			Id:          r.ID,
 			Name:        r.Name,
 			Description: r.Description,
-			IconUrl:     r.IconUrl.String,
+			IconUrl:     iconUrl,
 			UnlockedAt:  ToUnix(unlockedAt),
 		})
 	}

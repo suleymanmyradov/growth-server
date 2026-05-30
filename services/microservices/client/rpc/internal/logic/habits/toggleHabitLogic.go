@@ -2,11 +2,11 @@ package habitslogic
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -43,7 +43,7 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 	}
 
 	var resultHabit db.Habit
-	err = l.svcCtx.TxRunner.Run(l.ctx, preHabit.UserID.String(), func(tx *sql.Tx) error {
+	err = l.svcCtx.TxRunner.Run(l.ctx, preHabit.UserID.String(), func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
 		habit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID)
@@ -53,12 +53,13 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 		resultHabit = habit
 
 		// Log activity if habit was marked completed
-		if habit.Completed.Bool {
+		if habit.Completed {
+			description := fmt.Sprintf("Completed habit: %s (streak: %d)", habit.Name, habit.Streak)
 			_, err := txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
 				ItemType:    "habit_completed",
 				Title:       fmt.Sprintf("Completed %s", habit.Name),
-				Description: sql.NullString{String: fmt.Sprintf("Completed habit: %s (streak: %d)", habit.Name, habit.Streak.Int32), Valid: true},
-				Metadata:    pqtype.NullRawMessage{},
+				Description: &description,
+				Metadata:    json.RawMessage("{}"),
 				UserID:      habit.UserID,
 			})
 			if err != nil {

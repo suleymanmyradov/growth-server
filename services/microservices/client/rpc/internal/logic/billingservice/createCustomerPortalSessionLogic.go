@@ -57,12 +57,12 @@ func (l *CreateCustomerPortalSessionLogic) CreateCustomerPortalSession(in *clien
 		return nil, status.Error(codes.NotFound, "subscription not found")
 	}
 
-	if !sub.StripeCustomerID.Valid {
+	if sub.StripeCustomerID == nil {
 		return nil, status.Error(codes.FailedPrecondition, "no Stripe customer ID")
 	}
 
 	portalURL, err := l.svcCtx.StripeClient.CreateCustomerPortalSession(
-		l.ctx, sub.StripeCustomerID.String, l.svcCtx.Config.Billing.FrontendURL,
+		l.ctx, *sub.StripeCustomerID, l.svcCtx.Config.Billing.FrontendURL,
 	)
 	if err != nil {
 		l.Errorf("Failed to create Stripe portal session: %v", err)

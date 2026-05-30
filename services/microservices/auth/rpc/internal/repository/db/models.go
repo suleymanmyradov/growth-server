@@ -5,14 +5,11 @@
 package db
 
 import (
-	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type AccountabilityStyleType string
@@ -637,6 +634,67 @@ func AllEntityTypeValues() []EntityType {
 		EntityTypeArticle,
 		EntityTypeHabit,
 		EntityTypeGoal,
+	}
+}
+
+type GoalStatusType string
+
+const (
+	GoalStatusTypeActive    GoalStatusType = "active"
+	GoalStatusTypeCompleted GoalStatusType = "completed"
+	GoalStatusTypeArchived  GoalStatusType = "archived"
+)
+
+func (e *GoalStatusType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = GoalStatusType(s)
+	case string:
+		*e = GoalStatusType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for GoalStatusType: %T", src)
+	}
+	return nil
+}
+
+type NullGoalStatusType struct {
+	GoalStatusType GoalStatusType `json:"goal_status_type"`
+	Valid          bool           `json:"valid"` // Valid is true if GoalStatusType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullGoalStatusType) Scan(value interface{}) error {
+	if value == nil {
+		ns.GoalStatusType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.GoalStatusType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullGoalStatusType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.GoalStatusType), nil
+}
+
+func (e GoalStatusType) Valid() bool {
+	switch e {
+	case GoalStatusTypeActive,
+		GoalStatusTypeCompleted,
+		GoalStatusTypeArchived:
+		return true
+	}
+	return false
+}
+
+func AllGoalStatusTypeValues() []GoalStatusType {
+	return []GoalStatusType{
+		GoalStatusTypeActive,
+		GoalStatusTypeCompleted,
+		GoalStatusTypeArchived,
 	}
 }
 
@@ -1366,155 +1424,157 @@ func AllUpgradeEventTypeValues() []UpgradeEventType {
 }
 
 type Activity struct {
-	ID          uuid.UUID             `db:"id" json:"id"`
-	ItemType    ActivityType          `db:"item_type" json:"item_type"`
-	Title       string                `db:"title" json:"title"`
-	Description sql.NullString        `db:"description" json:"description"`
-	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID             `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time             `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	ItemType    ActivityType       `db:"item_type" json:"item_type"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type AiCoachProcessedEvent struct {
-	EventID     uuid.UUID `db:"event_id" json:"event_id"`
-	ProcessedAt time.Time `db:"processed_at" json:"processed_at"`
+	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type AiFeedback struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CheckInID uuid.UUID `db:"check_in_id" json:"check_in_id"`
-	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
-	Content   string    `db:"content" json:"content"`
-	Model     string    `db:"model" json:"model"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CheckInID uuid.UUID          `db:"check_in_id" json:"check_in_id"`
+	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	Content   string             `db:"content" json:"content"`
+	Model     string             `db:"model" json:"model"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Article struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	SearchVector string         `db:"search_vector" json:"search_vector"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	SearchVector string             `db:"search_vector" json:"search_vector"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	AiMetadata   []byte             `db:"ai_metadata" json:"ai_metadata"`
 }
 
 type ArticleShare struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	Platform  string    `db:"platform" json:"platform"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Platform  string             `db:"platform" json:"platform"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Category struct {
-	ID         uuid.UUID     `db:"id" json:"id"`
-	Name       string        `db:"name" json:"name"`
-	Slug       string        `db:"slug" json:"slug"`
-	EntityType EntityType    `db:"entity_type" json:"entity_type"`
-	SortOrder  sql.NullInt32 `db:"sort_order" json:"sort_order"`
-	CreatedAt  time.Time     `db:"created_at" json:"created_at"`
-	UpdatedAt  time.Time     `db:"updated_at" json:"updated_at"`
+	ID         uuid.UUID          `db:"id" json:"id"`
+	Name       string             `db:"name" json:"name"`
+	Slug       string             `db:"slug" json:"slug"`
+	EntityType EntityType         `db:"entity_type" json:"entity_type"`
+	SortOrder  int32              `db:"sort_order" json:"sort_order"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt  pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 // Check-in records are immutable events - they have no updated_at column and should never be modified after creation
 type CheckIn struct {
-	ID        uuid.UUID       `db:"id" json:"id"`
-	UserID    uuid.UUID       `db:"user_id" json:"user_id"`
-	HabitID   uuid.UUID       `db:"habit_id" json:"habit_id"`
-	Status    CheckInStatus   `db:"status" json:"status"`
-	Mood      NullMoodType    `db:"mood" json:"mood"`
-	Energy    NullEnergyLevel `db:"energy" json:"energy"`
-	Blocker   NullBlockerType `db:"blocker" json:"blocker"`
-	Note      sql.NullString  `db:"note" json:"note"`
-	CreatedAt time.Time       `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	Status    CheckInStatus      `db:"status" json:"status"`
+	Mood      *MoodType          `db:"mood" json:"mood"`
+	Energy    *EnergyLevel       `db:"energy" json:"energy"`
+	Blocker   *BlockerType       `db:"blocker" json:"blocker"`
+	Note      *string            `db:"note" json:"note"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	// User's local date at time of check-in, used for timezone-aware deduplication
-	LocalDate time.Time `db:"local_date" json:"local_date"`
+	LocalDate pgtype.Date `db:"local_date" json:"local_date"`
 }
 
 type Conversation struct {
-	ID          uuid.UUID        `db:"id" json:"id"`
-	Title       string           `db:"title" json:"title"`
-	ItemType    ConversationType `db:"item_type" json:"item_type"`
-	LastMessage sql.NullString   `db:"last_message" json:"last_message"`
-	UserID      uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time        `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time        `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	ItemType    ConversationType   `db:"item_type" json:"item_type"`
+	LastMessage *string            `db:"last_message" json:"last_message"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Goal struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Title       string         `db:"title" json:"title"`
-	Description sql.NullString `db:"description" json:"description"`
-	Category    string         `db:"category" json:"category"`
-	DueDate     sql.NullTime   `db:"due_date" json:"due_date"`
-	Progress    sql.NullInt32  `db:"progress" json:"progress"`
-	Completed   sql.NullBool   `db:"completed" json:"completed"`
-	UserID      uuid.UUID      `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Category    string             `db:"category" json:"category"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	Progress    int32              `db:"progress" json:"progress"`
+	Completed   bool               `db:"completed" json:"completed"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status      GoalStatusType     `db:"status" json:"status"`
 }
 
 type GoalHabitRelation struct {
-	GoalID    uuid.UUID `db:"goal_id" json:"goal_id"`
-	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
+	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Habit struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Name        string         `db:"name" json:"name"`
-	Description sql.NullString `db:"description" json:"description"`
-	Streak      sql.NullInt32  `db:"streak" json:"streak"`
-	Completed   sql.NullBool   `db:"completed" json:"completed"`
-	Category    string         `db:"category" json:"category"`
-	UserID      uuid.UUID      `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Name        string             `db:"name" json:"name"`
+	Description *string            `db:"description" json:"description"`
+	Streak      int32              `db:"streak" json:"streak"`
+	Completed   bool               `db:"completed" json:"completed"`
+	Category    string             `db:"category" json:"category"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Message struct {
-	ID             uuid.UUID       `db:"id" json:"id"`
-	Content        string          `db:"content" json:"content"`
-	Role           MessageRoleType `db:"role" json:"role"`
-	ConversationID uuid.UUID       `db:"conversation_id" json:"conversation_id"`
-	CreatedAt      time.Time       `db:"created_at" json:"created_at"`
+	ID             uuid.UUID          `db:"id" json:"id"`
+	Content        string             `db:"content" json:"content"`
+	Role           MessageRoleType    `db:"role" json:"role"`
+	ConversationID uuid.UUID          `db:"conversation_id" json:"conversation_id"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Notification struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time        `db:"updated_at" json:"updated_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Plan struct {
-	ID                       uuid.UUID      `db:"id" json:"id"`
-	Code                     string         `db:"code" json:"code"`
-	Name                     string         `db:"name" json:"name"`
-	Description              sql.NullString `db:"description" json:"description"`
-	PriceMonthlyCents        int32          `db:"price_monthly_cents" json:"price_monthly_cents"`
-	PriceAnnualCents         int32          `db:"price_annual_cents" json:"price_annual_cents"`
-	ActiveGoalLimit          sql.NullInt32  `db:"active_goal_limit" json:"active_goal_limit"`
-	ActiveHabitLimit         sql.NullInt32  `db:"active_habit_limit" json:"active_habit_limit"`
-	WeeklyReviewHistoryLimit sql.NullInt32  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
-	PlanAdjustmentLimit      sql.NullInt32  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
-	PersonalizedAiEnabled    bool           `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
-	StripeMonthlyPriceID     sql.NullString `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
-	StripeAnnualPriceID      sql.NullString `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
-	IsActive                 bool           `db:"is_active" json:"is_active"`
-	CreatedAt                time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt                time.Time      `db:"updated_at" json:"updated_at"`
+	ID                       uuid.UUID          `db:"id" json:"id"`
+	Code                     string             `db:"code" json:"code"`
+	Name                     string             `db:"name" json:"name"`
+	Description              *string            `db:"description" json:"description"`
+	PriceMonthlyCents        int32              `db:"price_monthly_cents" json:"price_monthly_cents"`
+	PriceAnnualCents         int32              `db:"price_annual_cents" json:"price_annual_cents"`
+	ActiveGoalLimit          int32              `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32              `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32              `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool               `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+	StripeMonthlyPriceID     *string            `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
+	StripeAnnualPriceID      *string            `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
+	IsActive                 bool               `db:"is_active" json:"is_active"`
+	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type PlanAdjustmentSuggestion struct {
@@ -1527,94 +1587,95 @@ type PlanAdjustmentSuggestion struct {
 	Reason         string                   `db:"reason" json:"reason"`
 	Suggestion     string                   `db:"suggestion" json:"suggestion"`
 	Status         PlanAdjustmentStatusType `db:"status" json:"status"`
-	Metadata       json.RawMessage          `db:"metadata" json:"metadata"`
-	CreatedAt      time.Time                `db:"created_at" json:"created_at"`
-	UpdatedAt      time.Time                `db:"updated_at" json:"updated_at"`
-	WeekStart      sql.NullTime             `db:"week_start" json:"week_start"`
+	Metadata       []byte                   `db:"metadata" json:"metadata"`
+	CreatedAt      pgtype.Timestamptz       `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz       `db:"updated_at" json:"updated_at"`
+	WeekStart      pgtype.Date              `db:"week_start" json:"week_start"`
+	TargetID       uuid.NullUUID            `db:"target_id" json:"target_id"`
 }
 
 type ProcessedEvent struct {
-	EventID     uuid.UUID `db:"event_id" json:"event_id"`
-	ProcessedAt time.Time `db:"processed_at" json:"processed_at"`
+	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type Profile struct {
-	ID        uuid.UUID      `db:"id" json:"id"`
-	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
-	Bio       sql.NullString `db:"bio" json:"bio"`
-	Location  sql.NullString `db:"location" json:"location"`
-	Website   sql.NullString `db:"website" json:"website"`
-	Interests []string       `db:"interests" json:"interests"`
-	AvatarUrl sql.NullString `db:"avatar_url" json:"avatar_url"`
-	CreatedAt time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time      `db:"updated_at" json:"updated_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Bio       *string            `db:"bio" json:"bio"`
+	Location  *string            `db:"location" json:"location"`
+	Website   *string            `db:"website" json:"website"`
+	Interests []string           `db:"interests" json:"interests"`
+	AvatarUrl *string            `db:"avatar_url" json:"avatar_url"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type ReminderQueue struct {
-	ID          uuid.UUID       `db:"id" json:"id"`
-	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
-	Type        ReminderType    `db:"type" json:"type"`
-	ScheduledAt time.Time       `db:"scheduled_at" json:"scheduled_at"`
-	Sent        bool            `db:"sent" json:"sent"`
-	SentAt      sql.NullTime    `db:"sent_at" json:"sent_at"`
-	Metadata    json.RawMessage `db:"metadata" json:"metadata"`
-	CreatedAt   time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time       `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        ReminderType       `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	Sent        bool               `db:"sent" json:"sent"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type SavedArticle struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type SavedGoal struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	GoalID    uuid.UUID `db:"goal_id" json:"goal_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type SavedHabit struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 // DEPRECATED: Use saved_articles, saved_goals, saved_habits instead. Kept for backward compatibility during transition.
 type SavedItem struct {
-	ID        uuid.UUID     `db:"id" json:"id"`
-	ItemType  SavedItemType `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID     `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID     `db:"user_id" json:"user_id"`
-	CreatedAt time.Time     `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  SavedItemType      `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type UpgradeEvent struct {
-	ID              uuid.UUID               `db:"id" json:"id"`
-	UserID          uuid.UUID               `db:"user_id" json:"user_id"`
-	EventType       UpgradeEventType        `db:"event_type" json:"event_type"`
-	Surface         string                  `db:"surface" json:"surface"`
-	Trigger         sql.NullString          `db:"trigger" json:"trigger"`
-	PlanCode        sql.NullString          `db:"plan_code" json:"plan_code"`
-	BillingInterval NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	FeedbackReason  sql.NullString          `db:"feedback_reason" json:"feedback_reason"`
-	FeedbackNote    sql.NullString          `db:"feedback_note" json:"feedback_note"`
-	Metadata        json.RawMessage         `db:"metadata" json:"metadata"`
-	CreatedAt       time.Time               `db:"created_at" json:"created_at"`
-	PlanID          uuid.NullUUID           `db:"plan_id" json:"plan_id"`
+	ID              uuid.UUID            `db:"id" json:"id"`
+	UserID          uuid.UUID            `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType     `db:"event_type" json:"event_type"`
+	Surface         string               `db:"surface" json:"surface"`
+	Trigger         *string              `db:"trigger" json:"trigger"`
+	PlanCode        *string              `db:"plan_code" json:"plan_code"`
+	BillingInterval *BillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  *string              `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    *string              `db:"feedback_note" json:"feedback_note"`
+	Metadata        []byte               `db:"metadata" json:"metadata"`
+	CreatedAt       pgtype.Timestamptz   `db:"created_at" json:"created_at"`
+	PlanID          uuid.NullUUID        `db:"plan_id" json:"plan_id"`
 }
 
 type User struct {
-	ID           uuid.UUID `db:"id" json:"id"`
-	Username     string    `db:"username" json:"username"`
-	Email        string    `db:"email" json:"email"`
-	PasswordHash string    `db:"password_hash" json:"password_hash"`
-	FullName     string    `db:"full_name" json:"full_name"`
-	CreatedAt    time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at" json:"updated_at"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Username     string             `db:"username" json:"username"`
+	Email        string             `db:"email" json:"email"`
+	PasswordHash string             `db:"password_hash" json:"password_hash"`
+	FullName     string             `db:"full_name" json:"full_name"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type UserCoachingProfile struct {
@@ -1623,12 +1684,12 @@ type UserCoachingProfile struct {
 	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
 	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
 	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    sql.NullString          `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       json.RawMessage         `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        json.RawMessage         `db:"coaching_notes" json:"coaching_notes"`
-	LastContextRefreshAt sql.NullTime            `db:"last_context_refresh_at" json:"last_context_refresh_at"`
-	CreatedAt            time.Time               `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time               `db:"updated_at" json:"updated_at"`
+	PrimaryMotivation    *string                 `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte                  `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte                  `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz      `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz      `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
 }
 
 type UserSetting struct {
@@ -1641,48 +1702,48 @@ type UserSetting struct {
 	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           time.Time               `db:"created_at" json:"created_at"`
-	UpdatedAt           time.Time               `db:"updated_at" json:"updated_at"`
+	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         time.Time               `db:"check_in_time" json:"check_in_time"`
+	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
 }
 
 type UserSubscription struct {
-	ID                   uuid.UUID               `db:"id" json:"id"`
-	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
-	PlanID               uuid.UUID               `db:"plan_id" json:"plan_id"`
-	Status               SubscriptionStatusType  `db:"status" json:"status"`
-	BillingInterval      NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart   sql.NullTime            `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd     sql.NullTime            `db:"current_period_end" json:"current_period_end"`
-	TrialEnd             sql.NullTime            `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd    bool                    `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID     sql.NullString          `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString          `db:"stripe_subscription_id" json:"stripe_subscription_id"`
-	CreatedAt            time.Time               `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time               `db:"updated_at" json:"updated_at"`
+	ID                   uuid.UUID              `db:"id" json:"id"`
+	UserID               uuid.UUID              `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID              `db:"plan_id" json:"plan_id"`
+	Status               SubscriptionStatusType `db:"status" json:"status"`
+	BillingInterval      *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID     *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt            pgtype.Timestamptz     `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz     `db:"updated_at" json:"updated_at"`
 }
 
 type WeeklyReview struct {
-	ID                   uuid.UUID       `db:"id" json:"id"`
-	UserID               uuid.UUID       `db:"user_id" json:"user_id"`
-	WeekStart            time.Time       `db:"week_start" json:"week_start"`
-	WeekEnd              time.Time       `db:"week_end" json:"week_end"`
-	TotalHabits          int32           `db:"total_habits" json:"total_habits"`
-	CompletedCheckIns    int32           `db:"completed_check_ins" json:"completed_check_ins"`
-	MissedCheckIns       int32           `db:"missed_check_ins" json:"missed_check_ins"`
-	CompletionRate       string          `db:"completion_rate" json:"completion_rate"`
-	BestDay              sql.NullString  `db:"best_day" json:"best_day"`
-	HardestDay           sql.NullString  `db:"hardest_day" json:"hardest_day"`
-	TopBlocker           sql.NullString  `db:"top_blocker" json:"top_blocker"`
-	MoodSummary          json.RawMessage `db:"mood_summary" json:"mood_summary"`
-	EnergySummary        json.RawMessage `db:"energy_summary" json:"energy_summary"`
-	HabitBreakdown       json.RawMessage `db:"habit_breakdown" json:"habit_breakdown"`
-	AiSummary            sql.NullString  `db:"ai_summary" json:"ai_summary"`
-	SuggestedAdjustments json.RawMessage `db:"suggested_adjustments" json:"suggested_adjustments"`
-	NextWeekPlan         json.RawMessage `db:"next_week_plan" json:"next_week_plan"`
-	GeneratedAt          time.Time       `db:"generated_at" json:"generated_at"`
-	CreatedAt            time.Time       `db:"created_at" json:"created_at"`
-	UpdatedAt            time.Time       `db:"updated_at" json:"updated_at"`
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
+	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
+	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string            `db:"best_day" json:"best_day"`
+	HardestDay           *string            `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string            `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte             `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte             `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte             `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
+	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }

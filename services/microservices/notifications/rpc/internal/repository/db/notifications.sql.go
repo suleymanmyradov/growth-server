@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countNotifications = `-- name: CountNotifications :one
@@ -17,7 +17,7 @@ SELECT COUNT(*) FROM notifications
 `
 
 func (q *Queries) CountNotifications(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countNotifications)
+	row := q.db.QueryRow(ctx, countNotifications)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -28,7 +28,7 @@ SELECT COUNT(*) FROM notifications WHERE user_id = $1
 `
 
 func (q *Queries) CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countNotificationsByUser, userID)
+	row := q.db.QueryRow(ctx, countNotificationsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -39,7 +39,7 @@ SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false
 `
 
 func (q *Queries) CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countUnreadNotifications, userID)
+	row := q.db.QueryRow(ctx, countUnreadNotifications, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -51,29 +51,22 @@ VALUES ($1, $2, $3, $4)
 RETURNING id, title, message, item_type, is_read, user_id, created_at
 `
 
-type CreateNotificationParams struct {
-	Title    string           `db:"title" json:"title"`
-	Message  string           `db:"message" json:"message"`
-	ItemType NotificationType `db:"item_type" json:"item_type"`
-	UserID   uuid.UUID        `db:"user_id" json:"user_id"`
-}
-
 type CreateNotificationRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error) {
-	row := q.db.QueryRowContext(ctx, createNotification,
-		arg.Title,
-		arg.Message,
-		arg.ItemType,
-		arg.UserID,
+func (q *Queries) CreateNotification(ctx context.Context, title string, message string, itemType NotificationType, userID uuid.UUID) (*CreateNotificationRow, error) {
+	row := q.db.QueryRow(ctx, createNotification,
+		title,
+		message,
+		itemType,
+		userID,
 	)
 	var i CreateNotificationRow
 	err := row.Scan(
@@ -85,7 +78,7 @@ func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotification
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const deleteAllNotificationsByUser = `-- name: DeleteAllNotificationsByUser :exec
@@ -93,7 +86,7 @@ DELETE FROM notifications WHERE user_id = $1
 `
 
 func (q *Queries) DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteAllNotificationsByUser, userID)
+	_, err := q.db.Exec(ctx, deleteAllNotificationsByUser, userID)
 	return err
 }
 
@@ -102,7 +95,7 @@ DELETE FROM notifications WHERE id = $1
 `
 
 func (q *Queries) DeleteNotification(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteNotification, id)
+	_, err := q.db.Exec(ctx, deleteNotification, id)
 	return err
 }
 
@@ -111,17 +104,17 @@ SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifica
 `
 
 type GetNotificationRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error) {
-	row := q.db.QueryRowContext(ctx, getNotification, id)
+func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (*GetNotificationRow, error) {
+	row := q.db.QueryRow(ctx, getNotification, id)
 	var i GetNotificationRow
 	err := row.Scan(
 		&i.ID,
@@ -132,7 +125,7 @@ func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotific
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getUnreadCount = `-- name: GetUnreadCount :one
@@ -140,7 +133,7 @@ SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false
 `
 
 func (q *Queries) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getUnreadCount, userID)
+	row := q.db.QueryRow(ctx, getUnreadCount, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -152,28 +145,23 @@ ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
-type ListNotificationsParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
-}
-
 type ListNotificationsRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]ListNotificationsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listNotifications, arg.Limit, arg.Offset)
+func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int32) ([]*ListNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, listNotifications, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListNotificationsRow{}
+	items := []*ListNotificationsRow{}
 	for rows.Next() {
 		var i ListNotificationsRow
 		if err := rows.Scan(
@@ -187,10 +175,7 @@ func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsPa
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -204,35 +189,28 @@ ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type ListNotificationsByTypeParams struct {
-	UserID   uuid.UUID        `db:"user_id" json:"user_id"`
-	ItemType NotificationType `db:"item_type" json:"item_type"`
-	Limit    int32            `db:"limit" json:"limit"`
-	Offset   int32            `db:"offset" json:"offset"`
-}
-
 type ListNotificationsByTypeRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsByType(ctx context.Context, arg ListNotificationsByTypeParams) ([]ListNotificationsByTypeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listNotificationsByType,
-		arg.UserID,
-		arg.ItemType,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID, itemType NotificationType, limit int32, offset int32) ([]*ListNotificationsByTypeRow, error) {
+	rows, err := q.db.Query(ctx, listNotificationsByType,
+		userID,
+		itemType,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListNotificationsByTypeRow{}
+	items := []*ListNotificationsByTypeRow{}
 	for rows.Next() {
 		var i ListNotificationsByTypeRow
 		if err := rows.Scan(
@@ -246,10 +224,7 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, arg ListNotificat
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -263,29 +238,23 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListNotificationsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListNotificationsByUserRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsByUser(ctx context.Context, arg ListNotificationsByUserParams) ([]ListNotificationsByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listNotificationsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListNotificationsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListNotificationsByUserRow, error) {
+	rows, err := q.db.Query(ctx, listNotificationsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListNotificationsByUserRow{}
+	items := []*ListNotificationsByUserRow{}
 	for rows.Next() {
 		var i ListNotificationsByUserRow
 		if err := rows.Scan(
@@ -299,10 +268,7 @@ func (q *Queries) ListNotificationsByUser(ctx context.Context, arg ListNotificat
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -318,29 +284,23 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListNotificationsForUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListNotificationsForUserRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsForUser(ctx context.Context, arg ListNotificationsForUserParams) ([]ListNotificationsForUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listNotificationsForUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListNotificationsForUserRow, error) {
+	rows, err := q.db.Query(ctx, listNotificationsForUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListNotificationsForUserRow{}
+	items := []*ListNotificationsForUserRow{}
 	for rows.Next() {
 		var i ListNotificationsForUserRow
 		if err := rows.Scan(
@@ -354,10 +314,7 @@ func (q *Queries) ListNotificationsForUser(ctx context.Context, arg ListNotifica
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -371,29 +328,23 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListUnreadNotificationsParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListUnreadNotificationsRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListUnreadNotifications(ctx context.Context, arg ListUnreadNotificationsParams) ([]ListUnreadNotificationsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listUnreadNotifications, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListUnreadNotificationsRow, error) {
+	rows, err := q.db.Query(ctx, listUnreadNotifications, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListUnreadNotificationsRow{}
+	items := []*ListUnreadNotificationsRow{}
 	for rows.Next() {
 		var i ListUnreadNotificationsRow
 		if err := rows.Scan(
@@ -407,10 +358,7 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, arg ListUnreadNot
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -425,7 +373,7 @@ WHERE user_id = $1 AND is_read = false
 `
 
 func (q *Queries) MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, markAllNotificationsRead, userID)
+	_, err := q.db.Exec(ctx, markAllNotificationsRead, userID)
 	return err
 }
 
@@ -437,17 +385,17 @@ RETURNING id, title, message, item_type, is_read, user_id, created_at
 `
 
 type MarkNotificationReadRow struct {
-	ID        uuid.UUID        `db:"id" json:"id"`
-	Title     string           `db:"title" json:"title"`
-	Message   string           `db:"message" json:"message"`
-	ItemType  NotificationType `db:"item_type" json:"item_type"`
-	IsRead    bool             `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID        `db:"user_id" json:"user_id"`
-	CreatedAt time.Time        `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error) {
-	row := q.db.QueryRowContext(ctx, markNotificationRead, id)
+func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (*MarkNotificationReadRow, error) {
+	row := q.db.QueryRow(ctx, markNotificationRead, id)
 	var i MarkNotificationReadRow
 	err := row.Scan(
 		&i.ID,
@@ -458,5 +406,5 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkN
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return i, err
+	return &i, err
 }

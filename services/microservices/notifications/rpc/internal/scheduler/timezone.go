@@ -1,16 +1,17 @@
 package scheduler
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 // NextOccurrence computes the next occurrence of the user's check_in_time in
 // their IANA timezone. If the time today has already passed, tomorrow's
 // occurrence is returned. Falls back to UTC with a logged warning on invalid
 // timezone.
-func NextOccurrence(now time.Time, tzName string, checkInTime sql.NullTime) (time.Time, error) {
+func NextOccurrence(now time.Time, tzName string, checkInTime pgtype.Time) (time.Time, error) {
 	loc, err := safeLocation(tzName)
 	if err != nil {
 		return time.Time{}, err
@@ -21,7 +22,9 @@ func NextOccurrence(now time.Time, tzName string, checkInTime sql.NullTime) (tim
 	}
 
 	localNow := now.In(loc)
-	h, m, s := checkInTime.Time.Clock()
+	ref := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)
+	checkTime := ref.Add(time.Duration(checkInTime.Microseconds) * time.Microsecond)
+	h, m, s := checkTime.Clock()
 	targetToday := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), h, m, s, 0, loc)
 
 	if targetToday.After(localNow) {

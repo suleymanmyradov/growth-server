@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countAllSavedItemsByUser = `-- name: CountAllSavedItemsByUser :one
@@ -20,7 +20,7 @@ SELECT
 `
 
 func (q *Queries) CountAllSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int32, error) {
-	row := q.db.QueryRowContext(ctx, countAllSavedItemsByUser, userID)
+	row := q.db.QueryRow(ctx, countAllSavedItemsByUser, userID)
 	var column_1 int32
 	err := row.Scan(&column_1)
 	return column_1, err
@@ -31,7 +31,7 @@ SELECT COUNT(*) FROM saved_articles WHERE user_id = $1
 `
 
 func (q *Queries) CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedArticlesByUser, userID)
+	row := q.db.QueryRow(ctx, countSavedArticlesByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -42,7 +42,7 @@ SELECT COUNT(*) FROM saved_goals WHERE user_id = $1
 `
 
 func (q *Queries) CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedGoalsByUser, userID)
+	row := q.db.QueryRow(ctx, countSavedGoalsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -53,7 +53,7 @@ SELECT COUNT(*) FROM saved_habits WHERE user_id = $1
 `
 
 func (q *Queries) CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedHabitsByUser, userID)
+	row := q.db.QueryRow(ctx, countSavedHabitsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -64,7 +64,7 @@ SELECT COUNT(*) FROM saved_items
 `
 
 func (q *Queries) CountSavedItems(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedItems)
+	row := q.db.QueryRow(ctx, countSavedItems)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -75,7 +75,7 @@ SELECT COUNT(*) FROM saved_items WHERE user_id = $1
 `
 
 func (q *Queries) CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedItemsByUser, userID)
+	row := q.db.QueryRow(ctx, countSavedItemsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -85,13 +85,8 @@ const countSavedItemsByUserAndType = `-- name: CountSavedItemsByUserAndType :one
 SELECT COUNT(*) FROM saved_items WHERE user_id = $1 AND item_type = $2
 `
 
-type CountSavedItemsByUserAndTypeParams struct {
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-}
-
-func (q *Queries) CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countSavedItemsByUserAndType, arg.UserID, arg.ItemType)
+func (q *Queries) CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType SavedItemType) (int64, error) {
+	row := q.db.QueryRow(ctx, countSavedItemsByUserAndType, userID, itemType)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -101,21 +96,16 @@ const createSavedArticle = `-- name: CreateSavedArticle :one
 INSERT INTO saved_articles (article_id, user_id) VALUES ($1, $2) RETURNING id, 'article'::text AS item_type, article_id AS item_id, user_id, created_at
 `
 
-type CreateSavedArticleParams struct {
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-}
-
 type CreateSavedArticleRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateSavedArticle(ctx context.Context, arg CreateSavedArticleParams) (CreateSavedArticleRow, error) {
-	row := q.db.QueryRowContext(ctx, createSavedArticle, arg.ArticleID, arg.UserID)
+func (q *Queries) CreateSavedArticle(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (CreateSavedArticleRow, error) {
+	row := q.db.QueryRow(ctx, createSavedArticle, articleID, userID)
 	var i CreateSavedArticleRow
 	err := row.Scan(
 		&i.ID,
@@ -131,21 +121,16 @@ const createSavedGoal = `-- name: CreateSavedGoal :one
 INSERT INTO saved_goals (goal_id, user_id) VALUES ($1, $2) RETURNING id, 'goal'::text AS item_type, goal_id AS item_id, user_id, created_at
 `
 
-type CreateSavedGoalParams struct {
-	GoalID uuid.UUID `db:"goal_id" json:"goal_id"`
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-}
-
 type CreateSavedGoalRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateSavedGoal(ctx context.Context, arg CreateSavedGoalParams) (CreateSavedGoalRow, error) {
-	row := q.db.QueryRowContext(ctx, createSavedGoal, arg.GoalID, arg.UserID)
+func (q *Queries) CreateSavedGoal(ctx context.Context, goalID uuid.UUID, userID uuid.UUID) (CreateSavedGoalRow, error) {
+	row := q.db.QueryRow(ctx, createSavedGoal, goalID, userID)
 	var i CreateSavedGoalRow
 	err := row.Scan(
 		&i.ID,
@@ -161,21 +146,16 @@ const createSavedHabit = `-- name: CreateSavedHabit :one
 INSERT INTO saved_habits (habit_id, user_id) VALUES ($1, $2) RETURNING id, 'habit'::text AS item_type, habit_id AS item_id, user_id, created_at
 `
 
-type CreateSavedHabitParams struct {
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-}
-
 type CreateSavedHabitRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateSavedHabit(ctx context.Context, arg CreateSavedHabitParams) (CreateSavedHabitRow, error) {
-	row := q.db.QueryRowContext(ctx, createSavedHabit, arg.HabitID, arg.UserID)
+func (q *Queries) CreateSavedHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (CreateSavedHabitRow, error) {
+	row := q.db.QueryRow(ctx, createSavedHabit, habitID, userID)
 	var i CreateSavedHabitRow
 	err := row.Scan(
 		&i.ID,
@@ -193,14 +173,8 @@ VALUES ($1, $2, $3)
 RETURNING id, item_type, item_id, user_id, created_at
 `
 
-type CreateSavedItemParams struct {
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-	ItemID   uuid.UUID     `db:"item_id" json:"item_id"`
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-}
-
-func (q *Queries) CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error) {
-	row := q.db.QueryRowContext(ctx, createSavedItem, arg.ItemType, arg.ItemID, arg.UserID)
+func (q *Queries) CreateSavedItem(ctx context.Context, itemType SavedItemType, itemID uuid.UUID, userID uuid.UUID) (SavedItem, error) {
+	row := q.db.QueryRow(ctx, createSavedItem, itemType, itemID, userID)
 	var i SavedItem
 	err := row.Scan(
 		&i.ID,
@@ -216,13 +190,8 @@ const deleteSavedArticle = `-- name: DeleteSavedArticle :exec
 DELETE FROM saved_articles sa WHERE sa.user_id = $1 AND sa.article_id = $2
 `
 
-type DeleteSavedArticleParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-}
-
-func (q *Queries) DeleteSavedArticle(ctx context.Context, arg DeleteSavedArticleParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSavedArticle, arg.UserID, arg.ArticleID)
+func (q *Queries) DeleteSavedArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSavedArticle, userID, articleID)
 	return err
 }
 
@@ -230,13 +199,8 @@ const deleteSavedGoal = `-- name: DeleteSavedGoal :exec
 DELETE FROM saved_goals sg WHERE sg.user_id = $1 AND sg.goal_id = $2
 `
 
-type DeleteSavedGoalParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	GoalID uuid.UUID `db:"goal_id" json:"goal_id"`
-}
-
-func (q *Queries) DeleteSavedGoal(ctx context.Context, arg DeleteSavedGoalParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSavedGoal, arg.UserID, arg.GoalID)
+func (q *Queries) DeleteSavedGoal(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSavedGoal, userID, goalID)
 	return err
 }
 
@@ -244,13 +208,8 @@ const deleteSavedHabit = `-- name: DeleteSavedHabit :exec
 DELETE FROM saved_habits sh WHERE sh.user_id = $1 AND sh.habit_id = $2
 `
 
-type DeleteSavedHabitParams struct {
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-}
-
-func (q *Queries) DeleteSavedHabit(ctx context.Context, arg DeleteSavedHabitParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSavedHabit, arg.UserID, arg.HabitID)
+func (q *Queries) DeleteSavedHabit(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSavedHabit, userID, habitID)
 	return err
 }
 
@@ -259,7 +218,7 @@ DELETE FROM saved_items WHERE id = $1
 `
 
 func (q *Queries) DeleteSavedItem(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteSavedItem, id)
+	_, err := q.db.Exec(ctx, deleteSavedItem, id)
 	return err
 }
 
@@ -267,14 +226,8 @@ const deleteSavedItemByUserAndItem = `-- name: DeleteSavedItemByUserAndItem :exe
 DELETE FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3
 `
 
-type DeleteSavedItemByUserAndItemParams struct {
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-	ItemID   uuid.UUID     `db:"item_id" json:"item_id"`
-}
-
-func (q *Queries) DeleteSavedItemByUserAndItem(ctx context.Context, arg DeleteSavedItemByUserAndItemParams) error {
-	_, err := q.db.ExecContext(ctx, deleteSavedItemByUserAndItem, arg.UserID, arg.ItemType, arg.ItemID)
+func (q *Queries) DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteSavedItemByUserAndItem, userID, itemType, itemID)
 	return err
 }
 
@@ -283,7 +236,7 @@ SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE id = $
 `
 
 func (q *Queries) GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error) {
-	row := q.db.QueryRowContext(ctx, getSavedItem, id)
+	row := q.db.QueryRow(ctx, getSavedItem, id)
 	var i SavedItem
 	err := row.Scan(
 		&i.ID,
@@ -299,14 +252,8 @@ const getSavedItemByUserAndItem = `-- name: GetSavedItemByUserAndItem :one
 SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3
 `
 
-type GetSavedItemByUserAndItemParams struct {
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-	ItemID   uuid.UUID     `db:"item_id" json:"item_id"`
-}
-
-func (q *Queries) GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error) {
-	row := q.db.QueryRowContext(ctx, getSavedItemByUserAndItem, arg.UserID, arg.ItemType, arg.ItemID)
+func (q *Queries) GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (SavedItem, error) {
+	row := q.db.QueryRow(ctx, getSavedItemByUserAndItem, userID, itemType, itemID)
 	var i SavedItem
 	err := row.Scan(
 		&i.ID,
@@ -322,13 +269,8 @@ const isArticleSaved = `-- name: IsArticleSaved :one
 SELECT EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $1 AND sa.article_id = $2)
 `
 
-type IsArticleSavedParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-}
-
-func (q *Queries) IsArticleSaved(ctx context.Context, arg IsArticleSavedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isArticleSaved, arg.UserID, arg.ArticleID)
+func (q *Queries) IsArticleSaved(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isArticleSaved, userID, articleID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -338,13 +280,8 @@ const isGoalSaved = `-- name: IsGoalSaved :one
 SELECT EXISTS(SELECT 1 FROM saved_goals sg WHERE sg.user_id = $1 AND sg.goal_id = $2)
 `
 
-type IsGoalSavedParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	GoalID uuid.UUID `db:"goal_id" json:"goal_id"`
-}
-
-func (q *Queries) IsGoalSaved(ctx context.Context, arg IsGoalSavedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isGoalSaved, arg.UserID, arg.GoalID)
+func (q *Queries) IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isGoalSaved, userID, goalID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -354,13 +291,8 @@ const isHabitSaved = `-- name: IsHabitSaved :one
 SELECT EXISTS(SELECT 1 FROM saved_habits sh WHERE sh.user_id = $1 AND sh.habit_id = $2)
 `
 
-type IsHabitSavedParams struct {
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-}
-
-func (q *Queries) IsHabitSaved(ctx context.Context, arg IsHabitSavedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isHabitSaved, arg.UserID, arg.HabitID)
+func (q *Queries) IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isHabitSaved, userID, habitID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -370,14 +302,8 @@ const isItemSaved = `-- name: IsItemSaved :one
 SELECT EXISTS(SELECT 1 FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3)
 `
 
-type IsItemSavedParams struct {
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-	ItemID   uuid.UUID     `db:"item_id" json:"item_id"`
-}
-
-func (q *Queries) IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isItemSaved, arg.UserID, arg.ItemType, arg.ItemID)
+func (q *Queries) IsItemSaved(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, isItemSaved, userID, itemType, itemID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -396,18 +322,12 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListAllSavedItemsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListAllSavedItemsByUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 // ============================================================
@@ -415,8 +335,8 @@ type ListAllSavedItemsByUserRow struct {
 // ============================================================
 // Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
 // instead of all saved items. Any item in the top N overall must be in the top N of its table.
-func (q *Queries) ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedItemsByUserParams) ([]ListAllSavedItemsByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAllSavedItemsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListAllSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListAllSavedItemsByUserRow, error) {
+	rows, err := q.db.Query(ctx, listAllSavedItemsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -435,9 +355,6 @@ func (q *Queries) ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedI
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -448,22 +365,16 @@ const listSavedArticlesByUser = `-- name: ListSavedArticlesByUser :many
 SELECT sa.id, 'article'::text AS item_type, sa.article_id AS item_id, sa.user_id, sa.created_at FROM saved_articles sa WHERE sa.user_id = $1 ORDER BY sa.created_at DESC LIMIT $2 OFFSET $3
 `
 
-type ListSavedArticlesByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListSavedArticlesByUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListSavedArticlesByUser(ctx context.Context, arg ListSavedArticlesByUserParams) ([]ListSavedArticlesByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedArticlesByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListSavedArticlesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedArticlesByUserRow, error) {
+	rows, err := q.db.Query(ctx, listSavedArticlesByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -482,9 +393,6 @@ func (q *Queries) ListSavedArticlesByUser(ctx context.Context, arg ListSavedArti
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -495,22 +403,16 @@ const listSavedGoalsByUser = `-- name: ListSavedGoalsByUser :many
 SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1 ORDER BY sg.created_at DESC LIMIT $2 OFFSET $3
 `
 
-type ListSavedGoalsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListSavedGoalsByUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListSavedGoalsByUser(ctx context.Context, arg ListSavedGoalsByUserParams) ([]ListSavedGoalsByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedGoalsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListSavedGoalsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedGoalsByUserRow, error) {
+	rows, err := q.db.Query(ctx, listSavedGoalsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -529,9 +431,6 @@ func (q *Queries) ListSavedGoalsByUser(ctx context.Context, arg ListSavedGoalsBy
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -542,22 +441,16 @@ const listSavedHabitsByUser = `-- name: ListSavedHabitsByUser :many
 SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 ORDER BY sh.created_at DESC LIMIT $2 OFFSET $3
 `
 
-type ListSavedHabitsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 type ListSavedHabitsByUserRow struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	ItemType  string    `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt time.Time `db:"created_at" json:"created_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListSavedHabitsByUser(ctx context.Context, arg ListSavedHabitsByUserParams) ([]ListSavedHabitsByUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedHabitsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error) {
+	rows, err := q.db.Query(ctx, listSavedHabitsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -576,9 +469,6 @@ func (q *Queries) ListSavedHabitsByUser(ctx context.Context, arg ListSavedHabits
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -592,18 +482,13 @@ ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
-type ListSavedItemsParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
-}
-
 // DEPRECATED: The saved_items polymorphic table is deprecated in favor of
 // saved_articles, saved_goals, and saved_habits. Old queries below are kept
 // for backward compatibility during transition; new code should use the
 // concrete table queries at the bottom of this file.
 // [DEPRECATED] Queries against the polymorphic saved_items table
-func (q *Queries) ListSavedItems(ctx context.Context, arg ListSavedItemsParams) ([]SavedItem, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedItems, arg.Limit, arg.Offset)
+func (q *Queries) ListSavedItems(ctx context.Context, limit int32, offset int32) ([]SavedItem, error) {
+	rows, err := q.db.Query(ctx, listSavedItems, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -622,9 +507,6 @@ func (q *Queries) ListSavedItems(ctx context.Context, arg ListSavedItemsParams) 
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -637,19 +519,12 @@ ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type ListSavedItemsByTypeParams struct {
-	UserID   uuid.UUID     `db:"user_id" json:"user_id"`
-	ItemType SavedItemType `db:"item_type" json:"item_type"`
-	Limit    int32         `db:"limit" json:"limit"`
-	Offset   int32         `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListSavedItemsByType(ctx context.Context, arg ListSavedItemsByTypeParams) ([]SavedItem, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedItemsByType,
-		arg.UserID,
-		arg.ItemType,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType SavedItemType, limit int32, offset int32) ([]SavedItem, error) {
+	rows, err := q.db.Query(ctx, listSavedItemsByType,
+		userID,
+		itemType,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
@@ -669,9 +544,6 @@ func (q *Queries) ListSavedItemsByType(ctx context.Context, arg ListSavedItemsBy
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -684,14 +556,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListSavedItemsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsByUserParams) ([]SavedItem, error) {
-	rows, err := q.db.QueryContext(ctx, listSavedItemsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]SavedItem, error) {
+	rows, err := q.db.Query(ctx, listSavedItemsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -709,9 +575,6 @@ func (q *Queries) ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsBy
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

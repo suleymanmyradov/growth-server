@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
-	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -182,12 +181,7 @@ func (h *EventsHandler) onCheckInFeedbackGenerated(ctx context.Context, env even
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, db.CreateNotificationParams{
-		Title:    "Coach feedback",
-		Message:  p.Content,
-		ItemType: "ai_feedback",
-		UserID:   userID,
-	})
+	_, err = h.repo.Notifications.CreateNotification(ctx, "Coach feedback", p.Content, "ai_feedback", userID)
 	if err != nil {
 		return fmt.Errorf("create ai_feedback notification: %w", err)
 	}

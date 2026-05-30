@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -56,10 +55,7 @@ func (l *ChangePasswordLogic) ChangePassword(in *auth.ChangePasswordRequest) (*a
 		return nil, status.Error(codes.Internal, "failed to process new password")
 	}
 
-	_, err = l.svcCtx.Repo.Users.UpdateUserPassword(l.ctx, db.UpdateUserPasswordParams{
-		ID:           user.ID,
-		PasswordHash: string(hashedPassword),
-	})
+	_, err = l.svcCtx.Repo.Users.UpdateUserPassword(l.ctx, user.ID, string(hashedPassword))
 	if err != nil {
 		l.Errorf("failed to update password: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update password")

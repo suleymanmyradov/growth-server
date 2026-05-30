@@ -39,17 +39,20 @@ DO UPDATE SET
 RETURNING *;
 
 -- name: GetWeeklyReview :one
-SELECT * FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1 AND week_start = $2;
 
 -- name: GetCurrentWeeklyReview :one
-SELECT * FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1
 ORDER BY week_start DESC
 LIMIT 1;
 
 -- name: ListWeeklyReviews :many
-SELECT * FROM weekly_reviews
+SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+FROM weekly_reviews
 WHERE user_id = $1
 ORDER BY week_start DESC
 LIMIT $2 OFFSET $3;

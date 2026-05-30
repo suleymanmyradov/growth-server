@@ -1,10 +1,12 @@
 -- name: ListActivePlans :many
-SELECT * FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+FROM plans
 WHERE is_active = TRUE
 ORDER BY price_monthly_cents ASC;
 
 -- name: GetPlanByCode :one
-SELECT * FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+FROM plans
 WHERE code = $1 AND is_active = TRUE;
 
 -- name: GetUserSubscription :one
@@ -27,7 +29,7 @@ SELECT $1, p.id, 'free'
 FROM plans p
 WHERE p.code = 'free'
 ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
 
 -- name: UpsertUserSubscription :one
 INSERT INTO user_subscriptions (
@@ -55,7 +57,7 @@ DO UPDATE SET
     stripe_customer_id = EXCLUDED.stripe_customer_id,
     stripe_subscription_id = EXCLUDED.stripe_subscription_id,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
 
 -- name: CreateUpgradeEvent :one
 INSERT INTO upgrade_events (
@@ -75,7 +77,7 @@ VALUES (
     (SELECT id FROM plans WHERE code = $5),
     $6, $7, $8, $9
 )
-RETURNING *;
+RETURNING id, user_id, event_type, surface, trigger, plan_code, plan_id, billing_interval, feedback_reason, feedback_note, metadata, created_at;
 
 -- name: CountActiveGoalsForUser :one
 SELECT COUNT(*) FROM goals

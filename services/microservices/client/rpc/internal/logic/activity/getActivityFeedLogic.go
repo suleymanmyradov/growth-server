@@ -60,7 +60,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 			UserId:      a.UserID.String(),
 			Type:        string(a.ItemType),
 			Description: a.Title,
-			Timestamp:   a.CreatedAt.Unix(),
+			Timestamp:   a.CreatedAt.Time.Unix(),
 		})
 	}
 

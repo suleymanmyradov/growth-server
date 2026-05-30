@@ -52,8 +52,8 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
 			isRestricted = true
-			if sub.WeeklyReviewHistoryLimit.Valid && sub.WeeklyReviewHistoryLimit.Int32 > 0 {
-				historyLimit = sub.WeeklyReviewHistoryLimit.Int32
+			if sub.WeeklyReviewHistoryLimit > 0 {
+				historyLimit = sub.WeeklyReviewHistoryLimit
 			} else {
 				historyLimit = 1
 			}

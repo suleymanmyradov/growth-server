@@ -90,7 +90,7 @@ SELECT
 
 -- name: GetAchievements :many
 WITH user_activities AS (
-    SELECT * FROM activities WHERE user_id = $1
+    SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
 ), achievement_rows AS (
     SELECT 'first_activity'::text AS id,
            'First Activity'::text AS name,
@@ -112,6 +112,15 @@ WITH user_activities AS (
 SELECT id, name, description, icon_url, unlocked_at
 FROM achievement_rows
 ORDER BY unlocked_at NULLS LAST;
+
+-- name: ListActivitiesByTypes :many
+-- Filter activities by multiple types in a single round-trip.
+SELECT id, item_type, title, description, metadata, user_id, created_at
+FROM activities
+WHERE user_id = $1
+  AND item_type = ANY($2::activity_type[])
+ORDER BY created_at DESC
+LIMIT $3 OFFSET $4;
 
 -- name: GetActivityCalendar :many
 SELECT DATE(created_at) AS day,

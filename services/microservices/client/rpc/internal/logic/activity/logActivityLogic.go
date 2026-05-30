@@ -2,11 +2,9 @@ package activitylogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -42,18 +40,23 @@ func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.L
 		return nil, err
 	}
 
-	var metadata pqtype.NullRawMessage
+	var metadata json.RawMessage
 	if len(in.Metadata) > 0 {
 		if b, err := json.Marshal(in.Metadata); err == nil {
-			metadata = pqtype.NullRawMessage{Valid: true, RawMessage: b}
+			metadata = b
 		}
+	}
+
+	var description *string
+	if in.Description != "" {
+		description = &in.Description
 	}
 
 	activity, err := l.svcCtx.Repo.Activities.LogActivity(l.ctx, db.LogActivityParams{
 		UserID:      userID,
 		ItemType:    db.ActivityType(in.Type),
 		Title:       in.Description,
-		Description: sql.NullString{String: in.Description, Valid: in.Description != ""},
+		Description: description,
 		Metadata:    metadata,
 	})
 	if err != nil {

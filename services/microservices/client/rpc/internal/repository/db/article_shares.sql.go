@@ -16,7 +16,7 @@ SELECT COUNT(*) FROM article_shares
 `
 
 func (q *Queries) CountArticleShares(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countArticleShares)
+	row := q.db.QueryRow(ctx, countArticleShares)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -27,7 +27,7 @@ SELECT COUNT(*) FROM article_shares WHERE article_id = $1
 `
 
 func (q *Queries) CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countArticleSharesByArticle, articleID)
+	row := q.db.QueryRow(ctx, countArticleSharesByArticle, articleID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -38,7 +38,7 @@ SELECT COUNT(*) FROM article_shares WHERE user_id = $1
 `
 
 func (q *Queries) CountArticleSharesByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countArticleSharesByUser, userID)
+	row := q.db.QueryRow(ctx, countArticleSharesByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -50,14 +50,8 @@ VALUES ($1, $2, $3)
 RETURNING id, article_id, user_id, platform, created_at
 `
 
-type CreateArticleShareParams struct {
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	Platform  string    `db:"platform" json:"platform"`
-}
-
-func (q *Queries) CreateArticleShare(ctx context.Context, arg CreateArticleShareParams) (ArticleShare, error) {
-	row := q.db.QueryRowContext(ctx, createArticleShare, arg.ArticleID, arg.UserID, arg.Platform)
+func (q *Queries) CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (ArticleShare, error) {
+	row := q.db.QueryRow(ctx, createArticleShare, articleID, userID, platform)
 	var i ArticleShare
 	err := row.Scan(
 		&i.ID,
@@ -74,7 +68,7 @@ DELETE FROM article_shares WHERE id = $1
 `
 
 func (q *Queries) DeleteArticleShare(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteArticleShare, id)
+	_, err := q.db.Exec(ctx, deleteArticleShare, id)
 	return err
 }
 
@@ -82,13 +76,8 @@ const deleteArticleShareByUserAndArticle = `-- name: DeleteArticleShareByUserAnd
 DELETE FROM article_shares WHERE user_id = $1 AND article_id = $2
 `
 
-type DeleteArticleShareByUserAndArticleParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-}
-
-func (q *Queries) DeleteArticleShareByUserAndArticle(ctx context.Context, arg DeleteArticleShareByUserAndArticleParams) error {
-	_, err := q.db.ExecContext(ctx, deleteArticleShareByUserAndArticle, arg.UserID, arg.ArticleID)
+func (q *Queries) DeleteArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteArticleShareByUserAndArticle, userID, articleID)
 	return err
 }
 
@@ -97,7 +86,7 @@ SELECT id, article_id, user_id, platform, created_at FROM article_shares WHERE i
 `
 
 func (q *Queries) GetArticleShare(ctx context.Context, id uuid.UUID) (ArticleShare, error) {
-	row := q.db.QueryRowContext(ctx, getArticleShare, id)
+	row := q.db.QueryRow(ctx, getArticleShare, id)
 	var i ArticleShare
 	err := row.Scan(
 		&i.ID,
@@ -113,13 +102,8 @@ const getArticleShareByUserAndArticle = `-- name: GetArticleShareByUserAndArticl
 SELECT id, article_id, user_id, platform, created_at FROM article_shares WHERE user_id = $1 AND article_id = $2
 `
 
-type GetArticleShareByUserAndArticleParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-}
-
-func (q *Queries) GetArticleShareByUserAndArticle(ctx context.Context, arg GetArticleShareByUserAndArticleParams) (ArticleShare, error) {
-	row := q.db.QueryRowContext(ctx, getArticleShareByUserAndArticle, arg.UserID, arg.ArticleID)
+func (q *Queries) GetArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (ArticleShare, error) {
+	row := q.db.QueryRow(ctx, getArticleShareByUserAndArticle, userID, articleID)
 	var i ArticleShare
 	err := row.Scan(
 		&i.ID,
@@ -137,13 +121,8 @@ ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
-type ListArticleSharesParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListArticleShares(ctx context.Context, arg ListArticleSharesParams) ([]ArticleShare, error) {
-	rows, err := q.db.QueryContext(ctx, listArticleShares, arg.Limit, arg.Offset)
+func (q *Queries) ListArticleShares(ctx context.Context, limit int32, offset int32) ([]ArticleShare, error) {
+	rows, err := q.db.Query(ctx, listArticleShares, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -161,9 +140,6 @@ func (q *Queries) ListArticleShares(ctx context.Context, arg ListArticleSharesPa
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -177,14 +153,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListArticleSharesByArticleParams struct {
-	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
-	Limit     int32     `db:"limit" json:"limit"`
-	Offset    int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListArticleSharesByArticle(ctx context.Context, arg ListArticleSharesByArticleParams) ([]ArticleShare, error) {
-	rows, err := q.db.QueryContext(ctx, listArticleSharesByArticle, arg.ArticleID, arg.Limit, arg.Offset)
+func (q *Queries) ListArticleSharesByArticle(ctx context.Context, articleID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error) {
+	rows, err := q.db.Query(ctx, listArticleSharesByArticle, articleID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -202,9 +172,6 @@ func (q *Queries) ListArticleSharesByArticle(ctx context.Context, arg ListArticl
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -218,14 +185,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListArticleSharesByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListArticleSharesByUser(ctx context.Context, arg ListArticleSharesByUserParams) ([]ArticleShare, error) {
-	rows, err := q.db.QueryContext(ctx, listArticleSharesByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListArticleSharesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error) {
+	rows, err := q.db.Query(ctx, listArticleSharesByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -243,9 +204,6 @@ func (q *Queries) ListArticleSharesByUser(ctx context.Context, arg ListArticleSh
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

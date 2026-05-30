@@ -2,10 +2,10 @@ package billingservicelogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -98,18 +98,20 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 	}
 
 	// Find user by Stripe customer ID
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, sql.NullString{String: checkout.Object.Customer, Valid: true})
+	customerID := checkout.Object.Customer
+	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
 	}
 
 	// Record checkout completion event for audit trail
+	planCode := "pro"
 	_, eventErr := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
 		UserID:    existingSub.UserID,
 		EventType: "checkout_completed",
 		Surface:   "stripe_webhook",
-		PlanCode:  sql.NullString{String: "pro", Valid: true},
+		PlanCode:  &planCode,
 	})
 	if eventErr != nil {
 		l.Errorf("Failed to record checkout completion event: %v", eventErr)
@@ -124,8 +126,8 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 				UserID:               existingSub.UserID,
 				PlanID:               proPlan.ID,
 				Status:               "active",
-				StripeCustomerID:     sql.NullString{String: checkout.Object.Customer, Valid: true},
-				StripeSubscriptionID: sql.NullString{String: checkout.Object.Subscription, Valid: true},
+				StripeCustomerID:     &checkout.Object.Customer,
+				StripeSubscriptionID: &checkout.Object.Subscription,
 			})
 			if upsertErr != nil {
 				l.Errorf("Failed to update subscription after checkout: %v", upsertErr)
@@ -148,7 +150,8 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 	localStatus := mapStripeStatus(sub.Status)
 
 	// Find user by Stripe customer ID - query the subscription table
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, sql.NullString{String: sub.Customer, Valid: true})
+	customerID := sub.Customer
+	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -162,17 +165,17 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 		return nil, status.Error(codes.NotFound, "plan not found")
 	}
 
-	var periodStart, periodEnd sql.NullTime
+	var periodStart, periodEnd pgtype.Timestamptz
 	if sub.CurrentPeriodStart > 0 {
-		periodStart = sql.NullTime{Time: time.Unix(sub.CurrentPeriodStart, 0), Valid: true}
+		periodStart = pgtype.Timestamptz{Time: time.Unix(sub.CurrentPeriodStart, 0), Valid: true}
 	}
 	if sub.CurrentPeriodEnd > 0 {
-		periodEnd = sql.NullTime{Time: time.Unix(sub.CurrentPeriodEnd, 0), Valid: true}
+		periodEnd = pgtype.Timestamptz{Time: time.Unix(sub.CurrentPeriodEnd, 0), Valid: true}
 	}
 
-	var trialEndTime sql.NullTime
+	var trialEndTime pgtype.Timestamptz
 	if sub.TrialEnd > 0 {
-		trialEndTime = sql.NullTime{Time: time.Unix(sub.TrialEnd, 0), Valid: true}
+		trialEndTime = pgtype.Timestamptz{Time: time.Unix(sub.TrialEnd, 0), Valid: true}
 	}
 
 	// Determine billing interval from Stripe subscription items
@@ -188,17 +191,23 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 		}
 	}
 
+	var billingIntervalPtr *db.BillingIntervalType
+	if billingInterval != "" {
+		bi := db.BillingIntervalType(billingInterval)
+		billingIntervalPtr = &bi
+	}
+
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:                 existingSub.UserID,
 		PlanID:                plan.ID,
 		Status:                db.SubscriptionStatusType(localStatus),
-		BillingInterval:       db.NullBillingIntervalType{BillingIntervalType: db.BillingIntervalType(billingInterval), Valid: billingInterval != ""},
+		BillingInterval:       billingIntervalPtr,
 		CurrentPeriodStart:    periodStart,
 		CurrentPeriodEnd:      periodEnd,
 		TrialEnd:              trialEndTime,
 		CancelAtPeriodEnd:     sub.CancelAtPeriodEnd,
-		StripeCustomerID:     sql.NullString{String: sub.Customer, Valid: true},
-		StripeSubscriptionID:  sql.NullString{String: sub.ID, Valid: true},
+		StripeCustomerID:     &sub.Customer,
+		StripeSubscriptionID:  &sub.ID,
 	})
 	if err != nil {
 		l.Errorf("Failed to upsert subscription: %v", err)
@@ -215,7 +224,8 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 		return nil, status.Error(codes.InvalidArgument, "invalid subscription data")
 	}
 
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, sql.NullString{String: subData.Object.Customer, Valid: true})
+	customerID := subData.Object.Customer
+	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -229,12 +239,12 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	}
 
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
-		UserID:           existingSub.UserID,
-		PlanID:           freePlan.ID,
-		Status:           "canceled",
-		CancelAtPeriodEnd: false,
-		StripeCustomerID: sql.NullString{String: subData.Object.Customer, Valid: true},
-		StripeSubscriptionID: sql.NullString{String: subData.Object.ID, Valid: true},
+		UserID:               existingSub.UserID,
+		PlanID:               freePlan.ID,
+		Status:               "canceled",
+		CancelAtPeriodEnd:    false,
+		StripeCustomerID:     &subData.Object.Customer,
+		StripeSubscriptionID: &subData.Object.ID,
 	})
 	if err != nil {
 		l.Errorf("Failed to downgrade subscription: %v", err)
@@ -251,7 +261,8 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 		return nil, status.Error(codes.InvalidArgument, "invalid subscription data")
 	}
 
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, sql.NullString{String: subData.Object.Customer, Valid: true})
+	customerID := subData.Object.Customer
+	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -268,8 +279,8 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 		UserID:              existingSub.UserID,
 		PlanID:              proPlan.ID,
 		Status:              "past_due",
-		StripeCustomerID:    sql.NullString{String: subData.Object.Customer, Valid: true},
-		StripeSubscriptionID: sql.NullString{String: subData.Object.ID, Valid: true},
+		StripeCustomerID:    &subData.Object.Customer,
+		StripeSubscriptionID: &subData.Object.ID,
 	})
 	if err != nil {
 		l.Errorf("Failed to update subscription to past_due: %v", err)

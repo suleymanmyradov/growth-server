@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -35,23 +36,14 @@ func (r *checkInsRepo) GetCheckInsByHabit(ctx context.Context, habitID, userID u
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInsByHabit")
 	defer span.End()
 
-	return r.db.GetCheckInsByHabit(ctx, db.GetCheckInsByHabitParams{
-		HabitID: habitID,
-		UserID:  userID,
-		Limit:   limit,
-		Offset:  offset,
-	})
+	return r.db.GetCheckInsByHabit(ctx, habitID, userID, limit, offset)
 }
 
 func (r *checkInsRepo) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInsByUser")
 	defer span.End()
 
-	return r.db.GetCheckInsByUser(ctx, db.GetCheckInsByUserParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.GetCheckInsByUser(ctx, userID, limit, offset)
 }
 
 func (r *checkInsRepo) GetCheckInHistory(ctx context.Context, userID uuid.UUID, start, end time.Time, limit, offset int32) ([]db.CheckIn, error) {
@@ -60,8 +52,8 @@ func (r *checkInsRepo) GetCheckInHistory(ctx context.Context, userID uuid.UUID, 
 
 	return r.db.GetCheckInHistory(ctx, db.GetCheckInHistoryParams{
 		UserID:      userID,
-		CreatedAt:   start,
-		CreatedAt_2: end,
+		CreatedAt:   pgtype.Timestamptz{Time: start, Valid: true},
+		CreatedAt_2: pgtype.Timestamptz{Time: end, Valid: true},
 		Limit:       limit,
 		Offset:      offset,
 	})
@@ -71,21 +63,14 @@ func (r *checkInsRepo) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID,
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetCheckInsForWeek")
 	defer span.End()
 
-	return r.db.GetCheckInsForWeek(ctx, db.GetCheckInsForWeekParams{
-		UserID:    userID,
-		WeekStart: start,
-		WeekEnd:   end,
-	})
+	return r.db.GetCheckInsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
 }
 
 func (r *checkInsRepo) HasCheckedInToday(ctx context.Context, userID, habitID uuid.UUID) (bool, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.HasCheckedInToday")
 	defer span.End()
 
-	return r.db.HasCheckedInToday(ctx, db.HasCheckedInTodayParams{
-		UserID:  userID,
-		HabitID: habitID,
-	})
+	return r.db.HasCheckedInToday(ctx, userID, habitID)
 }
 
 func (r *checkInsRepo) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

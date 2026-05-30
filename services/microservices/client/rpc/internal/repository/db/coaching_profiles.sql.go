@@ -7,8 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -18,17 +16,18 @@ DELETE FROM user_coaching_profiles WHERE user_id = $1
 `
 
 func (q *Queries) DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteCoachingProfile, userID)
+	_, err := q.db.Exec(ctx, deleteCoachingProfile, userID)
 	return err
 }
 
 const getCoachingProfile = `-- name: GetCoachingProfile :one
-SELECT id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at FROM user_coaching_profiles
+SELECT id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+FROM user_coaching_profiles
 WHERE user_id = $1
 `
 
 func (q *Queries) GetCoachingProfile(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, getCoachingProfile, userID)
+	row := q.db.QueryRow(ctx, getCoachingProfile, userID)
 	var i UserCoachingProfile
 	err := row.Scan(
 		&i.ID,
@@ -55,13 +54,8 @@ WHERE user_id = $1
 RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
-type UpdateCoachingProfileBlockersParams struct {
-	UserID         uuid.UUID       `db:"user_id" json:"user_id"`
-	CommonBlockers json.RawMessage `db:"common_blockers" json:"common_blockers"`
-}
-
-func (q *Queries) UpdateCoachingProfileBlockers(ctx context.Context, arg UpdateCoachingProfileBlockersParams) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, updateCoachingProfileBlockers, arg.UserID, arg.CommonBlockers)
+func (q *Queries) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UserCoachingProfile, error) {
+	row := q.db.QueryRow(ctx, updateCoachingProfileBlockers, userID, commonBlockers)
 	var i UserCoachingProfile
 	err := row.Scan(
 		&i.ID,
@@ -89,7 +83,7 @@ RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preferen
 `
 
 func (q *Queries) UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, updateCoachingProfileContextRefresh, userID)
+	row := q.db.QueryRow(ctx, updateCoachingProfileContextRefresh, userID)
 	var i UserCoachingProfile
 	err := row.Scan(
 		&i.ID,
@@ -116,13 +110,8 @@ WHERE user_id = $1
 RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
-type UpdateCoachingProfileNotesParams struct {
-	UserID        uuid.UUID       `db:"user_id" json:"user_id"`
-	CoachingNotes json.RawMessage `db:"coaching_notes" json:"coaching_notes"`
-}
-
-func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, arg UpdateCoachingProfileNotesParams) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, updateCoachingProfileNotes, arg.UserID, arg.CoachingNotes)
+func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UserCoachingProfile, error) {
+	row := q.db.QueryRow(ctx, updateCoachingProfileNotes, userID, coachingNotes)
 	var i UserCoachingProfile
 	err := row.Scan(
 		&i.ID,
@@ -160,19 +149,12 @@ DO UPDATE SET
 RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
-type UpdateCoachingProfilePreferencesParams struct {
-	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
-	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
-}
-
-func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, arg UpdateCoachingProfilePreferencesParams) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, updateCoachingProfilePreferences,
-		arg.UserID,
-		arg.AccountabilityStyle,
-		arg.PreferredTone,
-		arg.DifficultyPreference,
+func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, preferredTone CoachToneType, difficultyPreference DifficultyLevelType) (UserCoachingProfile, error) {
+	row := q.db.QueryRow(ctx, updateCoachingProfilePreferences,
+		userID,
+		accountabilityStyle,
+		preferredTone,
+		difficultyPreference,
 	)
 	var i UserCoachingProfile
 	err := row.Scan(
@@ -221,13 +203,13 @@ type UpsertCoachingProfileParams struct {
 	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
 	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
 	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    sql.NullString          `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       json.RawMessage         `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        json.RawMessage         `db:"coaching_notes" json:"coaching_notes"`
+	PrimaryMotivation    *string                 `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte                  `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte                  `db:"coaching_notes" json:"coaching_notes"`
 }
 
 func (q *Queries) UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error) {
-	row := q.db.QueryRowContext(ctx, upsertCoachingProfile,
+	row := q.db.QueryRow(ctx, upsertCoachingProfile,
 		arg.UserID,
 		arg.AccountabilityStyle,
 		arg.PreferredTone,

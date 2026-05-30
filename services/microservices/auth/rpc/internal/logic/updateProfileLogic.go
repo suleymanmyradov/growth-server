@@ -44,10 +44,7 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 	}
 
 	if in.FullName != "" {
-		user, err = l.svcCtx.Repo.Users.UpdateUserFullName(l.ctx, db.UpdateUserFullNameParams{
-			ID:       user.ID,
-			FullName: in.FullName,
-		})
+		user, err = l.svcCtx.Repo.Users.UpdateUserFullName(l.ctx, user.ID, in.FullName)
 		if err != nil {
 			l.Errorf("failed to update user full name: %v", err)
 			return nil, status.Error(codes.Internal, "failed to update user")

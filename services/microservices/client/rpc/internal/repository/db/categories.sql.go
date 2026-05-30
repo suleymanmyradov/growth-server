@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -17,7 +16,7 @@ SELECT COUNT(*) FROM categories WHERE entity_type = $1
 `
 
 func (q *Queries) CountCategoriesByType(ctx context.Context, entityType EntityType) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countCategoriesByType, entityType)
+	row := q.db.QueryRow(ctx, countCategoriesByType, entityType)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -29,19 +28,12 @@ VALUES ($1, $2, $3, $4)
 RETURNING id, name, slug, entity_type, sort_order, created_at, updated_at
 `
 
-type CreateCategoryParams struct {
-	Name       string        `db:"name" json:"name"`
-	Slug       string        `db:"slug" json:"slug"`
-	EntityType EntityType    `db:"entity_type" json:"entity_type"`
-	SortOrder  sql.NullInt32 `db:"sort_order" json:"sort_order"`
-}
-
-func (q *Queries) CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, createCategory,
-		arg.Name,
-		arg.Slug,
-		arg.EntityType,
-		arg.SortOrder,
+func (q *Queries) CreateCategory(ctx context.Context, name string, slug string, entityType EntityType, sortOrder int32) (Category, error) {
+	row := q.db.QueryRow(ctx, createCategory,
+		name,
+		slug,
+		entityType,
+		sortOrder,
 	)
 	var i Category
 	err := row.Scan(
@@ -61,7 +53,7 @@ DELETE FROM categories WHERE id = $1
 `
 
 func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteCategory, id)
+	_, err := q.db.Exec(ctx, deleteCategory, id)
 	return err
 }
 
@@ -70,7 +62,7 @@ SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM cate
 `
 
 func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, error) {
-	row := q.db.QueryRowContext(ctx, getCategory, id)
+	row := q.db.QueryRow(ctx, getCategory, id)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -88,13 +80,8 @@ const getCategoryBySlug = `-- name: GetCategoryBySlug :one
 SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM categories WHERE slug = $1 AND entity_type = $2
 `
 
-type GetCategoryBySlugParams struct {
-	Slug       string     `db:"slug" json:"slug"`
-	EntityType EntityType `db:"entity_type" json:"entity_type"`
-}
-
-func (q *Queries) GetCategoryBySlug(ctx context.Context, arg GetCategoryBySlugParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, getCategoryBySlug, arg.Slug, arg.EntityType)
+func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string, entityType EntityType) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryBySlug, slug, entityType)
 	var i Category
 	err := row.Scan(
 		&i.ID,
@@ -114,7 +101,7 @@ ORDER BY entity_type, sort_order ASC
 `
 
 func (q *Queries) ListAllCategories(ctx context.Context) ([]Category, error) {
-	rows, err := q.db.QueryContext(ctx, listAllCategories)
+	rows, err := q.db.Query(ctx, listAllCategories)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +121,6 @@ func (q *Queries) ListAllCategories(ctx context.Context) ([]Category, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -151,7 +135,7 @@ ORDER BY sort_order ASC
 `
 
 func (q *Queries) ListCategories(ctx context.Context, entityType EntityType) ([]Category, error) {
-	rows, err := q.db.QueryContext(ctx, listCategories, entityType)
+	rows, err := q.db.Query(ctx, listCategories, entityType)
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +156,6 @@ func (q *Queries) ListCategories(ctx context.Context, entityType EntityType) ([]
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -188,19 +169,12 @@ WHERE id = $1
 RETURNING id, name, slug, entity_type, sort_order, created_at, updated_at
 `
 
-type UpdateCategoryParams struct {
-	ID        uuid.UUID     `db:"id" json:"id"`
-	Name      string        `db:"name" json:"name"`
-	Slug      string        `db:"slug" json:"slug"`
-	SortOrder sql.NullInt32 `db:"sort_order" json:"sort_order"`
-}
-
-func (q *Queries) UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error) {
-	row := q.db.QueryRowContext(ctx, updateCategory,
-		arg.ID,
-		arg.Name,
-		arg.Slug,
-		arg.SortOrder,
+func (q *Queries) UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error) {
+	row := q.db.QueryRow(ctx, updateCategory,
+		iD,
+		name,
+		slug,
+		sortOrder,
 	)
 	var i Category
 	err := row.Scan(
