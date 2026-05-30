@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -39,10 +38,7 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *c
 	}
 
 	// Get the suggestion
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.GetPlanAdjustmentSuggestion(l.ctx, db.GetPlanAdjustmentSuggestionParams{
-		ID:     suggestionID,
-		UserID: userID,
-	})
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.GetPlanAdjustmentSuggestion(l.ctx, suggestionID, userID)
 	if err != nil {
 		l.Errorf("failed to get plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.NotFound, "suggestion not found")
@@ -80,10 +76,7 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *c
 	}
 
 	// Update suggestion status to 'applied'
-	appliedSuggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ApplyPlanAdjustmentSuggestion(l.ctx, db.ApplyPlanAdjustmentSuggestionParams{
-		ID:     suggestionID,
-		UserID: userID,
-	})
+	appliedSuggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ApplyPlanAdjustmentSuggestion(l.ctx, suggestionID, userID)
 	if err != nil {
 		l.Errorf("failed to apply plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.Internal, "failed to apply suggestion")

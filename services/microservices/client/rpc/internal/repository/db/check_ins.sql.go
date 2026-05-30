@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countCheckInsByHabit = `-- name: CountCheckInsByHabit :one
@@ -19,7 +18,7 @@ WHERE habit_id = $1
 `
 
 func (q *Queries) CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countCheckInsByHabit, habitID)
+	row := q.db.QueryRow(ctx, countCheckInsByHabit, habitID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -31,7 +30,7 @@ WHERE user_id = $1
 `
 
 func (q *Queries) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countCheckInsByUser, userID)
+	row := q.db.QueryRow(ctx, countCheckInsByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -50,18 +49,18 @@ RETURNING id, user_id, habit_id, status, mood, energy, blocker, note, created_at
 `
 
 type CreateCheckInParams struct {
-	UserID  uuid.UUID       `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID       `db:"habit_id" json:"habit_id"`
-	Status  CheckInStatus   `db:"status" json:"status"`
-	Mood    NullMoodType    `db:"mood" json:"mood"`
-	Energy  NullEnergyLevel `db:"energy" json:"energy"`
-	Blocker NullBlockerType `db:"blocker" json:"blocker"`
-	Note    sql.NullString  `db:"note" json:"note"`
+	UserID  uuid.UUID     `db:"user_id" json:"user_id"`
+	HabitID uuid.UUID     `db:"habit_id" json:"habit_id"`
+	Status  CheckInStatus `db:"status" json:"status"`
+	Mood    *MoodType     `db:"mood" json:"mood"`
+	Energy  *EnergyLevel  `db:"energy" json:"energy"`
+	Blocker *BlockerType  `db:"blocker" json:"blocker"`
+	Note    *string       `db:"note" json:"note"`
 }
 
 // Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
 func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error) {
-	row := q.db.QueryRowContext(ctx, createCheckIn,
+	row := q.db.QueryRow(ctx, createCheckIn,
 		arg.UserID,
 		arg.HabitID,
 		arg.Status,
@@ -96,15 +95,15 @@ LIMIT $4 OFFSET $5
 `
 
 type GetCheckInHistoryParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-	Limit       int32     `db:"limit" json:"limit"`
-	Offset      int32     `db:"offset" json:"offset"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	CreatedAt_2 pgtype.Timestamptz `db:"created_at_2" json:"created_at_2"`
+	Limit       int32              `db:"limit" json:"limit"`
+	Offset      int32              `db:"offset" json:"offset"`
 }
 
 func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInHistory,
+	rows, err := q.db.Query(ctx, getCheckInHistory,
 		arg.UserID,
 		arg.CreatedAt,
 		arg.CreatedAt_2,
@@ -134,9 +133,6 @@ func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryPa
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -150,19 +146,12 @@ ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type GetCheckInsByHabitParams struct {
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	Limit   int32     `db:"limit" json:"limit"`
-	Offset  int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabitParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInsByHabit,
-		arg.HabitID,
-		arg.UserID,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error) {
+	rows, err := q.db.Query(ctx, getCheckInsByHabit,
+		habitID,
+		userID,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
@@ -187,9 +176,6 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabit
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -203,14 +189,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type GetCheckInsByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInsByUser, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error) {
+	rows, err := q.db.Query(ctx, getCheckInsByUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -233,9 +213,6 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserPa
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -251,14 +228,8 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-type GetCheckInsForWeekParams struct {
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	WeekStart time.Time `db:"week_start" json:"week_start"`
-	WeekEnd   time.Time `db:"week_end" json:"week_end"`
-}
-
-func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeekParams) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getCheckInsForWeek, arg.UserID, arg.WeekStart, arg.WeekEnd)
+func (q *Queries) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, weekStart pgtype.Timestamptz, weekEnd pgtype.Timestamptz) ([]CheckIn, error) {
+	rows, err := q.db.Query(ctx, getCheckInsForWeek, userID, weekStart, weekEnd)
 	if err != nil {
 		return nil, err
 	}
@@ -281,9 +252,6 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -304,7 +272,7 @@ WHERE ci.user_id = $1
 
 // Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error) {
-	rows, err := q.db.QueryContext(ctx, getTodayCheckIns, userID)
+	rows, err := q.db.Query(ctx, getTodayCheckIns, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -328,9 +296,6 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -350,14 +315,9 @@ SELECT EXISTS(
 ) AS exists
 `
 
-type HasCheckedInTodayParams struct {
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-}
-
 // Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-func (q *Queries) HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasCheckedInToday, arg.UserID, arg.HabitID)
+func (q *Queries) HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, hasCheckedInToday, userID, habitID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

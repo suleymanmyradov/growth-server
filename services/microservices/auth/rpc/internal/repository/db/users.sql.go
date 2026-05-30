@@ -17,19 +17,12 @@ VALUES ($1, $2, $3, $4)
 RETURNING id, username, email, password_hash, full_name, created_at, updated_at
 `
 
-type CreateUserParams struct {
-	Username     string `db:"username" json:"username"`
-	Email        string `db:"email" json:"email"`
-	PasswordHash string `db:"password_hash" json:"password_hash"`
-	FullName     string `db:"full_name" json:"full_name"`
-}
-
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
-		arg.Username,
-		arg.Email,
-		arg.PasswordHash,
-		arg.FullName,
+func (q *Queries) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (User, error) {
+	row := q.db.QueryRow(ctx, createUser,
+		username,
+		email,
+		passwordHash,
+		fullName,
 	)
 	var i User
 	err := row.Scan(
@@ -51,7 +44,7 @@ WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -72,7 +65,7 @@ WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	row := q.db.QueryRow(ctx, getUserByID, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -93,7 +86,7 @@ WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
+	row := q.db.QueryRow(ctx, getUserByUsername, username)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -114,13 +107,8 @@ WHERE id = $1
 RETURNING id, username, email, password_hash, full_name, created_at, updated_at
 `
 
-type UpdateUserFullNameParams struct {
-	ID       uuid.UUID `db:"id" json:"id"`
-	FullName string    `db:"full_name" json:"full_name"`
-}
-
-func (q *Queries) UpdateUserFullName(ctx context.Context, arg UpdateUserFullNameParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserFullName, arg.ID, arg.FullName)
+func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserFullName, iD, fullName)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -141,13 +129,8 @@ WHERE id = $1
 RETURNING id, username, email, password_hash, full_name, created_at, updated_at
 `
 
-type UpdateUserPasswordParams struct {
-	ID           uuid.UUID `db:"id" json:"id"`
-	PasswordHash string    `db:"password_hash" json:"password_hash"`
-}
-
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserPassword, iD, passwordHash)
 	var i User
 	err := row.Scan(
 		&i.ID,

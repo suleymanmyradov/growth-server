@@ -22,33 +22,21 @@ func (r *SavedItemsRepo) ListSavedItems(ctx context.Context, limit, offset int32
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItems")
 	defer span.End()
 
-	return r.db.ListSavedItems(ctx, db.ListSavedItemsParams{
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListSavedItems(ctx, limit, offset)
 }
 
 func (r *SavedItemsRepo) ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItemsByUser")
 	defer span.End()
 
-	return r.db.ListSavedItemsByUser(ctx, db.ListSavedItemsByUserParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListSavedItemsByUser(ctx, userID, limit, offset)
 }
 
 func (r *SavedItemsRepo) ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItemsByType")
 	defer span.End()
 
-	return r.db.ListSavedItemsByType(ctx, db.ListSavedItemsByTypeParams{
-		UserID:   userID,
-		ItemType: db.SavedItemType(itemType),
-		Limit:    limit,
-		Offset:   offset,
-	})
+	return r.db.ListSavedItemsByType(ctx, userID, db.SavedItemType(itemType), limit, offset)
 }
 
 func (r *SavedItemsRepo) GetSavedItemByID(ctx context.Context, id uuid.UUID) (db.SavedItem, error) {
@@ -62,18 +50,14 @@ func (r *SavedItemsRepo) GetSavedItemByUserAndItem(ctx context.Context, userID u
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.GetSavedItemByUserAndItem")
 	defer span.End()
 
-	return r.db.GetSavedItemByUserAndItem(ctx, db.GetSavedItemByUserAndItemParams{
-		UserID:   userID,
-		ItemType: db.SavedItemType(itemType),
-		ItemID:   itemID,
-	})
+	return r.db.GetSavedItemByUserAndItem(ctx, userID, db.SavedItemType(itemType), itemID)
 }
 
-func (r *SavedItemsRepo) CreateSavedItem(ctx context.Context, params db.CreateSavedItemParams) (db.SavedItem, error) {
+func (r *SavedItemsRepo) CreateSavedItem(ctx context.Context, itemType db.SavedItemType, itemID uuid.UUID, userID uuid.UUID) (db.SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.CreateSavedItem")
 	defer span.End()
 
-	return r.db.CreateSavedItem(ctx, params)
+	return r.db.CreateSavedItem(ctx, itemType, itemID, userID)
 }
 
 func (r *SavedItemsRepo) DeleteSavedItem(ctx context.Context, id uuid.UUID) error {
@@ -87,22 +71,14 @@ func (r *SavedItemsRepo) DeleteSavedItemByUserAndItem(ctx context.Context, userI
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.DeleteSavedItemByUserAndItem")
 	defer span.End()
 
-	return r.db.DeleteSavedItemByUserAndItem(ctx, db.DeleteSavedItemByUserAndItemParams{
-		UserID:   userID,
-		ItemType: db.SavedItemType(itemType),
-		ItemID:   itemID,
-	})
+	return r.db.DeleteSavedItemByUserAndItem(ctx, userID, db.SavedItemType(itemType), itemID)
 }
 
 func (r *SavedItemsRepo) IsItemSaved(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (bool, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.IsItemSaved")
 	defer span.End()
 
-	return r.db.IsItemSaved(ctx, db.IsItemSavedParams{
-		UserID:   userID,
-		ItemType: db.SavedItemType(itemType),
-		ItemID:   itemID,
-	})
+	return r.db.IsItemSaved(ctx, userID, db.SavedItemType(itemType), itemID)
 }
 
 func (r *SavedItemsRepo) CountSavedItems(ctx context.Context) (int64, error) {
@@ -123,8 +99,5 @@ func (r *SavedItemsRepo) CountSavedItemsByUserAndType(ctx context.Context, userI
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.CountSavedItemsByUserAndType")
 	defer span.End()
 
-	return r.db.CountSavedItemsByUserAndType(ctx, db.CountSavedItemsByUserAndTypeParams{
-		UserID:   userID,
-		ItemType: db.SavedItemType(itemType),
-	})
+	return r.db.CountSavedItemsByUserAndType(ctx, userID, db.SavedItemType(itemType))
 }

@@ -28,6 +28,7 @@ WHERE r.id = due.id
 RETURNING r.*;
 
 -- name: GetPendingByUser :many
-SELECT * FROM reminder_queue
+SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
+FROM reminder_queue
 WHERE user_id = $1 AND sent = FALSE
 ORDER BY scheduled_at;

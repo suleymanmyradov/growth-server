@@ -2,6 +2,7 @@ package settingslogic
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -60,8 +61,9 @@ func convertDbUserSettingsToPb(s db.GetUserSettingsRow) *client.UserSettings {
 		OnboardingCompleted: s.OnboardingCompleted,
 	}
 	pb.MarketingEmails = s.EmailNotifications
-	if !s.CheckInTime.IsZero() {
-		pb.CheckInTime = s.CheckInTime.Format("15:04")
+	if s.CheckInTime.Valid {
+		t := time.Unix(0, s.CheckInTime.Microseconds*1000)
+		pb.CheckInTime = t.Format("15:04")
 	}
 	return pb
 }

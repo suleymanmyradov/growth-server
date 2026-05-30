@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countArticles = `-- name: CountArticles :one
@@ -18,7 +17,7 @@ SELECT COUNT(*) FROM articles
 `
 
 func (q *Queries) CountArticles(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countArticles)
+	row := q.db.QueryRow(ctx, countArticles)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -31,7 +30,7 @@ WHERE c.slug = $1
 `
 
 func (q *Queries) CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countArticlesByCategorySlug, slug)
+	row := q.db.QueryRow(ctx, countArticlesByCategorySlug, slug)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -44,30 +43,30 @@ RETURNING id, title, excerpt, content, read_time, image_url, author, published_a
 `
 
 type CreateArticleParams struct {
-	Title      string         `db:"title" json:"title"`
-	Excerpt    sql.NullString `db:"excerpt" json:"excerpt"`
-	Content    string         `db:"content" json:"content"`
-	CategoryID uuid.NullUUID  `db:"category_id" json:"category_id"`
-	ReadTime   int32          `db:"read_time" json:"read_time"`
-	ImageUrl   sql.NullString `db:"image_url" json:"image_url"`
-	Author     string         `db:"author" json:"author"`
+	Title      string        `db:"title" json:"title"`
+	Excerpt    *string       `db:"excerpt" json:"excerpt"`
+	Content    string        `db:"content" json:"content"`
+	CategoryID uuid.NullUUID `db:"category_id" json:"category_id"`
+	ReadTime   int32         `db:"read_time" json:"read_time"`
+	ImageUrl   *string       `db:"image_url" json:"image_url"`
+	Author     string        `db:"author" json:"author"`
 }
 
 type CreateArticleRow struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Title       string         `db:"title" json:"title"`
-	Excerpt     sql.NullString `db:"excerpt" json:"excerpt"`
-	Content     string         `db:"content" json:"content"`
-	ReadTime    int32          `db:"read_time" json:"read_time"`
-	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
-	Author      string         `db:"author" json:"author"`
-	PublishedAt time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Excerpt     *string            `db:"excerpt" json:"excerpt"`
+	Content     string             `db:"content" json:"content"`
+	ReadTime    int32              `db:"read_time" json:"read_time"`
+	ImageUrl    *string            `db:"image_url" json:"image_url"`
+	Author      string             `db:"author" json:"author"`
+	PublishedAt pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error) {
-	row := q.db.QueryRowContext(ctx, createArticle,
+	row := q.db.QueryRow(ctx, createArticle,
 		arg.Title,
 		arg.Excerpt,
 		arg.Content,
@@ -97,7 +96,7 @@ DELETE FROM articles WHERE id = $1
 `
 
 func (q *Queries) DeleteArticle(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteArticle, id)
+	_, err := q.db.Exec(ctx, deleteArticle, id)
 	return err
 }
 
@@ -112,23 +111,23 @@ WHERE a.id = $1
 `
 
 type GetArticleRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
-	CategoryName sql.NullString `db:"category_name" json:"category_name"`
-	CategorySlug sql.NullString `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 }
 
 func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, error) {
-	row := q.db.QueryRowContext(ctx, getArticle, id)
+	row := q.db.QueryRow(ctx, getArticle, id)
 	var i GetArticleRow
 	err := row.Scan(
 		&i.ID,
@@ -159,23 +158,23 @@ WHERE a.title = $1
 `
 
 type GetArticleByTitleRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
-	CategoryName sql.NullString `db:"category_name" json:"category_name"`
-	CategorySlug sql.NullString `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 }
 
 func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error) {
-	row := q.db.QueryRowContext(ctx, getArticleByTitle, title)
+	row := q.db.QueryRow(ctx, getArticleByTitle, title)
 	var i GetArticleByTitleRow
 	err := row.Scan(
 		&i.ID,
@@ -206,29 +205,24 @@ ORDER BY a.published_at DESC
 LIMIT $1 OFFSET $2
 `
 
-type ListArticlesParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
-}
-
 type ListArticlesRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
-	CategoryName sql.NullString `db:"category_name" json:"category_name"`
-	CategorySlug sql.NullString `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 }
 
-func (q *Queries) ListArticles(ctx context.Context, arg ListArticlesParams) ([]ListArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listArticles, arg.Limit, arg.Offset)
+func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listArticles, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -255,9 +249,6 @@ func (q *Queries) ListArticles(ctx context.Context, arg ListArticlesParams) ([]L
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -276,30 +267,24 @@ ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListArticlesByAuthorParams struct {
-	Author string `db:"author" json:"author"`
-	Limit  int32  `db:"limit" json:"limit"`
-	Offset int32  `db:"offset" json:"offset"`
-}
-
 type ListArticlesByAuthorRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
-	CategoryName sql.NullString `db:"category_name" json:"category_name"`
-	CategorySlug sql.NullString `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 }
 
-func (q *Queries) ListArticlesByAuthor(ctx context.Context, arg ListArticlesByAuthorParams) ([]ListArticlesByAuthorRow, error) {
-	rows, err := q.db.QueryContext(ctx, listArticlesByAuthor, arg.Author, arg.Limit, arg.Offset)
+func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByAuthor, author, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -326,9 +311,6 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, arg ListArticlesByAu
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -347,30 +329,24 @@ ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListArticlesByCategorySlugParams struct {
-	Slug   string `db:"slug" json:"slug"`
-	Limit  int32  `db:"limit" json:"limit"`
-	Offset int32  `db:"offset" json:"offset"`
-}
-
 type ListArticlesByCategorySlugRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.UUID      `db:"category_id" json:"category_id"`
-	CategoryName string         `db:"category_name" json:"category_name"`
-	CategorySlug string         `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.UUID          `db:"category_id" json:"category_id"`
+	CategoryName string             `db:"category_name" json:"category_name"`
+	CategorySlug string             `db:"category_slug" json:"category_slug"`
 }
 
-func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, arg ListArticlesByCategorySlugParams) ([]ListArticlesByCategorySlugRow, error) {
-	rows, err := q.db.QueryContext(ctx, listArticlesByCategorySlug, arg.Slug, arg.Limit, arg.Offset)
+func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByCategorySlug, slug, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -397,9 +373,6 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, arg ListArticl
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -418,30 +391,24 @@ ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type SearchArticlesParams struct {
-	PlaintoTsquery string `db:"plainto_tsquery" json:"plainto_tsquery"`
-	Limit          int32  `db:"limit" json:"limit"`
-	Offset         int32  `db:"offset" json:"offset"`
-}
-
 type SearchArticlesRow struct {
-	ID           uuid.UUID      `db:"id" json:"id"`
-	Title        string         `db:"title" json:"title"`
-	Excerpt      sql.NullString `db:"excerpt" json:"excerpt"`
-	Content      string         `db:"content" json:"content"`
-	ReadTime     int32          `db:"read_time" json:"read_time"`
-	ImageUrl     sql.NullString `db:"image_url" json:"image_url"`
-	Author       string         `db:"author" json:"author"`
-	PublishedAt  time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt    time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at" json:"updated_at"`
-	CategoryID   uuid.NullUUID  `db:"category_id" json:"category_id"`
-	CategoryName sql.NullString `db:"category_name" json:"category_name"`
-	CategorySlug sql.NullString `db:"category_slug" json:"category_slug"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 }
 
-func (q *Queries) SearchArticles(ctx context.Context, arg SearchArticlesParams) ([]SearchArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchArticles, arg.PlaintoTsquery, arg.Limit, arg.Offset)
+func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error) {
+	rows, err := q.db.Query(ctx, searchArticles, plaintoTsquery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -468,8 +435,87 @@ func (q *Queries) SearchArticles(ctx context.Context, arg SearchArticlesParams) 
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	return items, nil
+}
+
+const searchArticlesSemantic = `-- name: SearchArticlesSemantic :many
+
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.id = ANY($1::uuid[])
+`
+
+type SearchArticlesSemanticRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+}
+
+// TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings
+// is unconditionally applied. sqlc cannot compile these queries without the vector type.
+// Semantic search using pgvector cosine similarity.
+// $1 is the query embedding vector(1536); $2 is the similarity threshold (e.g. 0.7); $3 is the limit.
+// SELECT
+//
+//	a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+//	a.published_at, a.created_at, a.updated_at,
+//	c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+//	1 - (a.embedding <=> $1) AS similarity
+//
+// FROM articles a
+// LEFT JOIN categories c ON a.category_id = c.id
+// WHERE a.embedding IS NOT NULL
+//
+//	AND 1 - (a.embedding <=> $1) >= $2
+//
+// ORDER BY a.embedding <=> $1
+// LIMIT $3;
+// Bulk lookup for article list views (e.g. resolving saved articles).
+// Uses ANY with a uuid array to avoid N+1 queries.
+func (q *Queries) SearchArticlesSemantic(ctx context.Context, dollar_1 []uuid.UUID) ([]SearchArticlesSemanticRow, error) {
+	rows, err := q.db.Query(ctx, searchArticlesSemantic, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchArticlesSemanticRow{}
+	for rows.Next() {
+		var i SearchArticlesSemanticRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Excerpt,
+			&i.Content,
+			&i.ReadTime,
+			&i.ImageUrl,
+			&i.Author,
+			&i.PublishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CategoryID,
+			&i.CategoryName,
+			&i.CategorySlug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -486,31 +532,31 @@ RETURNING id, title, excerpt, content, read_time, image_url, author, published_a
 `
 
 type UpdateArticleParams struct {
-	ID         uuid.UUID      `db:"id" json:"id"`
-	Title      string         `db:"title" json:"title"`
-	Excerpt    sql.NullString `db:"excerpt" json:"excerpt"`
-	Content    string         `db:"content" json:"content"`
-	CategoryID uuid.NullUUID  `db:"category_id" json:"category_id"`
-	ReadTime   int32          `db:"read_time" json:"read_time"`
-	ImageUrl   sql.NullString `db:"image_url" json:"image_url"`
-	Author     string         `db:"author" json:"author"`
+	ID         uuid.UUID     `db:"id" json:"id"`
+	Title      string        `db:"title" json:"title"`
+	Excerpt    *string       `db:"excerpt" json:"excerpt"`
+	Content    string        `db:"content" json:"content"`
+	CategoryID uuid.NullUUID `db:"category_id" json:"category_id"`
+	ReadTime   int32         `db:"read_time" json:"read_time"`
+	ImageUrl   *string       `db:"image_url" json:"image_url"`
+	Author     string        `db:"author" json:"author"`
 }
 
 type UpdateArticleRow struct {
-	ID          uuid.UUID      `db:"id" json:"id"`
-	Title       string         `db:"title" json:"title"`
-	Excerpt     sql.NullString `db:"excerpt" json:"excerpt"`
-	Content     string         `db:"content" json:"content"`
-	ReadTime    int32          `db:"read_time" json:"read_time"`
-	ImageUrl    sql.NullString `db:"image_url" json:"image_url"`
-	Author      string         `db:"author" json:"author"`
-	PublishedAt time.Time      `db:"published_at" json:"published_at"`
-	CreatedAt   time.Time      `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time      `db:"updated_at" json:"updated_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Excerpt     *string            `db:"excerpt" json:"excerpt"`
+	Content     string             `db:"content" json:"content"`
+	ReadTime    int32              `db:"read_time" json:"read_time"`
+	ImageUrl    *string            `db:"image_url" json:"image_url"`
+	Author      string             `db:"author" json:"author"`
+	PublishedAt pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error) {
-	row := q.db.QueryRowContext(ctx, updateArticle,
+	row := q.db.QueryRow(ctx, updateArticle,
 		arg.ID,
 		arg.Title,
 		arg.Excerpt,

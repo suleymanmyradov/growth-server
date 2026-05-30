@@ -2,11 +2,11 @@ package personalizationservicelogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -39,7 +39,7 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile(in *client.GetCoachingProfi
 	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
 	if err != nil {
 		// If profile doesn't exist, return a default profile
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return &client.GetCoachingProfileResponse{
 				Profile: &client.CoachingProfile{
 					UserId:               in.UserId,
@@ -78,17 +78,22 @@ func dbCoachingProfileToProto(profile db.UserCoachingProfile) *client.CoachingPr
 		lastContextRefreshAt = profile.LastContextRefreshAt.Time.Unix()
 	}
 
+	primaryMotivation := ""
+	if profile.PrimaryMotivation != nil {
+		primaryMotivation = *profile.PrimaryMotivation
+	}
+
 	return &client.CoachingProfile{
 		Id:                   profile.ID.String(),
 		UserId:               profile.UserID.String(),
 		AccountabilityStyle:  string(profile.AccountabilityStyle),
 		PreferredTone:        string(profile.PreferredTone),
 		DifficultyPreference: string(profile.DifficultyPreference),
-		PrimaryMotivation:    profile.PrimaryMotivation.String,
+		PrimaryMotivation:    primaryMotivation,
 		CommonBlockers:       commonBlockers,
 		CoachingNotesJson:    coachingNotesJson,
 		LastContextRefreshAt: lastContextRefreshAt,
-		CreatedAt:            profile.CreatedAt.Unix(),
-		UpdatedAt:            profile.UpdatedAt.Unix(),
+		CreatedAt:            profile.CreatedAt.Time.Unix(),
+		UpdatedAt:            profile.UpdatedAt.Time.Unix(),
 	}
 }

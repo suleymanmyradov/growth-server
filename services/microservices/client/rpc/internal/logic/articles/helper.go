@@ -13,22 +13,30 @@ func convertGetRowToPbArticle(a db.GetArticleRow) *client.Article {
 		Content:     a.Content,
 		AuthorId:    a.Author,
 		ReadTime:    a.ReadTime,
-		PublishedAt: a.PublishedAt.Unix(),
-		CreatedAt:   a.CreatedAt.Unix(),
-		UpdatedAt:   a.UpdatedAt.Unix(),
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 	}
-	if a.Excerpt.Valid {
-		pb.Summary = a.Excerpt.String
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
 	}
-	if a.ImageUrl.Valid {
-		pb.CoverImage = a.ImageUrl.String
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
 	}
 	// Map category from joined data
 	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
 		pb.Category = &client.ArticleCategory{
 			Id:   a.CategoryID.UUID.String(),
-			Name: a.CategoryName.String,
-			Slug: a.CategorySlug.String,
+			Name: categoryName,
+			Slug: categorySlug,
 		}
 	}
 	return pb
@@ -41,22 +49,30 @@ func convertAuthorRowToPbArticle(a db.ListArticlesByAuthorRow) *client.Article {
 		Content:     a.Content,
 		AuthorId:    a.Author,
 		ReadTime:    a.ReadTime,
-		PublishedAt: a.PublishedAt.Unix(),
-		CreatedAt:   a.CreatedAt.Unix(),
-		UpdatedAt:   a.UpdatedAt.Unix(),
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 	}
-	if a.Excerpt.Valid {
-		pb.Summary = a.Excerpt.String
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
 	}
-	if a.ImageUrl.Valid {
-		pb.CoverImage = a.ImageUrl.String
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
 	}
 	// Map category from joined data
 	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
 		pb.Category = &client.ArticleCategory{
 			Id:   a.CategoryID.UUID.String(),
-			Name: a.CategoryName.String,
-			Slug: a.CategorySlug.String,
+			Name: categoryName,
+			Slug: categorySlug,
 		}
 	}
 	return pb
@@ -69,22 +85,30 @@ func convertListRowToPbArticle(a db.ListArticlesRow) *client.Article {
 		Content:     a.Content,
 		AuthorId:    a.Author,
 		ReadTime:    a.ReadTime,
-		PublishedAt: a.PublishedAt.Unix(),
-		CreatedAt:   a.CreatedAt.Unix(),
-		UpdatedAt:   a.UpdatedAt.Unix(),
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 	}
-	if a.Excerpt.Valid {
-		pb.Summary = a.Excerpt.String
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
 	}
-	if a.ImageUrl.Valid {
-		pb.CoverImage = a.ImageUrl.String
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
 	}
 	// Map category from joined data
 	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
 		pb.Category = &client.ArticleCategory{
 			Id:   a.CategoryID.UUID.String(),
-			Name: a.CategoryName.String,
-			Slug: a.CategorySlug.String,
+			Name: categoryName,
+			Slug: categorySlug,
 		}
 	}
 	return pb
@@ -97,15 +121,15 @@ func convertCategorySlugRowToPbArticle(a db.ListArticlesByCategorySlugRow) *clie
 		Content:     a.Content,
 		AuthorId:    a.Author,
 		ReadTime:    a.ReadTime,
-		PublishedAt: a.PublishedAt.Unix(),
-		CreatedAt:   a.CreatedAt.Unix(),
-		UpdatedAt:   a.UpdatedAt.Unix(),
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 	}
-	if a.Excerpt.Valid {
-		pb.Summary = a.Excerpt.String
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
 	}
-	if a.ImageUrl.Valid {
-		pb.CoverImage = a.ImageUrl.String
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
 	}
 	// Map category from joined data (non-nullable in this query)
 	if a.CategoryID != uuid.Nil {

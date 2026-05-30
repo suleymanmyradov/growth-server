@@ -68,7 +68,7 @@ func (l *GetActivityCalendarLogic) GetActivityCalendar(in *client.GetActivityCal
 	var days []*client.CalendarDay
 	for _, r := range rows {
 		days = append(days, &client.CalendarDay{
-			Date:  r.Day.Format("2006-01-02"),
+			Date:  r.Day.Time.Format("2006-01-02"),
 			Count: int32(r.ActivityCount),
 		})
 	}

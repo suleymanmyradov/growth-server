@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 )
@@ -14,11 +15,11 @@ import (
 // ---- fakes ----
 
 type fakeRepo struct {
-	claimed []db.ReminderQueue
+	claimed []*db.ReminderQueue
 	err     error
 }
 
-func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]db.ReminderQueue, error) {
+func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]*db.ReminderQueue, error) {
 	return f.claimed, f.err
 }
 
@@ -55,8 +56,8 @@ func TestScheduler_Tick_ClaimAndPublish(t *testing.T) {
 	uid := uuid.New()
 	rid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
-			{ID: rid, UserID: uid, Type: "habit_reminder", ScheduledAt: time.Now()},
+		claimed: []*db.ReminderQueue{
+			{ID: rid, UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},
 	}
 	pub := &fakePub{}
@@ -82,8 +83,8 @@ func TestScheduler_Tick_ClaimAndPublish(t *testing.T) {
 func TestScheduler_Tick_PublishError(t *testing.T) {
 	uid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
-			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: time.Now()},
+		claimed: []*db.ReminderQueue{
+			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},
 	}
 	pub := &fakePub{err: context.DeadlineExceeded}
@@ -108,9 +109,9 @@ func TestScheduler_Tick_ClaimError(t *testing.T) {
 func TestScheduler_MultipleReminders(t *testing.T) {
 	uid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
-			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: time.Now()},
-			{ID: uuid.New(), UserID: uid, Type: "weekly_review", ScheduledAt: time.Now()},
+		claimed: []*db.ReminderQueue{
+			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
+			{ID: uuid.New(), UserID: uid, Type: "weekly_review", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},
 	}
 	pub := &fakePub{}

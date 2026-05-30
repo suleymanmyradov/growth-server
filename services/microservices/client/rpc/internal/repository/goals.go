@@ -20,11 +20,7 @@ func (r *goalsRepo) ListGoals(ctx context.Context, userID uuid.UUID, limit, offs
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoals")
 	defer span.End()
 
-	return r.db.ListGoals(ctx, db.ListGoalsParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListGoals(ctx, userID, limit, offset)
 }
 
 func (r *goalsRepo) GetGoalByID(ctx context.Context, id uuid.UUID) (db.Goal, error) {
@@ -62,11 +58,11 @@ func (r *goalsRepo) ToggleGoal(ctx context.Context, id uuid.UUID) (db.Goal, erro
 	return r.db.ToggleGoal(ctx, id)
 }
 
-func (r *goalsRepo) UpdateGoalProgress(ctx context.Context, params db.UpdateGoalProgressParams) (db.Goal, error) {
+func (r *goalsRepo) UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.Goal, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.UpdateGoalProgress")
 	defer span.End()
 
-	return r.db.UpdateGoalProgress(ctx, params)
+	return r.db.UpdateGoalProgress(ctx, id, progress)
 }
 
 func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

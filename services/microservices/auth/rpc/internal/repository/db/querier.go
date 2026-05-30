@@ -12,14 +12,14 @@ import (
 
 type Querier interface {
 	CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error)
-	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (User, error)
 	GetProfileByUserID(ctx context.Context, userID uuid.UUID) (Profile, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error)
-	UpdateUserFullName(ctx context.Context, arg UpdateUserFullNameParams) (User, error)
-	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error)
+	UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error)
+	UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)

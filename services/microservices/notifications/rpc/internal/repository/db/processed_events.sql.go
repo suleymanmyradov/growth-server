@@ -16,7 +16,7 @@ SELECT EXISTS(SELECT 1 FROM processed_events WHERE event_id = $1)
 `
 
 func (q *Queries) IsEventProcessed(ctx context.Context, eventID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isEventProcessed, eventID)
+	row := q.db.QueryRow(ctx, isEventProcessed, eventID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -28,6 +28,6 @@ ON CONFLICT DO NOTHING
 `
 
 func (q *Queries) MarkEventProcessed(ctx context.Context, eventID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, markEventProcessed, eventID)
+	_, err := q.db.Exec(ctx, markEventProcessed, eventID)
 	return err
 }

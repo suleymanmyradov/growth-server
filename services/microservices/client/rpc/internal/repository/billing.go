@@ -43,23 +43,22 @@ func (r *billingRepo) GetOrCreateUserSubscription(ctx context.Context, userID uu
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetOrCreateUserSubscription")
 	defer span.End()
 
+	// Race-safe: use the atomic UPSERT instead of read-then-write.
+	// ON CONFLICT handles the case where another concurrent request already inserted.
+	_, err := r.db.CreateDefaultFreeSubscription(ctx, userID)
+	if err != nil {
+		return db.GetUserSubscriptionRow{}, err
+	}
+
+	// Always re-read so we get the fully-populated joined row (plan details included).
 	sub, err := r.db.GetUserSubscription(ctx, userID)
 	if err != nil {
-		// If no subscription exists, create a free one automatically
-		_, createErr := r.db.CreateDefaultFreeSubscription(ctx, userID)
-		if createErr != nil {
-			return db.GetUserSubscriptionRow{}, createErr
-		}
-		// Fetch the newly created subscription
-		sub, err = r.db.GetUserSubscription(ctx, userID)
-		if err != nil {
-			return db.GetUserSubscriptionRow{}, err
-		}
+		return db.GetUserSubscriptionRow{}, err
 	}
 	return sub, nil
 }
 
-func (r *billingRepo) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (db.GetUserSubscriptionByStripeCustomerIDRow, error) {
+func (r *billingRepo) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetUserSubscriptionByStripeCustomerID")
 	defer span.End()
 
@@ -80,7 +79,7 @@ func (r *billingRepo) UpsertUserSubscription(ctx context.Context, params db.Upse
 	return r.db.UpsertUserSubscription(ctx, params)
 }
 
-func (r *billingRepo) CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.UpgradeEvent, error) {
+func (r *billingRepo) CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CreateUpgradeEvent")
 	defer span.End()
 
@@ -110,21 +109,21 @@ func (r *billingRepo) CountPendingPlanAdjustmentsForUser(ctx context.Context, us
 
 // EntitlementsResult holds computed entitlements for a user.
 type EntitlementsResult struct {
-	PlanCode                    string
-	Status                      string
-	ActiveGoalLimit             sql.NullInt32
-	ActiveHabitLimit            sql.NullInt32
-	WeeklyReviewHistoryLimit    sql.NullInt32
-	PlanAdjustmentLimit         sql.NullInt32
+	PlanCode                   string
+	Status                     string
+	ActiveGoalLimit            int32
+	ActiveHabitLimit           int32
+	WeeklyReviewHistoryLimit   int32
+	PlanAdjustmentLimit        int32
 	PersonalizedAiEnabled      bool
-	CanCreateGoal               bool
-	CanCreateHabit              bool
-	CanViewWeeklyReviewHistory  bool
-	CanUsePersonalizedAi        bool
-	CanCreatePlanAdjustment     bool
-	CurrentActiveGoals          int64
-	CurrentActiveHabits         int64
-	CurrentPendingAdjustments   int64
+	CanCreateGoal              bool
+	CanCreateHabit             bool
+	CanViewWeeklyReviewHistory bool
+	CanUsePersonalizedAi       bool
+	CanCreatePlanAdjustment    bool
+	CurrentActiveGoals         int64
+	CurrentActiveHabits        int64
+	CurrentPendingAdjustments  int64
 }
 
 // ComputeEntitlements calculates what a user can do based on their plan and current usage.
@@ -149,11 +148,11 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 
 	isPro := sub.PlanCode == "pro" && (sub.Status == db.SubscriptionStatusTypeActive || sub.Status == db.SubscriptionStatusTypeTrialing)
 
-	canCreateGoal := isPro || (!sub.ActiveGoalLimit.Valid || activeGoals < int64(sub.ActiveGoalLimit.Int32))
-	canCreateHabit := isPro || (!sub.ActiveHabitLimit.Valid || activeHabits < int64(sub.ActiveHabitLimit.Int32))
-	canViewHistory := isPro || !sub.WeeklyReviewHistoryLimit.Valid || sub.WeeklyReviewHistoryLimit.Int32 > 1
+	canCreateGoal := isPro || activeGoals < int64(sub.ActiveGoalLimit)
+	canCreateHabit := isPro || activeHabits < int64(sub.ActiveHabitLimit)
+	canViewHistory := isPro || sub.WeeklyReviewHistoryLimit > 1
 	canUsePersonalizedAi := isPro || sub.PersonalizedAiEnabled
-	canCreatePlanAdjustment := isPro || (!sub.PlanAdjustmentLimit.Valid || pendingAdjustments < int64(sub.PlanAdjustmentLimit.Int32))
+	canCreatePlanAdjustment := isPro || pendingAdjustments < int64(sub.PlanAdjustmentLimit)
 
 	return &EntitlementsResult{
 		PlanCode:                   sub.PlanCode,

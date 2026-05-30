@@ -1,5 +1,6 @@
 -- name: GetCoachingProfile :one
-SELECT * FROM user_coaching_profiles
+SELECT id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+FROM user_coaching_profiles
 WHERE user_id = $1;
 
 -- name: UpsertCoachingProfile :one
@@ -24,7 +25,7 @@ DO UPDATE SET
     coaching_notes = EXCLUDED.coaching_notes,
     last_context_refresh_at = CURRENT_TIMESTAMP,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at;
 
 -- name: UpdateCoachingProfilePreferences :one
 INSERT INTO user_coaching_profiles (
@@ -43,7 +44,7 @@ DO UPDATE SET
     preferred_tone = EXCLUDED.preferred_tone,
     difficulty_preference = EXCLUDED.difficulty_preference,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at;
 
 -- name: UpdateCoachingProfileBlockers :one
 UPDATE user_coaching_profiles
@@ -51,7 +52,7 @@ SET
     common_blockers = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
-RETURNING *;
+RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at;
 
 -- name: UpdateCoachingProfileNotes :one
 UPDATE user_coaching_profiles
@@ -59,7 +60,7 @@ SET
     coaching_notes = $2,
     updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
-RETURNING *;
+RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at;
 
 -- name: UpdateCoachingProfileContextRefresh :one
 UPDATE user_coaching_profiles
@@ -67,7 +68,7 @@ SET
     last_context_refresh_at = CURRENT_TIMESTAMP,
     updated_at = CURRENT_TIMESTAMP
 WHERE user_id = $1
-RETURNING *;
+RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at;
 
 -- name: DeleteCoachingProfile :exec
 DELETE FROM user_coaching_profiles WHERE user_id = $1;

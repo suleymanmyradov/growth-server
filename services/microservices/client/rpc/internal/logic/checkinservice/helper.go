@@ -1,8 +1,6 @@
 package checkinservicelogic
 
 import (
-	"database/sql"
-
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -10,16 +8,20 @@ import (
 
 func checkInToProto(c db.CheckIn) *client.CheckIn {
 	mood := ""
-	if c.Mood.Valid {
-		mood = string(c.Mood.MoodType)
+	if c.Mood != nil {
+		mood = string(*c.Mood)
 	}
 	energy := ""
-	if c.Energy.Valid {
-		energy = string(c.Energy.EnergyLevel)
+	if c.Energy != nil {
+		energy = string(*c.Energy)
 	}
 	blocker := ""
-	if c.Blocker.Valid {
-		blocker = string(c.Blocker.BlockerType)
+	if c.Blocker != nil {
+		blocker = string(*c.Blocker)
+	}
+	note := ""
+	if c.Note != nil {
+		note = *c.Note
 	}
 	return &client.CheckIn{
 		Id:        c.ID.String(),
@@ -29,34 +31,57 @@ func checkInToProto(c db.CheckIn) *client.CheckIn {
 		Mood:      mood,
 		Energy:    energy,
 		Blocker:   blocker,
-		Note:      c.Note.String,
-		CreatedAt: c.CreatedAt.Unix(),
+		Note:      note,
+		CreatedAt: c.CreatedAt.Time.Unix(),
 	}
 }
 
 func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, blocker, note string) db.CreateCheckInParams {
+	var moodPtr *db.MoodType
+	if mood != "" {
+		m := db.MoodType(mood)
+		moodPtr = &m
+	}
+	var energyPtr *db.EnergyLevel
+	if energy != "" {
+		e := db.EnergyLevel(energy)
+		energyPtr = &e
+	}
+	var blockerPtr *db.BlockerType
+	if blocker != "" {
+		b := db.BlockerType(blocker)
+		blockerPtr = &b
+	}
+	var notePtr *string
+	if note != "" {
+		notePtr = &note
+	}
 	return db.CreateCheckInParams{
 		UserID:  userID,
 		HabitID: habitID,
 		Status:  db.CheckInStatus(status),
-		Mood:    db.NullMoodType{MoodType: db.MoodType(mood), Valid: mood != ""},
-		Energy:  db.NullEnergyLevel{EnergyLevel: db.EnergyLevel(energy), Valid: energy != ""},
-		Blocker: db.NullBlockerType{BlockerType: db.BlockerType(blocker), Valid: blocker != ""},
-		Note:    sql.NullString{String: note, Valid: note != ""},
+		Mood:    moodPtr,
+		Energy:  energyPtr,
+		Blocker: blockerPtr,
+		Note:    notePtr,
 	}
 }
 
 func habitToProto(h db.Habit) *client.Habit {
+	description := ""
+	if h.Description != nil {
+		description = *h.Description
+	}
 	return &client.Habit{
 		Id:             h.ID.String(),
 		UserId:         h.UserID.String(),
 		Name:           h.Name,
-		Description:    h.Description.String,
+		Description:    description,
 		Category:       h.Category,
-		Streak:         h.Streak.Int32,
-		Completed:      h.Completed.Bool,
-		CompletedToday: h.Completed.Bool,
-		CreatedAt:      h.CreatedAt.Unix(),
-		UpdatedAt:      h.UpdatedAt.Unix(),
+		Streak:         h.Streak,
+		Completed:      h.Completed,
+		CompletedToday: h.Completed,
+		CreatedAt:      h.CreatedAt.Time.Unix(),
+		UpdatedAt:      h.UpdatedAt.Time.Unix(),
 	}
 }

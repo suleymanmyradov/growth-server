@@ -12,7 +12,7 @@ import (
 // Repo is the scheduler's storage interface, declared here so the consumer
 // package owns the abstraction.
 type Repo interface {
-	ClaimDueReminders(ctx context.Context, limit int32) ([]db.ReminderQueue, error)
+	ClaimDueReminders(ctx context.Context, limit int32) ([]*db.ReminderQueue, error)
 }
 
 // Publisher is the scheduler's publishing interface.
@@ -91,7 +91,7 @@ func (s *Scheduler) tick(ctx context.Context) {
 			ReminderID:  r.ID.String(),
 			UserID:      r.UserID.String(),
 			Type:        string(r.Type),
-			ScheduledAt: r.ScheduledAt.Format(time.RFC3339),
+			ScheduledAt: r.ScheduledAt.Time.Format(time.RFC3339),
 			Metadata:    string(r.Metadata),
 		})
 		if err != nil {

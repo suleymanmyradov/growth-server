@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -23,34 +24,21 @@ func (r *ActivitiesRepo) ListActivities(ctx context.Context, userID uuid.UUID, l
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivities")
 	defer span.End()
 
-	return r.db.ListActivities(ctx, db.ListActivitiesParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListActivities(ctx, userID, limit, offset)
 }
 
 func (r *ActivitiesRepo) ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivitiesByUser")
 	defer span.End()
 
-	return r.db.ListActivitiesByUser(ctx, db.ListActivitiesByUserParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.ListActivitiesByUser(ctx, userID, limit, offset)
 }
 
 func (r *ActivitiesRepo) ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivitiesByType")
 	defer span.End()
 
-	return r.db.ListActivitiesByType(ctx, db.ListActivitiesByTypeParams{
-		UserID:   userID,
-		ItemType: db.ActivityType(itemType),
-		Limit:    limit,
-		Offset:   offset,
-	})
+	return r.db.ListActivitiesByType(ctx, userID, db.ActivityType(itemType), limit, offset)
 }
 
 func (r *ActivitiesRepo) GetActivityByID(ctx context.Context, id uuid.UUID) (db.Activity, error) {
@@ -106,21 +94,14 @@ func (r *ActivitiesRepo) CountActivitiesByUserAndType(ctx context.Context, userI
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.CountActivitiesByUserAndType")
 	defer span.End()
 
-	return r.db.CountActivitiesByUserAndType(ctx, db.CountActivitiesByUserAndTypeParams{
-		UserID:   userID,
-		ItemType: db.ActivityType(itemType),
-	})
+	return r.db.CountActivitiesByUserAndType(ctx, userID, db.ActivityType(itemType))
 }
 
 func (r *ActivitiesRepo) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.GetActivityFeed")
 	defer span.End()
 
-	return r.db.GetActivityFeed(ctx, db.GetActivityFeedParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
-	})
+	return r.db.GetActivityFeed(ctx, userID, limit, offset)
 }
 
 func (r *ActivitiesRepo) GetActivityStats(ctx context.Context, userID uuid.UUID) (db.GetActivityStatsRow, error) {
@@ -157,9 +138,5 @@ func (r *ActivitiesRepo) GetActivityCalendar(ctx context.Context, userID uuid.UU
 	start := time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 1, 0)
 
-	return r.db.GetActivityCalendar(ctx, db.GetActivityCalendarParams{
-		UserID:      userID,
-		CreatedAt:   start,
-		CreatedAt_2: end,
-	})
+	return r.db.GetActivityCalendar(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
 }

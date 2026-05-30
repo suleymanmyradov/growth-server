@@ -2,7 +2,6 @@ package billingservicelogic
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
@@ -78,10 +77,10 @@ func (l *CreateCheckoutSessionLogic) createStripeCheckoutSession(userID uuid.UUI
 	}
 
 	var priceID string
-	if in.BillingInterval == "annual" && plan.StripeAnnualPriceID.Valid {
-		priceID = plan.StripeAnnualPriceID.String
-	} else if plan.StripeMonthlyPriceID.Valid {
-		priceID = plan.StripeMonthlyPriceID.String
+	if in.BillingInterval == "annual" && plan.StripeAnnualPriceID != nil {
+		priceID = *plan.StripeAnnualPriceID
+	} else if plan.StripeMonthlyPriceID != nil {
+		priceID = *plan.StripeMonthlyPriceID
 	} else {
 		return nil, status.Error(codes.Internal, "stripe price not configured for plan")
 	}
@@ -93,8 +92,8 @@ func (l *CreateCheckoutSessionLogic) createStripeCheckoutSession(userID uuid.UUI
 	}
 
 	var customerID string
-	if sub.StripeCustomerID.Valid {
-		customerID = sub.StripeCustomerID.String
+	if sub.StripeCustomerID != nil {
+		customerID = *sub.StripeCustomerID
 	} else {
 		// Create Stripe customer
 		customerID, err = l.svcCtx.StripeClient.CreateCustomer(l.ctx, userID.String(), username)
@@ -111,7 +110,7 @@ func (l *CreateCheckoutSessionLogic) createStripeCheckoutSession(userID uuid.UUI
 				UserID:           userID,
 				PlanID:           freePlan.ID,
 				Status:           sub.Status,
-				StripeCustomerID: sql.NullString{String: customerID, Valid: true},
+				StripeCustomerID: &customerID,
 			})
 			if upsertErr != nil {
 				l.Errorf("Failed to persist stripe_customer_id: %v", upsertErr)

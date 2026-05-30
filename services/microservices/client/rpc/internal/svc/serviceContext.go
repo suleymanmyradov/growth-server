@@ -1,11 +1,12 @@
 package svc
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -23,30 +24,35 @@ type ServiceContext struct {
 	AIClient         ai.Client
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
-	TxRunner         *postgres.TxRunner
-	sqlDB            *sql.DB
+	TxRunner         *postgres.PgxTxRunner
+	pool             *pgxpool.Pool
 }
 
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {
-	db, err := sql.Open("postgres", datasource)
+func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
+	config, err := pgxpool.ParseConfig(datasource)
 	if err != nil {
-		panic(fmt.Errorf("postgres open: %w", err))
+		panic(fmt.Errorf("parse pgx config: %w", err))
 	}
-	db.SetMaxOpenConns(maxOpen)
-	db.SetMaxIdleConns(maxIdle)
-	db.SetConnMaxLifetime(maxLifetime)
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		panic(fmt.Errorf("postgres ping: %w", err))
+	config.MaxConns = int32(maxOpen)
+	config.MinConns = int32(maxIdle)
+	config.MaxConnLifetime = maxLifetime
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		panic(fmt.Errorf("pgx pool: %w", err))
 	}
-	return db
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		panic(fmt.Errorf("pgx ping: %w", err))
+	}
+	return pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 
-	queries := db.New(sqlDB)
-	txRunner := postgres.NewTxRunner(sqlDB)
+	queries := db.New(pool)
+	txRunner := postgres.NewPgxTxRunner(pool)
 
 	var eventsPub *events.Publisher
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
@@ -74,21 +80,26 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
 		TxRunner:         txRunner,
-		sqlDB:            sqlDB,
+		pool:             pool,
 	}
 }
 
 // WithTx returns a new Repository backed by the given transaction.
 // Use this inside TxRunner.Run to perform multiple repo operations atomically.
-func (s *ServiceContext) WithTx(tx *sql.Tx) *repository.Repository {
+func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 	return repository.NewRepository(db.New(tx))
+}
+
+// Pool returns the underlying pgx connection pool.
+func (s *ServiceContext) Pool() *pgxpool.Pool {
+	return s.pool
 }
 
 func (s *ServiceContext) Close() {
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
 	}
-	if s.sqlDB != nil {
-		_ = s.sqlDB.Close()
+	if s.pool != nil {
+		s.pool.Close()
 	}
 }

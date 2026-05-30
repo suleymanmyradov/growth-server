@@ -7,11 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countActivities = `-- name: CountActivities :one
@@ -19,7 +17,7 @@ SELECT COUNT(*) FROM activities
 `
 
 func (q *Queries) CountActivities(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActivities)
+	row := q.db.QueryRow(ctx, countActivities)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -30,7 +28,7 @@ SELECT COUNT(*) FROM activities WHERE user_id = $1
 `
 
 func (q *Queries) CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActivitiesByUser, userID)
+	row := q.db.QueryRow(ctx, countActivitiesByUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -40,13 +38,8 @@ const countActivitiesByUserAndType = `-- name: CountActivitiesByUserAndType :one
 SELECT COUNT(*) FROM activities WHERE user_id = $1 AND item_type = $2
 `
 
-type CountActivitiesByUserAndTypeParams struct {
-	UserID   uuid.UUID    `db:"user_id" json:"user_id"`
-	ItemType ActivityType `db:"item_type" json:"item_type"`
-}
-
-func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActivitiesByUserAndType, arg.UserID, arg.ItemType)
+func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType ActivityType) (int64, error) {
+	row := q.db.QueryRow(ctx, countActivitiesByUserAndType, userID, itemType)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -59,15 +52,15 @@ RETURNING id, item_type, title, description, metadata, user_id, created_at
 `
 
 type CreateActivityParams struct {
-	ItemType    ActivityType          `db:"item_type" json:"item_type"`
-	Title       string                `db:"title" json:"title"`
-	Description sql.NullString        `db:"description" json:"description"`
-	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID             `db:"user_id" json:"user_id"`
+	ItemType    ActivityType `db:"item_type" json:"item_type"`
+	Title       string       `db:"title" json:"title"`
+	Description *string      `db:"description" json:"description"`
+	Metadata    []byte       `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID    `db:"user_id" json:"user_id"`
 }
 
 func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error) {
-	row := q.db.QueryRowContext(ctx, createActivity,
+	row := q.db.QueryRow(ctx, createActivity,
 		arg.ItemType,
 		arg.Title,
 		arg.Description,
@@ -92,7 +85,7 @@ DELETE FROM activities WHERE user_id = $1
 `
 
 func (q *Queries) DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteActivitiesByUser, userID)
+	_, err := q.db.Exec(ctx, deleteActivitiesByUser, userID)
 	return err
 }
 
@@ -101,7 +94,7 @@ DELETE FROM activities WHERE id = $1
 `
 
 func (q *Queries) DeleteActivity(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteActivity, id)
+	_, err := q.db.Exec(ctx, deleteActivity, id)
 	return err
 }
 
@@ -132,15 +125,15 @@ ORDER BY unlocked_at NULLS LAST
 `
 
 type GetAchievementsRow struct {
-	ID          string         `db:"id" json:"id"`
-	Name        string         `db:"name" json:"name"`
-	Description string         `db:"description" json:"description"`
-	IconUrl     sql.NullString `db:"icon_url" json:"icon_url"`
-	UnlockedAt  interface{}    `db:"unlocked_at" json:"unlocked_at"`
+	ID          string      `db:"id" json:"id"`
+	Name        string      `db:"name" json:"name"`
+	Description string      `db:"description" json:"description"`
+	IconUrl     *string     `db:"icon_url" json:"icon_url"`
+	UnlockedAt  interface{} `db:"unlocked_at" json:"unlocked_at"`
 }
 
 func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAchievements, userID)
+	rows, err := q.db.Query(ctx, getAchievements, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,9 +152,6 @@ func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetA
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -173,7 +163,7 @@ SELECT id, item_type, title, description, metadata, user_id, created_at FROM act
 `
 
 func (q *Queries) GetActivity(ctx context.Context, id uuid.UUID) (Activity, error) {
-	row := q.db.QueryRowContext(ctx, getActivity, id)
+	row := q.db.QueryRow(ctx, getActivity, id)
 	var i Activity
 	err := row.Scan(
 		&i.ID,
@@ -198,19 +188,13 @@ GROUP BY 1
 ORDER BY day
 `
 
-type GetActivityCalendarParams struct {
-	UserID      uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	CreatedAt_2 time.Time `db:"created_at_2" json:"created_at_2"`
-}
-
 type GetActivityCalendarRow struct {
-	Day           time.Time `db:"day" json:"day"`
-	ActivityCount int64     `db:"activity_count" json:"activity_count"`
+	Day           pgtype.Date `db:"day" json:"day"`
+	ActivityCount int64       `db:"activity_count" json:"activity_count"`
 }
 
-func (q *Queries) GetActivityCalendar(ctx context.Context, arg GetActivityCalendarParams) ([]GetActivityCalendarRow, error) {
-	rows, err := q.db.QueryContext(ctx, getActivityCalendar, arg.UserID, arg.CreatedAt, arg.CreatedAt_2)
+func (q *Queries) GetActivityCalendar(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetActivityCalendarRow, error) {
+	rows, err := q.db.Query(ctx, getActivityCalendar, userID, createdAt, createdAt_2)
 	if err != nil {
 		return nil, err
 	}
@@ -222,9 +206,6 @@ func (q *Queries) GetActivityCalendar(ctx context.Context, arg GetActivityCalend
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -240,14 +221,8 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type GetActivityFeedParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) GetActivityFeed(ctx context.Context, arg GetActivityFeedParams) ([]Activity, error) {
-	rows, err := q.db.QueryContext(ctx, getActivityFeed, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, getActivityFeed, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -267,9 +242,6 @@ func (q *Queries) GetActivityFeed(ctx context.Context, arg GetActivityFeedParams
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -301,7 +273,7 @@ type GetActivityStatsRow struct {
 }
 
 func (q *Queries) GetActivityStats(ctx context.Context, userID uuid.UUID) (GetActivityStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getActivityStats, userID)
+	row := q.db.QueryRow(ctx, getActivityStats, userID)
 	var i GetActivityStatsRow
 	err := row.Scan(
 		&i.TotalActivities,
@@ -348,7 +320,7 @@ type GetStreaksRow struct {
 // Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 // Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error) {
-	row := q.db.QueryRowContext(ctx, getStreaks, userID)
+	row := q.db.QueryRow(ctx, getStreaks, userID)
 	var i GetStreaksRow
 	err := row.Scan(&i.CurrentStreak, &i.LongestStreak)
 	return i, err
@@ -361,15 +333,9 @@ ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-type ListActivitiesParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
 // NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
-func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error) {
-	rows, err := q.db.QueryContext(ctx, listActivities, arg.UserID, arg.Limit, arg.Offset)
+func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, listActivities, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -390,9 +356,6 @@ func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) 
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -405,19 +368,12 @@ ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-type ListActivitiesByTypeParams struct {
-	UserID   uuid.UUID    `db:"user_id" json:"user_id"`
-	ItemType ActivityType `db:"item_type" json:"item_type"`
-	Limit    int32        `db:"limit" json:"limit"`
-	Offset   int32        `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error) {
-	rows, err := q.db.QueryContext(ctx, listActivitiesByType,
-		arg.UserID,
-		arg.ItemType,
-		arg.Limit,
-		arg.Offset,
+func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType ActivityType, limit int32, offset int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, listActivitiesByType,
+		userID,
+		itemType,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, err
@@ -439,29 +395,29 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, arg ListActivitiesBy
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 	return items, nil
 }
 
-const listActivitiesByUser = `-- name: ListActivitiesByUser :many
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
+const listActivitiesByTypes = `-- name: ListActivitiesByTypes :many
+SELECT id, item_type, title, description, metadata, user_id, created_at
+FROM activities
+WHERE user_id = $1
+  AND item_type = ANY($2::activity_type[])
 ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+LIMIT $3 OFFSET $4
 `
 
-type ListActivitiesByUserParams struct {
-	UserID uuid.UUID `db:"user_id" json:"user_id"`
-	Limit  int32     `db:"limit" json:"limit"`
-	Offset int32     `db:"offset" json:"offset"`
-}
-
-func (q *Queries) ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error) {
-	rows, err := q.db.QueryContext(ctx, listActivitiesByUser, arg.UserID, arg.Limit, arg.Offset)
+// Filter activities by multiple types in a single round-trip.
+func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, column2 []ActivityType, limit int32, offset int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, listActivitiesByTypes,
+		userID,
+		column2,
+		limit,
+		offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -482,8 +438,39 @@ func (q *Queries) ListActivitiesByUser(ctx context.Context, arg ListActivitiesBy
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
+	}
+	return items, nil
+}
+
+const listActivitiesByUser = `-- name: ListActivitiesByUser :many
+SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3
+`
+
+func (q *Queries) ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, listActivitiesByUser, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Activity{}
+	for rows.Next() {
+		var i Activity
+		if err := rows.Scan(
+			&i.ID,
+			&i.ItemType,
+			&i.Title,
+			&i.Description,
+			&i.Metadata,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -498,15 +485,15 @@ RETURNING id, item_type, title, description, metadata, user_id, created_at
 `
 
 type LogActivityParams struct {
-	ItemType    ActivityType          `db:"item_type" json:"item_type"`
-	Title       string                `db:"title" json:"title"`
-	Description sql.NullString        `db:"description" json:"description"`
-	Metadata    pqtype.NullRawMessage `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID             `db:"user_id" json:"user_id"`
+	ItemType    ActivityType `db:"item_type" json:"item_type"`
+	Title       string       `db:"title" json:"title"`
+	Description *string      `db:"description" json:"description"`
+	Metadata    []byte       `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID    `db:"user_id" json:"user_id"`
 }
 
 func (q *Queries) LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error) {
-	row := q.db.QueryRowContext(ctx, logActivity,
+	row := q.db.QueryRow(ctx, logActivity,
 		arg.ItemType,
 		arg.Title,
 		arg.Description,

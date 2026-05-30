@@ -82,25 +82,38 @@ SELECT COUNT(*) FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1;
 
+-- TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings
+-- is unconditionally applied. sqlc cannot compile these queries without the vector type.
 -- name: SearchArticlesSemantic :many
 -- Semantic search using pgvector cosine similarity.
 -- $1 is the query embedding vector(1536); $2 is the similarity threshold (e.g. 0.7); $3 is the limit.
+-- SELECT
+--     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+--     a.published_at, a.created_at, a.updated_at,
+--     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+--     1 - (a.embedding <=> $1) AS similarity
+-- FROM articles a
+-- LEFT JOIN categories c ON a.category_id = c.id
+-- WHERE a.embedding IS NOT NULL
+--   AND 1 - (a.embedding <=> $1) >= $2
+-- ORDER BY a.embedding <=> $1
+-- LIMIT $3;
+
+-- name: GetArticlesByIDs :many
+-- Bulk lookup for article list views (e.g. resolving saved articles).
+-- Uses ANY with a uuid array to avoid N+1 queries.
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    1 - (a.embedding <=> $1) AS similarity
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
-WHERE a.embedding IS NOT NULL
-  AND 1 - (a.embedding <=> $1) >= $2
-ORDER BY a.embedding <=> $1
-LIMIT $3;
+WHERE a.id = ANY($1::uuid[]);
 
 -- name: UpdateArticleEmbedding :exec
 -- Update the embedding vector for an article after AI processing.
-UPDATE articles
-SET embedding = $2,
-    ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || $3::jsonb,
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = $1;
+-- UPDATE articles
+-- SET embedding = $2,
+--     ai_metadata = COALESCE(ai_metadata, '{}'::jsonb) || $3::jsonb,
+--     updated_at = CURRENT_TIMESTAMP
+-- WHERE id = $1;

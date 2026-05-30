@@ -2,7 +2,6 @@ package billingservicelogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -46,15 +45,37 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 		metadata = json.RawMessage(in.MetadataJson)
 	}
 
+	var trigger *string
+	if in.Trigger != "" {
+		trigger = &in.Trigger
+	}
+	var planCode *string
+	if in.PlanCode != "" {
+		planCode = &in.PlanCode
+	}
+	var billingInterval *db.BillingIntervalType
+	if in.BillingInterval != "" {
+		bi := db.BillingIntervalType(in.BillingInterval)
+		billingInterval = &bi
+	}
+	var feedbackReason *string
+	if in.FeedbackReason != "" {
+		feedbackReason = &in.FeedbackReason
+	}
+	var feedbackNote *string
+	if in.FeedbackNote != "" {
+		feedbackNote = &in.FeedbackNote
+	}
+
 	event, err := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
 		UserID:          userID,
 		EventType:       db.UpgradeEventType(in.EventType),
 		Surface:         in.Surface,
-		Trigger:         stringToNullString(in.Trigger),
-		PlanCode:        stringToNullString(in.PlanCode),
-		BillingInterval: stringToNullBillingInterval(in.BillingInterval),
-		FeedbackReason:  stringToNullString(in.FeedbackReason),
-		FeedbackNote:    stringToNullString(in.FeedbackNote),
+		Trigger:         trigger,
+		PlanCode:        planCode,
+		BillingInterval: billingInterval,
+		FeedbackReason:  feedbackReason,
+		FeedbackNote:    feedbackNote,
 		Metadata:        metadata,
 	})
 	if err != nil {
@@ -65,18 +86,4 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 	return &client.TrackUpgradeEventResponse{
 		EventId: event.ID.String(),
 	}, nil
-}
-
-func stringToNullString(s string) sql.NullString {
-	if s == "" {
-		return sql.NullString{}
-	}
-	return sql.NullString{String: s, Valid: true}
-}
-
-func stringToNullBillingInterval(s string) db.NullBillingIntervalType {
-	if s == "" {
-		return db.NullBillingIntervalType{}
-	}
-	return db.NullBillingIntervalType{BillingIntervalType: db.BillingIntervalType(s), Valid: true}
 }

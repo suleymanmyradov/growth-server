@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -13,11 +14,15 @@ import (
 type EntitlementsResult = repository.EntitlementsResult
 
 func planToProto(p db.Plan) *client.Plan {
+	description := ""
+	if p.Description != nil {
+		description = *p.Description
+	}
 	return &client.Plan{
 		Id:                       p.ID.String(),
 		Code:                     p.Code,
 		Name:                     p.Name,
-		Description:              nullStringValue(p.Description),
+		Description:              description,
 		PriceMonthlyCents:        p.PriceMonthlyCents,
 		PriceAnnualCents:         p.PriceAnnualCents,
 		ActiveGoalLimit:          nullInt32Value(p.ActiveGoalLimit),
@@ -30,6 +35,10 @@ func planToProto(p db.Plan) *client.Plan {
 }
 
 func subscriptionToProto(sub db.GetUserSubscriptionRow) *client.UserSubscription {
+	billingInterval := ""
+	if sub.BillingInterval != nil {
+		billingInterval = string(*sub.BillingInterval)
+	}
 	return &client.UserSubscription{
 		Id:                   sub.ID.String(),
 		UserId:               sub.UserID.String(),
@@ -37,13 +46,13 @@ func subscriptionToProto(sub db.GetUserSubscriptionRow) *client.UserSubscription
 		PlanCode:             sub.PlanCode,
 		PlanName:             sub.PlanName,
 		Status:               string(sub.Status),
-		BillingInterval:      nullStringValue(sql.NullString{String: string(sub.BillingInterval.BillingIntervalType), Valid: sub.BillingInterval.Valid}),
-		CurrentPeriodStart:   nullTimeValue(sub.CurrentPeriodStart),
-		CurrentPeriodEnd:     nullTimeValue(sub.CurrentPeriodEnd),
-		TrialEnd:             nullTimeValue(sub.TrialEnd),
+		BillingInterval:      billingInterval,
+		CurrentPeriodStart:   pgtypeTimestamptzToString(sub.CurrentPeriodStart),
+		CurrentPeriodEnd:     pgtypeTimestamptzToString(sub.CurrentPeriodEnd),
+		TrialEnd:             pgtypeTimestamptzToString(sub.TrialEnd),
 		CancelAtPeriodEnd:    sub.CancelAtPeriodEnd,
-		StripeCustomerId:     nullStringValue(sub.StripeCustomerID),
-		StripeSubscriptionId: nullStringValue(sub.StripeSubscriptionID),
+		StripeCustomerId:     stringPtrToString(sub.StripeCustomerID),
+		StripeSubscriptionId: stringPtrToString(sub.StripeSubscriptionID),
 	}
 }
 
@@ -74,14 +83,18 @@ func nullStringValue(v sql.NullString) string {
 	return ""
 }
 
-func nullInt32Value(v sql.NullInt32) int32 {
-	if v.Valid {
-		return v.Int32
-	}
-	return 0
+func nullInt32Value(v int32) int32 {
+	return v
 }
 
-func nullTimeValue(v sql.NullTime) string {
+func stringPtrToString(v *string) string {
+	if v != nil {
+		return *v
+	}
+	return ""
+}
+
+func pgtypeTimestamptzToString(v pgtype.Timestamptz) string {
 	if v.Valid {
 		return v.Time.Format(time.RFC3339)
 	}

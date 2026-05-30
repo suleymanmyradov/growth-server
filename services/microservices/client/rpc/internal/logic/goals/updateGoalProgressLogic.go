@@ -2,10 +2,8 @@ package goalslogic
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -33,12 +31,7 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 		return nil, err
 	}
 
-	params := db.UpdateGoalProgressParams{
-		ID:       goalID,
-		Progress: sql.NullInt32{Int32: in.Progress, Valid: true},
-	}
-
-	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(l.ctx, params)
+	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(l.ctx, goalID, in.Progress)
 	if err != nil {
 		l.Errorf("Failed to update goal progress: %v", err)
 		return nil, err

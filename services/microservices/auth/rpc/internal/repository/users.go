@@ -18,11 +18,11 @@ func NewUsersRepo(dbq *db.Queries) *UsersRepo {
 	return &UsersRepo{db: dbq}
 }
 
-func (r *UsersRepo) CreateUser(ctx context.Context, params db.CreateUserParams) (db.User, error) {
+func (r *UsersRepo) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.CreateUser")
 	defer span.End()
 
-	return r.db.CreateUser(ctx, params)
+	return r.db.CreateUser(ctx, username, email, passwordHash, fullName)
 }
 
 func (r *UsersRepo) GetUserByEmail(ctx context.Context, email string) (db.User, error) {
@@ -46,16 +46,16 @@ func (r *UsersRepo) GetUserByUsername(ctx context.Context, username string) (db.
 	return r.db.GetUserByUsername(ctx, username)
 }
 
-func (r *UsersRepo) UpdateUserPassword(ctx context.Context, params db.UpdateUserPasswordParams) (db.User, error) {
+func (r *UsersRepo) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserPassword")
 	defer span.End()
 
-	return r.db.UpdateUserPassword(ctx, params)
+	return r.db.UpdateUserPassword(ctx, id, passwordHash)
 }
 
-func (r *UsersRepo) UpdateUserFullName(ctx context.Context, params db.UpdateUserFullNameParams) (db.User, error) {
+func (r *UsersRepo) UpdateUserFullName(ctx context.Context, id uuid.UUID, fullName string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserFullName")
 	defer span.End()
 
-	return r.db.UpdateUserFullName(ctx, params)
+	return r.db.UpdateUserFullName(ctx, id, fullName)
 }

@@ -47,8 +47,8 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 		}
 	}
 
-	params := protoToHabitParams(in.Name, in.Description, in.Category, userID)
-	habit, err := l.svcCtx.Repo.Habits.CreateHabit(l.ctx, params)
+	name, desc, category, uid := protoToHabitParams(in.Name, in.Description, in.Category, userID)
+	habit, err := l.svcCtx.Repo.Habits.CreateHabit(l.ctx, name, desc, category, uid)
 	if err != nil {
 		l.Errorf("Failed to create habit: %v", err)
 		return nil, err

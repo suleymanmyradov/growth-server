@@ -2,11 +2,10 @@ package svc
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgxpool"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -20,24 +19,29 @@ type ServiceContext struct {
 	Config     config.Config
 	Repo       *repository.Repository
 	TokenMaker *jwt.TokenMaker
-	TxRunner   *postgres.TxRunner
+	TxRunner   *postgres.PgxTxRunner
 	cancel     context.CancelFunc
-	sqlDB      *sql.DB
+	pool       *pgxpool.Pool
 }
 
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *sql.DB {
-	db, err := sql.Open("postgres", datasource)
+func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
+	config, err := pgxpool.ParseConfig(datasource)
 	if err != nil {
-		panic(fmt.Errorf("postgres open: %w", err))
+		panic(fmt.Errorf("parse pgx config: %w", err))
 	}
-	db.SetMaxOpenConns(maxOpen)
-	db.SetMaxIdleConns(maxIdle)
-	db.SetConnMaxLifetime(maxLifetime)
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		panic(fmt.Errorf("postgres ping: %w", err))
+	config.MaxConns = int32(maxOpen)
+	config.MinConns = int32(maxIdle)
+	config.MaxConnLifetime = maxLifetime
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		panic(fmt.Errorf("pgx pool: %w", err))
 	}
-	return db
+	if err := pool.Ping(context.Background()); err != nil {
+		pool.Close()
+		panic(fmt.Errorf("pgx ping: %w", err))
+	}
+	return pool
 }
 
 func mustNewRedis(addr, password string, db int) *goredis.Client {
@@ -52,11 +56,11 @@ func mustNewRedis(addr, password string, db int) *goredis.Client {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	sqlDB := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 
-	queries := db.New(sqlDB)
+	queries := db.New(pool)
 	repo := repository.NewRepository(queries)
-	txRunner := postgres.NewTxRunner(sqlDB)
+	txRunner := postgres.NewPgxTxRunner(pool)
 
 	redisClient := mustNewRedis(c.Cache.Redis.Addr, c.Cache.Redis.Password, c.Cache.Redis.DB)
 
@@ -89,15 +93,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TokenMaker: tokenMaker,
 		TxRunner:   txRunner,
 		cancel:     cancel,
-		sqlDB:      sqlDB,
+		pool:       pool,
 	}
+}
+
+func (s *ServiceContext) Pool() *pgxpool.Pool {
+	return s.pool
 }
 
 func (s *ServiceContext) Close() {
 	if s.cancel != nil {
 		s.cancel()
 	}
-	if s.sqlDB != nil {
-		_ = s.sqlDB.Close()
+	if s.pool != nil {
+		s.pool.Close()
 	}
 }

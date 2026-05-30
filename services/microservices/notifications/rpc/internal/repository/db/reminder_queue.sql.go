@@ -7,10 +7,9 @@ package db
 
 import (
 	"context"
-	"encoding/json"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const cancelPendingReminderForDate = `-- name: CancelPendingReminderForDate :exec
@@ -21,19 +20,12 @@ WHERE user_id = $1
   AND (scheduled_at AT TIME ZONE $4::text)::date = $3::date
 `
 
-type CancelPendingReminderForDateParams struct {
-	UserID  uuid.UUID    `db:"user_id" json:"user_id"`
-	Type    ReminderType `db:"type" json:"type"`
-	Column3 time.Time    `db:"column_3" json:"column_3"`
-	Column4 string       `db:"column_4" json:"column_4"`
-}
-
-func (q *Queries) CancelPendingReminderForDate(ctx context.Context, arg CancelPendingReminderForDateParams) error {
-	_, err := q.db.ExecContext(ctx, cancelPendingReminderForDate,
-		arg.UserID,
-		arg.Type,
-		arg.Column3,
-		arg.Column4,
+func (q *Queries) CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ ReminderType, column3 pgtype.Date, column4 string) error {
+	_, err := q.db.Exec(ctx, cancelPendingReminderForDate,
+		userID,
+		type_,
+		column3,
+		column4,
 	)
 	return err
 }
@@ -52,13 +44,13 @@ WHERE r.id = due.id
 RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent, r.sent_at, r.metadata, r.created_at, r.updated_at
 `
 
-func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]ReminderQueue, error) {
-	rows, err := q.db.QueryContext(ctx, claimDueReminders, limit)
+func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]*ReminderQueue, error) {
+	rows, err := q.db.Query(ctx, claimDueReminders, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ReminderQueue{}
+	items := []*ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(
@@ -74,10 +66,7 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminde
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -95,19 +84,12 @@ DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
 RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
 `
 
-type EnqueueReminderParams struct {
-	UserID      uuid.UUID       `db:"user_id" json:"user_id"`
-	Type        ReminderType    `db:"type" json:"type"`
-	ScheduledAt time.Time       `db:"scheduled_at" json:"scheduled_at"`
-	Metadata    json.RawMessage `db:"metadata" json:"metadata"`
-}
-
-func (q *Queries) EnqueueReminder(ctx context.Context, arg EnqueueReminderParams) (ReminderQueue, error) {
-	row := q.db.QueryRowContext(ctx, enqueueReminder,
-		arg.UserID,
-		arg.Type,
-		arg.ScheduledAt,
-		arg.Metadata,
+func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ ReminderType, scheduledAt pgtype.Timestamptz, metadata []byte) (*ReminderQueue, error) {
+	row := q.db.QueryRow(ctx, enqueueReminder,
+		userID,
+		type_,
+		scheduledAt,
+		metadata,
 	)
 	var i ReminderQueue
 	err := row.Scan(
@@ -121,22 +103,23 @@ func (q *Queries) EnqueueReminder(ctx context.Context, arg EnqueueReminderParams
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	return &i, err
 }
 
 const getPendingByUser = `-- name: GetPendingByUser :many
-SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at FROM reminder_queue
+SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
+FROM reminder_queue
 WHERE user_id = $1 AND sent = FALSE
 ORDER BY scheduled_at
 `
 
-func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error) {
-	rows, err := q.db.QueryContext(ctx, getPendingByUser, userID)
+func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]*ReminderQueue, error) {
+	rows, err := q.db.Query(ctx, getPendingByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ReminderQueue{}
+	items := []*ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(
@@ -152,10 +135,7 @@ func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Rem
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

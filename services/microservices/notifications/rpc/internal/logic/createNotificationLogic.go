@@ -63,14 +63,7 @@ func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNot
 		}
 	}
 
-	params := db.CreateNotificationParams{
-		UserID:   userID,
-		ItemType: db.NotificationType(in.Type),
-		Title:    in.Title,
-		Message:  in.Message,
-	}
-
-	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(l.ctx, params)
+	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(l.ctx, in.Title, in.Message, db.NotificationType(in.Type), userID)
 	if err != nil {
 		l.Errorf("Failed to create notification: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create notification")

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"go.opentelemetry.io/otel"
 )
@@ -24,20 +25,15 @@ func NewRemindersRepo(q *db.Queries) *RemindersRepo {
 // Enqueue inserts or updates a pending reminder for the given user, type, and
 // scheduled date. The partial unique index ensures at most one pending row per
 // (user_id, type, scheduled_at::date).
-func (r *RemindersRepo) Enqueue(ctx context.Context, userID uuid.UUID, reminderType string, scheduledAt time.Time, metadata any) (db.ReminderQueue, error) {
+func (r *RemindersRepo) Enqueue(ctx context.Context, userID uuid.UUID, reminderType string, scheduledAt time.Time, metadata any) (*db.ReminderQueue, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.Enqueue")
 	defer span.End()
 
 	raw, err := json.Marshal(metadata)
 	if err != nil {
-		return db.ReminderQueue{}, fmt.Errorf("marshal metadata: %w", err)
+		return nil, fmt.Errorf("marshal metadata: %w", err)
 	}
-	return r.db.EnqueueReminder(ctx, db.EnqueueReminderParams{
-		UserID:      userID,
-		Type:        db.ReminderType(reminderType),
-		ScheduledAt: scheduledAt,
-		Metadata:    raw,
-	})
+	return r.db.EnqueueReminder(ctx, userID, db.ReminderType(reminderType), pgtype.Timestamptz{Time: scheduledAt, Valid: true}, raw)
 }
 
 // CancelPendingForDate deletes the unsent reminder for (user, type, day).
@@ -46,23 +42,22 @@ func (r *RemindersRepo) CancelPendingForDate(ctx context.Context, userID uuid.UU
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.CancelPendingForDate")
 	defer span.End()
 
-	return r.db.CancelPendingReminderForDate(ctx, db.CancelPendingReminderForDateParams{
-		UserID:  userID,
-		Type:    db.ReminderType(reminderType),
-		Column3: day,
-		Column4: timezone,
-	})
+	pgDay := pgtype.Date{Valid: true}
+	if err := pgDay.Scan(day); err != nil {
+		return fmt.Errorf("convert day to pgtype.Date: %w", err)
+	}
+	return r.db.CancelPendingReminderForDate(ctx, userID, db.ReminderType(reminderType), pgDay, timezone)
 }
 
 // ClaimDue selects up to limit unsent reminders that are due, marks them sent,
 // and returns them. Uses FOR UPDATE SKIP LOCKED so multiple instances don't
 // claim the same rows.
-func (r *RemindersRepo) ClaimDue(ctx context.Context, limit int32) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) ClaimDue(ctx context.Context, limit int32) ([]*db.ReminderQueue, error) {
 	return r.ClaimDueReminders(ctx, limit)
 }
 
 // ClaimDueReminders delegates to the sqlc-generated query.
-func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]*db.ReminderQueue, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.ClaimDue")
 	defer span.End()
 
@@ -70,7 +65,7 @@ func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]d
 }
 
 // GetPendingByUser returns all unsent reminders for the given user.
-func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]*db.ReminderQueue, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.GetPendingByUser")
 	defer span.End()
 
@@ -79,7 +74,7 @@ func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) 
 
 // GetContext loads the user settings and habit/check-in state needed to decide
 // whether a reminder should fire.
-func (r *RemindersRepo) GetContext(ctx context.Context, userID uuid.UUID) (db.GetReminderContextRow, error) {
+func (r *RemindersRepo) GetContext(ctx context.Context, userID uuid.UUID) (*db.GetReminderContextRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.GetContext")
 	defer span.End()
 
@@ -87,7 +82,7 @@ func (r *RemindersRepo) GetContext(ctx context.Context, userID uuid.UUID) (db.Ge
 }
 
 // MarkSent marks a single reminder as sent by ID.
-func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (db.ReminderQueue, error) {
+func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (*db.ReminderQueue, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.MarkSent")
 	defer span.End()
 

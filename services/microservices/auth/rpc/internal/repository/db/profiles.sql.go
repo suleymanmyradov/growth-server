@@ -7,10 +7,8 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
-	"github.com/lib/pq"
 )
 
 const createProfile = `-- name: CreateProfile :one
@@ -20,21 +18,21 @@ RETURNING id, user_id, bio, location, website, interests, avatar_url, created_at
 `
 
 type CreateProfileParams struct {
-	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
-	Bio       sql.NullString `db:"bio" json:"bio"`
-	Location  sql.NullString `db:"location" json:"location"`
-	Website   sql.NullString `db:"website" json:"website"`
-	Interests []string       `db:"interests" json:"interests"`
-	AvatarUrl sql.NullString `db:"avatar_url" json:"avatar_url"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	Bio       *string   `db:"bio" json:"bio"`
+	Location  *string   `db:"location" json:"location"`
+	Website   *string   `db:"website" json:"website"`
+	Interests []string  `db:"interests" json:"interests"`
+	AvatarUrl *string   `db:"avatar_url" json:"avatar_url"`
 }
 
 func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (Profile, error) {
-	row := q.db.QueryRowContext(ctx, createProfile,
+	row := q.db.QueryRow(ctx, createProfile,
 		arg.UserID,
 		arg.Bio,
 		arg.Location,
 		arg.Website,
-		pq.Array(arg.Interests),
+		arg.Interests,
 		arg.AvatarUrl,
 	)
 	var i Profile
@@ -44,7 +42,7 @@ func (q *Queries) CreateProfile(ctx context.Context, arg CreateProfileParams) (P
 		&i.Bio,
 		&i.Location,
 		&i.Website,
-		pq.Array(&i.Interests),
+		&i.Interests,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -59,7 +57,7 @@ WHERE user_id = $1
 `
 
 func (q *Queries) GetProfileByUserID(ctx context.Context, userID uuid.UUID) (Profile, error) {
-	row := q.db.QueryRowContext(ctx, getProfileByUserID, userID)
+	row := q.db.QueryRow(ctx, getProfileByUserID, userID)
 	var i Profile
 	err := row.Scan(
 		&i.ID,
@@ -67,7 +65,7 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, userID uuid.UUID) (Pro
 		&i.Bio,
 		&i.Location,
 		&i.Website,
-		pq.Array(&i.Interests),
+		&i.Interests,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -88,21 +86,21 @@ RETURNING id, user_id, bio, location, website, interests, avatar_url, created_at
 `
 
 type UpdateProfileParams struct {
-	UserID    uuid.UUID      `db:"user_id" json:"user_id"`
-	Bio       sql.NullString `db:"bio" json:"bio"`
-	Location  sql.NullString `db:"location" json:"location"`
-	Website   sql.NullString `db:"website" json:"website"`
-	Interests []string       `db:"interests" json:"interests"`
-	AvatarUrl sql.NullString `db:"avatar_url" json:"avatar_url"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+	Bio       *string   `db:"bio" json:"bio"`
+	Location  *string   `db:"location" json:"location"`
+	Website   *string   `db:"website" json:"website"`
+	Interests []string  `db:"interests" json:"interests"`
+	AvatarUrl *string   `db:"avatar_url" json:"avatar_url"`
 }
 
 func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (Profile, error) {
-	row := q.db.QueryRowContext(ctx, updateProfile,
+	row := q.db.QueryRow(ctx, updateProfile,
 		arg.UserID,
 		arg.Bio,
 		arg.Location,
 		arg.Website,
-		pq.Array(arg.Interests),
+		arg.Interests,
 		arg.AvatarUrl,
 	)
 	var i Profile
@@ -112,7 +110,7 @@ func (q *Queries) UpdateProfile(ctx context.Context, arg UpdateProfileParams) (P
 		&i.Bio,
 		&i.Location,
 		&i.Website,
-		pq.Array(&i.Interests),
+		&i.Interests,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,

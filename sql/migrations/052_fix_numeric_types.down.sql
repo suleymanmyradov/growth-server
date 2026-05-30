@@ -1,0 +1,1 @@
+-- No-op down migration; no schema changes were made.

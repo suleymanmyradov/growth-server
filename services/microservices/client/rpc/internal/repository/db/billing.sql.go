@@ -7,11 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countActiveGoalsForUser = `-- name: CountActiveGoalsForUser :one
@@ -20,7 +18,7 @@ WHERE user_id = $1 AND status != 'completed'
 `
 
 func (q *Queries) CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActiveGoalsForUser, userID)
+	row := q.db.QueryRow(ctx, countActiveGoalsForUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -32,7 +30,7 @@ WHERE user_id = $1
 `
 
 func (q *Queries) CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countActiveHabitsForUser, userID)
+	row := q.db.QueryRow(ctx, countActiveHabitsForUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -44,7 +42,7 @@ WHERE user_id = $1 AND status = 'pending'
 `
 
 func (q *Queries) CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRowContext(ctx, countPendingPlanAdjustmentsForUser, userID)
+	row := q.db.QueryRow(ctx, countPendingPlanAdjustmentsForUser, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -60,7 +58,7 @@ RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, 
 `
 
 func (q *Queries) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (UserSubscription, error) {
-	row := q.db.QueryRowContext(ctx, createDefaultFreeSubscription, userID)
+	row := q.db.QueryRow(ctx, createDefaultFreeSubscription, userID)
 	var i UserSubscription
 	err := row.Scan(
 		&i.ID,
@@ -98,23 +96,38 @@ VALUES (
     (SELECT id FROM plans WHERE code = $5),
     $6, $7, $8, $9
 )
-RETURNING id, user_id, event_type, surface, trigger, plan_code, billing_interval, feedback_reason, feedback_note, metadata, created_at, plan_id
+RETURNING id, user_id, event_type, surface, trigger, plan_code, plan_id, billing_interval, feedback_reason, feedback_note, metadata, created_at
 `
 
 type CreateUpgradeEventParams struct {
-	UserID          uuid.UUID               `db:"user_id" json:"user_id"`
-	EventType       UpgradeEventType        `db:"event_type" json:"event_type"`
-	Surface         string                  `db:"surface" json:"surface"`
-	Trigger         sql.NullString          `db:"trigger" json:"trigger"`
-	PlanCode        sql.NullString          `db:"plan_code" json:"plan_code"`
-	BillingInterval NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	FeedbackReason  sql.NullString          `db:"feedback_reason" json:"feedback_reason"`
-	FeedbackNote    sql.NullString          `db:"feedback_note" json:"feedback_note"`
-	Metadata        json.RawMessage         `db:"metadata" json:"metadata"`
+	UserID          uuid.UUID            `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType     `db:"event_type" json:"event_type"`
+	Surface         string               `db:"surface" json:"surface"`
+	Trigger         *string              `db:"trigger" json:"trigger"`
+	PlanCode        *string              `db:"plan_code" json:"plan_code"`
+	BillingInterval *BillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  *string              `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    *string              `db:"feedback_note" json:"feedback_note"`
+	Metadata        []byte               `db:"metadata" json:"metadata"`
 }
 
-func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (UpgradeEvent, error) {
-	row := q.db.QueryRowContext(ctx, createUpgradeEvent,
+type CreateUpgradeEventRow struct {
+	ID              uuid.UUID            `db:"id" json:"id"`
+	UserID          uuid.UUID            `db:"user_id" json:"user_id"`
+	EventType       UpgradeEventType     `db:"event_type" json:"event_type"`
+	Surface         string               `db:"surface" json:"surface"`
+	Trigger         *string              `db:"trigger" json:"trigger"`
+	PlanCode        *string              `db:"plan_code" json:"plan_code"`
+	PlanID          uuid.NullUUID        `db:"plan_id" json:"plan_id"`
+	BillingInterval *BillingIntervalType `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  *string              `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    *string              `db:"feedback_note" json:"feedback_note"`
+	Metadata        []byte               `db:"metadata" json:"metadata"`
+	CreatedAt       pgtype.Timestamptz   `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (CreateUpgradeEventRow, error) {
+	row := q.db.QueryRow(ctx, createUpgradeEvent,
 		arg.UserID,
 		arg.EventType,
 		arg.Surface,
@@ -125,7 +138,7 @@ func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEvent
 		arg.FeedbackNote,
 		arg.Metadata,
 	)
-	var i UpgradeEvent
+	var i CreateUpgradeEventRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -133,23 +146,24 @@ func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEvent
 		&i.Surface,
 		&i.Trigger,
 		&i.PlanCode,
+		&i.PlanID,
 		&i.BillingInterval,
 		&i.FeedbackReason,
 		&i.FeedbackNote,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.PlanID,
 	)
 	return i, err
 }
 
 const getPlanByCode = `-- name: GetPlanByCode :one
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+FROM plans
 WHERE code = $1 AND is_active = TRUE
 `
 
 func (q *Queries) GetPlanByCode(ctx context.Context, code string) (Plan, error) {
-	row := q.db.QueryRowContext(ctx, getPlanByCode, code)
+	row := q.db.QueryRow(ctx, getPlanByCode, code)
 	var i Plan
 	err := row.Scan(
 		&i.ID,
@@ -188,30 +202,30 @@ WHERE us.user_id = $1
 `
 
 type GetUserSubscriptionRow struct {
-	ID                       uuid.UUID               `db:"id" json:"id"`
-	UserID                   uuid.UUID               `db:"user_id" json:"user_id"`
-	PlanID                   uuid.UUID               `db:"plan_id" json:"plan_id"`
-	Status                   SubscriptionStatusType  `db:"status" json:"status"`
-	BillingInterval          NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart       sql.NullTime            `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd         sql.NullTime            `db:"current_period_end" json:"current_period_end"`
-	TrialEnd                 sql.NullTime            `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd        bool                    `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID         sql.NullString          `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID     sql.NullString          `db:"stripe_subscription_id" json:"stripe_subscription_id"`
-	CreatedAt                time.Time               `db:"created_at" json:"created_at"`
-	UpdatedAt                time.Time               `db:"updated_at" json:"updated_at"`
-	PlanCode                 string                  `db:"plan_code" json:"plan_code"`
-	PlanName                 string                  `db:"plan_name" json:"plan_name"`
-	ActiveGoalLimit          sql.NullInt32           `db:"active_goal_limit" json:"active_goal_limit"`
-	ActiveHabitLimit         sql.NullInt32           `db:"active_habit_limit" json:"active_habit_limit"`
-	WeeklyReviewHistoryLimit sql.NullInt32           `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
-	PlanAdjustmentLimit      sql.NullInt32           `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
-	PersonalizedAiEnabled    bool                    `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+	ID                       uuid.UUID              `db:"id" json:"id"`
+	UserID                   uuid.UUID              `db:"user_id" json:"user_id"`
+	PlanID                   uuid.UUID              `db:"plan_id" json:"plan_id"`
+	Status                   SubscriptionStatusType `db:"status" json:"status"`
+	BillingInterval          *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart       pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd         pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                 pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd        bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID         *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID     *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt                pgtype.Timestamptz     `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz     `db:"updated_at" json:"updated_at"`
+	PlanCode                 string                 `db:"plan_code" json:"plan_code"`
+	PlanName                 string                 `db:"plan_name" json:"plan_name"`
+	ActiveGoalLimit          int32                  `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32                  `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32                  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32                  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool                   `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
 }
 
 func (q *Queries) GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserSubscription, userID)
+	row := q.db.QueryRow(ctx, getUserSubscription, userID)
 	var i GetUserSubscriptionRow
 	err := row.Scan(
 		&i.ID,
@@ -254,30 +268,30 @@ WHERE us.stripe_customer_id = $1
 `
 
 type GetUserSubscriptionByStripeCustomerIDRow struct {
-	ID                       uuid.UUID               `db:"id" json:"id"`
-	UserID                   uuid.UUID               `db:"user_id" json:"user_id"`
-	PlanID                   uuid.UUID               `db:"plan_id" json:"plan_id"`
-	Status                   SubscriptionStatusType  `db:"status" json:"status"`
-	BillingInterval          NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart       sql.NullTime            `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd         sql.NullTime            `db:"current_period_end" json:"current_period_end"`
-	TrialEnd                 sql.NullTime            `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd        bool                    `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID         sql.NullString          `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID     sql.NullString          `db:"stripe_subscription_id" json:"stripe_subscription_id"`
-	CreatedAt                time.Time               `db:"created_at" json:"created_at"`
-	UpdatedAt                time.Time               `db:"updated_at" json:"updated_at"`
-	PlanCode                 string                  `db:"plan_code" json:"plan_code"`
-	PlanName                 string                  `db:"plan_name" json:"plan_name"`
-	ActiveGoalLimit          sql.NullInt32           `db:"active_goal_limit" json:"active_goal_limit"`
-	ActiveHabitLimit         sql.NullInt32           `db:"active_habit_limit" json:"active_habit_limit"`
-	WeeklyReviewHistoryLimit sql.NullInt32           `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
-	PlanAdjustmentLimit      sql.NullInt32           `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
-	PersonalizedAiEnabled    bool                    `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+	ID                       uuid.UUID              `db:"id" json:"id"`
+	UserID                   uuid.UUID              `db:"user_id" json:"user_id"`
+	PlanID                   uuid.UUID              `db:"plan_id" json:"plan_id"`
+	Status                   SubscriptionStatusType `db:"status" json:"status"`
+	BillingInterval          *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart       pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd         pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                 pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd        bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID         *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID     *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt                pgtype.Timestamptz     `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz     `db:"updated_at" json:"updated_at"`
+	PlanCode                 string                 `db:"plan_code" json:"plan_code"`
+	PlanName                 string                 `db:"plan_name" json:"plan_name"`
+	ActiveGoalLimit          int32                  `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32                  `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32                  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32                  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool                   `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
 }
 
-func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (GetUserSubscriptionByStripeCustomerIDRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserSubscriptionByStripeCustomerID, stripeCustomerID)
+func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (GetUserSubscriptionByStripeCustomerIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserSubscriptionByStripeCustomerID, stripeCustomerID)
 	var i GetUserSubscriptionByStripeCustomerIDRow
 	err := row.Scan(
 		&i.ID,
@@ -305,13 +319,14 @@ func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, str
 }
 
 const listActivePlans = `-- name: ListActivePlans :many
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+FROM plans
 WHERE is_active = TRUE
 ORDER BY price_monthly_cents ASC
 `
 
 func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
-	rows, err := q.db.QueryContext(ctx, listActivePlans)
+	rows, err := q.db.Query(ctx, listActivePlans)
 	if err != nil {
 		return nil, err
 	}
@@ -340,9 +355,6 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 			return nil, err
 		}
 		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -380,20 +392,20 @@ RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, 
 `
 
 type UpsertUserSubscriptionParams struct {
-	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
-	PlanID               uuid.UUID               `db:"plan_id" json:"plan_id"`
-	Status               SubscriptionStatusType  `db:"status" json:"status"`
-	BillingInterval      NullBillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart   sql.NullTime            `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd     sql.NullTime            `db:"current_period_end" json:"current_period_end"`
-	TrialEnd             sql.NullTime            `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd    bool                    `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID     sql.NullString          `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID sql.NullString          `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	UserID               uuid.UUID              `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID              `db:"plan_id" json:"plan_id"`
+	Status               SubscriptionStatusType `db:"status" json:"status"`
+	BillingInterval      *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID     *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 }
 
 func (q *Queries) UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (UserSubscription, error) {
-	row := q.db.QueryRowContext(ctx, upsertUserSubscription,
+	row := q.db.QueryRow(ctx, upsertUserSubscription,
 		arg.UserID,
 		arg.PlanID,
 		arg.Status,

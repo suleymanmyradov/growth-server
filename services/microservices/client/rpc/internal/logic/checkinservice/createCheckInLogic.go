@@ -2,12 +2,12 @@ package checkinservicelogic
 
 import (
 	"context"
-	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sqlc-dev/pqtype"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -54,7 +54,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	// Wrap all state-mutating operations in a transaction with RLS context.
 	var checkIn db.CheckIn
 	var habit db.Habit
-	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx *sql.Tx) error {
+	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
 		// Check for duplicate check-in
@@ -103,11 +103,12 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 			activityTitle = fmt.Sprintf("Completed %s", habit.Name)
 		}
 
+		description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
 		_, err = txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
 			ItemType:    db.ActivityType(activityType),
 			Title:       activityTitle,
-			Description: sql.NullString{String: fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name), Valid: true},
-			Metadata:    pqtype.NullRawMessage{},
+			Description: &description,
+			Metadata:    json.RawMessage("{}"),
 			UserID:      userID,
 		})
 		if err != nil {
@@ -131,7 +132,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 				HabitID:   habit.ID.String(),
 				HabitName: habit.Name,
 				Status:    in.Status,
-				Streak:    habit.Streak.Int32,
+				Streak:    habit.Streak,
 			})
 			if err != nil {
 				logx.Errorf("envelope: %v", err)
@@ -227,7 +228,7 @@ If missed: understand the blocker, suggest a small adjustment, protect tomorrow.
 		orDefault(in.Blocker, "None"),
 		orDefault(in.Note, "None"),
 		accountabilityStyle,
-		habit.Streak.Int32,
+		habit.Streak,
 		recentPattern,
 	)
 

@@ -45,13 +45,7 @@ func (l *SaveItemLogic) SaveItem(in *client.SaveItemRequest) (*client.SaveItemRe
 		return nil, err
 	}
 
-	params := db.CreateSavedItemParams{
-		UserID:   userID,
-		ItemID:   itemID,
-		ItemType: db.SavedItemType(in.ItemType),
-	}
-
-	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, params)
+	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, db.SavedItemType(in.ItemType), itemID, userID)
 	if err != nil {
 		l.Errorf("Failed to save item: %v", err)
 		return nil, err

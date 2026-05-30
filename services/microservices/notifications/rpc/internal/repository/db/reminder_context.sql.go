@@ -7,9 +7,9 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const getReminderContext = `-- name: GetReminderContext :one
@@ -37,18 +37,18 @@ GROUP BY usr.tz, usr.check_in_time, usr.habit_reminders, usr.onboarding_complete
 `
 
 type GetReminderContextRow struct {
-	Timezone            string       `db:"timezone" json:"timezone"`
-	CheckInTime         sql.NullTime `db:"check_in_time" json:"check_in_time"`
-	HabitReminders      bool         `db:"habit_reminders" json:"habit_reminders"`
-	OnboardingCompleted bool         `db:"onboarding_completed" json:"onboarding_completed"`
-	ActiveHabitCount    int64        `db:"active_habit_count" json:"active_habit_count"`
-	CheckedInToday      bool         `db:"checked_in_today" json:"checked_in_today"`
+	Timezone            string      `db:"timezone" json:"timezone"`
+	CheckInTime         pgtype.Time `db:"check_in_time" json:"check_in_time"`
+	HabitReminders      bool        `db:"habit_reminders" json:"habit_reminders"`
+	OnboardingCompleted bool        `db:"onboarding_completed" json:"onboarding_completed"`
+	ActiveHabitCount    int64       `db:"active_habit_count" json:"active_habit_count"`
+	CheckedInToday      bool        `db:"checked_in_today" json:"checked_in_today"`
 }
 
 // Optimized: single scan of habits + one lookup of user_settings.
 // Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
-func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error) {
-	row := q.db.QueryRowContext(ctx, getReminderContext, dollar_1)
+func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (*GetReminderContextRow, error) {
+	row := q.db.QueryRow(ctx, getReminderContext, dollar_1)
 	var i GetReminderContextRow
 	err := row.Scan(
 		&i.Timezone,
@@ -58,7 +58,7 @@ func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (G
 		&i.ActiveHabitCount,
 		&i.CheckedInToday,
 	)
-	return i, err
+	return &i, err
 }
 
 const markReminderSent = `-- name: MarkReminderSent :one
@@ -68,8 +68,8 @@ WHERE id = $1
 RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
 `
 
-func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQueue, error) {
-	row := q.db.QueryRowContext(ctx, markReminderSent, id)
+func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (*ReminderQueue, error) {
+	row := q.db.QueryRow(ctx, markReminderSent, id)
 	var i ReminderQueue
 	err := row.Scan(
 		&i.ID,
@@ -82,5 +82,5 @@ func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQ
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return i, err
+	return &i, err
 }

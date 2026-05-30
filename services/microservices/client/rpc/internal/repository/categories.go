@@ -43,24 +43,21 @@ func (r *CategoriesRepo) GetCategoryBySlug(ctx context.Context, slug string, ent
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.GetCategoryBySlug")
 	defer span.End()
 
-	return r.db.GetCategoryBySlug(ctx, db.GetCategoryBySlugParams{
-		Slug:       slug,
-		EntityType: entityType,
-	})
+	return r.db.GetCategoryBySlug(ctx, slug, entityType)
 }
 
-func (r *CategoriesRepo) CreateCategory(ctx context.Context, params db.CreateCategoryParams) (db.Category, error) {
+func (r *CategoriesRepo) CreateCategory(ctx context.Context, name string, slug string, entityType db.EntityType, sortOrder int32) (db.Category, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.CreateCategory")
 	defer span.End()
 
-	return r.db.CreateCategory(ctx, params)
+	return r.db.CreateCategory(ctx, name, slug, entityType, sortOrder)
 }
 
-func (r *CategoriesRepo) UpdateCategory(ctx context.Context, params db.UpdateCategoryParams) (db.Category, error) {
+func (r *CategoriesRepo) UpdateCategory(ctx context.Context, id uuid.UUID, name string, slug string, sortOrder int32) (db.Category, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.UpdateCategory")
 	defer span.End()
 
-	return r.db.UpdateCategory(ctx, params)
+	return r.db.UpdateCategory(ctx, id, name, slug, sortOrder)
 }
 
 func (r *CategoriesRepo) DeleteCategory(ctx context.Context, id uuid.UUID) error {

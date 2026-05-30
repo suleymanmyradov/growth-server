@@ -2,7 +2,6 @@ package personalizationservicelogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 
 	"github.com/google/uuid"
@@ -50,9 +49,9 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 		coachingNotesJSON = json.RawMessage("{}")
 	}
 
-	var primaryMotivation sql.NullString
+	var primaryMotivation *string
 	if in.PrimaryMotivation != "" {
-		primaryMotivation = sql.NullString{String: in.PrimaryMotivation, Valid: true}
+		primaryMotivation = &in.PrimaryMotivation
 	}
 
 	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{

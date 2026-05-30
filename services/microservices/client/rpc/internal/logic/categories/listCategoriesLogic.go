@@ -33,18 +33,14 @@ func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (
 
 	var pbCategories []*client.Category
 	for _, c := range categories {
-		sortOrder := int32(0)
-		if c.SortOrder.Valid {
-			sortOrder = c.SortOrder.Int32
-		}
 		pbCategories = append(pbCategories, &client.Category{
 			Id:         c.ID.String(),
 			Name:       c.Name,
 			Slug:       c.Slug,
 			EntityType: string(c.EntityType),
-			SortOrder:  sortOrder,
-			CreatedAt:  c.CreatedAt.Unix(),
-			UpdatedAt:  c.UpdatedAt.Unix(),
+			SortOrder:  c.SortOrder,
+			CreatedAt:  c.CreatedAt.Time.Unix(),
+			UpdatedAt:  c.UpdatedAt.Time.Unix(),
 		})
 	}
 

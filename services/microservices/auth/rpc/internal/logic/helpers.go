@@ -1,36 +1,52 @@
 package logic
 
 import (
-	"database/sql"
 	"strings"
-	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 )
 
-func toNullString(s string) sql.NullString {
+func toNullString(s string) *string {
 	if strings.TrimSpace(s) == "" {
-		return sql.NullString{}
+		return nil
 	}
-	return sql.NullString{String: s, Valid: true}
+	return &s
 }
 
-func formatTime(t time.Time) string {
-	return t.Format(time.RFC3339)
+func formatTime(t pgtype.Timestamptz) string {
+	return t.Time.Format("2006-01-02T15:04:05Z07:00")
 }
 
 func toPbUser(u db.User, p db.Profile) *auth.User {
+	bio := ""
+	if p.Bio != nil {
+		bio = *p.Bio
+	}
+	location := ""
+	if p.Location != nil {
+		location = *p.Location
+	}
+	website := ""
+	if p.Website != nil {
+		website = *p.Website
+	}
+	avatarUrl := ""
+	if p.AvatarUrl != nil {
+		avatarUrl = *p.AvatarUrl
+	}
+
 	return &auth.User{
 		Id:        u.ID.String(),
 		Username:  u.Username,
 		Email:     u.Email,
 		FullName:  u.FullName,
-		Bio:       p.Bio.String,
-		Location:  p.Location.String,
-		Website:   p.Website.String,
+		Bio:       bio,
+		Location:  location,
+		Website:   website,
 		Interests: p.Interests,
-		AvatarUrl: p.AvatarUrl.String,
+		AvatarUrl: avatarUrl,
 		CreatedAt: formatTime(u.CreatedAt),
 		UpdatedAt: formatTime(u.UpdatedAt),
 	}

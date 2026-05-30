@@ -2,10 +2,10 @@ package logic
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
@@ -48,7 +48,7 @@ func (l *MarkNotificationReadLogic) MarkNotificationRead(in *notifications.MarkN
 	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(l.ctx, notificationID)
 	if err != nil {
 		l.Errorf("Failed to get notification: %v", err)
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "notification not found")
 		}
 		return nil, status.Error(codes.Internal, "failed to get notification")

@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -44,11 +43,7 @@ func (l *ShareArticleLogic) ShareArticle(in *client.ShareArticleRequest) (*clien
 		return nil, err
 	}
 
-	_, err = l.svcCtx.Repo.Articles.CreateArticleShare(l.ctx, db.CreateArticleShareParams{
-		ArticleID: articleID,
-		UserID:    userID,
-		Platform:  in.Platform,
-	})
+	_, err = l.svcCtx.Repo.Articles.CreateArticleShare(l.ctx, articleID, userID, in.Platform)
 	if err != nil {
 		l.Errorf("Failed to create article share: %v", err)
 		return nil, err

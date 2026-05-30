@@ -2,10 +2,10 @@ package goalslogic
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -34,12 +34,21 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		return nil, err
 	}
 
+	var desc *string
+	if in.Description != "" {
+		desc = &in.Description
+	}
+	var dueTime pgtype.Timestamptz
+	if in.DueDate > 0 {
+		dueTime = pgtype.Timestamptz{Time: time.Unix(in.DueDate, 0), Valid: true}
+	}
+
 	params := db.UpdateGoalParams{
 		ID:          goalID,
 		Title:       in.Title,
-		Description: sql.NullString{String: in.Description, Valid: in.Description != ""},
+		Description: desc,
 		Category:    in.Category,
-		DueDate:     sql.NullTime{Time: time.Unix(in.DueDate, 0), Valid: in.DueDate > 0},
+		DueDate:     dueTime,
 	}
 
 	goal, err := l.svcCtx.Repo.Goals.UpdateGoal(l.ctx, params)

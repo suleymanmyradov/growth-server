@@ -6,18 +6,18 @@ package db
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
-	ApplyPlanAdjustmentSuggestion(ctx context.Context, arg ApplyPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error)
 	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountActivitiesByUserAndType(ctx context.Context, arg CountActivitiesByUserAndTypeParams) (int64, error)
+	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType ActivityType) (int64, error)
 	CountAllSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int32, error)
 	CountArticleShares(ctx context.Context) (int64, error)
 	CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
@@ -36,74 +36,78 @@ type Querier interface {
 	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountSavedItemsByUserAndType(ctx context.Context, arg CountSavedItemsByUserAndTypeParams) (int64, error)
+	CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType SavedItemType) (int64, error)
 	CountUserSettings(ctx context.Context) (int64, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
-	CreateArticleShare(ctx context.Context, arg CreateArticleShareParams) (ArticleShare, error)
-	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (ArticleShare, error)
+	CreateCategory(ctx context.Context, name string, slug string, entityType EntityType, sortOrder int32) (Category, error)
 	// Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (UserSubscription, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
-	CreateHabit(ctx context.Context, arg CreateHabitParams) (Habit, error)
+	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (Habit, error)
 	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
-	CreateSavedArticle(ctx context.Context, arg CreateSavedArticleParams) (CreateSavedArticleRow, error)
-	CreateSavedGoal(ctx context.Context, arg CreateSavedGoalParams) (CreateSavedGoalRow, error)
-	CreateSavedHabit(ctx context.Context, arg CreateSavedHabitParams) (CreateSavedHabitRow, error)
-	CreateSavedItem(ctx context.Context, arg CreateSavedItemParams) (SavedItem, error)
-	CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (UpgradeEvent, error)
+	CreateSavedArticle(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (CreateSavedArticleRow, error)
+	CreateSavedGoal(ctx context.Context, goalID uuid.UUID, userID uuid.UUID) (CreateSavedGoalRow, error)
+	CreateSavedHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (CreateSavedHabitRow, error)
+	CreateSavedItem(ctx context.Context, itemType SavedItemType, itemID uuid.UUID, userID uuid.UUID) (SavedItem, error)
+	CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (CreateUpgradeEventRow, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error)
 	CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (WeeklyReview, error)
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShare(ctx context.Context, id uuid.UUID) error
-	DeleteArticleShareByUserAndArticle(ctx context.Context, arg DeleteArticleShareByUserAndArticleParams) error
+	DeleteArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	DeletePlanAdjustmentSuggestion(ctx context.Context, arg DeletePlanAdjustmentSuggestionParams) error
-	DeleteSavedArticle(ctx context.Context, arg DeleteSavedArticleParams) error
-	DeleteSavedGoal(ctx context.Context, arg DeleteSavedGoalParams) error
-	DeleteSavedHabit(ctx context.Context, arg DeleteSavedHabitParams) error
+	DeletePlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error
+	DeleteSavedArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
+	DeleteSavedGoal(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) error
+	DeleteSavedHabit(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
-	DeleteSavedItemByUserAndItem(ctx context.Context, arg DeleteSavedItemByUserAndItemParams) error
+	DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
 	GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error)
 	GetActivity(ctx context.Context, id uuid.UUID) (Activity, error)
-	GetActivityCalendar(ctx context.Context, arg GetActivityCalendarParams) ([]GetActivityCalendarRow, error)
-	GetActivityFeed(ctx context.Context, arg GetActivityFeedParams) ([]Activity, error)
+	GetActivityCalendar(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetActivityCalendarRow, error)
+	GetActivityFeed(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
 	GetActivityStats(ctx context.Context, userID uuid.UUID) (GetActivityStatsRow, error)
 	GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error)
 	GetArticleShare(ctx context.Context, id uuid.UUID) (ArticleShare, error)
-	GetArticleShareByUserAndArticle(ctx context.Context, arg GetArticleShareByUserAndArticleParams) (ArticleShare, error)
-	GetBlockerStatsForWeek(ctx context.Context, arg GetBlockerStatsForWeekParams) ([]GetBlockerStatsForWeekRow, error)
+	GetArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (ArticleShare, error)
+	GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetBlockerStatsForWeekRow, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (Category, error)
-	GetCategoryBySlug(ctx context.Context, arg GetCategoryBySlugParams) (Category, error)
+	GetCategoryBySlug(ctx context.Context, slug string, entityType EntityType) (Category, error)
 	GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryParams) ([]CheckIn, error)
-	GetCheckInStatsForWeek(ctx context.Context, arg GetCheckInStatsForWeekParams) ([]GetCheckInStatsForWeekRow, error)
-	GetCheckInsByHabit(ctx context.Context, arg GetCheckInsByHabitParams) ([]CheckIn, error)
-	GetCheckInsByUser(ctx context.Context, arg GetCheckInsByUserParams) ([]CheckIn, error)
-	GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeekParams) ([]CheckIn, error)
+	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetCheckInStatsForWeekRow, error)
+	GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
+	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
+	GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, weekStart pgtype.Timestamptz, weekEnd pgtype.Timestamptz) ([]CheckIn, error)
 	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error)
 	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (WeeklyReview, error)
 	// NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
 	// check-ins outside the user's week are included, but best/hardest day
 	// attribution may be off by one day near midnight for non-UTC users.
-	GetDailyCheckInStatsForWeek(ctx context.Context, arg GetDailyCheckInStatsForWeekParams) ([]GetDailyCheckInStatsForWeekRow, error)
-	GetEnergyStatsForWeek(ctx context.Context, arg GetEnergyStatsForWeekParams) ([]GetEnergyStatsForWeekRow, error)
+	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error)
+	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetEnergyStatsForWeekRow, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (Goal, error)
+	// Bulk lookup for goal list views (e.g. resolving saved goals).
+	GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Goal, error)
 	GetHabit(ctx context.Context, id uuid.UUID) (Habit, error)
-	GetMoodStatsForWeek(ctx context.Context, arg GetMoodStatsForWeekParams) ([]GetMoodStatsForWeekRow, error)
-	GetPlanAdjustmentSuggestion(ctx context.Context, arg GetPlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
+	// Bulk lookup for habit list views (e.g. resolving saved habits).
+	GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Habit, error)
+	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetMoodStatsForWeekRow, error)
+	GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error)
 	GetPlanByCode(ctx context.Context, code string) (Plan, error)
 	GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error)
-	GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error)
+	GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (SavedItem, error)
 	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
@@ -112,70 +116,90 @@ type Querier interface {
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error)
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error)
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error)
-	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (GetUserSubscriptionByStripeCustomerIDRow, error)
-	GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error)
+	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (GetUserSubscriptionByStripeCustomerIDRow, error)
+	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (WeeklyReview, error)
 	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
-	IsArticleSaved(ctx context.Context, arg IsArticleSavedParams) (bool, error)
-	IsGoalSaved(ctx context.Context, arg IsGoalSavedParams) (bool, error)
-	IsHabitSaved(ctx context.Context, arg IsHabitSavedParams) (bool, error)
-	IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error)
+	HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
+	IsArticleSaved(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (bool, error)
+	IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error)
+	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
+	IsItemSaved(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (bool, error)
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
-	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
-	ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error)
-	ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error)
+	ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
+	ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType ActivityType, limit int32, offset int32) ([]Activity, error)
+	// Filter activities by multiple types in a single round-trip.
+	ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, column2 []ActivityType, limit int32, offset int32) ([]Activity, error)
+	ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
 	ListAllCategories(ctx context.Context) ([]Category, error)
-	ListAllPlanAdjustmentSuggestions(ctx context.Context, arg ListAllPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
+	ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
 	// ============================================================
 	// NEW: Concrete table queries (use these in new code)
 	// ============================================================
 	// Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
 	// instead of all saved items. Any item in the top N overall must be in the top N of its table.
-	ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedItemsByUserParams) ([]ListAllSavedItemsByUserRow, error)
-	ListArticleShares(ctx context.Context, arg ListArticleSharesParams) ([]ArticleShare, error)
-	ListArticleSharesByArticle(ctx context.Context, arg ListArticleSharesByArticleParams) ([]ArticleShare, error)
-	ListArticleSharesByUser(ctx context.Context, arg ListArticleSharesByUserParams) ([]ArticleShare, error)
-	ListArticles(ctx context.Context, arg ListArticlesParams) ([]ListArticlesRow, error)
-	ListArticlesByAuthor(ctx context.Context, arg ListArticlesByAuthorParams) ([]ListArticlesByAuthorRow, error)
-	ListArticlesByCategorySlug(ctx context.Context, arg ListArticlesByCategorySlugParams) ([]ListArticlesByCategorySlugRow, error)
+	ListAllSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListAllSavedItemsByUserRow, error)
+	ListArticleShares(ctx context.Context, limit int32, offset int32) ([]ArticleShare, error)
+	ListArticleSharesByArticle(ctx context.Context, articleID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
+	ListArticleSharesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
+	ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error)
+	ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error)
+	ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error)
 	ListCategories(ctx context.Context, entityType EntityType) ([]Category, error)
-	ListGoals(ctx context.Context, arg ListGoalsParams) ([]Goal, error)
-	ListHabits(ctx context.Context, arg ListHabitsParams) ([]Habit, error)
-	ListPendingPlanAdjustmentSuggestions(ctx context.Context, arg ListPendingPlanAdjustmentSuggestionsParams) ([]PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, arg ListPlanAdjustmentSuggestionsByGoalParams) ([]PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, arg ListPlanAdjustmentSuggestionsByHabitParams) ([]PlanAdjustmentSuggestion, error)
-	ListSavedArticlesByUser(ctx context.Context, arg ListSavedArticlesByUserParams) ([]ListSavedArticlesByUserRow, error)
-	ListSavedGoalsByUser(ctx context.Context, arg ListSavedGoalsByUserParams) ([]ListSavedGoalsByUserRow, error)
-	ListSavedHabitsByUser(ctx context.Context, arg ListSavedHabitsByUserParams) ([]ListSavedHabitsByUserRow, error)
+	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Goal, error)
+	ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Habit, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
+	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
+	ListSavedArticlesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedArticlesByUserRow, error)
+	ListSavedGoalsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedGoalsByUserRow, error)
+	ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error)
 	// DEPRECATED: The saved_items polymorphic table is deprecated in favor of
 	// saved_articles, saved_goals, and saved_habits. Old queries below are kept
 	// for backward compatibility during transition; new code should use the
 	// concrete table queries at the bottom of this file.
 	// [DEPRECATED] Queries against the polymorphic saved_items table
-	ListSavedItems(ctx context.Context, arg ListSavedItemsParams) ([]SavedItem, error)
-	ListSavedItemsByType(ctx context.Context, arg ListSavedItemsByTypeParams) ([]SavedItem, error)
-	ListSavedItemsByUser(ctx context.Context, arg ListSavedItemsByUserParams) ([]SavedItem, error)
-	ListWeeklyReviews(ctx context.Context, arg ListWeeklyReviewsParams) ([]WeeklyReview, error)
+	ListSavedItems(ctx context.Context, limit int32, offset int32) ([]SavedItem, error)
+	ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType SavedItemType, limit int32, offset int32) ([]SavedItem, error)
+	ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]SavedItem, error)
+	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]WeeklyReview, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
 	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
-	SearchArticles(ctx context.Context, arg SearchArticlesParams) ([]SearchArticlesRow, error)
+	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error)
+	// TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings
+	// is unconditionally applied. sqlc cannot compile these queries without the vector type.
+	// Semantic search using pgvector cosine similarity.
+	// $1 is the query embedding vector(1536); $2 is the similarity threshold (e.g. 0.7); $3 is the limit.
+	// SELECT
+	//     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+	//     a.published_at, a.created_at, a.updated_at,
+	//     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+	//     1 - (a.embedding <=> $1) AS similarity
+	// FROM articles a
+	// LEFT JOIN categories c ON a.category_id = c.id
+	// WHERE a.embedding IS NOT NULL
+	//   AND 1 - (a.embedding <=> $1) >= $2
+	// ORDER BY a.embedding <=> $1
+	// LIMIT $3;
+	// Bulk lookup for article list views (e.g. resolving saved articles).
+	// Uses ANY with a uuid array to avoid N+1 queries.
+	SearchArticlesSemantic(ctx context.Context, dollar_1 []uuid.UUID) ([]SearchArticlesSemanticRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error)
 	ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
-	UpdateCategory(ctx context.Context, arg UpdateCategoryParams) (Category, error)
-	UpdateCoachingProfileBlockers(ctx context.Context, arg UpdateCoachingProfileBlockersParams) (UserCoachingProfile, error)
+	UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UserCoachingProfile, error)
 	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error)
-	UpdateCoachingProfileNotes(ctx context.Context, arg UpdateCoachingProfileNotesParams) (UserCoachingProfile, error)
-	UpdateCoachingProfilePreferences(ctx context.Context, arg UpdateCoachingProfilePreferencesParams) (UserCoachingProfile, error)
+	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UserCoachingProfile, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, preferredTone CoachToneType, difficultyPreference DifficultyLevelType) (UserCoachingProfile, error)
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, error)
-	UpdateGoalProgress(ctx context.Context, arg UpdateGoalProgressParams) (Goal, error)
-	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Habit, error)
-	UpdateHabitStreak(ctx context.Context, arg UpdateHabitStreakParams) (Habit, error)
-	UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error)
+	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (Goal, error)
+	UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, category string) (Habit, error)
+	UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32) (Habit, error)
+	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (UpdateOnboardingSettingsRow, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
-	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, arg UpdatePlanAdjustmentSuggestionStatusParams) (PlanAdjustmentSuggestion, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status PlanAdjustmentStatusType) (PlanAdjustmentSuggestion, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error)
 	UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (UserSubscription, error)

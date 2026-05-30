@@ -50,11 +50,7 @@ func (l *UpdatePlanAdjustmentSuggestionStatusLogic) UpdatePlanAdjustmentSuggesti
 	}
 
 	// Update suggestion status
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(l.ctx, db.UpdatePlanAdjustmentSuggestionStatusParams{
-		ID:     suggestionID,
-		UserID: userID,
-		Status: db.PlanAdjustmentStatusType(in.Status),
-	})
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(l.ctx, suggestionID, userID, db.PlanAdjustmentStatusType(in.Status))
 	if err != nil {
 		l.Errorf("failed to update plan adjustment suggestion status: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update plan adjustment suggestion status")

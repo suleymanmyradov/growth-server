@@ -64,12 +64,7 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 	}
 
 	// Update coaching profile preferences
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(l.ctx, db.UpdateCoachingProfilePreferencesParams{
-		UserID:               userID,
-		AccountabilityStyle:  db.AccountabilityStyleType(in.AccountabilityStyle),
-		PreferredTone:        db.CoachToneType(in.PreferredTone),
-		DifficultyPreference: db.DifficultyLevelType(in.DifficultyPreference),
-	})
+	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(l.ctx, userID, db.AccountabilityStyleType(in.AccountabilityStyle), db.CoachToneType(in.PreferredTone), db.DifficultyLevelType(in.DifficultyPreference))
 	if err != nil {
 		l.Errorf("failed to update coaching profile preferences: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update coaching profile preferences")

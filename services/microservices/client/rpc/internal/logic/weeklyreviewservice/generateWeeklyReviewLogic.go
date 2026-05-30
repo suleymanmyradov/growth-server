@@ -2,12 +2,12 @@ package weeklyreviewservicelogic
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -69,7 +69,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		// Add cooldown for forced regeneration (1 hour minimum)
 		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
 		if err == nil && existing.ID != uuid.Nil {
-			timeSinceGeneration := time.Since(existing.GeneratedAt)
+			timeSinceGeneration := time.Since(existing.GeneratedAt.Time)
 			if timeSinceGeneration < time.Hour {
 				return nil, status.Error(codes.ResourceExhausted, "please wait at least 1 hour before regenerating")
 			}
@@ -217,21 +217,46 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		return nil, status.Error(codes.Internal, "failed to serialize next week plan")
 	}
 
+	weekStartDate := pgtype.Date{Time: weekStart, Valid: true}
+	weekEndDate := pgtype.Date{Time: weekEnd, Valid: true}
+
+	var completionRate pgtype.Numeric
+	if err := completionRate.Scan(fmt.Sprintf("%.2f", stats.completionRate)); err != nil {
+		l.Infof("failed to scan completion rate: %v", err)
+	}
+
+	var bestDay *string
+	if stats.bestDay != "" {
+		bestDay = &stats.bestDay
+	}
+	var hardestDay *string
+	if stats.hardestDay != "" {
+		hardestDay = &stats.hardestDay
+	}
+	var topBlocker *string
+	if stats.topBlocker != "" {
+		topBlocker = &stats.topBlocker
+	}
+	var aiSummary *string
+	if aiOutput.AiSummary != "" {
+		aiSummary = &aiOutput.AiSummary
+	}
+
 	params := db.CreateWeeklyReviewParams{
 		UserID:               userID,
-		WeekStart:            weekStart,
-		WeekEnd:              weekEnd,
+		WeekStart:            weekStartDate,
+		WeekEnd:              weekEndDate,
 		TotalHabits:          int32(stats.totalHabits),
 		CompletedCheckIns:    int32(stats.completedCheckIns),
 		MissedCheckIns:       int32(stats.missedCheckIns),
-		CompletionRate:       fmt.Sprintf("%.2f", stats.completionRate),
-		BestDay:              sql.NullString{String: stats.bestDay, Valid: stats.bestDay != ""},
-		HardestDay:           sql.NullString{String: stats.hardestDay, Valid: stats.hardestDay != ""},
-		TopBlocker:           sql.NullString{String: stats.topBlocker, Valid: stats.topBlocker != ""},
+		CompletionRate:       completionRate,
+		BestDay:              bestDay,
+		HardestDay:           hardestDay,
+		TopBlocker:           topBlocker,
 		MoodSummary:          moodSummaryJSON,
 		EnergySummary:        energySummaryJSON,
 		HabitBreakdown:       habitBreakdownJSON,
-		AiSummary:            sql.NullString{String: aiOutput.AiSummary, Valid: aiOutput.AiSummary != ""},
+		AiSummary:            aiSummary,
 		SuggestedAdjustments: suggestedAdjustmentsJSON,
 		NextWeekPlan:         nextWeekPlanJSON,
 	}
@@ -277,7 +302,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 				Reason:         adjustment.Reason,
 				Suggestion:     adjustment.Suggestion,
 				Metadata:       metadataJSON,
-				WeekStart:      sql.NullTime{Time: weekStart, Valid: true},
+				WeekStart:      pgtype.Date{Time: weekStart, Valid: true},
 			})
 			if err != nil {
 				logx.Errorf("failed to create plan adjustment suggestion: %v", err)
@@ -382,7 +407,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 		if dayTotal > 0 {
 			dayRate = float64(dayCompleted) / float64(dayTotal) * 100
 		}
-		dayStr := d.Day.Format("Monday")
+		dayStr := d.Day.Time.Format("Monday")
 		if dayRate > bestRate && dayTotal > 0 {
 			bestRate = dayRate
 			stats.bestDay = dayStr
@@ -517,28 +542,38 @@ func dbReviewToProto(r db.WeeklyReview) *client.WeeklyReview {
 	return &client.WeeklyReview{
 		Id:                   r.ID.String(),
 		UserId:               r.UserID.String(),
-		WeekStart:            r.WeekStart.Format("2006-01-02"),
-		WeekEnd:              r.WeekEnd.Format("2006-01-02"),
+		WeekStart:            r.WeekStart.Time.Format("2006-01-02"),
+		WeekEnd:              r.WeekEnd.Time.Format("2006-01-02"),
 		TotalHabits:          r.TotalHabits,
 		CompletedCheckIns:    r.CompletedCheckIns,
 		MissedCheckIns:       r.MissedCheckIns,
 		CompletionRate:       parseCompletionRate(r.CompletionRate),
-		BestDay:              r.BestDay.String,
-		HardestDay:           r.HardestDay.String,
-		TopBlocker:           r.TopBlocker.String,
+		BestDay:              stringPtrToString(r.BestDay),
+		HardestDay:           stringPtrToString(r.HardestDay),
+		TopBlocker:           stringPtrToString(r.TopBlocker),
 		MoodSummary:          moodMap,
 		EnergySummary:        energyMap,
 		HabitBreakdown:       protoHabits,
-		AiSummary:            r.AiSummary.String,
+		AiSummary:            stringPtrToString(r.AiSummary),
 		SuggestedAdjustments: protoAdjustments,
 		NextWeekPlan:         protoPlan,
-		GeneratedAt:          r.GeneratedAt.Unix(),
+		GeneratedAt:          r.GeneratedAt.Time.Unix(),
 	}
 }
 
-func parseCompletionRate(s string) float64 {
+func stringPtrToString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+func parseCompletionRate(n pgtype.Numeric) float64 {
+	if !n.Valid {
+		return 0
+	}
 	var v float64
-	_, err := fmt.Sscanf(s, "%f", &v)
+	_, err := fmt.Sscanf(fmt.Sprintf("%v", n), "%f", &v)
 	if err != nil {
 		return 0
 	}
