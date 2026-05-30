@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"go.opentelemetry.io/otel"
 )
@@ -16,31 +17,36 @@ func NewNotificationsRepo(db *db.Queries) *NotificationsRepo {
 	return &NotificationsRepo{db: db}
 }
 
-func (r *NotificationsRepo) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*db.ListUnreadNotificationsRow, error) {
+// WithTx returns a new NotificationsRepo backed by the given transaction.
+func (r *NotificationsRepo) WithTx(tx pgx.Tx) *NotificationsRepo {
+	return &NotificationsRepo{db: r.db.WithTx(tx)}
+}
+
+func (r *NotificationsRepo) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.ListUnreadNotificationsRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.ListUnreadNotifications")
 	defer span.End()
 	return r.db.ListUnreadNotifications(ctx, userID, limit, offset)
 }
 
-func (r *NotificationsRepo) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]*db.ListNotificationsForUserRow, error) {
+func (r *NotificationsRepo) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.ListNotificationsForUserRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.ListNotificationsForUser")
 	defer span.End()
 	return r.db.ListNotificationsForUser(ctx, userID, limit, offset)
 }
 
-func (r *NotificationsRepo) GetNotificationByID(ctx context.Context, id uuid.UUID) (*db.GetNotificationRow, error) {
+func (r *NotificationsRepo) GetNotificationByID(ctx context.Context, id uuid.UUID) (db.GetNotificationRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.GetNotificationByID")
 	defer span.End()
 	return r.db.GetNotification(ctx, id)
 }
 
-func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, message string, itemType db.NotificationType, userID uuid.UUID) (*db.CreateNotificationRow, error) {
+func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, message string, itemType db.NotificationType, userID uuid.UUID) (db.CreateNotificationRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.CreateNotification")
 	defer span.End()
 	return r.db.CreateNotification(ctx, title, message, itemType, userID)
 }
 
-func (r *NotificationsRepo) MarkNotificationRead(ctx context.Context, id uuid.UUID) (*db.MarkNotificationReadRow, error) {
+func (r *NotificationsRepo) MarkNotificationRead(ctx context.Context, id uuid.UUID) (db.MarkNotificationReadRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.MarkNotificationRead")
 	defer span.End()
 	return r.db.MarkNotificationRead(ctx, id)

@@ -43,12 +43,20 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		dueTime = pgtype.Timestamptz{Time: time.Unix(in.DueDate, 0), Valid: true}
 	}
 
+	// Fetch current goal to get version for optimistic locking
+	current, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to fetch goal for update: %v", err)
+		return nil, err
+	}
+
 	params := db.UpdateGoalParams{
 		ID:          goalID,
 		Title:       in.Title,
 		Description: desc,
 		Category:    in.Category,
 		DueDate:     dueTime,
+		Version:     current.Version,
 	}
 
 	goal, err := l.svcCtx.Repo.Goals.UpdateGoal(l.ctx, params)

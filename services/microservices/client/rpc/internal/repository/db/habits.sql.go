@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countHabitsByUser = `-- name: CountHabitsByUser :one
@@ -25,7 +26,7 @@ func (q *Queries) CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int6
 const createHabit = `-- name: CreateHabit :one
 INSERT INTO habits (name, description, category, user_id)
 VALUES ($1, $2, $3, $4)
-RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 `
 
 func (q *Queries) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (Habit, error) {
@@ -46,6 +47,7 @@ func (q *Queries) CreateHabit(ctx context.Context, name string, description *str
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -60,7 +62,7 @@ func (q *Queries) DeleteHabit(ctx context.Context, id uuid.UUID) error {
 }
 
 const getHabit = `-- name: GetHabit :one
-SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 FROM habits
 WHERE id = $1
 `
@@ -78,12 +80,13 @@ func (q *Queries) GetHabit(ctx context.Context, id uuid.UUID) (Habit, error) {
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
 
 const getHabitsByIDs = `-- name: GetHabitsByIDs :many
-SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 FROM habits
 WHERE id = ANY($1::uuid[])
 `
@@ -108,6 +111,7 @@ func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]H
 			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -120,7 +124,7 @@ func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]H
 }
 
 const listHabits = `-- name: ListHabits :many
-SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 FROM habits
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -146,6 +150,49 @@ func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32,
 			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listHabitsKeyset = `-- name: ListHabitsKeyset :many
+SELECT id, name, description, streak, completed, category, user_id, created_at, updated_at, version
+FROM habits
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+// Keyset pagination: more efficient than OFFSET for deep pages.
+// Pass last_created_at from previous page (or NULL for first page).
+func (q *Queries) ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Habit, error) {
+	rows, err := q.db.Query(ctx, listHabitsKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Habit{}
+	for rows.Next() {
+		var i Habit
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Streak,
+			&i.Completed,
+			&i.Category,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -161,13 +208,14 @@ const markHabitCompleted = `-- name: MarkHabitCompleted :one
 UPDATE habits
 SET completed = true,
     streak = CASE WHEN NOT completed THEN streak + 1 ELSE streak END,
+    version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+WHERE id = $1 AND version = $2
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 `
 
-func (q *Queries) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error) {
-	row := q.db.QueryRow(ctx, markHabitCompleted, id)
+func (q *Queries) MarkHabitCompleted(ctx context.Context, iD uuid.UUID, version int32) (Habit, error) {
+	row := q.db.QueryRow(ctx, markHabitCompleted, iD, version)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -179,6 +227,7 @@ func (q *Queries) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, 
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -200,14 +249,15 @@ func (q *Queries) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64
 const toggleHabit = `-- name: ToggleHabit :one
 UPDATE habits
 SET completed = NOT completed,
-    streak = CASE WHEN NOT completed THEN streak + 1 ELSE streak END,
+    streak = CASE WHEN NOT completed THEN streak + 1 ELSE GREATEST(streak - 1, 0) END,
+    version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+WHERE id = $1 AND version = $2
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 `
 
-func (q *Queries) ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error) {
-	row := q.db.QueryRow(ctx, toggleHabit, id)
+func (q *Queries) ToggleHabit(ctx context.Context, iD uuid.UUID, version int32) (Habit, error) {
+	row := q.db.QueryRow(ctx, toggleHabit, iD, version)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -219,23 +269,33 @@ func (q *Queries) ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error) 
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
 
 const updateHabit = `-- name: UpdateHabit :one
 UPDATE habits
-SET name = $2, description = $3, category = $4, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+SET name = $2, description = $3, category = $4, version = version + 1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND version = $5
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 `
 
-func (q *Queries) UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, category string) (Habit, error) {
+type UpdateHabitParams struct {
+	ID          uuid.UUID `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Description *string   `db:"description" json:"description"`
+	Category    string    `db:"category" json:"category"`
+	Version     int32     `db:"version" json:"version"`
+}
+
+func (q *Queries) UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Habit, error) {
 	row := q.db.QueryRow(ctx, updateHabit,
-		iD,
-		name,
-		description,
-		category,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.Category,
+		arg.Version,
 	)
 	var i Habit
 	err := row.Scan(
@@ -248,19 +308,20 @@ func (q *Queries) UpdateHabit(ctx context.Context, iD uuid.UUID, name string, de
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
 
 const updateHabitStreak = `-- name: UpdateHabitStreak :one
 UPDATE habits
-SET streak = $2, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at
+SET streak = $2, version = version + 1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND version = $3
+RETURNING id, name, description, streak, completed, category, user_id, created_at, updated_at, version
 `
 
-func (q *Queries) UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32) (Habit, error) {
-	row := q.db.QueryRow(ctx, updateHabitStreak, iD, streak)
+func (q *Queries) UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32, version int32) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabitStreak, iD, streak, version)
 	var i Habit
 	err := row.Scan(
 		&i.ID,
@@ -272,6 +333,7 @@ func (q *Queries) UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak in
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }

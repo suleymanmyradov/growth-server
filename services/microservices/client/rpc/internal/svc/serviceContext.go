@@ -90,6 +90,15 @@ func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 	return repository.NewRepository(db.New(tx))
 }
 
+// RunInTx executes fn inside a transaction with RLS user context set.
+// Use this for any multi-statement write path that must be atomic and
+// tenant-isolated (e.g. check-in -> activity -> reminder cancel).
+func (s *ServiceContext) RunInTx(ctx context.Context, userID string, fn func(*repository.Repository) error) error {
+	return s.TxRunner.Run(ctx, userID, func(tx pgx.Tx) error {
+		return fn(s.WithTx(tx))
+	})
+}
+
 // Pool returns the underlying pgx connection pool.
 func (s *ServiceContext) Pool() *pgxpool.Pool {
 	return s.pool

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
@@ -16,6 +17,11 @@ type weeklyReviewsRepo struct {
 
 func NewWeeklyReviewsRepo(queries *db.Queries) IWeeklyReviews {
 	return &weeklyReviewsRepo{db: queries}
+}
+
+// WithTx returns a new weeklyReviewsRepo backed by the given transaction.
+func (r *weeklyReviewsRepo) WithTx(tx pgx.Tx) *weeklyReviewsRepo {
+	return &weeklyReviewsRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *weeklyReviewsRepo) CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.WeeklyReview, error) {

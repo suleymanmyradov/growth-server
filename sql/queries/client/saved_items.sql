@@ -39,9 +39,6 @@ DELETE FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3;
 -- name: IsItemSaved :one
 SELECT EXISTS(SELECT 1 FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3);
 
--- name: CountSavedItems :one
-SELECT COUNT(*) FROM saved_items;
-
 -- name: CountSavedItemsByUser :one
 SELECT COUNT(*) FROM saved_items WHERE user_id = $1;
 
@@ -74,6 +71,15 @@ SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.c
 -- name: ListSavedHabitsByUser :many
 SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 ORDER BY sh.created_at DESC LIMIT $2 OFFSET $3;
 
+-- name: ListSavedArticlesByUserKeyset :many
+SELECT sa.id, 'article'::text AS item_type, sa.article_id AS item_id, sa.user_id, sa.created_at FROM saved_articles sa WHERE sa.user_id = $1 AND ($2::timestamptz IS NULL OR sa.created_at < $2) ORDER BY sa.created_at DESC LIMIT $3;
+
+-- name: ListSavedGoalsByUserKeyset :many
+SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1 AND ($2::timestamptz IS NULL OR sg.created_at < $2) ORDER BY sg.created_at DESC LIMIT $3;
+
+-- name: ListSavedHabitsByUserKeyset :many
+SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 AND ($2::timestamptz IS NULL OR sh.created_at < $2) ORDER BY sh.created_at DESC LIMIT $3;
+
 -- name: CreateSavedArticle :one
 INSERT INTO saved_articles (article_id, user_id) VALUES ($1, $2) RETURNING id, 'article'::text AS item_type, article_id AS item_id, user_id, created_at;
 
@@ -82,6 +88,15 @@ INSERT INTO saved_goals (goal_id, user_id) VALUES ($1, $2) RETURNING id, 'goal':
 
 -- name: CreateSavedHabit :one
 INSERT INTO saved_habits (habit_id, user_id) VALUES ($1, $2) RETURNING id, 'habit'::text AS item_type, habit_id AS item_id, user_id, created_at;
+
+-- name: BatchCreateSavedArticles :copyfrom
+INSERT INTO saved_articles (article_id, user_id) VALUES ($1, $2);
+
+-- name: BatchCreateSavedGoals :copyfrom
+INSERT INTO saved_goals (goal_id, user_id) VALUES ($1, $2);
+
+-- name: BatchCreateSavedHabits :copyfrom
+INSERT INTO saved_habits (habit_id, user_id) VALUES ($1, $2);
 
 -- name: DeleteSavedArticle :exec
 DELETE FROM saved_articles sa WHERE sa.user_id = $1 AND sa.article_id = $2;

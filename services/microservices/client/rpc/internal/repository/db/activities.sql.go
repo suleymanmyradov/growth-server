@@ -12,17 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countActivities = `-- name: CountActivities :one
-SELECT COUNT(*) FROM activities
-`
-
-func (q *Queries) CountActivities(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countActivities)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countActivitiesByUser = `-- name: CountActivitiesByUser :one
 SELECT COUNT(*) FROM activities WHERE user_id = $1
 `
@@ -99,28 +88,29 @@ func (q *Queries) DeleteActivity(ctx context.Context, id uuid.UUID) error {
 }
 
 const getAchievements = `-- name: GetAchievements :many
-WITH user_activities AS (
-    SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
-), achievement_rows AS (
-    SELECT 'first_activity'::text AS id,
-           'First Activity'::text AS name,
-           'Complete your first activity'::text AS description,
-           NULL::text AS icon_url,
-           MIN(created_at) AS unlocked_at
-    FROM user_activities
-    UNION ALL
-    SELECT 'habit_10', 'Habit Enthusiast', 'Complete 10 habits', NULL,
-           MAX(created_at)
-    FROM user_activities WHERE item_type = 'habit_completed'
-    GROUP BY user_id HAVING COUNT(*) >= 10
-    UNION ALL
-    SELECT 'goal_5', 'Goal Crusher', 'Complete 5 goals', NULL,
-           MAX(created_at)
-    FROM user_activities WHERE item_type = 'goal_completed'
-    GROUP BY user_id HAVING COUNT(*) >= 5
+WITH s AS (
+  SELECT
+    MIN(created_at)                                              AS first_at,
+    COUNT(*) FILTER (WHERE item_type = 'habit_completed')          AS habit_done,
+    MAX(created_at) FILTER (WHERE item_type = 'habit_completed')   AS last_habit_at,
+    COUNT(*) FILTER (WHERE item_type = 'goal_completed')           AS goal_done,
+    MAX(created_at) FILTER (WHERE item_type = 'goal_completed')    AS last_goal_at
+  FROM activities WHERE user_id = $1
 )
-SELECT id, name, description, icon_url, unlocked_at
-FROM achievement_rows
+SELECT 'first_activity'::text AS id,
+       'First Activity'::text AS name,
+       'Complete your first activity'::text AS description,
+       NULL::text AS icon_url,
+       s.first_at AS unlocked_at
+FROM s
+UNION ALL
+SELECT 'habit_10', 'Habit Enthusiast', 'Complete 10 habits', NULL,
+       CASE WHEN s.habit_done >= 10 THEN s.last_habit_at ELSE NULL END
+FROM s
+UNION ALL
+SELECT 'goal_5', 'Goal Crusher', 'Complete 5 goals', NULL,
+       CASE WHEN s.goal_done >= 5 THEN s.last_goal_at ELSE NULL END
+FROM s
 ORDER BY unlocked_at NULLS LAST
 `
 
@@ -132,6 +122,7 @@ type GetAchievementsRow struct {
 	UnlockedAt  interface{} `db:"unlocked_at" json:"unlocked_at"`
 }
 
+// Single aggregate pass over activities instead of repeated subqueries.
 func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error) {
 	rows, err := q.db.Query(ctx, getAchievements, userID)
 	if err != nil {
@@ -252,12 +243,12 @@ func (q *Queries) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit i
 const getActivityStats = `-- name: GetActivityStats :one
 SELECT
     COUNT(*) AS total_activities,
-    SUM(CASE WHEN item_type = 'habit_completed' THEN 1 ELSE 0 END) AS habit_completed,
-    SUM(CASE WHEN item_type = 'goal_created' THEN 1 ELSE 0 END) AS goal_created,
-    SUM(CASE WHEN item_type = 'goal_completed' THEN 1 ELSE 0 END) AS goal_completed,
-    SUM(CASE WHEN item_type = 'article_saved' THEN 1 ELSE 0 END) AS article_saved,
-    SUM(CASE WHEN item_type = 'check_in_completed' THEN 1 ELSE 0 END) AS check_in_completed,
-    SUM(CASE WHEN item_type = 'check_in_missed' THEN 1 ELSE 0 END) AS check_in_missed
+    COUNT(*) FILTER (WHERE item_type = 'habit_completed') AS habit_completed,
+    COUNT(*) FILTER (WHERE item_type = 'goal_created') AS goal_created,
+    COUNT(*) FILTER (WHERE item_type = 'goal_completed') AS goal_completed,
+    COUNT(*) FILTER (WHERE item_type = 'article_saved') AS article_saved,
+    COUNT(*) FILTER (WHERE item_type = 'check_in_completed') AS check_in_completed,
+    COUNT(*) FILTER (WHERE item_type = 'check_in_missed') AS check_in_missed
 FROM activities
 WHERE user_id = $1
 `
@@ -444,14 +435,19 @@ func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, c
 	return items, nil
 }
 
-const listActivitiesByUser = `-- name: ListActivitiesByUser :many
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1
+const listActivitiesKeyset = `-- name: ListActivitiesKeyset :many
+SELECT id, item_type, title, description, metadata, user_id, created_at
+FROM activities
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
 ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+LIMIT $3
 `
 
-func (q *Queries) ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error) {
-	rows, err := q.db.Query(ctx, listActivitiesByUser, userID, limit, offset)
+// Keyset pagination: more efficient than OFFSET for deep pages.
+// Pass last_created_at from previous page (or NULL for first page).
+func (q *Queries) ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, listActivitiesKeyset, userID, column2, limit)
 	if err != nil {
 		return nil, err
 	}

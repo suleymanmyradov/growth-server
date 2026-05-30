@@ -5,7 +5,7 @@ ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sen
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
               metadata = EXCLUDED.metadata,
               updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at;
 
 -- name: CancelPendingReminderForDate :exec
 DELETE FROM reminder_queue
@@ -25,7 +25,7 @@ WITH due AS (
 UPDATE reminder_queue r SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 FROM due
 WHERE r.id = due.id
-RETURNING r.*;
+RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent, r.sent_at, r.metadata, r.created_at, r.updated_at;
 
 -- name: GetPendingByUser :many
 SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at

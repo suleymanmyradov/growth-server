@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type ProfilesRepo struct {
 // NewProfilesRepo creates a new ProfilesRepo instance
 func NewProfilesRepo(dbq *db.Queries) *ProfilesRepo {
 	return &ProfilesRepo{db: dbq}
+}
+
+// WithTx returns a new ProfilesRepo backed by the given transaction.
+func (r *ProfilesRepo) WithTx(tx pgx.Tx) *ProfilesRepo {
+	return &ProfilesRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *ProfilesRepo) CreateProfile(ctx context.Context, params db.CreateProfileParams) (db.Profile, error) {

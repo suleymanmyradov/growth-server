@@ -1,9 +1,18 @@
 -- Fix user_settings boolean flags to be NOT NULL (three-valued logic bug)
+-- Step 1: Add DEFAULT first to prevent race conditions with concurrent INSERTs
+ALTER TABLE user_settings
+    ALTER COLUMN email_notifications SET DEFAULT TRUE,
+    ALTER COLUMN push_notifications SET DEFAULT TRUE,
+    ALTER COLUMN habit_reminders SET DEFAULT TRUE,
+    ALTER COLUMN goal_reminders SET DEFAULT TRUE;
+
+-- Step 2: Backfill existing NULL values
 UPDATE user_settings SET email_notifications = TRUE WHERE email_notifications IS NULL;
 UPDATE user_settings SET push_notifications = TRUE WHERE push_notifications IS NULL;
 UPDATE user_settings SET habit_reminders = TRUE WHERE habit_reminders IS NULL;
 UPDATE user_settings SET goal_reminders = TRUE WHERE goal_reminders IS NULL;
 
+-- Step 3: Add NOT NULL constraints
 ALTER TABLE user_settings
     ALTER COLUMN email_notifications SET NOT NULL,
     ALTER COLUMN push_notifications SET NOT NULL,

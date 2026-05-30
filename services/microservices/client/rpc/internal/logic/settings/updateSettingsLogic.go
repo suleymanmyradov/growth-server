@@ -42,6 +42,13 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		return nil, err
 	}
 
+	// Fetch current settings to get version for optimistic locking
+	currentSettings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	if err != nil {
+		l.Errorf("Failed to fetch user settings: %v", err)
+		return nil, err
+	}
+
 	// Handle onboarding settings update (accountability style, check-in time, onboarding flag)
 	if in.Settings != nil && (in.Settings.AccountabilityStyle != "" || in.Settings.CheckInTime != "" || in.Settings.OnboardingCompleted) {
 		style := in.Settings.AccountabilityStyle
@@ -54,15 +61,29 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
 			}
 		}
-		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, userID, db.AccountabilityStyleType(style), checkInTime, in.Settings.OnboardingCompleted)
+		onboardingParams := db.UpdateOnboardingSettingsParams{
+			UserID:              userID,
+			AccountabilityStyle: db.AccountabilityStyleType(style),
+			CheckInTime:         checkInTime,
+			OnboardingCompleted: in.Settings.OnboardingCompleted,
+			Version:             currentSettings.Version,
+		}
+		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, onboardingParams)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
+			return nil, err
+		}
+		// Refresh current settings version after update
+		currentSettings, err = l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+		if err != nil {
+			l.Errorf("Failed to refresh user settings after onboarding update: %v", err)
 			return nil, err
 		}
 	}
 
 	params := db.UpdateUserSettingsParams{
-		UserID: userID,
+		UserID:  userID,
+		Version: currentSettings.Version,
 	}
 
 	if in.Settings != nil {

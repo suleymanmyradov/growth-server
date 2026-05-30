@@ -37,34 +37,27 @@ func checkInToProto(c db.CheckIn) *client.CheckIn {
 }
 
 func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, blocker, note string) db.CreateCheckInParams {
-	var moodPtr *db.MoodType
-	if mood != "" {
-		m := db.MoodType(mood)
-		moodPtr = &m
-	}
-	var energyPtr *db.EnergyLevel
-	if energy != "" {
-		e := db.EnergyLevel(energy)
-		energyPtr = &e
-	}
-	var blockerPtr *db.BlockerType
-	if blocker != "" {
-		b := db.BlockerType(blocker)
-		blockerPtr = &b
-	}
-	var notePtr *string
-	if note != "" {
-		notePtr = &note
-	}
-	return db.CreateCheckInParams{
+	params := db.CreateCheckInParams{
 		UserID:  userID,
 		HabitID: habitID,
 		Status:  db.CheckInStatus(status),
-		Mood:    moodPtr,
-		Energy:  energyPtr,
-		Blocker: blockerPtr,
-		Note:    notePtr,
 	}
+	if mood != "" {
+		m := db.MoodType(mood)
+		params.Mood = &m
+	}
+	if energy != "" {
+		e := db.EnergyLevel(energy)
+		params.Energy = &e
+	}
+	if blocker != "" {
+		b := db.BlockerType(blocker)
+		params.Blocker = &b
+	}
+	if note != "" {
+		params.Note = &note
+	}
+	return params
 }
 
 func habitToProto(h db.Habit) *client.Habit {

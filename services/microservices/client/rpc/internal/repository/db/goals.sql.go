@@ -26,7 +26,7 @@ func (q *Queries) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64
 const createGoal = `-- name: CreateGoal :one
 INSERT INTO goals (title, description, category, due_date, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 `
 
 type CreateGoalParams struct {
@@ -58,6 +58,7 @@ func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
+		&i.Version,
 	)
 	return i, err
 }
@@ -72,7 +73,7 @@ func (q *Queries) DeleteGoal(ctx context.Context, id uuid.UUID) error {
 }
 
 const getGoal = `-- name: GetGoal :one
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 FROM goals
 WHERE id = $1
 `
@@ -92,12 +93,13 @@ func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (Goal, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
+		&i.Version,
 	)
 	return i, err
 }
 
 const getGoalsByIDs = `-- name: GetGoalsByIDs :many
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 FROM goals
 WHERE id = ANY($1::uuid[])
 `
@@ -124,6 +126,7 @@ func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Go
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Status,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -136,7 +139,7 @@ func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Go
 }
 
 const listGoals = `-- name: ListGoals :many
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 FROM goals
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -164,6 +167,51 @@ func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, 
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Status,
+			&i.Version,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGoalsKeyset = `-- name: ListGoalsKeyset :many
+SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
+FROM goals
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+// Keyset pagination: more efficient than OFFSET for deep pages.
+// Pass last_created_at from previous page (or NULL for first page).
+func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Goal, error) {
+	rows, err := q.db.Query(ctx, listGoalsKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Goal{}
+	for rows.Next() {
+		var i Goal
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Category,
+			&i.DueDate,
+			&i.Progress,
+			&i.Completed,
+			&i.UserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Status,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -179,13 +227,14 @@ const toggleGoal = `-- name: ToggleGoal :one
 UPDATE goals
 SET status = CASE WHEN status = 'completed' THEN 'active'::goal_status_type ELSE 'completed'::goal_status_type END,
     progress = CASE WHEN status = 'completed' THEN 0 ELSE 100 END,
+    version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+WHERE id = $1 AND version = $2
+RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 `
 
-func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error) {
-	row := q.db.QueryRow(ctx, toggleGoal, id)
+func (q *Queries) ToggleGoal(ctx context.Context, iD uuid.UUID, version int32) (Goal, error) {
+	row := q.db.QueryRow(ctx, toggleGoal, iD, version)
 	var i Goal
 	err := row.Scan(
 		&i.ID,
@@ -199,15 +248,16 @@ func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
+		&i.Version,
 	)
 	return i, err
 }
 
 const updateGoal = `-- name: UpdateGoal :one
 UPDATE goals
-SET title = $2, description = $3, category = $4, due_date = $5, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+SET title = $2, description = $3, category = $4, due_date = $5, version = version + 1, updated_at = CURRENT_TIMESTAMP
+WHERE id = $1 AND version = $6
+RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 `
 
 type UpdateGoalParams struct {
@@ -216,6 +266,7 @@ type UpdateGoalParams struct {
 	Description *string            `db:"description" json:"description"`
 	Category    string             `db:"category" json:"category"`
 	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	Version     int32              `db:"version" json:"version"`
 }
 
 func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, error) {
@@ -225,6 +276,7 @@ func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, e
 		arg.Description,
 		arg.Category,
 		arg.DueDate,
+		arg.Version,
 	)
 	var i Goal
 	err := row.Scan(
@@ -239,6 +291,7 @@ func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
+		&i.Version,
 	)
 	return i, err
 }
@@ -247,13 +300,14 @@ const updateGoalProgress = `-- name: UpdateGoalProgress :one
 UPDATE goals
 SET progress = $2,
     status = CASE WHEN $2 >= 100 THEN 'completed'::goal_status_type ELSE status END,
+    version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE id = $1
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status
+WHERE id = $1 AND version = $3
+RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
 `
 
-func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (Goal, error) {
-	row := q.db.QueryRow(ctx, updateGoalProgress, iD, progress)
+func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32, version int32) (Goal, error) {
+	row := q.db.QueryRow(ctx, updateGoalProgress, iD, progress, version)
 	var i Goal
 	err := row.Scan(
 		&i.ID,
@@ -267,6 +321,7 @@ func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
+		&i.Version,
 	)
 	return i, err
 }

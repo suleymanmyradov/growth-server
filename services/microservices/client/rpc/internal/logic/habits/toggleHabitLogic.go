@@ -46,7 +46,7 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 	err = l.svcCtx.TxRunner.Run(l.ctx, preHabit.UserID.String(), func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
-		habit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID)
+		habit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID, preHabit.Version)
 		if err != nil {
 			return fmt.Errorf("toggle habit: %w", err)
 		}

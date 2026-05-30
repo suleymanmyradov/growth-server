@@ -12,7 +12,7 @@ import (
 // Repo is the scheduler's storage interface, declared here so the consumer
 // package owns the abstraction.
 type Repo interface {
-	ClaimDueReminders(ctx context.Context, limit int32) ([]*db.ReminderQueue, error)
+	ClaimDueReminders(ctx context.Context, limit int32) ([]db.ReminderQueue, error)
 }
 
 // Publisher is the scheduler's publishing interface.

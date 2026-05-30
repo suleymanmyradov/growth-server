@@ -1,5 +1,11 @@
 -- Fix user_settings.check_in_time missing NOT NULL (has DEFAULT but allows NULL)
+-- Step 1: Add DEFAULT first to prevent race conditions with concurrent INSERTs
+ALTER TABLE user_settings ALTER COLUMN check_in_time SET DEFAULT '09:00:00';
+
+-- Step 2: Backfill existing NULL values
 UPDATE user_settings SET check_in_time = '09:00:00' WHERE check_in_time IS NULL;
+
+-- Step 3: Add NOT NULL constraint
 ALTER TABLE user_settings ALTER COLUMN check_in_time SET NOT NULL;
 
 -- Add state-validity CHECK constraint to user_subscriptions

@@ -27,4 +27,4 @@ GROUP BY usr.tz, usr.check_in_time, usr.habit_reminders, usr.onboarding_complete
 UPDATE reminder_queue
 SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1
-RETURNING *;
+RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at;

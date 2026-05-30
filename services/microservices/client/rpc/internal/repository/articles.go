@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type ArticlesRepo struct {
 // NewArticlesRepo creates a new ArticlesRepo instance
 func NewArticlesRepo(db *db.Queries) *ArticlesRepo {
 	return &ArticlesRepo{db: db}
+}
+
+// WithTx returns a new ArticlesRepo backed by the given transaction.
+func (r *ArticlesRepo) WithTx(tx pgx.Tx) *ArticlesRepo {
+	return &ArticlesRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *ArticlesRepo) ListArticles(ctx context.Context, limit, offset int32) ([]db.ListArticlesRow, error) {

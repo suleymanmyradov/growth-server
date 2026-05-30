@@ -44,13 +44,13 @@ WHERE r.id = due.id
 RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent, r.sent_at, r.metadata, r.created_at, r.updated_at
 `
 
-func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]*ReminderQueue, error) {
+func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]ReminderQueue, error) {
 	rows, err := q.db.Query(ctx, claimDueReminders, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ReminderQueue{}
+	items := []ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(
@@ -66,7 +66,7 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]*Remind
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
 RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
 `
 
-func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ ReminderType, scheduledAt pgtype.Timestamptz, metadata []byte) (*ReminderQueue, error) {
+func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ ReminderType, scheduledAt pgtype.Timestamptz, metadata []byte) (ReminderQueue, error) {
 	row := q.db.QueryRow(ctx, enqueueReminder,
 		userID,
 		type_,
@@ -103,7 +103,7 @@ func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ R
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getPendingByUser = `-- name: GetPendingByUser :many
@@ -113,13 +113,13 @@ WHERE user_id = $1 AND sent = FALSE
 ORDER BY scheduled_at
 `
 
-func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]*ReminderQueue, error) {
+func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error) {
 	rows, err := q.db.Query(ctx, getPendingByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ReminderQueue{}
+	items := []ReminderQueue{}
 	for rows.Next() {
 		var i ReminderQueue
 		if err := rows.Scan(
@@ -135,7 +135,7 @@ func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]*Re
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

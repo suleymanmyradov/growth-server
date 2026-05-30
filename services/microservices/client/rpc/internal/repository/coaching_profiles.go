@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type CoachingProfilesRepo struct {
 // NewCoachingProfilesRepo creates a new CoachingProfilesRepo instance
 func NewCoachingProfilesRepo(db *db.Queries) *CoachingProfilesRepo {
 	return &CoachingProfilesRepo{db: db}
+}
+
+// WithTx returns a new CoachingProfilesRepo backed by the given transaction.
+func (r *CoachingProfilesRepo) WithTx(tx pgx.Tx) *CoachingProfilesRepo {
+	return &CoachingProfilesRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *CoachingProfilesRepo) GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error) {

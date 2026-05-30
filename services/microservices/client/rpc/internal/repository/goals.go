@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -14,6 +15,11 @@ type goalsRepo struct {
 
 func NewGoalsRepo(queries *db.Queries) IGoals {
 	return &goalsRepo{db: queries}
+}
+
+// WithTx returns a new goalsRepo backed by the given transaction.
+func (r *goalsRepo) WithTx(tx pgx.Tx) *goalsRepo {
+	return &goalsRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *goalsRepo) ListGoals(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Goal, error) {
@@ -51,18 +57,18 @@ func (r *goalsRepo) DeleteGoal(ctx context.Context, id uuid.UUID) error {
 	return r.db.DeleteGoal(ctx, id)
 }
 
-func (r *goalsRepo) ToggleGoal(ctx context.Context, id uuid.UUID) (db.Goal, error) {
+func (r *goalsRepo) ToggleGoal(ctx context.Context, id uuid.UUID, version int32) (db.Goal, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ToggleGoal")
 	defer span.End()
 
-	return r.db.ToggleGoal(ctx, id)
+	return r.db.ToggleGoal(ctx, id, version)
 }
 
-func (r *goalsRepo) UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.Goal, error) {
+func (r *goalsRepo) UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32, version int32) (db.Goal, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.UpdateGoalProgress")
 	defer span.End()
 
-	return r.db.UpdateGoalProgress(ctx, id, progress)
+	return r.db.UpdateGoalProgress(ctx, id, progress, version)
 }
 
 func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

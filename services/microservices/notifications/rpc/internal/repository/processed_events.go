@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"go.opentelemetry.io/otel"
 )
@@ -18,6 +19,11 @@ type ProcessedEventsRepo struct {
 // NewProcessedEventsRepo returns a repo backed by the given sqlc Queries.
 func NewProcessedEventsRepo(q *db.Queries) *ProcessedEventsRepo {
 	return &ProcessedEventsRepo{db: q}
+}
+
+// WithTx returns a new ProcessedEventsRepo backed by the given transaction.
+func (r *ProcessedEventsRepo) WithTx(tx pgx.Tx) *ProcessedEventsRepo {
+	return &ProcessedEventsRepo{db: r.db.WithTx(tx)}
 }
 
 // IsProcessed returns true when the event has already been recorded.
