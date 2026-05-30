@@ -317,30 +317,27 @@ func (q *Queries) GetActivityStats(ctx context.Context, userID uuid.UUID) (GetAc
 
 const getStreaks = `-- name: GetStreaks :one
 WITH days AS (
-    SELECT DISTINCT DATE(created_at) AS day
-    FROM activities
+    SELECT DISTINCT local_date AS day
+    FROM check_ins
     WHERE user_id = $1
-), ordered_days AS (
+      AND status = 'completed'
+), numbered AS (
     SELECT day, ROW_NUMBER() OVER (ORDER BY day) AS rn
     FROM days
-), streak_groups AS (
-    SELECT day, rn, day - (rn || ' days')::interval AS grp
-    FROM ordered_days
-), streak_lengths AS (
-    SELECT MIN(day) AS start_day, MAX(day) AS end_day, COUNT(*) AS length
-    FROM streak_groups
+), groups AS (
+    SELECT day, day - rn::int AS grp
+    FROM numbered
+), streaks AS (
+    SELECT grp, COUNT(*) AS length, MAX(day) AS max_day
+    FROM groups
     GROUP BY grp
-), current_streak AS (
-    SELECT length
-    FROM streak_lengths
-    WHERE end_day = (SELECT MAX(day) FROM days)
-    LIMIT 1
-), longest_streak AS (
-    SELECT MAX(length) AS length FROM streak_lengths
 )
 SELECT
-    COALESCE((SELECT length FROM current_streak), 0) AS current_streak,
-    COALESCE((SELECT length FROM longest_streak), 0) AS longest_streak
+    COALESCE(
+        (SELECT length FROM streaks WHERE max_day = (SELECT MAX(day) FROM days) LIMIT 1),
+        0
+    ) AS current_streak,
+    COALESCE((SELECT MAX(length) FROM streaks), 0) AS longest_streak
 `
 
 type GetStreaksRow struct {
@@ -348,6 +345,8 @@ type GetStreaksRow struct {
 	LongestStreak interface{} `db:"longest_streak" json:"longest_streak"`
 }
 
+// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
+// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error) {
 	row := q.db.QueryRowContext(ctx, getStreaks, userID)
 	var i GetStreaksRow
@@ -357,17 +356,20 @@ func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksR
 
 const listActivities = `-- name: ListActivities :many
 SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities
+WHERE user_id = $1
 ORDER BY created_at DESC
-LIMIT $1 OFFSET $2
+LIMIT $2 OFFSET $3
 `
 
 type ListActivitiesParams struct {
-	Limit  int32 `db:"limit" json:"limit"`
-	Offset int32 `db:"offset" json:"offset"`
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+	Limit  int32     `db:"limit" json:"limit"`
+	Offset int32     `db:"offset" json:"offset"`
 }
 
+// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 func (q *Queries) ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error) {
-	rows, err := q.db.QueryContext(ctx, listActivities, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listActivities, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

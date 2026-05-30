@@ -40,7 +40,7 @@ type ISavedItems interface {
 }
 
 type IActivities interface {
-	ListActivities(ctx context.Context, limit, offset int32) ([]db.Activity, error)
+	ListActivities(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
 	ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
 	ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.Activity, error)
 	GetActivityByID(ctx context.Context, id uuid.UUID) (db.Activity, error)

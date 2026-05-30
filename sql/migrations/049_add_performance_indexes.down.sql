@@ -1,0 +1,9 @@
+DROP INDEX IF EXISTS idx_saved_articles_user_created_desc;
+DROP INDEX IF EXISTS idx_saved_goals_user_created_desc;
+DROP INDEX IF EXISTS idx_saved_habits_user_created_desc;
+DROP INDEX IF EXISTS idx_activities_user_created_desc;
+DROP INDEX IF EXISTS idx_check_ins_user_completed_local;
+DROP INDEX IF EXISTS idx_check_ins_missed_blocker;
+DROP INDEX IF EXISTS idx_habits_user_completed;
+DROP INDEX IF EXISTS idx_goals_active_status;
+DROP INDEX IF EXISTS idx_reminder_queue_due_id;

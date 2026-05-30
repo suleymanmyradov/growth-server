@@ -2,7 +2,6 @@ package settingslogic
 
 import (
 	"context"
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,10 +47,10 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		if style == "" {
 			style = "balanced"
 		}
-		checkInTime := sql.NullTime{}
+		var checkInTime time.Time
 		if in.Settings.CheckInTime != "" {
 			if t, err := time.Parse("15:04", in.Settings.CheckInTime); err == nil {
-				checkInTime = sql.NullTime{Time: t, Valid: true}
+				checkInTime = t
 			}
 		}
 		onboardingParams := db.UpdateOnboardingSettingsParams{

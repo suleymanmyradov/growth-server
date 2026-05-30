@@ -1,16 +1,25 @@
 -- name: CreateCheckIn :one
+-- Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
-SELECT $1, $2, $3, $4, $5, $6, $7, (NOW() AT TIME ZONE COALESCE(
-  (SELECT timezone FROM user_settings WHERE user_id = $1),
-  'UTC'
-))::date
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date)
 RETURNING *;
 
 -- name: GetTodayCheckIns :many
+-- Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 SELECT ci.* FROM check_ins ci
-LEFT JOIN user_settings us ON ci.user_id = us.user_id
 WHERE ci.user_id = $1
-  AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date;
+  AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date;
 
 -- name: GetCheckInsByHabit :many
 SELECT * FROM check_ins
@@ -40,11 +49,16 @@ WHERE user_id = $1
 ORDER BY created_at DESC;
 
 -- name: HasCheckedInToday :one
+-- Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 SELECT EXISTS(
     SELECT 1 FROM check_ins ci
-    LEFT JOIN user_settings us ON ci.user_id = us.user_id
     WHERE ci.user_id = $1 AND ci.habit_id = $2
-      AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
+      AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
 ) AS exists;
 
 -- name: CountCheckInsByUser :one

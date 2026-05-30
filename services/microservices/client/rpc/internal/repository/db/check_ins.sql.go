@@ -38,11 +38,14 @@ func (q *Queries) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (in
 }
 
 const createCheckIn = `-- name: CreateCheckIn :one
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
-SELECT $1, $2, $3, $4, $5, $6, $7, (NOW() AT TIME ZONE COALESCE(
-  (SELECT timezone FROM user_settings WHERE user_id = $1),
-  'UTC'
-))::date
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date)
 RETURNING id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
 `
 
@@ -56,6 +59,7 @@ type CreateCheckInParams struct {
 	Note    sql.NullString  `db:"note" json:"note"`
 }
 
+// Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
 func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error) {
 	row := q.db.QueryRowContext(ctx, createCheckIn,
 		arg.UserID,
@@ -288,12 +292,17 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 }
 
 const getTodayCheckIns = `-- name: GetTodayCheckIns :many
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 SELECT ci.id, ci.user_id, ci.habit_id, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.local_date FROM check_ins ci
-LEFT JOIN user_settings us ON ci.user_id = us.user_id
 WHERE ci.user_id = $1
-  AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
+  AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
 `
 
+// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error) {
 	rows, err := q.db.QueryContext(ctx, getTodayCheckIns, userID)
 	if err != nil {
@@ -329,11 +338,15 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 }
 
 const hasCheckedInToday = `-- name: HasCheckedInToday :one
+WITH user_tz AS (
+    SELECT COALESCE(timezone, 'UTC') AS tz
+    FROM user_settings
+    WHERE user_id = $1
+)
 SELECT EXISTS(
     SELECT 1 FROM check_ins ci
-    LEFT JOIN user_settings us ON ci.user_id = us.user_id
     WHERE ci.user_id = $1 AND ci.habit_id = $2
-      AND ci.local_date = (NOW() AT TIME ZONE COALESCE(us.timezone, 'UTC'))::date
+      AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
 ) AS exists
 `
 
@@ -342,6 +355,7 @@ type HasCheckedInTodayParams struct {
 	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
 }
 
+// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 func (q *Queries) HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, hasCheckedInToday, arg.UserID, arg.HabitID)
 	var exists bool

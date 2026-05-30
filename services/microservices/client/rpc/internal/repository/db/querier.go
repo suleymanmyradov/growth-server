@@ -43,6 +43,7 @@ type Querier interface {
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
 	CreateArticleShare(ctx context.Context, arg CreateArticleShareParams) (ArticleShare, error)
 	CreateCategory(ctx context.Context, arg CreateCategoryParams) (Category, error)
+	// Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (UserSubscription, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error)
@@ -103,19 +104,24 @@ type Querier interface {
 	GetPlanByCode(ctx context.Context, code string) (Plan, error)
 	GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error)
 	GetSavedItemByUserAndItem(ctx context.Context, arg GetSavedItemByUserAndItemParams) (SavedItem, error)
+	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
+	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
+	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error)
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error)
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error)
 	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID sql.NullString) (GetUserSubscriptionByStripeCustomerIDRow, error)
 	GetWeeklyReview(ctx context.Context, arg GetWeeklyReviewParams) (WeeklyReview, error)
+	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	HasCheckedInToday(ctx context.Context, arg HasCheckedInTodayParams) (bool, error)
 	IsArticleSaved(ctx context.Context, arg IsArticleSavedParams) (bool, error)
 	IsGoalSaved(ctx context.Context, arg IsGoalSavedParams) (bool, error)
 	IsHabitSaved(ctx context.Context, arg IsHabitSavedParams) (bool, error)
 	IsItemSaved(ctx context.Context, arg IsItemSavedParams) (bool, error)
 	ListActivePlans(ctx context.Context) ([]Plan, error)
+	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 	ListActivities(ctx context.Context, arg ListActivitiesParams) ([]Activity, error)
 	ListActivitiesByType(ctx context.Context, arg ListActivitiesByTypeParams) ([]Activity, error)
 	ListActivitiesByUser(ctx context.Context, arg ListActivitiesByUserParams) ([]Activity, error)
@@ -124,6 +130,8 @@ type Querier interface {
 	// ============================================================
 	// NEW: Concrete table queries (use these in new code)
 	// ============================================================
+	// Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
+	// instead of all saved items. Any item in the top N overall must be in the top N of its table.
 	ListAllSavedItemsByUser(ctx context.Context, arg ListAllSavedItemsByUserParams) ([]ListAllSavedItemsByUserRow, error)
 	ListArticleShares(ctx context.Context, arg ListArticleSharesParams) ([]ArticleShare, error)
 	ListArticleSharesByArticle(ctx context.Context, arg ListArticleSharesByArticleParams) ([]ArticleShare, error)

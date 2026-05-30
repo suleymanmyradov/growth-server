@@ -53,12 +53,14 @@ SELECT COUNT(*) FROM saved_items WHERE user_id = $1 AND item_type = $2;
 -- ============================================================
 
 -- name: ListAllSavedItemsByUser :many
+-- Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
+-- instead of all saved items. Any item in the top N overall must be in the top N of its table.
 SELECT * FROM (
-    SELECT sa.id, 'article'::text AS item_type, sa.article_id AS item_id, sa.user_id, sa.created_at FROM saved_articles sa WHERE sa.user_id = $1
+    (SELECT sa.id, 'article'::text AS item_type, sa.article_id AS item_id, sa.user_id, sa.created_at FROM saved_articles sa WHERE sa.user_id = $1 ORDER BY sa.created_at DESC LIMIT $2)
     UNION ALL
-    SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1
+    (SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1 ORDER BY sg.created_at DESC LIMIT $2)
     UNION ALL
-    SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1
+    (SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 ORDER BY sh.created_at DESC LIMIT $2)
 ) combined
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;

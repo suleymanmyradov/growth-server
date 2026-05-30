@@ -19,11 +19,12 @@ func NewActivitiesRepo(db *db.Queries) *ActivitiesRepo {
 	return &ActivitiesRepo{db: db}
 }
 
-func (r *ActivitiesRepo) ListActivities(ctx context.Context, limit, offset int32) ([]db.Activity, error) {
+func (r *ActivitiesRepo) ListActivities(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivities")
 	defer span.End()
 
 	return r.db.ListActivities(ctx, db.ListActivitiesParams{
+		UserID: userID,
 		Limit:  limit,
 		Offset: offset,
 	})
