@@ -1,7 +1,6 @@
 package billingservicelogic
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -61,7 +60,7 @@ func entitlementsToProto(e *EntitlementsResult) *client.Entitlements {
 		PlanCode:                   e.PlanCode,
 		Status:                     e.Status,
 		ActiveGoalLimit:            nullInt32Value(e.ActiveGoalLimit),
-		ActiveHabitLimit:          nullInt32Value(e.ActiveHabitLimit),
+		ActiveHabitLimit:           nullInt32Value(e.ActiveHabitLimit),
 		WeeklyReviewHistoryLimit:   nullInt32Value(e.WeeklyReviewHistoryLimit),
 		PlanAdjustmentLimit:        nullInt32Value(e.PlanAdjustmentLimit),
 		PersonalizedAiEnabled:      e.PersonalizedAiEnabled,
@@ -74,13 +73,6 @@ func entitlementsToProto(e *EntitlementsResult) *client.Entitlements {
 		CurrentActiveHabits:        int32(e.CurrentActiveHabits),
 		CurrentPendingAdjustments:  int32(e.CurrentPendingAdjustments),
 	}
-}
-
-func nullStringValue(v sql.NullString) string {
-	if v.Valid {
-		return v.String
-	}
-	return ""
 }
 
 func nullInt32Value(v int32) int32 {

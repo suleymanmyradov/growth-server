@@ -13,7 +13,6 @@ require (
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/lib/pq v1.12.3
 	github.com/redis/go-redis/v9 v9.18.0
-	github.com/sqlc-dev/pqtype v0.3.0
 	github.com/stretchr/testify v1.11.1
 	github.com/stripe/stripe-go/v82 v82.5.1
 	github.com/zeromicro/go-queue v1.2.2
