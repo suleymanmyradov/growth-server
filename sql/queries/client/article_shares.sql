@@ -30,9 +30,6 @@ DELETE FROM article_shares WHERE id = $1;
 -- name: DeleteArticleShareByUserAndArticle :exec
 DELETE FROM article_shares WHERE user_id = $1 AND article_id = $2;
 
--- name: CountArticleShares :one
-SELECT COUNT(*) FROM article_shares;
-
 -- name: CountArticleSharesByArticle :one
 SELECT COUNT(*) FROM article_shares WHERE article_id = $1;
 

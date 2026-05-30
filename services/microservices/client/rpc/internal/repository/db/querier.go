@@ -13,13 +13,14 @@ import (
 
 type Querier interface {
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error)
+	BatchCreateSavedArticles(ctx context.Context, arg []BatchCreateSavedArticlesParams) (int64, error)
+	BatchCreateSavedGoals(ctx context.Context, arg []BatchCreateSavedGoalsParams) (int64, error)
+	BatchCreateSavedHabits(ctx context.Context, arg []BatchCreateSavedHabitsParams) (int64, error)
 	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType ActivityType) (int64, error)
 	CountAllSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int32, error)
-	CountArticleShares(ctx context.Context) (int64, error)
 	CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountArticles(ctx context.Context) (int64, error)
@@ -34,10 +35,8 @@ type Querier interface {
 	CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType SavedItemType) (int64, error)
-	CountUserSettings(ctx context.Context) (int64, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
@@ -73,6 +72,7 @@ type Querier interface {
 	DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
+	// Single aggregate pass over activities instead of repeated subqueries.
 	GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error)
 	GetActivity(ctx context.Context, id uuid.UUID) (Activity, error)
 	GetActivityCalendar(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetActivityCalendarRow, error)
@@ -89,12 +89,12 @@ type Querier interface {
 	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetCheckInStatsForWeekRow, error)
 	GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
+	// Keyset pagination: more efficient than OFFSET for deep pages.
+	GetCheckInsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]CheckIn, error)
 	GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, weekStart pgtype.Timestamptz, weekEnd pgtype.Timestamptz) ([]CheckIn, error)
 	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error)
 	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (WeeklyReview, error)
-	// NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
-	// check-ins outside the user's week are included, but best/hardest day
-	// attribution may be off by one day near midnight for non-UTC users.
+	// Uses local_date for correct day bucketing regardless of user timezone.
 	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error)
 	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetEnergyStatsForWeekRow, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (Goal, error)
@@ -130,7 +130,9 @@ type Querier interface {
 	ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType ActivityType, limit int32, offset int32) ([]Activity, error)
 	// Filter activities by multiple types in a single round-trip.
 	ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, column2 []ActivityType, limit int32, offset int32) ([]Activity, error)
-	ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
+	// Keyset pagination: more efficient than OFFSET for deep pages.
+	// Pass last_created_at from previous page (or NULL for first page).
+	ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Activity, error)
 	ListAllCategories(ctx context.Context) ([]Category, error)
 	ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
 	// ============================================================
@@ -147,13 +149,22 @@ type Querier interface {
 	ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error)
 	ListCategories(ctx context.Context, entityType EntityType) ([]Category, error)
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Goal, error)
+	// Keyset pagination: more efficient than OFFSET for deep pages.
+	// Pass last_created_at from previous page (or NULL for first page).
+	ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Goal, error)
 	ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Habit, error)
+	// Keyset pagination: more efficient than OFFSET for deep pages.
+	// Pass last_created_at from previous page (or NULL for first page).
+	ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Habit, error)
 	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
 	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
 	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error)
 	ListSavedArticlesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedArticlesByUserRow, error)
+	ListSavedArticlesByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedArticlesByUserKeysetRow, error)
 	ListSavedGoalsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedGoalsByUserRow, error)
+	ListSavedGoalsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedGoalsByUserKeysetRow, error)
 	ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error)
+	ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedHabitsByUserKeysetRow, error)
 	// DEPRECATED: The saved_items polymorphic table is deprecated in favor of
 	// saved_articles, saved_goals, and saved_habits. Old queries below are kept
 	// for backward compatibility during transition; new code should use the
@@ -164,7 +175,7 @@ type Querier interface {
 	ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]SavedItem, error)
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]WeeklyReview, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
-	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (Habit, error)
+	MarkHabitCompleted(ctx context.Context, iD uuid.UUID, version int32) (Habit, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error)
 	// TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings
@@ -185,8 +196,8 @@ type Querier interface {
 	// Bulk lookup for article list views (e.g. resolving saved articles).
 	// Uses ANY with a uuid array to avoid N+1 queries.
 	SearchArticlesSemantic(ctx context.Context, dollar_1 []uuid.UUID) ([]SearchArticlesSemanticRow, error)
-	ToggleGoal(ctx context.Context, id uuid.UUID) (Goal, error)
-	ToggleHabit(ctx context.Context, id uuid.UUID) (Habit, error)
+	ToggleGoal(ctx context.Context, iD uuid.UUID, version int32) (Goal, error)
+	ToggleHabit(ctx context.Context, iD uuid.UUID, version int32) (Habit, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
 	UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error)
 	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UserCoachingProfile, error)
@@ -194,10 +205,10 @@ type Querier interface {
 	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UserCoachingProfile, error)
 	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, preferredTone CoachToneType, difficultyPreference DifficultyLevelType) (UserCoachingProfile, error)
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, error)
-	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (Goal, error)
-	UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, category string) (Habit, error)
-	UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32) (Habit, error)
-	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (UpdateOnboardingSettingsRow, error)
+	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32, version int32) (Goal, error)
+	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Habit, error)
+	UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32, version int32) (Habit, error)
+	UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error)
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status PlanAdjustmentStatusType) (PlanAdjustmentSuggestion, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error)

@@ -12,23 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countUserSettings = `-- name: CountUserSettings :one
-SELECT COUNT(*) FROM user_settings
-`
-
-func (q *Queries) CountUserSettings(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countUserSettings)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createUserSettings = `-- name: CreateUserSettings :one
 INSERT INTO user_settings (
     theme, language, timezone, email_notifications, push_notifications,
     habit_reminders, goal_reminders, user_id
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at
+RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
 `
 
 type CreateUserSettingsParams struct {
@@ -57,6 +46,7 @@ type CreateUserSettingsRow struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
 func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error) {
@@ -86,6 +76,7 @@ func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettings
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -100,7 +91,7 @@ func (q *Queries) DeleteUserSettings(ctx context.Context, userID uuid.UUID) erro
 }
 
 const getUserSettings = `-- name: GetUserSettings :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at FROM user_settings WHERE user_id = $1
+SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE user_id = $1
 `
 
 type GetUserSettingsRow struct {
@@ -118,6 +109,7 @@ type GetUserSettingsRow struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
 func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error) {
@@ -138,12 +130,13 @@ func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUse
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
 
 const getUserSettingsByID = `-- name: GetUserSettingsByID :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at FROM user_settings WHERE id = $1
+SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE id = $1
 `
 
 type GetUserSettingsByIDRow struct {
@@ -161,6 +154,7 @@ type GetUserSettingsByIDRow struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
 func (q *Queries) GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error) {
@@ -181,6 +175,7 @@ func (q *Queries) GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUse
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -190,10 +185,19 @@ UPDATE user_settings
 SET accountability_style = $2,
     check_in_time = $3,
     onboarding_completed = $4,
+    version = version + 1,
     updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at
+WHERE user_id = $1 AND version = $5
+RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
 `
+
+type UpdateOnboardingSettingsParams struct {
+	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
+	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
+	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	Version             int32                   `db:"version" json:"version"`
+}
 
 type UpdateOnboardingSettingsRow struct {
 	ID                  uuid.UUID               `db:"id" json:"id"`
@@ -210,14 +214,16 @@ type UpdateOnboardingSettingsRow struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
-func (q *Queries) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (UpdateOnboardingSettingsRow, error) {
+func (q *Queries) UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error) {
 	row := q.db.QueryRow(ctx, updateOnboardingSettings,
-		userID,
-		accountabilityStyle,
-		checkInTime,
-		onboardingCompleted,
+		arg.UserID,
+		arg.AccountabilityStyle,
+		arg.CheckInTime,
+		arg.OnboardingCompleted,
+		arg.Version,
 	)
 	var i UpdateOnboardingSettingsRow
 	err := row.Scan(
@@ -235,6 +241,7 @@ func (q *Queries) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -242,9 +249,9 @@ func (q *Queries) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID
 const updateUserSettings = `-- name: UpdateUserSettings :one
 UPDATE user_settings
 SET theme = $2, language = $3, timezone = $4, email_notifications = $5,
-    push_notifications = $6, habit_reminders = $7, goal_reminders = $8, updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at
+    push_notifications = $6, habit_reminders = $7, goal_reminders = $8, version = version + 1, updated_at = CURRENT_TIMESTAMP
+WHERE user_id = $1 AND version = $9
+RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
 `
 
 type UpdateUserSettingsParams struct {
@@ -256,6 +263,7 @@ type UpdateUserSettingsParams struct {
 	PushNotifications  bool      `db:"push_notifications" json:"push_notifications"`
 	HabitReminders     bool      `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders      bool      `db:"goal_reminders" json:"goal_reminders"`
+	Version            int32     `db:"version" json:"version"`
 }
 
 type UpdateUserSettingsRow struct {
@@ -273,6 +281,7 @@ type UpdateUserSettingsRow struct {
 	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
 	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
 	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
 func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error) {
@@ -285,6 +294,7 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		arg.PushNotifications,
 		arg.HabitReminders,
 		arg.GoalReminders,
+		arg.Version,
 	)
 	var i UpdateUserSettingsRow
 	err := row.Scan(
@@ -302,6 +312,7 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Version,
 	)
 	return i, err
 }

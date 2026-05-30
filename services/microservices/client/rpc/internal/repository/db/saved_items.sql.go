@@ -12,6 +12,21 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BatchCreateSavedArticlesParams struct {
+	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
+	UserID    uuid.UUID `db:"user_id" json:"user_id"`
+}
+
+type BatchCreateSavedGoalsParams struct {
+	GoalID uuid.UUID `db:"goal_id" json:"goal_id"`
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+}
+
+type BatchCreateSavedHabitsParams struct {
+	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
+	UserID  uuid.UUID `db:"user_id" json:"user_id"`
+}
+
 const countAllSavedItemsByUser = `-- name: CountAllSavedItemsByUser :one
 SELECT
     (SELECT COUNT(*) FROM saved_articles sa WHERE sa.user_id = $1) +
@@ -54,17 +69,6 @@ SELECT COUNT(*) FROM saved_habits WHERE user_id = $1
 
 func (q *Queries) CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countSavedHabitsByUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countSavedItems = `-- name: CountSavedItems :one
-SELECT COUNT(*) FROM saved_items
-`
-
-func (q *Queries) CountSavedItems(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countSavedItems)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -399,6 +403,44 @@ func (q *Queries) ListSavedArticlesByUser(ctx context.Context, userID uuid.UUID,
 	return items, nil
 }
 
+const listSavedArticlesByUserKeyset = `-- name: ListSavedArticlesByUserKeyset :many
+SELECT sa.id, 'article'::text AS item_type, sa.article_id AS item_id, sa.user_id, sa.created_at FROM saved_articles sa WHERE sa.user_id = $1 AND ($2::timestamptz IS NULL OR sa.created_at < $2) ORDER BY sa.created_at DESC LIMIT $3
+`
+
+type ListSavedArticlesByUserKeysetRow struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) ListSavedArticlesByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedArticlesByUserKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listSavedArticlesByUserKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSavedArticlesByUserKeysetRow{}
+	for rows.Next() {
+		var i ListSavedArticlesByUserKeysetRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ItemType,
+			&i.ItemID,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSavedGoalsByUser = `-- name: ListSavedGoalsByUser :many
 SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1 ORDER BY sg.created_at DESC LIMIT $2 OFFSET $3
 `
@@ -437,6 +479,44 @@ func (q *Queries) ListSavedGoalsByUser(ctx context.Context, userID uuid.UUID, li
 	return items, nil
 }
 
+const listSavedGoalsByUserKeyset = `-- name: ListSavedGoalsByUserKeyset :many
+SELECT sg.id, 'goal'::text AS item_type, sg.goal_id AS item_id, sg.user_id, sg.created_at FROM saved_goals sg WHERE sg.user_id = $1 AND ($2::timestamptz IS NULL OR sg.created_at < $2) ORDER BY sg.created_at DESC LIMIT $3
+`
+
+type ListSavedGoalsByUserKeysetRow struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) ListSavedGoalsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedGoalsByUserKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listSavedGoalsByUserKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSavedGoalsByUserKeysetRow{}
+	for rows.Next() {
+		var i ListSavedGoalsByUserKeysetRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ItemType,
+			&i.ItemID,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSavedHabitsByUser = `-- name: ListSavedHabitsByUser :many
 SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 ORDER BY sh.created_at DESC LIMIT $2 OFFSET $3
 `
@@ -458,6 +538,44 @@ func (q *Queries) ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, l
 	items := []ListSavedHabitsByUserRow{}
 	for rows.Next() {
 		var i ListSavedHabitsByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ItemType,
+			&i.ItemID,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSavedHabitsByUserKeyset = `-- name: ListSavedHabitsByUserKeyset :many
+SELECT sh.id, 'habit'::text AS item_type, sh.habit_id AS item_id, sh.user_id, sh.created_at FROM saved_habits sh WHERE sh.user_id = $1 AND ($2::timestamptz IS NULL OR sh.created_at < $2) ORDER BY sh.created_at DESC LIMIT $3
+`
+
+type ListSavedHabitsByUserKeysetRow struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ItemType  string             `db:"item_type" json:"item_type"`
+	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedHabitsByUserKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listSavedHabitsByUserKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSavedHabitsByUserKeysetRow{}
+	for rows.Next() {
+		var i ListSavedHabitsByUserKeysetRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ItemType,

@@ -36,7 +36,7 @@ DO UPDATE SET
     next_week_plan = EXCLUDED.next_week_plan,
     generated_at = CURRENT_TIMESTAMP,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at;
 
 -- name: GetWeeklyReview :one
 SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
@@ -88,11 +88,9 @@ GROUP BY h.id, h.name, h.category
 ORDER BY h.created_at DESC;
 
 -- name: GetDailyCheckInStatsForWeek :many
--- NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
--- check-ins outside the user's week are included, but best/hardest day
--- attribution may be off by one day near midnight for non-UTC users.
+-- Uses local_date for correct day bucketing regardless of user timezone.
 SELECT
-    DATE(ci.created_at) AS day,
+    ci.local_date AS day,
     COUNT(*) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count
@@ -100,7 +98,7 @@ FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.created_at >= $2
   AND ci.created_at < $3
-GROUP BY DATE(ci.created_at)
+GROUP BY ci.local_date
 ORDER BY day ASC;
 
 -- name: GetBlockerStatsForWeek :many

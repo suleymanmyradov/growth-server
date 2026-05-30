@@ -31,7 +31,14 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 		return nil, err
 	}
 
-	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(l.ctx, goalID, in.Progress)
+	// Fetch current goal to get version for optimistic locking
+	current, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to fetch goal for progress update: %v", err)
+		return nil, err
+	}
+
+	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(l.ctx, goalID, in.Progress, current.Version)
 	if err != nil {
 		l.Errorf("Failed to update goal progress: %v", err)
 		return nil, err

@@ -271,7 +271,7 @@ func (q *Queries) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) 
 
 const getDailyCheckInStatsForWeek = `-- name: GetDailyCheckInStatsForWeek :many
 SELECT
-    DATE(ci.created_at) AS day,
+    ci.local_date AS day,
     COUNT(*) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count
@@ -279,7 +279,7 @@ FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.created_at >= $2
   AND ci.created_at < $3
-GROUP BY DATE(ci.created_at)
+GROUP BY ci.local_date
 ORDER BY day ASC
 `
 
@@ -290,9 +290,7 @@ type GetDailyCheckInStatsForWeekRow struct {
 	MissedCount    int64       `db:"missed_count" json:"missed_count"`
 }
 
-// NOTE: DATE() uses UTC. Week boundaries ($2/$3) are timezone-aware so no
-// check-ins outside the user's week are included, but best/hardest day
-// attribution may be off by one day near midnight for non-UTC users.
+// Uses local_date for correct day bucketing regardless of user timezone.
 func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error) {
 	rows, err := q.db.Query(ctx, getDailyCheckInStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {

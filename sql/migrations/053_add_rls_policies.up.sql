@@ -9,7 +9,10 @@ RETURNS UUID AS $$
 BEGIN
     RETURN nullif(current_setting('app.current_user_id', true), '')::UUID;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Set search_path on the function for safety (prevents search_path injection)
+ALTER FUNCTION current_app_user_id() SET search_path = pg_catalog;
 
 -- ============================================
 -- Enable RLS on all user-scoped tables

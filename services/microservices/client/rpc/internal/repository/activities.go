@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
@@ -20,18 +21,16 @@ func NewActivitiesRepo(db *db.Queries) *ActivitiesRepo {
 	return &ActivitiesRepo{db: db}
 }
 
+// WithTx returns a new ActivitiesRepo backed by the given transaction.
+func (r *ActivitiesRepo) WithTx(tx pgx.Tx) *ActivitiesRepo {
+	return &ActivitiesRepo{db: r.db.WithTx(tx)}
+}
+
 func (r *ActivitiesRepo) ListActivities(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivities")
 	defer span.End()
 
 	return r.db.ListActivities(ctx, userID, limit, offset)
-}
-
-func (r *ActivitiesRepo) ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivitiesByUser")
-	defer span.End()
-
-	return r.db.ListActivitiesByUser(ctx, userID, limit, offset)
 }
 
 func (r *ActivitiesRepo) ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.Activity, error) {
@@ -74,13 +73,6 @@ func (r *ActivitiesRepo) DeleteActivitiesByUser(ctx context.Context, userID uuid
 	defer span.End()
 
 	return r.db.DeleteActivitiesByUser(ctx, userID)
-}
-
-func (r *ActivitiesRepo) CountActivities(ctx context.Context) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.CountActivities")
-	defer span.End()
-
-	return r.db.CountActivities(ctx)
 }
 
 func (r *ActivitiesRepo) CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

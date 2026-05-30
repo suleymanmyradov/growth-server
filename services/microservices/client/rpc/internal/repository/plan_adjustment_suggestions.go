@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type PlanAdjustmentSuggestionsRepo struct {
 // NewPlanAdjustmentSuggestionsRepo creates a new PlanAdjustmentSuggestionsRepo instance
 func NewPlanAdjustmentSuggestionsRepo(db *db.Queries) *PlanAdjustmentSuggestionsRepo {
 	return &PlanAdjustmentSuggestionsRepo{db: db}
+}
+
+// WithTx returns a new PlanAdjustmentSuggestionsRepo backed by the given transaction.
+func (r *PlanAdjustmentSuggestionsRepo) WithTx(tx pgx.Tx) *PlanAdjustmentSuggestionsRepo {
+	return &PlanAdjustmentSuggestionsRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *PlanAdjustmentSuggestionsRepo) CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error) {

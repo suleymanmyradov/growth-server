@@ -3,7 +3,7 @@ SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifica
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
--- name: ListNotificationsByUser :many
+-- name: ListNotificationsForUser :many
 SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
@@ -43,21 +43,33 @@ DELETE FROM notifications WHERE id = $1;
 -- name: DeleteAllNotificationsByUser :exec
 DELETE FROM notifications WHERE user_id = $1;
 
--- name: CountNotifications :one
-SELECT COUNT(*) FROM notifications;
+-- name: ListNotificationsForUserKeyset :many
+-- Keyset pagination: more efficient than OFFSET for deep pages.
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3;
+
+-- name: ListUnreadNotificationsKeyset :many
+-- Keyset pagination for unread notifications feed.
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1 AND is_read = false
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3;
+
+-- name: ListNotificationsByTypeKeyset :many
+-- Keyset pagination for typed notification feeds.
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1 AND item_type = $2
+  AND ($3::timestamptz IS NULL OR created_at < $3)
+ORDER BY created_at DESC
+LIMIT $4;
 
 -- name: CountNotificationsByUser :one
 SELECT COUNT(*) FROM notifications WHERE user_id = $1;
 
--- name: CountUnreadNotifications :one
-SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false;
-
--- name: ListNotificationsForUser :many
-SELECT id, title, message, item_type, is_read, user_id, created_at
-FROM notifications
-WHERE user_id = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3;
-
 -- name: GetUnreadCount :one
 SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false;
+

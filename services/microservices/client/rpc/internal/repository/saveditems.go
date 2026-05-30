@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type SavedItemsRepo struct {
 // NewSavedItemsRepo creates a new SavedItemsRepo instance
 func NewSavedItemsRepo(db *db.Queries) *SavedItemsRepo {
 	return &SavedItemsRepo{db: db}
+}
+
+// WithTx returns a new SavedItemsRepo backed by the given transaction.
+func (r *SavedItemsRepo) WithTx(tx pgx.Tx) *SavedItemsRepo {
+	return &SavedItemsRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *SavedItemsRepo) ListSavedItems(ctx context.Context, limit, offset int32) ([]db.SavedItem, error) {
@@ -79,13 +85,6 @@ func (r *SavedItemsRepo) IsItemSaved(ctx context.Context, userID uuid.UUID, item
 	defer span.End()
 
 	return r.db.IsItemSaved(ctx, userID, db.SavedItemType(itemType), itemID)
-}
-
-func (r *SavedItemsRepo) CountSavedItems(ctx context.Context) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.CountSavedItems")
-	defer span.End()
-
-	return r.db.CountSavedItems(ctx)
 }
 
 func (r *SavedItemsRepo) CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {

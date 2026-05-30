@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type billingRepo struct {
 
 func NewBillingRepo(queries *db.Queries) IBilling {
 	return &billingRepo{db: queries}
+}
+
+// WithTx returns a new billingRepo backed by the given transaction.
+func (r *billingRepo) WithTx(tx pgx.Tx) *billingRepo {
+	return &billingRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *billingRepo) ListActivePlans(ctx context.Context) ([]db.Plan, error) {

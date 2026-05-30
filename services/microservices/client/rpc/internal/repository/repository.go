@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 )
 
@@ -34,21 +33,18 @@ type ISavedItems interface {
 	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
 	DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) error
 	IsItemSaved(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (bool, error)
-	CountSavedItems(ctx context.Context) (int64, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType string) (int64, error)
 }
 
 type IActivities interface {
 	ListActivities(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
-	ListActivitiesByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
 	ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.Activity, error)
 	GetActivityByID(ctx context.Context, id uuid.UUID) (db.Activity, error)
 	CreateActivity(ctx context.Context, params db.CreateActivityParams) (db.Activity, error)
 	LogActivity(ctx context.Context, params db.LogActivityParams) (db.Activity, error)
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
-	CountActivities(ctx context.Context) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType string) (int64, error)
 	GetActivityFeed(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error)
@@ -63,20 +59,19 @@ type IUserSettings interface {
 	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (db.GetUserSettingsByIDRow, error)
 	CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.CreateUserSettingsRow, error)
 	UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UpdateUserSettingsRow, error)
-	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle db.AccountabilityStyleType, checkInTime pgtype.Time, onboardingCompleted bool) (db.UpdateOnboardingSettingsRow, error)
+	UpdateOnboardingSettings(ctx context.Context, params db.UpdateOnboardingSettingsParams) (db.UpdateOnboardingSettingsRow, error)
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
-	CountUserSettings(ctx context.Context) (int64, error)
 }
 
 type IHabits interface {
 	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Habit, error)
 	GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, error)
 	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.Habit, error)
-	UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.Habit, error)
+	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.Habit, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	ToggleHabit(ctx context.Context, id uuid.UUID) (db.Habit, error)
-	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.Habit, error)
-	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.Habit, error)
+	ToggleHabit(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error)
+	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32, version int32) (db.Habit, error)
+	MarkHabitCompleted(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
@@ -87,8 +82,8 @@ type IGoals interface {
 	CreateGoal(ctx context.Context, params db.CreateGoalParams) (db.Goal, error)
 	UpdateGoal(ctx context.Context, params db.UpdateGoalParams) (db.Goal, error)
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
-	ToggleGoal(ctx context.Context, id uuid.UUID) (db.Goal, error)
-	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.Goal, error)
+	ToggleGoal(ctx context.Context, id uuid.UUID, version int32) (db.Goal, error)
+	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32, version int32) (db.Goal, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 

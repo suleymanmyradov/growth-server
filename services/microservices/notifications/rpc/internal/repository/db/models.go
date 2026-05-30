@@ -1519,6 +1519,7 @@ type Goal struct {
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	Status      GoalStatusType     `db:"status" json:"status"`
+	Version     int32              `db:"version" json:"version"`
 }
 
 type GoalHabitRelation struct {
@@ -1537,6 +1538,7 @@ type Habit struct {
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Version     int32              `db:"version" json:"version"`
 }
 
 type Message struct {
@@ -1707,6 +1709,7 @@ type UserSetting struct {
 	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
 	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
 	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
+	Version             int32                   `db:"version" json:"version"`
 }
 
 type UserSubscription struct {

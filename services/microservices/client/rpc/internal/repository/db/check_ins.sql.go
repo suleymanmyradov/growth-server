@@ -86,7 +86,8 @@ func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (C
 }
 
 const getCheckInHistory = `-- name: GetCheckInHistory :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
+FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
   AND created_at < $3
@@ -140,7 +141,8 @@ func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryPa
 }
 
 const getCheckInsByHabit = `-- name: GetCheckInsByHabit :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
+FROM check_ins
 WHERE habit_id = $1 AND user_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
@@ -183,7 +185,8 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, use
 }
 
 const getCheckInsByUser = `-- name: GetCheckInsByUser :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
+FROM check_ins
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -220,8 +223,50 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit
 	return items, nil
 }
 
+const getCheckInsByUserKeyset = `-- name: GetCheckInsByUserKeyset :many
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
+FROM check_ins
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+// Keyset pagination: more efficient than OFFSET for deep pages.
+func (q *Queries) GetCheckInsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]CheckIn, error) {
+	rows, err := q.db.Query(ctx, getCheckInsByUserKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CheckIn{}
+	for rows.Next() {
+		var i CheckIn
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.HabitID,
+			&i.Status,
+			&i.Mood,
+			&i.Energy,
+			&i.Blocker,
+			&i.Note,
+			&i.CreatedAt,
+			&i.LocalDate,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCheckInsForWeek = `-- name: GetCheckInsForWeek :many
-SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date FROM check_ins
+SELECT id, user_id, habit_id, status, mood, energy, blocker, note, created_at, local_date
+FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
   AND created_at < $3
@@ -265,7 +310,8 @@ WITH user_tz AS (
     FROM user_settings
     WHERE user_id = $1
 )
-SELECT ci.id, ci.user_id, ci.habit_id, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.local_date FROM check_ins ci
+SELECT ci.id, ci.user_id, ci.habit_id, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.local_date
+FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
 `

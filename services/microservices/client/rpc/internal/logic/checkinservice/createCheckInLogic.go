@@ -82,14 +82,14 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		// If completed, toggle habit to mark as completed and bump streak
 		switch in.Status {
 		case "completed":
-			updatedHabit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID)
+			updatedHabit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID, habit.Version)
 			if err != nil {
 				return fmt.Errorf("toggle habit: %w", err)
 			}
 			habit = updatedHabit
 		case "missed":
 			// Reset streak on missed check-in
-			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
+			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0, habit.Version)
 			if err != nil {
 				return fmt.Errorf("reset habit streak: %w", err)
 			}

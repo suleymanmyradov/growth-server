@@ -47,7 +47,7 @@ type GetReminderContextRow struct {
 
 // Optimized: single scan of habits + one lookup of user_settings.
 // Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
-func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (*GetReminderContextRow, error) {
+func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error) {
 	row := q.db.QueryRow(ctx, getReminderContext, dollar_1)
 	var i GetReminderContextRow
 	err := row.Scan(
@@ -58,7 +58,7 @@ func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (*
 		&i.ActiveHabitCount,
 		&i.CheckedInToday,
 	)
-	return &i, err
+	return i, err
 }
 
 const markReminderSent = `-- name: MarkReminderSent :one
@@ -68,7 +68,7 @@ WHERE id = $1
 RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
 `
 
-func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (*ReminderQueue, error) {
+func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQueue, error) {
 	row := q.db.QueryRow(ctx, markReminderSent, id)
 	var i ReminderQueue
 	err := row.Scan(
@@ -82,5 +82,5 @@ func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (*Reminder
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
-	return &i, err
+	return i, err
 }

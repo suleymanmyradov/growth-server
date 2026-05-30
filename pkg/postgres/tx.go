@@ -66,7 +66,7 @@ func setRLSUserSQL(ctx context.Context, tx *sql.Tx, userID string) error {
 	if userID == "" {
 		return fmt.Errorf("userID cannot be empty for RLS")
 	}
-	_, err := tx.ExecContext(ctx, "SET LOCAL app.current_user_id = $1", userID)
+	_, err := tx.ExecContext(ctx, "SELECT set_config('app.current_user_id', $1, true)", userID)
 	return err
 }
 
@@ -125,6 +125,6 @@ func setRLSUserPgx(ctx context.Context, tx pgx.Tx, userID string) error {
 	if userID == "" {
 		return fmt.Errorf("userID cannot be empty for RLS")
 	}
-	_, err := tx.Exec(ctx, "SET LOCAL app.current_user_id = $1", userID)
+	_, err := tx.Exec(ctx, "SELECT set_config('app.current_user_id', $1, true)", userID)
 	return err
 }

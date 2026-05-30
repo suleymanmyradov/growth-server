@@ -12,34 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countNotifications = `-- name: CountNotifications :one
-SELECT COUNT(*) FROM notifications
-`
-
-func (q *Queries) CountNotifications(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countNotifications)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countNotificationsByUser = `-- name: CountNotificationsByUser :one
 SELECT COUNT(*) FROM notifications WHERE user_id = $1
 `
 
 func (q *Queries) CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
 	row := q.db.QueryRow(ctx, countNotificationsByUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countUnreadNotifications = `-- name: CountUnreadNotifications :one
-SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false
-`
-
-func (q *Queries) CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countUnreadNotifications, userID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -61,7 +39,7 @@ type CreateNotificationRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) CreateNotification(ctx context.Context, title string, message string, itemType NotificationType, userID uuid.UUID) (*CreateNotificationRow, error) {
+func (q *Queries) CreateNotification(ctx context.Context, title string, message string, itemType NotificationType, userID uuid.UUID) (CreateNotificationRow, error) {
 	row := q.db.QueryRow(ctx, createNotification,
 		title,
 		message,
@@ -78,7 +56,7 @@ func (q *Queries) CreateNotification(ctx context.Context, title string, message 
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const deleteAllNotificationsByUser = `-- name: DeleteAllNotificationsByUser :exec
@@ -113,7 +91,7 @@ type GetNotificationRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (*GetNotificationRow, error) {
+func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error) {
 	row := q.db.QueryRow(ctx, getNotification, id)
 	var i GetNotificationRow
 	err := row.Scan(
@@ -125,7 +103,7 @@ func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (*GetNotifi
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }
 
 const getUnreadCount = `-- name: GetUnreadCount :one
@@ -155,13 +133,13 @@ type ListNotificationsRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int32) ([]*ListNotificationsRow, error) {
+func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error) {
 	rows, err := q.db.Query(ctx, listNotifications, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListNotificationsRow{}
+	items := []ListNotificationsRow{}
 	for rows.Next() {
 		var i ListNotificationsRow
 		if err := rows.Scan(
@@ -175,7 +153,7 @@ func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -199,7 +177,7 @@ type ListNotificationsByTypeRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID, itemType NotificationType, limit int32, offset int32) ([]*ListNotificationsByTypeRow, error) {
+func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID, itemType NotificationType, limit int32, offset int32) ([]ListNotificationsByTypeRow, error) {
 	rows, err := q.db.Query(ctx, listNotificationsByType,
 		userID,
 		itemType,
@@ -210,7 +188,7 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID,
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListNotificationsByTypeRow{}
+	items := []ListNotificationsByTypeRow{}
 	for rows.Next() {
 		var i ListNotificationsByTypeRow
 		if err := rows.Scan(
@@ -224,7 +202,7 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID,
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -232,13 +210,15 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID,
 	return items, nil
 }
 
-const listNotificationsByUser = `-- name: ListNotificationsByUser :many
-SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications WHERE user_id = $1
+const listNotificationsByTypeKeyset = `-- name: ListNotificationsByTypeKeyset :many
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1 AND item_type = $2
+  AND ($3::timestamptz IS NULL OR created_at < $3)
 ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
+LIMIT $4
 `
 
-type ListNotificationsByUserRow struct {
+type ListNotificationsByTypeKeysetRow struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Title     string             `db:"title" json:"title"`
 	Message   string             `db:"message" json:"message"`
@@ -248,15 +228,21 @@ type ListNotificationsByUserRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListNotificationsByUserRow, error) {
-	rows, err := q.db.Query(ctx, listNotificationsByUser, userID, limit, offset)
+// Keyset pagination for typed notification feeds.
+func (q *Queries) ListNotificationsByTypeKeyset(ctx context.Context, userID uuid.UUID, itemType NotificationType, column3 pgtype.Timestamptz, limit int32) ([]ListNotificationsByTypeKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listNotificationsByTypeKeyset,
+		userID,
+		itemType,
+		column3,
+		limit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListNotificationsByUserRow{}
+	items := []ListNotificationsByTypeKeysetRow{}
 	for rows.Next() {
-		var i ListNotificationsByUserRow
+		var i ListNotificationsByTypeKeysetRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
@@ -268,7 +254,7 @@ func (q *Queries) ListNotificationsByUser(ctx context.Context, userID uuid.UUID,
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -277,9 +263,7 @@ func (q *Queries) ListNotificationsByUser(ctx context.Context, userID uuid.UUID,
 }
 
 const listNotificationsForUser = `-- name: ListNotificationsForUser :many
-SELECT id, title, message, item_type, is_read, user_id, created_at
-FROM notifications
-WHERE user_id = $1
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -294,13 +278,13 @@ type ListNotificationsForUserRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListNotificationsForUserRow, error) {
+func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListNotificationsForUserRow, error) {
 	rows, err := q.db.Query(ctx, listNotificationsForUser, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListNotificationsForUserRow{}
+	items := []ListNotificationsForUserRow{}
 	for rows.Next() {
 		var i ListNotificationsForUserRow
 		if err := rows.Scan(
@@ -314,7 +298,54 @@ func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNotificationsForUserKeyset = `-- name: ListNotificationsForUserKeyset :many
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+type ListNotificationsForUserKeysetRow struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+// Keyset pagination: more efficient than OFFSET for deep pages.
+func (q *Queries) ListNotificationsForUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListNotificationsForUserKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listNotificationsForUserKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListNotificationsForUserKeysetRow{}
+	for rows.Next() {
+		var i ListNotificationsForUserKeysetRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Message,
+			&i.ItemType,
+			&i.IsRead,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -338,13 +369,13 @@ type ListUnreadNotificationsRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]*ListUnreadNotificationsRow, error) {
+func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListUnreadNotificationsRow, error) {
 	rows, err := q.db.Query(ctx, listUnreadNotifications, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []*ListUnreadNotificationsRow{}
+	items := []ListUnreadNotificationsRow{}
 	for rows.Next() {
 		var i ListUnreadNotificationsRow
 		if err := rows.Scan(
@@ -358,7 +389,54 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID,
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, &i)
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUnreadNotificationsKeyset = `-- name: ListUnreadNotificationsKeyset :many
+SELECT id, title, message, item_type, is_read, user_id, created_at FROM notifications
+WHERE user_id = $1 AND is_read = false
+  AND ($2::timestamptz IS NULL OR created_at < $2)
+ORDER BY created_at DESC
+LIMIT $3
+`
+
+type ListUnreadNotificationsKeysetRow struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Title     string             `db:"title" json:"title"`
+	Message   string             `db:"message" json:"message"`
+	ItemType  NotificationType   `db:"item_type" json:"item_type"`
+	IsRead    bool               `db:"is_read" json:"is_read"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+// Keyset pagination for unread notifications feed.
+func (q *Queries) ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listUnreadNotificationsKeyset, userID, column2, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUnreadNotificationsKeysetRow{}
+	for rows.Next() {
+		var i ListUnreadNotificationsKeysetRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Message,
+			&i.ItemType,
+			&i.IsRead,
+			&i.UserID,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -394,7 +472,7 @@ type MarkNotificationReadRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (*MarkNotificationReadRow, error) {
+func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error) {
 	row := q.db.QueryRow(ctx, markNotificationRead, id)
 	var i MarkNotificationReadRow
 	err := row.Scan(
@@ -406,5 +484,5 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (*Mark
 		&i.UserID,
 		&i.CreatedAt,
 	)
-	return &i, err
+	return i, err
 }

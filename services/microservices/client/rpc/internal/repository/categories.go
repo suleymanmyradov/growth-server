@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type CategoriesRepo struct {
 // NewCategoriesRepo creates a new CategoriesRepo instance
 func NewCategoriesRepo(db *db.Queries) *CategoriesRepo {
 	return &CategoriesRepo{db: db}
+}
+
+// WithTx returns a new CategoriesRepo backed by the given transaction.
+func (r *CategoriesRepo) WithTx(tx pgx.Tx) *CategoriesRepo {
+	return &CategoriesRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *CategoriesRepo) ListCategories(ctx context.Context, entityType db.EntityType) ([]db.Category, error) {

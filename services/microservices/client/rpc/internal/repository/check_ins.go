@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
@@ -16,6 +17,11 @@ type checkInsRepo struct {
 
 func NewCheckInsRepo(queries *db.Queries) ICheckIns {
 	return &checkInsRepo{db: queries}
+}
+
+// WithTx returns a new checkInsRepo backed by the given transaction.
+func (r *checkInsRepo) WithTx(tx pgx.Tx) *checkInsRepo {
+	return &checkInsRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *checkInsRepo) CreateCheckIn(ctx context.Context, params db.CreateCheckInParams) (db.CheckIn, error) {

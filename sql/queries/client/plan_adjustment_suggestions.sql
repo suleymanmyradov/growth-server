@@ -17,32 +17,37 @@ DO UPDATE SET
     suggestion = EXCLUDED.suggestion,
     metadata = EXCLUDED.metadata,
     updated_at = CURRENT_TIMESTAMP
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id;
 
 -- name: GetPlanAdjustmentSuggestion :one
-SELECT * FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE id = $1 AND user_id = $2;
 
 -- name: ListPendingPlanAdjustmentSuggestions :many
-SELECT * FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND status = 'pending'
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListAllPlanAdjustmentSuggestions :many
-SELECT * FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListPlanAdjustmentSuggestionsByHabit :many
-SELECT * FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND habit_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: ListPlanAdjustmentSuggestionsByGoal :many
-SELECT * FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND goal_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
@@ -51,7 +56,7 @@ LIMIT $3 OFFSET $4;
 UPDATE plan_adjustment_suggestions
 SET status = $3, updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id;
 
 -- name: UpdatePlanAdjustmentSuggestion :one
 UPDATE plan_adjustment_suggestions
@@ -62,7 +67,7 @@ SET
     metadata = $6,
     updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id;
 
 -- name: DeletePlanAdjustmentSuggestion :exec
 DELETE FROM plan_adjustment_suggestions
@@ -83,4 +88,4 @@ WHERE user_id = $1
 UPDATE plan_adjustment_suggestions
 SET status = 'applied', updated_at = CURRENT_TIMESTAMP
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id;

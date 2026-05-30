@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -16,6 +17,11 @@ type UsersRepo struct {
 // NewUsersRepo creates a new UsersRepo instance
 func NewUsersRepo(dbq *db.Queries) *UsersRepo {
 	return &UsersRepo{db: dbq}
+}
+
+// WithTx returns a new UsersRepo backed by the given transaction.
+func (r *UsersRepo) WithTx(tx pgx.Tx) *UsersRepo {
+	return &UsersRepo{db: r.db.WithTx(tx)}
 }
 
 func (r *UsersRepo) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (db.User, error) {

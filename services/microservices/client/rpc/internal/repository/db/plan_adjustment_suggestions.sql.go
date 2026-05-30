@@ -143,7 +143,8 @@ func (q *Queries) DismissOldPendingSuggestions(ctx context.Context, userID uuid.
 }
 
 const getPlanAdjustmentSuggestion = `-- name: GetPlanAdjustmentSuggestion :one
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE id = $1 AND user_id = $2
 `
 
@@ -170,7 +171,8 @@ func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID,
 }
 
 const listAllPlanAdjustmentSuggestions = `-- name: ListAllPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -212,7 +214,8 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID u
 }
 
 const listPendingPlanAdjustmentSuggestions = `-- name: ListPendingPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND status = 'pending'
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -254,7 +257,8 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, user
 }
 
 const listPlanAdjustmentSuggestionsByGoal = `-- name: ListPlanAdjustmentSuggestionsByGoal :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND goal_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
@@ -301,7 +305,8 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userI
 }
 
 const listPlanAdjustmentSuggestionsByHabit = `-- name: ListPlanAdjustmentSuggestionsByHabit :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+FROM plan_adjustment_suggestions
 WHERE user_id = $1 AND habit_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
