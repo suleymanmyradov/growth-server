@@ -35,14 +35,14 @@ type stripeSubscriptionData struct {
 }
 
 type stripeSubscription struct {
-	ID                     string `json:"id"`
-	Customer               string `json:"customer"`
-	Status                 string `json:"status"`
-	CurrentPeriodStart     int64  `json:"current_period_start"`
-	CurrentPeriodEnd       int64  `json:"current_period_end"`
-	TrialEnd               int64  `json:"trial_end"`
-	CancelAtPeriodEnd      bool   `json:"cancel_at_period_end"`
-	Items                  struct {
+	ID                 string `json:"id"`
+	Customer           string `json:"customer"`
+	Status             string `json:"status"`
+	CurrentPeriodStart int64  `json:"current_period_start"`
+	CurrentPeriodEnd   int64  `json:"current_period_end"`
+	TrialEnd           int64  `json:"trial_end"`
+	CancelAtPeriodEnd  bool   `json:"cancel_at_period_end"`
+	Items              struct {
 		Data []stripeSubscriptionItem `json:"data"`
 	} `json:"items"`
 }
@@ -198,16 +198,16 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 	}
 
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
-		UserID:                 existingSub.UserID,
-		PlanID:                plan.ID,
-		Status:                db.SubscriptionStatusType(localStatus),
-		BillingInterval:       billingIntervalPtr,
-		CurrentPeriodStart:    periodStart,
-		CurrentPeriodEnd:      periodEnd,
-		TrialEnd:              trialEndTime,
-		CancelAtPeriodEnd:     sub.CancelAtPeriodEnd,
+		UserID:               existingSub.UserID,
+		PlanID:               plan.ID,
+		Status:               db.SubscriptionStatusType(localStatus),
+		BillingInterval:      billingIntervalPtr,
+		CurrentPeriodStart:   periodStart,
+		CurrentPeriodEnd:     periodEnd,
+		TrialEnd:             trialEndTime,
+		CancelAtPeriodEnd:    sub.CancelAtPeriodEnd,
 		StripeCustomerID:     &sub.Customer,
-		StripeSubscriptionID:  &sub.ID,
+		StripeSubscriptionID: &sub.ID,
 	})
 	if err != nil {
 		l.Errorf("Failed to upsert subscription: %v", err)
@@ -276,10 +276,10 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 	}
 
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
-		UserID:              existingSub.UserID,
-		PlanID:              proPlan.ID,
-		Status:              "past_due",
-		StripeCustomerID:    &subData.Object.Customer,
+		UserID:               existingSub.UserID,
+		PlanID:               proPlan.ID,
+		Status:               "past_due",
+		StripeCustomerID:     &subData.Object.Customer,
 		StripeSubscriptionID: &subData.Object.ID,
 	})
 	if err != nil {
