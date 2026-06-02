@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/server"
@@ -11,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -24,6 +26,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	logx.Infof("starting auth service with config: %+v", configsafe.MaskSecrets(c))
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {

@@ -4,8 +4,9 @@
 package personalization
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
-	"errors"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -32,7 +33,7 @@ func NewGeneratePersonalizedCoachingLogic(ctx context.Context, svcCtx *svc.Servi
 func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(req *types.GeneratePersonalizedCoachingRequest) (resp *types.GeneratePersonalizedCoachingResponse, err error) {
 	principal, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthorized")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	rpcResp, err := l.svcCtx.PersonalizationRpc.GeneratePersonalizedCoaching(l.ctx, &clientpersonalization.GeneratePersonalizedCoachingRequest{

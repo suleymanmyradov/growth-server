@@ -5,51 +5,49 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/redis/go-redis/v9"
+	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type ServiceContext struct {
 	Config           config.Config
 	Repo             *repository.Repository
 	EventsPub        *events.Publisher
-	AIClient         ai.Client
+	AICoachRpc       aicoachservice.AICoachService
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
 	TxRunner         *postgres.PgxTxRunner
+	Authz            *authz.Checker
 	pool             *pgxpool.Pool
+	redis            *redis.Client
 }
 
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
-	config, err := pgxpool.ParseConfig(datasource)
-	if err != nil {
-		panic(fmt.Errorf("parse pgx config: %w", err))
+func mustNewRedis(addr, password string, db int) *redis.Client {
+	c := redis.NewClient(&redis.Options{Addr: addr, Password: password, DB: db})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := c.Ping(ctx).Err(); err != nil {
+		_ = c.Close()
+		panic(fmt.Errorf("redis ping: %w", err))
 	}
-	config.MaxConns = int32(maxOpen)
-	config.MinConns = int32(maxIdle)
-	config.MaxConnLifetime = maxLifetime
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		panic(fmt.Errorf("pgx pool: %w", err))
-	}
-	if err := pool.Ping(context.Background()); err != nil {
-		pool.Close()
-		panic(fmt.Errorf("pgx ping: %w", err))
-	}
-	return pool
+	return c
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	pool := postgres.MustOpenPool(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 
 	queries := db.New(pool)
 	txRunner := postgres.NewPgxTxRunner(pool)
@@ -57,11 +55,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var eventsPub *events.Publisher
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
-	}
-
-	aiClient, err := ai.New(c.AI)
-	if err != nil {
-		panic(fmt.Errorf("ai client: %w", err))
 	}
 
 	repo := repository.NewRepository(queries)
@@ -72,15 +65,36 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
 	}
 
+	aiCoachRpc := aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc))
+
+	var redisClient *redis.Client
+	var authzChecker *authz.Checker
+	if c.Redis.Addr != "" {
+		redisClient = mustNewRedis(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		authzChecker = authz.NewChecker(authz.NewRedisCache(redisClient), func(ctx context.Context, userID uuid.UUID) (authz.UserStatus, error) {
+			// Use user_settings as a proxy for user existence in the client service.
+			// The auth service is the canonical source of truth for user status.
+			_, err := repo.UserSettings.GetUserSettings(ctx, userID)
+			if err != nil {
+				return authz.StatusNotFound, nil
+			}
+			return authz.StatusActive, nil
+		})
+	} else {
+		logx.Info("Redis not configured; authz caching disabled")
+	}
+
 	return &ServiceContext{
 		Config:           c,
 		Repo:             repo,
 		EventsPub:        eventsPub,
-		AIClient:         aiClient,
+		AICoachRpc:       aiCoachRpc,
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
 		TxRunner:         txRunner,
+		Authz:            authzChecker,
 		pool:             pool,
+		redis:            redisClient,
 	}
 }
 
@@ -110,5 +124,8 @@ func (s *ServiceContext) Close() {
 	}
 	if s.pool != nil {
 		s.pool.Close()
+	}
+	if s.redis != nil {
+		_ = s.redis.Close()
 	}
 }

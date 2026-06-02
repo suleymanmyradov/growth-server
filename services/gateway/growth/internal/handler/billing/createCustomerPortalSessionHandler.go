@@ -6,6 +6,7 @@ package billing
 import (
 	"net/http"
 
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/billing"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -16,7 +17,7 @@ func CreateCustomerPortalSessionHandler(svcCtx *svc.ServiceContext) http.Handler
 		l := billing.NewCreateCustomerPortalSessionLogic(r.Context(), svcCtx)
 		resp, err := l.CreateCustomerPortalSession()
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.HandleGrpcError(w, err)
 		} else {
 			httpx.OkJsonCtx(r.Context(), w, resp)
 		}

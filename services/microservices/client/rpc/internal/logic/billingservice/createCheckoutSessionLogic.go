@@ -39,6 +39,12 @@ func (l *CreateCheckoutSessionLogic) CreateCheckoutSession(in *client.CreateChec
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
+	if l.svcCtx.Authz != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	billingMode := l.svcCtx.Config.Billing.Mode
 	if billingMode == "" {
 		billingMode = "fake_door"

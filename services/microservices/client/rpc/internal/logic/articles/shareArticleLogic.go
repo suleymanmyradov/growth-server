@@ -30,7 +30,7 @@ func (l *ShareArticleLogic) ShareArticle(in *client.ShareArticleRequest) (*clien
 	articleID, err := uuid.Parse(in.ArticleId)
 	if err != nil {
 		l.Errorf("Invalid article ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid article id")
 	}
 
 	p, ok := principal.PrincipalFrom(l.ctx)
@@ -40,13 +40,13 @@ func (l *ShareArticleLogic) ShareArticle(in *client.ShareArticleRequest) (*clien
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	_, err = l.svcCtx.Repo.Articles.CreateArticleShare(l.ctx, articleID, userID, in.Platform)
 	if err != nil {
 		l.Errorf("Failed to create article share: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to create article share")
 	}
 
 	return &client.ShareArticleResponse{

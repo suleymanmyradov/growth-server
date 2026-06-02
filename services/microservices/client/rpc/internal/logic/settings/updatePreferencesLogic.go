@@ -35,7 +35,7 @@ func (l *UpdatePreferencesLogic) UpdatePreferences(in *client.UpdatePreferencesR
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	l.Infof("Updating preferences for user %s", userID)

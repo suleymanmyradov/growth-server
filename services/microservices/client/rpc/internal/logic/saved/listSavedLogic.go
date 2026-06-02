@@ -45,7 +45,7 @@ func (l *ListSavedLogic) ListSaved(in *client.ListSavedRequest) (*client.ListSav
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	var items []*client.SavedItem
@@ -55,7 +55,7 @@ func (l *ListSavedLogic) ListSaved(in *client.ListSavedRequest) (*client.ListSav
 		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByType(l.ctx, userID, in.ItemType, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list saved items by type: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to list saved items by type")
 		}
 		for _, item := range dbItems {
 			items = append(items, convertDbSavedItemToPb(item))
@@ -64,7 +64,7 @@ func (l *ListSavedLogic) ListSaved(in *client.ListSavedRequest) (*client.ListSav
 		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByUser(l.ctx, userID, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list saved items: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to list saved items")
 		}
 		for _, item := range dbItems {
 			items = append(items, convertDbSavedItemToPb(item))

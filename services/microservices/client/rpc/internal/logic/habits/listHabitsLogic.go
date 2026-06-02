@@ -35,7 +35,7 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	limit := in.Limit
@@ -50,13 +50,13 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 	habits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list habits: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to list habits")
 	}
 
 	total, err := l.svcCtx.Repo.Habits.CountHabitsByUser(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count habits: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to count habits")
 	}
 
 	var pbHabits []*client.Habit

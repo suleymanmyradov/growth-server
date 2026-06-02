@@ -1,6 +1,8 @@
 package goalslogic
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 
 	"github.com/google/uuid"
@@ -28,20 +30,20 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 	goalID, err := uuid.Parse(in.GoalId)
 	if err != nil {
 		l.Errorf("Invalid goal ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
 	// Fetch current goal to get version for optimistic locking
 	current, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to fetch goal for progress update: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to fetch goal for progress update")
 	}
 
 	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(l.ctx, goalID, in.Progress, current.Version)
 	if err != nil {
 		l.Errorf("Failed to update goal progress: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to update goal progress")
 	}
 
 	return &client.UpdateGoalProgressResponse{

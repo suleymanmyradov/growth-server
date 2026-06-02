@@ -1,6 +1,8 @@
 package goalslogic
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 	"time"
 
@@ -31,7 +33,7 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	goalID, err := uuid.Parse(in.GoalId)
 	if err != nil {
 		l.Errorf("Invalid goal ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
 	var desc *string
@@ -47,7 +49,7 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	current, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to fetch goal for update: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to fetch goal for update")
 	}
 
 	params := db.UpdateGoalParams{
@@ -62,7 +64,7 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	goal, err := l.svcCtx.Repo.Goals.UpdateGoal(l.ctx, params)
 	if err != nil {
 		l.Errorf("Failed to update goal: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to update goal")
 	}
 
 	return &client.UpdateGoalResponse{

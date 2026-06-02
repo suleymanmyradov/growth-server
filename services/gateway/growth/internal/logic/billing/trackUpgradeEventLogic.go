@@ -40,6 +40,8 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(req *types.TrackUpgradeEventR
 	}
 
 	return &types.TrackUpgradeEventResponse{
-		EventId: rpcResp.EventId,
+		Data: types.TrackUpgradeEventData{
+			EventId: rpcResp.EventId,
+		},
 	}, nil
 }

@@ -1,10 +1,6 @@
 package svc
 
 import (
-	"context"
-	"fmt"
-	"time"
-
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -29,28 +25,8 @@ type ServiceContext struct {
 	pool      *pgxpool.Pool
 }
 
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
-	config, err := pgxpool.ParseConfig(datasource)
-	if err != nil {
-		panic(fmt.Errorf("parse pgx config: %w", err))
-	}
-	config.MaxConns = int32(maxOpen)
-	config.MinConns = int32(maxIdle)
-	config.MaxConnLifetime = maxLifetime
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		panic(fmt.Errorf("pgx pool: %w", err))
-	}
-	if err := pool.Ping(context.Background()); err != nil {
-		pool.Close()
-		panic(fmt.Errorf("pgx ping: %w", err))
-	}
-	return pool
-}
-
 func NewServiceContext(c config.Config) *ServiceContext {
-	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	pool := postgres.MustOpenPool(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 	queries := db.New(pool)
 	repo := repository.NewRepository(queries)
 	txRunner := postgres.NewPgxTxRunner(pool)

@@ -35,7 +35,7 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	// Check plan limit enforcement (auto-create free subscription if missing)
@@ -51,7 +51,7 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 	habit, err := l.svcCtx.Repo.Habits.CreateHabit(l.ctx, name, desc, category, uid)
 	if err != nil {
 		l.Errorf("Failed to create habit: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to create habit")
 	}
 
 	return &client.CreateHabitResponse{

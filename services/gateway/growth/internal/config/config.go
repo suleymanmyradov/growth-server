@@ -15,6 +15,7 @@ type Config struct {
 	ClientRpc        zrpc.RpcClientConf
 	SearchRpc        zrpc.RpcClientConf
 	ConversationsRpc zrpc.RpcClientConf
+	AICoachRpc       zrpc.RpcClientConf
 	Auth             struct {
 		Secret   string
 		Issuer   string
@@ -25,5 +26,8 @@ type Config struct {
 		StripeSecretKey     string
 		StripeWebhookSecret string
 		FrontendURL         string
+	}
+	ServiceAuth struct {
+		Secret string
 	}
 }

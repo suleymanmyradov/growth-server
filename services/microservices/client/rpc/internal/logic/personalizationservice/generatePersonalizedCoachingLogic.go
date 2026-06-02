@@ -2,10 +2,9 @@ package personalizationservicelogic
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
-	"github.com/suleymanmyradov/growth-server/pkg/prompts"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -29,9 +28,8 @@ func NewGeneratePersonalizedCoachingLogic(ctx context.Context, svcCtx *svc.Servi
 }
 
 func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *client.GeneratePersonalizedCoachingRequest) (*client.GeneratePersonalizedCoachingResponse, error) {
-	userID, err := uuid.Parse(in.UserId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	if in.UserId == "" {
+		return nil, status.Error(codes.InvalidArgument, "userId is required")
 	}
 
 	// Get personalization context
@@ -70,40 +68,33 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 		completionRate = float64(completedCount) / float64(len(contextResp.Context.RecentCheckIns)) * 100
 	}
 
-	checkInSummary := prompts.BuildContextSummary(
-		len(contextResp.Context.RecentCheckIns),
-		completionRate,
-		"",
-		"",
-	)
+	recentCheckInsSummary := fmt.Sprintf("Recent activity: %d check-ins with %.1f%% completion rate.",
+		len(contextResp.Context.RecentCheckIns), completionRate)
 
-	promptInput := prompts.PersonalizedCoachingInput{
+	patternInsights := make(map[string]string, len(contextResp.Context.PatternInsights))
+	for k, v := range contextResp.Context.PatternInsights {
+		patternInsights[k] = v
+	}
+
+	aiResp, aiErr := l.svcCtx.AICoachRpc.GeneratePersonalizedCoaching(l.ctx, &aicoachservice.PersonalizedCoachingRequest{
+		UserId:                in.UserId,
 		UserMessage:           in.UserMessage,
 		AccountabilityStyle:   profile.AccountabilityStyle,
 		PreferredTone:         profile.PreferredTone,
 		DifficultyPreference:  profile.DifficultyPreference,
 		ActiveGoals:           activeGoals,
 		ActiveHabits:          activeHabits,
-		RecentCheckInsSummary: checkInSummary,
+		RecentCheckInsSummary: recentCheckInsSummary,
 		CommonBlockers:        profile.CommonBlockers,
-		PatternInsights:       contextResp.Context.PatternInsights,
-	}
-
-	// Generate AI response
-	aiResponse, aiErr := l.svcCtx.AIClient.Generate(l.ctx, ai.GenerateRequest{
-		ModelProfile: ai.ModelCheap,
-		System:       prompts.BuildPersonalizedCoachingSystemPrompt(promptInput),
-		Messages:     []ai.Message{{Role: ai.RoleUser, Content: prompts.BuildPersonalizedCoachingUserPrompt(promptInput)}},
-		Metadata:     ai.Metadata{UserID: userID.String(), Feature: "personalized_coaching"},
+		PatternInsights:       patternInsights,
 	})
 
 	coachingResponse := ""
 	if aiErr != nil {
 		l.Errorf("AI generation failed: %v", aiErr)
-		// Return a deterministic fallback response
 		coachingResponse = "I couldn't generate a full coaching response right now, but based on your recent activity, pick one small action you can complete today and keep it easy. Small consistent actions build momentum over time."
 	} else {
-		coachingResponse = aiResponse.Message.Content
+		coachingResponse = aiResp.CoachingResponse
 	}
 
 	return &client.GeneratePersonalizedCoachingResponse{

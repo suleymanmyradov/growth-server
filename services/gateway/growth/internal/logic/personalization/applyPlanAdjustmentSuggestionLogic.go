@@ -4,9 +4,10 @@
 package personalization
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 	"encoding/json"
-	"errors"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -33,7 +34,7 @@ func NewApplyPlanAdjustmentSuggestionLogic(ctx context.Context, svcCtx *svc.Serv
 func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(req *types.ApplyPlanAdjustmentSuggestionRequest) (resp *types.PlanAdjustmentSuggestionResponse, err error) {
 	principal, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthorized")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	rpcResp, err := l.svcCtx.PersonalizationRpc.ApplyPlanAdjustmentSuggestion(l.ctx, &clientpersonalization.ApplyPlanAdjustmentSuggestionRequest{

@@ -35,7 +35,13 @@ func (l *DeleteAccountLogic) DeleteAccount(in *client.DeleteAccountRequest) (*cl
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	if l.svcCtx.Authz != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	l.Infof("Deleting account for user %s", userID)

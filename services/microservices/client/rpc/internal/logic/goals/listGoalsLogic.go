@@ -35,7 +35,7 @@ func (l *ListGoalsLogic) ListGoals(in *client.ListGoalsRequest) (*client.ListGoa
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	limit := in.Limit
@@ -50,13 +50,13 @@ func (l *ListGoalsLogic) ListGoals(in *client.ListGoalsRequest) (*client.ListGoa
 	goals, err := l.svcCtx.Repo.Goals.ListGoals(l.ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list goals: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to list goals")
 	}
 
 	total, err := l.svcCtx.Repo.Goals.CountGoalsByUser(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count goals: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to count goals")
 	}
 
 	var pbGoals []*client.Goal

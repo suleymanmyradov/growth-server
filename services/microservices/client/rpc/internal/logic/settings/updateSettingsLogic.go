@@ -39,14 +39,20 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	if l.svcCtx.Authz != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+			return nil, err
+		}
 	}
 
 	// Fetch current settings to get version for optimistic locking
 	currentSettings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to fetch user settings: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to fetch user settings")
 	}
 
 	// Handle onboarding settings update (accountability style, check-in time, onboarding flag)
@@ -71,13 +77,13 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, onboardingParams)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to update onboarding settings")
 		}
 		// Refresh current settings version after update
 		currentSettings, err = l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
 		if err != nil {
 			l.Errorf("Failed to refresh user settings after onboarding update: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to refresh user settings after onboarding update")
 		}
 	}
 
@@ -107,7 +113,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		_, err = l.svcCtx.Repo.UserSettings.UpdateUserSettings(l.ctx, params)
 		if err != nil {
 			l.Errorf("Failed to update user settings: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to update user settings")
 		}
 	}
 

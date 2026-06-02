@@ -1,6 +1,8 @@
 package habits
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 	"time"
 
@@ -8,7 +10,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
 
-	"errors"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -31,7 +32,7 @@ func NewListHabitsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListHa
 func (l *ListHabitsLogic) ListHabits(req *types.PageRequest) (resp *types.HabitsResponse, err error) {
 	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	rpcResp, err := l.svcCtx.HabitsRpc.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{

@@ -2,9 +2,12 @@ package checkin
 
 import (
 	"context"
-	"errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
@@ -29,7 +32,13 @@ func NewCreateCheckInLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 func (l *CreateCheckInLogic) CreateCheckIn(req *types.CreateCheckInRequest) (resp *types.CreateCheckInResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	if !validator.IsNotEmpty(req.HabitId) {
+		return nil, status.Error(codes.InvalidArgument, "habitId is required")
+	}
+	if !validator.IsNotEmpty(req.Status) {
+		return nil, status.Error(codes.InvalidArgument, "status is required")
 	}
 
 	rpcResp, err := l.svcCtx.CheckInRpc.CreateCheckIn(l.ctx, &clientcheckin.CreateCheckInRequest{
