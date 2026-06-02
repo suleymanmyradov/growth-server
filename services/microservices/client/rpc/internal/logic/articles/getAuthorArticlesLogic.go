@@ -1,6 +1,8 @@
 package articleslogic
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -35,7 +37,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 	articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(l.ctx, in.AuthorId, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list author articles: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to list author articles")
 	}
 
 	var pbArticles []*client.Article

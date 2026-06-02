@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package aicoach;
+
+option go_package = "./aicoach";
+
+// Check-in Feedback
+message CheckInFeedbackRequest {
+  string user_id = 1;
+  string habit_id = 2;
+  string habit_name = 3;
+  string status = 4; // completed | missed
+  string mood = 5;
+  string energy = 6;
+  string blocker = 7;
+  string note = 8;
+  int32 streak = 9;
+  string accountability_style = 10;
+  string preferred_tone = 11;
+  string difficulty_preference = 12;
+  repeated string common_blockers = 13;
+  string recent_pattern = 14;
+  string goal_title = 15;
+}
+
+message CheckInFeedbackResponse {
+  string feedback = 1;
+}
+
+// Personalized Coaching
+message PersonalizedCoachingRequest {
+  string user_id = 1;
+  string user_message = 2;
+  string accountability_style = 3;
+  string preferred_tone = 4;
+  string difficulty_preference = 5;
+  repeated string active_goals = 6;
+  repeated string active_habits = 7;
+  string recent_check_ins_summary = 8;
+  repeated string common_blockers = 9;
+  map<string, string> pattern_insights = 10;
+}
+
+message PersonalizedCoachingResponse {
+  string coaching_response = 1;
+}
+
+// Weekly Review
+message HabitBreakdown {
+  string habit_id = 1;
+  string habit_name = 2;
+  string category = 3;
+  int32 completed_count = 4;
+  int32 missed_count = 5;
+  float completion_rate = 6;
+}
+
+message BlockerStat {
+  string blocker = 1;
+  int32 count = 2;
+}
+
+message MoodStat {
+  string mood = 1;
+  int32 count = 2;
+}
+
+message EnergyStat {
+  string energy = 1;
+  int32 count = 2;
+}
+
+message WeeklyReviewAdjustment {
+  string habit_id = 1;
+  string habit_name = 2;
+  string reason = 3;
+  string suggestion = 4;
+  string adjustment_type = 5; // reduce_difficulty | change_time | clarify_plan | keep_same | pause_habit
+}
+
+message NextWeekPlan {
+  string focus = 1;
+  repeated string commitments = 2;
+  repeated string risks = 3;
+  repeated string recovery_actions = 4;
+}
+
+message WeeklyReviewRequest {
+  string user_id = 1;
+  string accountability_style = 2;
+  string preferred_tone = 3;
+  string difficulty_preference = 4;
+  repeated string common_blockers = 5;
+  repeated string goals = 6;
+  int32 total_habits = 7;
+  float completion_rate = 8;
+  int32 completed_check_ins = 9;
+  int32 missed_check_ins = 10;
+  string best_day = 11;
+  string hardest_day = 12;
+  string top_blocker = 13;
+  repeated HabitBreakdown habit_breakdowns = 14;
+  repeated BlockerStat blocker_stats = 15;
+  repeated MoodStat mood_stats = 16;
+  repeated EnergyStat energy_stats = 17;
+  repeated string detected_patterns = 18;
+}
+
+message WeeklyReviewResponse {
+  string ai_summary = 1;
+  repeated WeeklyReviewAdjustment suggested_adjustments = 2;
+  NextWeekPlan next_week_plan = 3;
+}
+
+service AICoachService {
+  rpc GenerateCheckInFeedback(CheckInFeedbackRequest) returns (CheckInFeedbackResponse);
+  rpc GeneratePersonalizedCoaching(PersonalizedCoachingRequest) returns (PersonalizedCoachingResponse);
+  rpc GenerateWeeklyReview(WeeklyReviewRequest) returns (WeeklyReviewResponse);
+}

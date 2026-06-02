@@ -37,7 +37,7 @@ func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.L
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	var metadata json.RawMessage
@@ -61,7 +61,7 @@ func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.L
 	})
 	if err != nil {
 		l.Errorf("Failed to create activity: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to create activity")
 	}
 
 	return &client.LogActivityResponse{

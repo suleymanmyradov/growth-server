@@ -5,6 +5,8 @@ import (
 	"flag"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
+	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	activityServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/activity"
@@ -23,6 +25,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -36,6 +39,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	logx.Infof("starting client service with config: %+v", configsafe.MaskSecrets(c))
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
@@ -57,7 +61,10 @@ func main() {
 		}
 	})
 
-	s.AddUnaryInterceptors(mdpropagate.UnaryServerInterceptorOptional())
+	s.AddUnaryInterceptors(
+		mdpropagate.UnaryServerInterceptor(),
+		s2s.UnaryServerInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret}),
+	)
 
 	runtime.Run(s.Start, runtime.Options{
 		RPC: s,

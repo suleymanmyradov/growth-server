@@ -35,7 +35,7 @@ func (l *ExportSavedLogic) ExportSaved(in *client.ExportSavedRequest) (*client.E
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	l.Infof("Exporting saved items for user %s", userID)

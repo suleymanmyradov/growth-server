@@ -31,7 +31,7 @@ func (l *LikeArticleLogic) LikeArticle(in *client.LikeArticleRequest) (*client.L
 	articleID, err := uuid.Parse(in.ArticleId)
 	if err != nil {
 		l.Errorf("Invalid article ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid article id")
 	}
 
 	p, ok := principal.PrincipalFrom(l.ctx)
@@ -41,7 +41,7 @@ func (l *LikeArticleLogic) LikeArticle(in *client.LikeArticleRequest) (*client.L
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	l.Infof("User %s liked article %s", userID, articleID)

@@ -249,6 +249,36 @@ service growthapi {
 
 @server (
 	prefix:     /api/v1
+	group:      billing
+	middleware: Auth
+	tags:       "Billing"
+)
+service growthapi {
+	@handler GetBillingOverview
+	get /billing/overview returns (BillingOverviewResponse)
+
+	@handler CreateCheckoutSession
+	post /billing/checkout (CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse)
+
+	@handler CreateCustomerPortalSession
+	post /billing/portal returns (CreateCustomerPortalSessionResponse)
+
+	@handler TrackUpgradeEvent
+	post /billing/upgrade-events (TrackUpgradeEventRequest) returns (TrackUpgradeEventResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  billing
+	tags:   "Billing"
+)
+service growthapi {
+	@handler HandleStripeWebhook
+	post /billing/webhook (StripeWebhookRequest) returns (StripeWebhookResponse)
+}
+
+@server (
+	prefix:     /api/v1
 	group:      checkin
 	middleware: Auth
 	tags:       "Check-In"

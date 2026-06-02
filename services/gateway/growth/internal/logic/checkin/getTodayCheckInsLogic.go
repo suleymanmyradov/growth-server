@@ -2,7 +2,9 @@ package checkin
 
 import (
 	"context"
-	"errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -29,7 +31,7 @@ func NewGetTodayCheckInsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 func (l *GetTodayCheckInsLogic) GetTodayCheckIns(req *types.GetTodayCheckInsRequest) (resp *types.GetTodayCheckInsResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	rpcResp, err := l.svcCtx.CheckInRpc.GetTodayCheckIns(l.ctx, &clientcheckin.GetTodayCheckInsRequest{
@@ -55,6 +57,6 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(req *types.GetTodayCheckInsRequ
 	}
 
 	return &types.GetTodayCheckInsResponse{
-		CheckIns: checkIns,
+		Data: checkIns,
 	}, nil
 }

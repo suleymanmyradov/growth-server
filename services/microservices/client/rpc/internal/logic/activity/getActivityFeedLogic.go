@@ -44,13 +44,13 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	activities, err := l.svcCtx.Repo.Activities.GetActivityFeed(l.ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list activities: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to list activities")
 	}
 
 	var pbActivities []*client.ActivityItem

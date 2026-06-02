@@ -3,13 +3,15 @@ package habits
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
 
-	"errors"
-
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -30,7 +32,13 @@ func NewCreateHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Creat
 func (l *CreateHabitLogic) CreateHabit(req *types.CreateHabitRequest) (resp *types.HabitResponse, err error) {
 	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	if !validator.IsNotEmpty(req.Name) {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	if !validator.IsNotEmpty(req.Category) {
+		return nil, status.Error(codes.InvalidArgument, "category is required")
 	}
 
 	rpcResp, err := l.svcCtx.HabitsRpc.CreateHabit(l.ctx, &clienthabits.CreateHabitRequest{

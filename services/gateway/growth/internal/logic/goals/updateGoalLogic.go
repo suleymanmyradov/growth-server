@@ -1,8 +1,9 @@
 package goals
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
-	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -29,7 +30,7 @@ func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.
 	goalID, ok := l.ctx.Value("goalId").(string)
 	if !ok {
 		l.Error("goalId not found in context")
-		return nil, fmt.Errorf("goalId not found in context")
+		return nil, status.Error(codes.Internal, "goalId not found in context")
 	}
 
 	rpcResp, err := l.svcCtx.GoalsRpc.UpdateGoal(l.ctx, &clientgoals.UpdateGoalRequest{

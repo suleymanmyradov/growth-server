@@ -14,7 +14,7 @@ func ListWeeklyReviewsHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.PageRequest
 		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.WriteParseError(w, err)
 			return
 		}
 

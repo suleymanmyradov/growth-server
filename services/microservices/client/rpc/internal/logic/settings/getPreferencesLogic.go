@@ -35,7 +35,7 @@ func (l *GetPreferencesLogic) GetPreferences(in *client.GetPreferencesRequest) (
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	l.Infof("Getting preferences for user %s", userID)

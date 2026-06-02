@@ -5,11 +5,14 @@ package svc
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 	clientactivity "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
@@ -51,6 +54,7 @@ type ServiceContext struct {
 	WeeklyReviewRpc    clientweeklyreview.WeeklyReviewService
 	PersonalizationRpc clientpersonalization.PersonalizationService
 	BillingRpc         clientbilling.BillingService
+	AICoachRpc         aicoachservice.AICoachService
 	StripeClient       *stripe.Client
 }
 
@@ -65,12 +69,23 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(fmt.Errorf("Auth.Audience is required"))
 	}
 
-	// Create client with auth propagation interceptor
-	clientOpts := []zrpc.ClientOption{
+	s2sCfg := s2s.Config{Secret: c.ServiceAuth.Secret}
+
+	// Base client options with auth propagation, s2s signing, and default timeout
+	baseOpts := []zrpc.ClientOption{
 		zrpc.WithDialOption(grpc.WithUnaryInterceptor(mdpropagate.UnaryClientInterceptor())),
+		zrpc.WithDialOption(grpc.WithUnaryInterceptor(s2s.UnaryClientInterceptor(s2sCfg))),
+		zrpc.WithTimeout(time.Second * 3),
 	}
 
-	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, clientOpts...))
+	// AI coach can be slower; give it a longer timeout
+	aiCoachOpts := []zrpc.ClientOption{
+		zrpc.WithDialOption(grpc.WithUnaryInterceptor(mdpropagate.UnaryClientInterceptor())),
+		zrpc.WithDialOption(grpc.WithUnaryInterceptor(s2s.UnaryClientInterceptor(s2sCfg))),
+		zrpc.WithTimeout(time.Second * 15),
+	}
+
+	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...))
 	var stripeClient *stripe.Client
 	if c.Billing.StripeSecretKey != "" {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
@@ -84,21 +99,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Audience: c.Auth.Audience,
 		}),
 		AuthRpc:            authRpc,
-		NotificationsRpc:   notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, clientOpts...)),
-		SavedRpc:           clientsaved.NewSaved(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		SettingsRpc:        clientsettings.NewSettings(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		ReportRpc:          clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		SearchRpc:          searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, clientOpts...)),
-		ConversationsRpc:   conversationsservice.NewConversationsService(zrpc.MustNewClient(c.ConversationsRpc, clientOpts...)),
-		HabitsRpc:          clienthabits.NewHabits(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		GoalsRpc:           clientgoals.NewGoals(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		CategoriesRpc:      clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		ArticlesRpc:        clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		CheckInRpc:         checkinservice.NewCheckInService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		ActivityRpc:        clientactivity.NewActivity(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		WeeklyReviewRpc:    clientweeklyreview.NewWeeklyReviewService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
-		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, clientOpts...)),
+		NotificationsRpc:   notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),
+		SavedRpc:           clientsaved.NewSaved(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		SettingsRpc:        clientsettings.NewSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		ReportRpc:          clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		SearchRpc:          searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
+		ConversationsRpc:   conversationsservice.NewConversationsService(zrpc.MustNewClient(c.ConversationsRpc, baseOpts...)),
+		HabitsRpc:          clienthabits.NewHabits(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		GoalsRpc:           clientgoals.NewGoals(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		CategoriesRpc:      clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		ArticlesRpc:        clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		CheckInRpc:         checkinservice.NewCheckInService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		ActivityRpc:        clientactivity.NewActivity(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		WeeklyReviewRpc:    clientweeklyreview.NewWeeklyReviewService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
+		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
+		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		AICoachRpc:         aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...)),
 		StripeClient:       stripeClient,
 	}
 }

@@ -20,4 +20,7 @@ type Config struct {
 		ReminderDueTopic string
 		ConsumerGroup    string
 	}
+	ServiceAuth struct {
+		Secret string
+	}
 }

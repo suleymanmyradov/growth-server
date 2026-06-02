@@ -6,9 +6,12 @@ package auth
 import (
 	"context"
 
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -28,6 +31,13 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 }
 
 func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.AuthResponse, err error) {
+	if !validator.IsNotEmpty(req.Email) || !validator.IsValidEmail(req.Email) {
+		return nil, status.Error(codes.InvalidArgument, "valid email is required")
+	}
+	if !validator.IsNotEmpty(req.Password) {
+		return nil, status.Error(codes.InvalidArgument, "password is required")
+	}
+
 	rpcReq := &authservice.LoginRequest{
 		Email:    req.Email,
 		Password: req.Password,

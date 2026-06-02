@@ -4,6 +4,7 @@
 package personalization
 
 import (
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/personalization"
@@ -16,14 +17,14 @@ func UpdatePlanAdjustmentSuggestionStatusHandler(svcCtx *svc.ServiceContext) htt
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.UpdatePlanAdjustmentSuggestionStatusRequest
 		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.WriteParseError(w, err)
 			return
 		}
 
 		l := personalization.NewUpdatePlanAdjustmentSuggestionStatusLogic(r.Context(), svcCtx)
 		resp, err := l.UpdatePlanAdjustmentSuggestionStatus(&req)
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.HandleGrpcError(w, err)
 		} else {
 			httpx.OkJsonCtx(r.Context(), w, resp)
 		}

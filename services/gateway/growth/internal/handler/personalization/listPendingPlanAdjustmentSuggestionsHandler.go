@@ -4,6 +4,7 @@
 package personalization
 
 import (
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/personalization"
@@ -16,7 +17,7 @@ func ListPendingPlanAdjustmentSuggestionsHandler(svcCtx *svc.ServiceContext) htt
 		l := personalization.NewListPendingPlanAdjustmentSuggestionsLogic(r.Context(), svcCtx)
 		resp, err := l.ListPendingPlanAdjustmentSuggestions()
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.HandleGrpcError(w, err)
 		} else {
 			httpx.OkJsonCtx(r.Context(), w, resp)
 		}

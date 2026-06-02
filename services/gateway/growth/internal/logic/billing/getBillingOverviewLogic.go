@@ -49,19 +49,17 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 	}
 
 	sub := types.UserSubscription{
-		Id:                   rpcResp.Subscription.Id,
-		UserId:               rpcResp.Subscription.UserId,
-		PlanId:               rpcResp.Subscription.PlanId,
-		PlanCode:             rpcResp.Subscription.PlanCode,
-		PlanName:             rpcResp.Subscription.PlanName,
-		Status:               rpcResp.Subscription.Status,
-		BillingInterval:      rpcResp.Subscription.BillingInterval,
-		CurrentPeriodStart:   rpcResp.Subscription.CurrentPeriodStart,
-		CurrentPeriodEnd:     rpcResp.Subscription.CurrentPeriodEnd,
-		TrialEnd:             rpcResp.Subscription.TrialEnd,
-		CancelAtPeriodEnd:    rpcResp.Subscription.CancelAtPeriodEnd,
-		StripeCustomerId:     rpcResp.Subscription.StripeCustomerId,
-		StripeSubscriptionId: rpcResp.Subscription.StripeSubscriptionId,
+		Id:                rpcResp.Subscription.Id,
+		UserId:            rpcResp.Subscription.UserId,
+		PlanId:            rpcResp.Subscription.PlanId,
+		PlanCode:          rpcResp.Subscription.PlanCode,
+		PlanName:          rpcResp.Subscription.PlanName,
+		Status:            rpcResp.Subscription.Status,
+		BillingInterval:   rpcResp.Subscription.BillingInterval,
+		CurrentPeriodStart: rpcResp.Subscription.CurrentPeriodStart,
+		CurrentPeriodEnd:  rpcResp.Subscription.CurrentPeriodEnd,
+		TrialEnd:          rpcResp.Subscription.TrialEnd,
+		CancelAtPeriodEnd: rpcResp.Subscription.CancelAtPeriodEnd,
 	}
 
 	ent := types.Entitlements{
@@ -83,9 +81,11 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 	}
 
 	return &types.BillingOverviewResponse{
-		Plans:        plans,
-		Subscription: sub,
-		Entitlements: ent,
-		BillingMode:  rpcResp.BillingMode,
+		Data: types.BillingOverviewData{
+			Plans:        plans,
+			Subscription: sub,
+			Entitlements: ent,
+			BillingMode:  rpcResp.BillingMode,
+		},
 	}, nil
 }

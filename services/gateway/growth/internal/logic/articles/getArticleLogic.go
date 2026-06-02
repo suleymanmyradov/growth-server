@@ -4,8 +4,9 @@
 package articles
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -31,7 +32,7 @@ func NewGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetArt
 
 func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.ArticleResponse, err error) {
 	if req.Id == "" {
-		return nil, errors.New("article id is required")
+		return nil, status.Error(codes.InvalidArgument, "article id is required")
 	}
 
 	l.Infof("Fetching article with id: %s", req.Id)
@@ -44,7 +45,7 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 	}
 
 	if rpcResp.Article == nil {
-		return nil, errors.New("article not found")
+		return nil, status.Error(codes.NotFound, "article not found")
 	}
 
 	rpcArticle := rpcResp.Article

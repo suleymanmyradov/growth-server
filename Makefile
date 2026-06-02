@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-conversation-proto generate-notification-proto generate-client-repo generate-auth-repo generate-conversations-repo generate-search-repo sqlc lint build build-auth build-client build-search build-conversations build-notifications build-gateway clean
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-conversation-proto generate-notification-proto generate-ai-coach-proto generate-client-repo generate-auth-repo generate-conversations-repo generate-search-repo sqlc lint build build-auth build-client build-search build-conversations build-notifications build-ai-coach build-gateway clean
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client conversations search notifications
 # Default target
@@ -23,6 +23,8 @@ help:
 	@echo "  build-client         - Build client service"
 	@echo "  build-search         - Build search service"
 	@echo "  build-conversations  - Build conversations service"
+	@echo "  build-notifications  - Build notifications service"
+	@echo "  build-ai-coach       - Build ai-coach service"
 	@echo "  build-gateway        - Build gateway service"
 	@echo "  lint                 - Run golangci-lint"
 	@echo "  clean                - Clean build artifacts"
@@ -109,6 +111,9 @@ generate-conversations-proto:
 generate-notification-proto:
 	@echo "Generating notifications proto..."
 	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc -m --style goZero
+generate-ai-coach-proto:
+	@echo "Generating ai-coach proto..."
+	goctl rpc protoc ./services/microservices/ai-coach/api/v1/ai-coach.proto --go_out=./services/microservices/ai-coach/rpc/pb --go-grpc_out=./services/microservices/ai-coach/rpc/pb --zrpc_out=./services/microservices/ai-coach/rpc --style goZero
 
 # Lint with golangci-lint (Uber Go Style Guide recommended)
 lint:
@@ -119,7 +124,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-conversations build-notifications build-gateway
+build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-gateway
 	@echo "All services built successfully!"
 
 build-auth:
@@ -146,6 +151,11 @@ build-notifications:
 	@echo "Building notifications service..."
 	@mkdir -p bin
 	go build -o bin/notifications ./services/microservices/notifications/rpc
+
+build-ai-coach:
+	@echo "Building ai-coach service..."
+	@mkdir -p bin
+	go build -o bin/ai-coach ./services/microservices/ai-coach/rpc
 
 build-gateway:
 	@echo "Building gateway service..."

@@ -34,7 +34,63 @@ func WriteForbidden(w http.ResponseWriter) {
 func WriteError(w http.ResponseWriter, code int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "error", Message: message})
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: httpCodeToSnakeCase(code), Message: message})
+}
+
+// WriteParseError sanitizes go-zero parse errors to avoid leaking internal
+// struct field names, then writes a uniform 400 BadRequest response.
+func WriteParseError(w http.ResponseWriter, err error) {
+	sanitized := sanitizeParseError(err.Error())
+	WriteError(w, http.StatusBadRequest, sanitized)
+}
+
+// sanitizeParseError strips struct field names from go-zero parse errors
+// and returns a generic user-friendly message.
+func sanitizeParseError(msg string) string {
+	// go-zero common patterns:
+	// "field XXX is not set"
+	// "invalid character ..."
+	// "cannot parse ..."
+	lower := strings.ToLower(msg)
+	switch {
+	case strings.Contains(lower, "is not set"):
+		return "missing required field"
+	case strings.Contains(lower, "cannot parse") || strings.Contains(lower, "invalid character"):
+		return "invalid field format"
+	case strings.Contains(lower, "missing field"):
+		return "missing required field"
+	default:
+		return "invalid request"
+	}
+}
+
+func httpCodeToSnakeCase(code int) string {
+	switch code {
+	case http.StatusBadRequest:
+		return "bad_request"
+	case http.StatusUnauthorized:
+		return "unauthorized"
+	case http.StatusForbidden:
+		return "forbidden"
+	case http.StatusNotFound:
+		return "not_found"
+	case http.StatusConflict:
+		return "conflict"
+	case http.StatusInternalServerError:
+		return "internal_error"
+	case http.StatusTooManyRequests:
+		return "too_many_requests"
+	case http.StatusNotImplemented:
+		return "not_implemented"
+	case http.StatusServiceUnavailable:
+		return "service_unavailable"
+	case http.StatusGatewayTimeout:
+		return "gateway_timeout"
+	case http.StatusPaymentRequired:
+		return "payment_required"
+	default:
+		return "error"
+	}
 }
 
 // GrpcToHTTPStatus maps gRPC status codes to HTTP status codes

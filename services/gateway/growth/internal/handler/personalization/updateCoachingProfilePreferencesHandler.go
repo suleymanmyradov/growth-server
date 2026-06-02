@@ -4,6 +4,7 @@
 package personalization
 
 import (
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/personalization"
@@ -16,14 +17,14 @@ func UpdateCoachingProfilePreferencesHandler(svcCtx *svc.ServiceContext) http.Ha
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.UpdateCoachingProfilePreferencesRequest
 		if err := httpx.Parse(r, &req); err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.WriteParseError(w, err)
 			return
 		}
 
 		l := personalization.NewUpdateCoachingProfilePreferencesLogic(r.Context(), svcCtx)
 		resp, err := l.UpdateCoachingProfilePreferences(&req)
 		if err != nil {
-			httpx.ErrorCtx(r.Context(), w, err)
+			errors.HandleGrpcError(w, err)
 		} else {
 			httpx.OkJsonCtx(r.Context(), w, resp)
 		}

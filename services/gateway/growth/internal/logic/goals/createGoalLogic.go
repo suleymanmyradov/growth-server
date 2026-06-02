@@ -3,13 +3,15 @@ package goals
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
 
-	"errors"
-
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -30,7 +32,13 @@ func NewCreateGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Create
 func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.GoalResponse, err error) {
 	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	if !validator.IsNotEmpty(req.Title) {
+		return nil, status.Error(codes.InvalidArgument, "title is required")
+	}
+	if !validator.IsNotEmpty(req.Category) {
+		return nil, status.Error(codes.InvalidArgument, "category is required")
 	}
 
 	rpcResp, err := l.svcCtx.GoalsRpc.CreateGoal(l.ctx, &clientgoals.CreateGoalRequest{

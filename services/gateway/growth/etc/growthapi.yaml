@@ -18,6 +18,12 @@ ConversationsRpc:
   Target: 127.0.0.1:9084
 NotificationsRpc:
   Target: 127.0.0.1:9085
+AICoachRpc:
+  Target: 127.0.0.1:9086
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET:-}
+
 Telemetry:
   Name: growthapi
   Endpoint: http://localhost:14268/api/traces

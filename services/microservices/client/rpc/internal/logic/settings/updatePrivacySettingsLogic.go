@@ -35,7 +35,7 @@ func (l *UpdatePrivacySettingsLogic) UpdatePrivacySettings(in *client.UpdatePriv
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	l.Infof("Updating privacy settings for user %s", userID)

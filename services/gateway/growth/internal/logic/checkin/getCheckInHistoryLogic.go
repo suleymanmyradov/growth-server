@@ -2,7 +2,9 @@ package checkin
 
 import (
 	"context"
-	"errors"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -29,7 +31,7 @@ func NewGetCheckInHistoryLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 func (l *GetCheckInHistoryLogic) GetCheckInHistory(req *types.GetCheckInHistoryRequest) (resp *types.GetCheckInHistoryResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, errors.New("unauthenticated")
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	rpcResp, err := l.svcCtx.CheckInRpc.GetCheckInHistory(l.ctx, &clientcheckin.GetCheckInHistoryRequest{
@@ -58,7 +60,12 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(req *types.GetCheckInHistoryR
 	}
 
 	return &types.GetCheckInHistoryResponse{
-		CheckIns: checkIns,
-		Total:    int(rpcResp.Total),
+		Data: checkIns,
+		Page: types.PageResponse{
+			Total:      int64(rpcResp.Total),
+			Page:       req.Page,
+			Limit:      req.Limit,
+			TotalPages: int((int64(rpcResp.Total) + int64(req.Limit) - 1) / int64(req.Limit)),
+		},
 	}, nil
 }

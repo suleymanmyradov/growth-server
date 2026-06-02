@@ -36,14 +36,21 @@ func (l *VerifyAccessTokenLogic) VerifyAccessToken(in *auth.VerifyAccessTokenReq
 		return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
 	}
 
+	// Verify the user still exists and is active
+	user, err := l.svcCtx.Repo.Users.GetUserByID(l.ctx, claims.Subject)
+	if err != nil {
+		l.Errorf("failed to get user: %v", err)
+		return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
+	}
+
 	var roles []string
 	if claims.Roles != nil {
 		roles = claims.Roles
 	}
 
 	return &auth.VerifyAccessTokenResponse{
-		UserId:    claims.Subject.String(),
-		Username:  claims.Username,
+		UserId:    user.ID.String(),
+		Username:  user.Username,
 		Roles:     roles,
 		SessionId: claims.SessionID.String(),
 		ExpiresAt: claims.ExpiresAt.Unix(),

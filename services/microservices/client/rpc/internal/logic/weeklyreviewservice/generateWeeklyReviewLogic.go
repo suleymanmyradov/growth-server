@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/prompts"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -157,38 +157,80 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	// Log detected patterns for verification (debug level to avoid log noise)
 	l.Debugf("Generated %d detected patterns for weekly review: %v", len(detectedPatterns), detectedPatterns)
 
-	promptIn := prompts.WeeklyReviewInput{
-		AccountabilityStyle:  accountabilityStyle,
-		PreferredTone:        preferredTone,
-		DifficultyPreference: difficultyPreference,
-		CommonBlockers:       commonBlockers,
-		Goals:                goalTitles,
-		TotalHabits:          stats.totalHabits,
-		CompletionRate:       stats.completionRate,
-		CompletedCheckIns:    stats.completedCheckIns,
-		MissedCheckIns:       stats.missedCheckIns,
-		BestDay:              stats.bestDay,
-		HardestDay:           stats.hardestDay,
-		TopBlocker:           stats.topBlocker,
-		HabitBreakdowns:      stats.habitBreakdowns,
-		BlockerStats:         stats.blockerStats,
-		MoodStats:            stats.moodStats,
-		EnergyStats:          stats.energyStats,
-		DetectedPatterns:     detectedPatterns,
+	habitBreakdowns := make([]*aicoachservice.HabitBreakdown, len(stats.habitBreakdowns))
+	for i, h := range stats.habitBreakdowns {
+		habitBreakdowns[i] = &aicoachservice.HabitBreakdown{
+			HabitId:        h.HabitID,
+			HabitName:      h.HabitName,
+			Category:       h.Category,
+			CompletedCount: int32(h.CompletedCount),
+			MissedCount:    int32(h.MissedCount),
+			CompletionRate: float32(h.CompletionRate),
+		}
 	}
 
-	var aiOutput prompts.WeeklyReviewStructuredOutput
-	aiErr := l.svcCtx.AIClient.GenerateStructured(l.ctx, ai.GenerateRequest{
-		ModelProfile:   ai.ModelCheap,
-		System:         prompts.BuildWeeklyReviewSystemPrompt(accountabilityStyle, preferredTone, difficultyPreference),
-		Messages:       []ai.Message{{Role: ai.RoleUser, Content: prompts.BuildWeeklyReviewUserPrompt(promptIn)}},
-		ResponseFormat: ai.ResponseFormatJSON,
-		Metadata:       ai.Metadata{UserID: userID.String(), Feature: "weekly_review"},
-	}, &aiOutput)
+	blockerStats := make([]*aicoachservice.BlockerStat, len(stats.blockerStats))
+	for i, b := range stats.blockerStats {
+		blockerStats[i] = &aicoachservice.BlockerStat{
+			Blocker: b.Blocker,
+			Count:   int32(b.Count),
+		}
+	}
 
+	moodStats := make([]*aicoachservice.MoodStat, len(stats.moodStats))
+	for i, m := range stats.moodStats {
+		moodStats[i] = &aicoachservice.MoodStat{
+			Mood:  m.Mood,
+			Count: int32(m.Count),
+		}
+	}
+
+	energyStats := make([]*aicoachservice.EnergyStat, len(stats.energyStats))
+	for i, e := range stats.energyStats {
+		energyStats[i] = &aicoachservice.EnergyStat{
+			Energy: e.Energy,
+			Count:  int32(e.Count),
+		}
+	}
+
+	aiResp, aiErr := l.svcCtx.AICoachRpc.GenerateWeeklyReview(l.ctx, &aicoachservice.WeeklyReviewRequest{
+		UserId:                in.UserId,
+		AccountabilityStyle:   accountabilityStyle,
+		PreferredTone:         preferredTone,
+		DifficultyPreference:  difficultyPreference,
+		CommonBlockers:        commonBlockers,
+		Goals:                 goalTitles,
+		TotalHabits:           int32(stats.totalHabits),
+		CompletionRate:        float32(stats.completionRate),
+		CompletedCheckIns:     int32(stats.completedCheckIns),
+		MissedCheckIns:        int32(stats.missedCheckIns),
+		BestDay:               stats.bestDay,
+		HardestDay:            stats.hardestDay,
+		TopBlocker:            stats.topBlocker,
+		HabitBreakdowns:       habitBreakdowns,
+		BlockerStats:          blockerStats,
+		MoodStats:             moodStats,
+		EnergyStats:           energyStats,
+		DetectedPatterns:      detectedPatterns,
+	})
+
+	var aiSummary string
+	var suggestedAdjustments []*aicoachservice.WeeklyReviewAdjustment
+	var nextWeekPlan *aicoachservice.NextWeekPlan
 	if aiErr != nil {
 		l.Errorf("AI generation failed, using fallback: %v", aiErr)
-		aiOutput = prompts.GenerateDeterministicFallback(promptIn)
+		aiSummary = "I couldn't generate a full weekly review right now. Based on your recent activity, focus on maintaining consistency with your core habits and address any recurring blockers you noticed this week."
+		suggestedAdjustments = nil
+		nextWeekPlan = &aicoachservice.NextWeekPlan{
+			Focus:           "Maintain consistency",
+			Commitments:     []string{"Complete at least one habit check-in each day"},
+			Risks:           []string{"Falling behind on new habits"},
+			RecoveryActions: []string{"Scale back to one core habit if overwhelmed"},
+		}
+	} else {
+		aiSummary = aiResp.AiSummary
+		suggestedAdjustments = aiResp.SuggestedAdjustments
+		nextWeekPlan = aiResp.NextWeekPlan
 	}
 
 	moodSummaryJSON, err := json.Marshal(stats.moodMap)
@@ -206,12 +248,12 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		l.Errorf("failed to marshal habit breakdown: %v", err)
 		return nil, status.Error(codes.Internal, "failed to serialize habit breakdown")
 	}
-	suggestedAdjustmentsJSON, err := json.Marshal(aiOutput.SuggestedAdjustments)
+	suggestedAdjustmentsJSON, err := json.Marshal(suggestedAdjustments)
 	if err != nil {
 		l.Errorf("failed to marshal suggested adjustments: %v", err)
 		return nil, status.Error(codes.Internal, "failed to serialize suggested adjustments")
 	}
-	nextWeekPlanJSON, err := json.Marshal(aiOutput.NextWeekPlan)
+	nextWeekPlanJSON, err := json.Marshal(nextWeekPlan)
 	if err != nil {
 		l.Errorf("failed to marshal next week plan: %v", err)
 		return nil, status.Error(codes.Internal, "failed to serialize next week plan")
@@ -237,9 +279,9 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	if stats.topBlocker != "" {
 		topBlocker = &stats.topBlocker
 	}
-	var aiSummary *string
-	if aiOutput.AiSummary != "" {
-		aiSummary = &aiOutput.AiSummary
+	var aiSummaryPtr *string
+	if aiSummary != "" {
+		aiSummaryPtr = &aiSummary
 	}
 
 	params := db.CreateWeeklyReviewParams{
@@ -256,7 +298,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		MoodSummary:          moodSummaryJSON,
 		EnergySummary:        energySummaryJSON,
 		HabitBreakdown:       habitBreakdownJSON,
-		AiSummary:            aiSummary,
+		AiSummary:            aiSummaryPtr,
 		SuggestedAdjustments: suggestedAdjustmentsJSON,
 		NextWeekPlan:         nextWeekPlanJSON,
 	}
@@ -272,14 +314,14 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		for _, adjustment := range aiOutput.SuggestedAdjustments {
+		for _, adjustment := range suggestedAdjustments {
 			if adjustment.AdjustmentType == "keep_same" {
 				continue // Skip suggestions to keep things the same
 			}
 
 			var goalID, habitID uuid.NullUUID
-			if adjustment.HabitID != "" {
-				if habitUUID, err := uuid.Parse(adjustment.HabitID); err == nil {
+			if adjustment.HabitId != "" {
+				if habitUUID, err := uuid.Parse(adjustment.HabitId); err == nil {
 					habitID = uuid.NullUUID{UUID: habitUUID, Valid: true}
 				}
 			}

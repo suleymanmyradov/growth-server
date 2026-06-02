@@ -16,32 +16,13 @@ import (
 )
 
 type ServiceContext struct {
-	Config     config.Config
-	Repo       *repository.Repository
-	TokenMaker *jwt.TokenMaker
-	TxRunner   *postgres.PgxTxRunner
-	cancel     context.CancelFunc
-	pool       *pgxpool.Pool
-}
-
-func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
-	config, err := pgxpool.ParseConfig(datasource)
-	if err != nil {
-		panic(fmt.Errorf("parse pgx config: %w", err))
-	}
-	config.MaxConns = int32(maxOpen)
-	config.MinConns = int32(maxIdle)
-	config.MaxConnLifetime = maxLifetime
-
-	pool, err := pgxpool.NewWithConfig(context.Background(), config)
-	if err != nil {
-		panic(fmt.Errorf("pgx pool: %w", err))
-	}
-	if err := pool.Ping(context.Background()); err != nil {
-		pool.Close()
-		panic(fmt.Errorf("pgx ping: %w", err))
-	}
-	return pool
+	Config       config.Config
+	Repo         *repository.Repository
+	TokenMaker   *jwt.TokenMaker
+	TxRunner     *postgres.PgxTxRunner
+	RedisClient  *goredis.Client
+	cancel       context.CancelFunc
+	pool         *pgxpool.Pool
 }
 
 func mustNewRedis(addr, password string, db int) *goredis.Client {
@@ -56,7 +37,7 @@ func mustNewRedis(addr, password string, db int) *goredis.Client {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	pool := mustOpenDB(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
+	pool := postgres.MustOpenPool(c.Postgres.Datasource, c.Postgres.MaxOpenConns, c.Postgres.MaxIdleConns, c.Postgres.ConnMaxLifetime)
 
 	queries := db.New(pool)
 	repo := repository.NewRepository(queries)
@@ -88,12 +69,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	return &ServiceContext{
-		Config:     c,
-		Repo:       repo,
-		TokenMaker: tokenMaker,
-		TxRunner:   txRunner,
-		cancel:     cancel,
-		pool:       pool,
+		Config:      c,
+		Repo:        repo,
+		TokenMaker:  tokenMaker,
+		TxRunner:    txRunner,
+		RedisClient: redisClient,
+		cancel:      cancel,
+		pool:        pool,
 	}
 }
 

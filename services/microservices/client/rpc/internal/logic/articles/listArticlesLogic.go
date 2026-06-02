@@ -1,6 +1,8 @@
 package articleslogic
 
 import (
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/codes"
 	"context"
 
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -41,7 +43,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 		articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(l.ctx, in.CategorySlug, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list articles by category: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to list articles by category")
 		}
 		for _, a := range articles {
 			pbArticles = append(pbArticles, convertCategorySlugRowToPbArticle(a))
@@ -54,7 +56,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 		articles, err := l.svcCtx.Repo.Articles.ListArticles(l.ctx, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list articles: %v", err)
-			return nil, err
+return nil, status.Error(codes.Internal, "failed to list articles")
 		}
 		for _, a := range articles {
 			pbArticles = append(pbArticles, convertListRowToPbArticle(a))

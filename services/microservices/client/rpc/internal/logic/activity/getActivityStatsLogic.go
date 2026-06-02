@@ -35,13 +35,13 @@ func (l *GetActivityStatsLogic) GetActivityStats(in *client.GetActivityStatsRequ
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	stats, err := l.svcCtx.Repo.Activities.GetActivityStats(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get activity stats: %v", err)
-		return nil, err
+return nil, status.Error(codes.Internal, "failed to get activity stats")
 	}
 
 	activityCounts := map[string]int32{

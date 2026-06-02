@@ -34,7 +34,9 @@ func (l *CreateCheckoutSessionLogic) CreateCheckoutSession(req *types.CreateChec
 	}
 
 	return &types.CreateCheckoutSessionResponse{
-		CheckoutUrl: rpcResp.CheckoutUrl,
-		SessionId:   rpcResp.SessionId,
+		Data: types.CreateCheckoutSessionData{
+			CheckoutUrl: rpcResp.CheckoutUrl,
+			SessionId:   rpcResp.SessionId,
+		},
 	}, nil
 }
