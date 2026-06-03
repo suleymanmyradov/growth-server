@@ -3,10 +3,14 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -19,9 +23,13 @@ import (
 type fakeAI struct {
 	content string
 	modelID string
+	err     error
 }
 
 func (f *fakeAI) Generate(_ context.Context, _ ai.GenerateRequest) (ai.GenerateResponse, error) {
+	if f.err != nil {
+		return ai.GenerateResponse{}, f.err
+	}
 	return ai.GenerateResponse{
 		Message: ai.Message{Role: ai.RoleAssistant, Content: f.content},
 		Usage:   ai.Usage{TotalTokens: 10},
@@ -48,6 +56,25 @@ func (f *fakePublisher) published() []events.Envelope {
 	return append([]events.Envelope{}, f.envs...)
 }
 
+// fakeDLQPusher captures DLQ messages.
+type fakeDLQPusher struct {
+	mu   sync.Mutex
+	msgs []events.DLQMessage
+}
+
+func (f *fakeDLQPusher) Publish(_ context.Context, msg events.DLQMessage) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.msgs = append(f.msgs, msg)
+	return nil
+}
+
+func (f *fakeDLQPusher) messages() []events.DLQMessage {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return append([]events.DLQMessage{}, f.msgs...)
+}
+
 // fakeRepo provides an in-memory repository for tests.
 type fakeRepo struct {
 	mu          sync.Mutex
@@ -57,6 +84,8 @@ type fakeRepo struct {
 	styleErr    error
 	checkIns    []db.CheckIn
 	checkInsErr error
+	insertErr   error
+	markErr     error
 }
 
 func newFakeRepo() *fakeRepo {
@@ -69,6 +98,9 @@ func newFakeRepo() *fakeRepo {
 func (r *fakeRepo) InsertAIFeedback(_ context.Context, arg db.InsertAIFeedbackParams) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.insertErr != nil {
+		return r.insertErr
+	}
 	r.feedback = append(r.feedback, arg)
 	return nil
 }
@@ -94,41 +126,81 @@ func (r *fakeRepo) IsProcessed(_ context.Context, eventID uuid.UUID) (bool, erro
 func (r *fakeRepo) MarkProcessed(_ context.Context, eventID uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.markErr != nil {
+		return r.markErr
+	}
 	r.processed[eventID.String()] = true
 	return nil
 }
 
+func (r *fakeRepo) WithTx(_ pgx.Tx) *fakeRepo {
+	return r
+}
+
+// fakeTxRunner runs the callback directly without a real transaction.
+type fakeTxRunner struct{}
+
+func (f *fakeTxRunner) Run(_ context.Context, _ string, fn func(pgx.Tx) error) error {
+	return fn(nil)
+}
+
 func TestEventsHandler_InvalidEnvelope(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
+	dlq := &fakeDLQPusher{}
+	opts := &EventsHandlerOptions{DLQPub: dlq}
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
 	err := h.Consume(context.Background(), "", "not-json")
-	if err != nil {
-		t.Fatalf("expected nil on invalid envelope, got %v", err)
-	}
+	require.NoError(t, err)
+	msgs := dlq.messages()
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "invalid_envelope", msgs[0].Reason)
 }
 
 func TestEventsHandler_InvalidEventID(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
-	env := events.Envelope{EventID: "not-a-uuid", EventType: string(events.TypeCheckInCreated)}
+	dlq := &fakeDLQPusher{}
+	opts := &EventsHandlerOptions{DLQPub: dlq}
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	env := events.Envelope{EventID: "not-a-uuid", EventType: string(events.TypeCheckInCreated), Version: 1, Payload: []byte(`{}`)}
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
-	if err != nil {
-		t.Fatalf("expected nil on invalid eventID, got %v", err)
-	}
+	require.NoError(t, err)
+	msgs := dlq.messages()
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "invalid_event_id", msgs[0].Reason)
 }
 
-func TestEventsHandler_UnhandledEventType(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
-	env, _ := events.NewEnvelope("unknown_type", nil)
+func TestEventsHandler_UnknownEventType(t *testing.T) {
+	dlq := &fakeDLQPusher{}
+	opts := &EventsHandlerOptions{DLQPub: dlq}
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	env, _ := events.NewEnvelope("unknown_type", struct{}{})
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
-	if err != nil {
-		t.Fatalf("expected nil on unhandled type, got %v", err)
-	}
+	require.NoError(t, err)
+	msgs := dlq.messages()
+	require.Len(t, msgs, 1)
+	assert.Contains(t, msgs[0].Reason, "validation_failed")
 }
 
-func TestEventsHandler_CheckInCreated_HappyPath(t *testing.T) {
-	// This test is covered by TestCheckInCreated_HappyPath below
-	// which uses the testHandler with injectable interfaces.
+func TestEventsHandler_ContextCancellation(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, nil)
+	err := h.Consume(ctx, "", "anything")
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestEventsHandler_ConcurrencyLimit(t *testing.T) {
+	dlq := &fakeDLQPusher{}
+	// Use the real handler with a nil repo and trigger an error path
+	// that exercises the semaphore path.
+	opts := &EventsHandlerOptions{DLQPub: dlq, Concurrency: 1}
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+
+	// Two rapid invalid messages — first should acquire semaphore, second should too.
+	h.Consume(context.Background(), "", "bad")
+	h.Consume(context.Background(), "", "bad")
+	assert.Len(t, dlq.messages(), 2)
 }
 
 // Since we can't easily inject a fake into *repository.Repository,
@@ -266,4 +338,54 @@ func TestCheckInCreated_DuplicateSkipped(t *testing.T) {
 	require.NoError(t, h.Consume(context.Background(), "", string(raw)))
 	assert.Len(t, repo.feedback, 1)   // still 1
 	assert.Len(t, pub.published(), 1) // still 1
+}
+
+func TestEventsHandler_TransientError_Retry(t *testing.T) {
+	repo := newFakeRepo()
+	repo.insertErr = errors.New("db connection refused")
+
+	// The easiest way to verify transient error behaviour is to test the
+	// error classification directly.
+	assert.True(t, IsTransientError(repo.insertErr))
+}
+
+func TestIsTransientError(t *testing.T) {
+	assert.False(t, IsTransientError(nil))
+	assert.True(t, IsTransientError(context.Canceled))
+	assert.True(t, IsTransientError(context.DeadlineExceeded))
+	assert.True(t, IsTransientError(fmt.Errorf("wrapped: %w", context.DeadlineExceeded)))
+	// Unknown errors default to transient so we don't lose messages.
+	assert.True(t, IsTransientError(errors.New("db connection refused")))
+}
+
+func TestEventsHandler_AITimeout(t *testing.T) {
+	slowAI := &fakeAI{err: context.DeadlineExceeded}
+	opts := &EventsHandlerOptions{
+		TxRunner:    &fakeTxRunner{},
+		AITimeout:   50 * time.Millisecond,
+		Concurrency: 1,
+	}
+	h := NewEventsHandler(repository.NewRepository(nil), slowAI, nil, nil, opts)
+
+	userID := uuid.New()
+	habitID := uuid.New()
+
+	checkInID := uuid.New()
+	env, err := events.NewEnvelope(events.TypeCheckInCreated, events.CheckInCreated{
+		UserID:    userID.String(),
+		CheckInID: checkInID.String(),
+		HabitID:   habitID.String(),
+		HabitName: "Meditation",
+		Status:    "completed",
+		Streak:    1,
+	})
+	require.NoError(t, err)
+
+	raw, _ := json.Marshal(env)
+
+	// Because the AI error is context.DeadlineExceeded, IsTransientError returns true,
+	// so Consume should return the error to trigger a Kafka retry.
+	err = h.Consume(context.Background(), "", string(raw))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ai generation")
 }

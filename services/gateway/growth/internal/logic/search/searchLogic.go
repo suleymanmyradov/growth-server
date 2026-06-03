@@ -6,8 +6,10 @@ package search
 import (
 	"context"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
+	searchpb "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -27,7 +29,56 @@ func NewSearchLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SearchLogi
 }
 
 func (l *SearchLogic) Search(req *types.SearchRequest) (resp *types.SearchResponse, err error) {
-	// todo: add your logic here and delete this line
+	userID := ""
+	if p, ok := principal.PrincipalFrom(l.ctx); ok {
+		userID = p.UserID
+	}
 
-	return
+	var rpcTypes []string
+	if req.ItemType != "" {
+		rpcTypes = []string{req.ItemType}
+	}
+
+	offset := (req.Page - 1) * req.Limit
+	if offset < 0 {
+		offset = 0
+	}
+
+	rpcResp, err := l.svcCtx.SearchRpc.Search(l.ctx, &searchpb.SearchRequest{
+		Query:  req.Q,
+		UserId: userID,
+		Types:  rpcTypes,
+		Limit:  int32(req.Limit),
+		Offset: int32(offset),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var results []types.SearchResult
+	for _, r := range rpcResp.Results {
+		results = append(results, types.SearchResult{
+			Id:          r.Id,
+			ItemType:    r.Type,
+			Title:       r.Title,
+			Description: r.Description,
+			Score:       float64(r.Score),
+			Highlight:   r.Highlighted,
+		})
+	}
+
+	totalPages := int(rpcResp.Total) / req.Limit
+	if int(rpcResp.Total)%req.Limit > 0 {
+		totalPages++
+	}
+
+	return &types.SearchResponse{
+		Data: results,
+		Page: types.PageResponse{
+			Total:      int64(rpcResp.Total),
+			Page:       req.Page,
+			Limit:      req.Limit,
+			TotalPages: totalPages,
+		},
+	}, nil
 }

@@ -26,6 +26,7 @@ type ServiceContext struct {
 	TxRunner    *postgres.PgxTxRunner
 	EventsQ     queue.MessageQueue
 	EventsPub   *events.Publisher
+	DLQPub      *events.DLQPublisher
 	pool        *pgxpool.Pool
 	consumerWg  sync.WaitGroup
 }
@@ -62,24 +63,48 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
 	}
 
+	// DLQ publisher.
+	var dlqPub *events.DLQPublisher
+	if len(c.Kafka.Brokers) > 0 && c.Kafka.DLQTopic != "" {
+		dlqPub = events.NewDLQPublisher(c.Kafka.Brokers, c.Kafka.DLQTopic)
+	}
+
 	// Safety classifier (if AI client is available).
 	var classifier safety.Classifier
 	if aiClient != nil {
 		classifier = safety.NewLLMClassifier(aiClient)
 	}
 
+	// Build handler options.
+	handlerOpts := &consumer.EventsHandlerOptions{
+		TxRunner:    txRunner,
+		DLQPub:      dlqPub,
+		AITimeout:   c.Consumer.Timeout,
+		Concurrency: c.Consumer.Concurrency,
+		ServiceName: "ai-coach-consumer",
+	}
+
 	// Create consumer handler.
-	handler := consumer.NewEventsHandler(repo, aiClient, eventsPub, classifier)
+	handler := consumer.NewEventsHandler(repo, aiClient, eventsPub, classifier, handlerOpts)
 
 	// Create kq queue.
-	eventsQ := kq.MustNewQueue(
-		kq.KqConf{
-			Brokers: c.Kafka.Brokers,
-			Group:   c.Kafka.ConsumerGroup + ".events",
-			Topic:   c.Kafka.EventsTopic,
-		},
-		kq.WithHandle(handler.Consume),
-	)
+	// ForceCommit=false so that handler errors cause the message to be
+	// redelivered instead of silently committed.
+	kqConf := kq.KqConf{
+		Brokers:     c.Kafka.Brokers,
+		Group:       c.Kafka.ConsumerGroup + ".events",
+		Topic:       c.Kafka.EventsTopic,
+		ForceCommit: c.Kafka.ForceCommit,
+		Processors:  c.Kafka.Processors,
+		Consumers:   c.Kafka.Consumers,
+	}
+	if kqConf.Processors == 0 {
+		kqConf.Processors = 8
+	}
+	if kqConf.Consumers == 0 {
+		kqConf.Consumers = 8
+	}
+	eventsQ := kq.MustNewQueue(kqConf, kq.WithHandle(handler.Consume))
 
 	return &ServiceContext{
 		Config:    c,
@@ -88,6 +113,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TxRunner:  txRunner,
 		EventsQ:   eventsQ,
 		EventsPub: eventsPub,
+		DLQPub:    dlqPub,
 		pool:      pool,
 	}
 }
@@ -114,6 +140,9 @@ func (s *ServiceContext) Close() {
 	s.consumerWg.Wait()
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
+	}
+	if s.DLQPub != nil {
+		_ = s.DLQPub.Close()
 	}
 	if s.pool != nil {
 		s.pool.Close()

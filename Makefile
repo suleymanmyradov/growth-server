@@ -134,7 +134,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-gateway
+build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-search-sync build-gateway
 	@echo "All services built successfully!"
 
 build-auth:
@@ -166,6 +166,11 @@ build-ai-coach:
 	@echo "Building ai-coach service..."
 	@mkdir -p bin
 	go build -o bin/ai-coach ./services/microservices/ai-coach/rpc
+
+build-search-sync:
+	@echo "Building search-sync service..."
+	@mkdir -p bin
+	go build -o bin/search-sync ./services/microservices/search-sync
 
 build-gateway:
 	@echo "Building gateway service..."
