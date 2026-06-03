@@ -49,8 +49,9 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 
 		result, err := c.callGenerateWithTools(ctx, m, msgs, toolInfos, opts)
 		if err != nil {
-			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, time.Since(start).Milliseconds(), 0, err)
-			recordMetrics(req.ModelProfile, m.modelID, "error")
+			latencyMS := time.Since(start).Milliseconds()
+			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, 0, err)
+			recordMetrics(req.ModelProfile, m.modelID, "error", totalUsage, 0, latencyMS)
 			return AgentResponse{}, fmt.Errorf("ai.RunAgent step %d: %w", step+1, err)
 		}
 
@@ -64,6 +65,14 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 			totalUsage.PromptTokens += u.PromptTokens
 			totalUsage.CompletionTokens += u.CompletionTokens
 			totalUsage.TotalTokens += u.TotalTokens
+		}
+
+		// Enforce cumulative token budget.
+		if req.MaxTotalTokens > 0 && totalUsage.TotalTokens > req.MaxTotalTokens {
+			latencyMS := time.Since(start).Milliseconds()
+			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, 0, ErrMaxSteps)
+			recordMetrics(req.ModelProfile, m.modelID, "error", totalUsage, 0, latencyMS)
+			return AgentResponse{}, fmt.Errorf("ai.RunAgent: max total tokens exceeded (%d > %d): %w", totalUsage.TotalTokens, req.MaxTotalTokens, ErrMaxSteps)
 		}
 
 		// If no tool calls, the agent is done.
@@ -107,7 +116,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 
 	c.recordUsage(ctx, req.Metadata, totalUsage, costUSD)
 	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, costUSD, nil)
-	recordMetrics(req.ModelProfile, m.modelID, "ok")
+	recordMetrics(req.ModelProfile, m.modelID, "ok", totalUsage, costUSD, latencyMS)
 
 	return AgentResponse{
 		Messages:  allMessages,

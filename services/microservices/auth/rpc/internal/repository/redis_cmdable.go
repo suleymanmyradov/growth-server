@@ -7,6 +7,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 )
 
 const (
@@ -44,6 +45,8 @@ func (r *CmdableRedisRepository) MarkTokenRevoke(ctx context.Context, tokenType 
 		return fmt.Errorf("invalid token type: %v", tokenType)
 	}
 
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
 	return r.client.Set(ctx, key, "1", ttl).Err()
 }
 
@@ -58,6 +61,8 @@ func (r *CmdableRedisRepository) IsTokenRevoked(ctx context.Context, tokenType j
 		return false, fmt.Errorf("invalid token type: %v", tokenType)
 	}
 
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
 	exists, err := r.client.Exists(ctx, key).Result()
 	if err != nil {
 		return false, fmt.Errorf("check revocation: %w", err)

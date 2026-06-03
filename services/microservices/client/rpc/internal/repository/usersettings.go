@@ -124,5 +124,3 @@ func (r *UserSettingsRepo) UpdateOnboardingSettings(ctx context.Context, params 
 	}
 	return result, err
 }
-
-

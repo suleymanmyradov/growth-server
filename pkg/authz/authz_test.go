@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/stretchr/testify/require"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 )
 
-// fakeCache is a minimal in-memory cache for testing.
 type fakeCache struct {
 	data map[string]string
 }
@@ -21,153 +22,191 @@ func newFakeCache() *fakeCache {
 	return &fakeCache{data: make(map[string]string)}
 }
 
-func (f *fakeCache) Get(ctx context.Context, key string) (string, error) {
-	val, ok := f.data[key]
+func (f *fakeCache) Get(_ context.Context, key string) (string, error) {
+	v, ok := f.data[key]
 	if !ok {
-		return "", errors.New("not found")
+		return "", errors.New("cache miss")
 	}
-	return val, nil
+	return v, nil
 }
 
-func (f *fakeCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (f *fakeCache) Set(_ context.Context, key string, value interface{}, _ time.Duration) error {
 	f.data[key] = value.(string)
 	return nil
 }
 
-func (f *fakeCache) Del(ctx context.Context, keys ...string) error {
+func (f *fakeCache) Del(_ context.Context, keys ...string) error {
 	for _, k := range keys {
 		delete(f.data, k)
 	}
 	return nil
 }
 
-func TestCheckerCheckPrincipalActive(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
-
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
-		if id == userID {
-			return StatusActive, nil
-		}
-		return StatusNotFound, nil
-	})
-
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
-	if err := checker.CheckPrincipal(ctx); err != nil {
-		t.Fatalf("expected no error for active user, got %v", err)
-	}
-}
-
-func TestCheckerCheckPrincipalMissing(t *testing.T) {
-	fc := newFakeCache()
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
+func TestCheckPrincipal_Active(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, func(_ context.Context, userID uuid.UUID) (UserStatus, error) {
 		return StatusActive, nil
 	})
 
-	ctx := context.Background()
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: uuid.New().String()})
 	err := checker.CheckPrincipal(ctx)
-	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.Unauthenticated {
-		t.Fatalf("expected Unauthenticated for missing principal, got %v", err)
-	}
+	require.NoError(t, err)
 }
 
-func TestCheckerCheckPrincipalNotFound(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
+func TestCheckPrincipal_Missing(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, nil)
 
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
-		return StatusNotFound, nil
-	})
-
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
-	err := checker.CheckPrincipal(ctx)
+	err := checker.CheckPrincipal(context.Background())
+	require.Error(t, err)
 	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.Unauthenticated {
-		t.Fatalf("expected Unauthenticated for not found user, got %v", err)
-	}
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
 }
 
-func TestCheckerCheckPrincipalInactive(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("33333333-3333-3333-3333-333333333333")
-
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
+func TestCheckPrincipal_Inactive(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, func(_ context.Context, userID uuid.UUID) (UserStatus, error) {
 		return StatusInactive, nil
 	})
 
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: uuid.New().String()})
 	err := checker.CheckPrincipal(ctx)
+	require.Error(t, err)
 	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.PermissionDenied {
-		t.Fatalf("expected PermissionDenied for inactive user, got %v", err)
-	}
+	require.True(t, ok)
+	require.Equal(t, codes.PermissionDenied, st.Code())
 }
 
-func TestCheckerCachesResult(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("44444444-4444-4444-4444-444444444444")
-	callCount := 0
+func TestCheckPrincipal_NotFound(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, func(_ context.Context, userID uuid.UUID) (UserStatus, error) {
+		return StatusNotFound, nil
+	})
 
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
-		callCount++
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: uuid.New().String()})
+	err := checker.CheckPrincipal(ctx)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+func TestCheckPrincipal_InvalidUUID(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, nil)
+
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: "not-a-uuid"})
+	err := checker.CheckPrincipal(ctx)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+func TestMustHaveRole_Success(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, nil)
+
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{
+		UserID: uuid.New().String(),
+		Roles:  []string{"user", "admin"},
+	})
+	err := checker.MustHaveRole(ctx, "admin")
+	require.NoError(t, err)
+}
+
+func TestMustHaveRole_MultipleRequired(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, nil)
+
+	ctx := principal.WithPrincipal(context.Background(), principal.Principal{
+		UserID: uuid.New().String(),
+		Roles:  []string{"user"},
+	})
+	err := checker.MustHaveRole(ctx, "admin", "superuser")
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.PermissionDenied, st.Code())
+}
+
+func TestMustHaveRole_MissingPrincipal(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, nil)
+
+	err := checker.MustHaveRole(context.Background(), "admin")
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+func TestCacheHit(t *testing.T) {
+	cache := newFakeCache()
+	lookupCalled := 0
+	checker := NewChecker(cache, func(_ context.Context, userID uuid.UUID) (UserStatus, error) {
+		lookupCalled++
 		return StatusActive, nil
 	})
 
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
+	userID := uuid.New()
+	// First call should hit the DB
+	err := checker.CheckUser(context.Background(), userID)
+	require.NoError(t, err)
+	require.Equal(t, 1, lookupCalled)
 
-	// First call should hit lookup
-	if err := checker.CheckPrincipal(ctx); err != nil {
-		t.Fatalf("first call failed: %v", err)
-	}
-	if callCount != 1 {
-		t.Fatalf("expected 1 lookup call, got %d", callCount)
-	}
-
-	// Second call should use cache
-	if err := checker.CheckPrincipal(ctx); err != nil {
-		t.Fatalf("second call failed: %v", err)
-	}
-	if callCount != 1 {
-		t.Fatalf("expected 1 lookup call (cached), got %d", callCount)
-	}
+	// Second call should hit the cache
+	err = checker.CheckUser(context.Background(), userID)
+	require.NoError(t, err)
+	require.Equal(t, 1, lookupCalled)
 }
 
-func TestCheckerInvalidate(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("55555555-5555-5555-5555-555555555555")
-
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
+func TestInvalidate(t *testing.T) {
+	cache := newFakeCache()
+	checker := NewChecker(cache, func(_ context.Context, userID uuid.UUID) (UserStatus, error) {
 		return StatusActive, nil
 	})
 
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
-	_ = checker.CheckPrincipal(ctx)
+	userID := uuid.New()
+	ctx := context.Background()
 
-	// Invalidate cache
-	if err := checker.Invalidate(ctx, userID); err != nil {
-		t.Fatalf("invalidate failed: %v", err)
-	}
+	// Warm cache
+	_ = checker.CheckUser(ctx, userID)
+	_, ok := cache.data[userStatusPrefix+userID.String()]
+	require.True(t, ok)
 
-	// After invalidate, cache should be empty
-	key := userStatusPrefix + userID.String()
-	if _, ok := fc.data[key]; ok {
-		t.Fatal("expected cache entry to be deleted after invalidate")
-	}
+	// Invalidate
+	err := checker.Invalidate(ctx, userID)
+	require.NoError(t, err)
+
+	_, ok = cache.data[userStatusPrefix+userID.String()]
+	require.False(t, ok)
 }
 
-func TestCheckerLookupError(t *testing.T) {
-	fc := newFakeCache()
-	userID := uuid.MustParse("66666666-6666-6666-6666-666666666666")
+func TestGRPCError(t *testing.T) {
+	tests := []struct {
+		status  UserStatus
+		wantErr bool
+		code    codes.Code
+	}{
+		{StatusActive, false, codes.OK},
+		{StatusInactive, true, codes.PermissionDenied},
+		{StatusNotFound, true, codes.Unauthenticated},
+		{StatusUnknown, true, codes.Internal},
+	}
 
-	checker := NewChecker(fc, func(ctx context.Context, id uuid.UUID) (UserStatus, error) {
-		return StatusUnknown, errors.New("db down")
-	})
-
-	ctx := principal.WithPrincipal(context.Background(), principal.Principal{UserID: userID.String()})
-	err := checker.CheckPrincipal(ctx)
-	st, ok := status.FromError(err)
-	if !ok || st.Code() != codes.Internal {
-		t.Fatalf("expected Internal for lookup error, got %v", err)
+	for _, tt := range tests {
+		t.Run(tt.status.String(), func(t *testing.T) {
+			err := GRPCError(tt.status)
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			st, ok := status.FromError(err)
+			require.True(t, ok)
+			require.Equal(t, tt.code, st.Code())
+		})
 	}
 }

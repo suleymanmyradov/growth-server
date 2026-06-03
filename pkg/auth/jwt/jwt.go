@@ -9,6 +9,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// DefaultLeeway is the clock skew tolerance for time-based claims.
+const DefaultLeeway = 30 * time.Second
+
+// ErrInvalidToken is returned for all token verification failures to prevent
+// information leakage about which specific check failed.
+var ErrInvalidToken = fmt.Errorf("invalid token")
+
 type TokenType string
 
 const (
@@ -202,26 +209,22 @@ func (tm *TokenMaker) VerifyRefreshToken(ctx context.Context, tokenString string
 func (tm *TokenMaker) verifyToken(tokenString string, expectedType TokenType) (*TokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, ErrInvalidToken
 		}
 		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
-	if err != nil {
-		return nil, fmt.Errorf("parse token: %w", err)
-	}
-
-	if !token.Valid {
-		return nil, fmt.Errorf("invalid token")
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithLeeway(DefaultLeeway))
+	if err != nil || !token.Valid {
+		return nil, ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*TokenClaims)
 	if !ok {
-		return nil, fmt.Errorf("invalid claims type")
+		return nil, ErrInvalidToken
 	}
 
 	now := time.Now()
 	if err := validateClaims(claims, tm.issuer, tm.audience, expectedType, now); err != nil {
-		return nil, err
+		return nil, ErrInvalidToken
 	}
 
 	return claims, nil
@@ -235,26 +238,22 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 	// Parse token without time validation to allow revocation of expired tokens
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			return nil, ErrInvalidToken
 		}
 		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}))
-	if err != nil {
-		return fmt.Errorf("parse token: %w", err)
-	}
-
-	if !token.Valid {
-		return fmt.Errorf("invalid token")
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithLeeway(DefaultLeeway))
+	if err != nil || !token.Valid {
+		return ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(*TokenClaims)
 	if !ok {
-		return fmt.Errorf("invalid claims type")
+		return ErrInvalidToken
 	}
 
 	// Validate issuer and audience (but not time)
 	if claims.Issuer != tm.issuer {
-		return fmt.Errorf("invalid issuer")
+		return ErrInvalidToken
 	}
 
 	validAudience := false
@@ -265,11 +264,11 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 		}
 	}
 	if !validAudience {
-		return fmt.Errorf("invalid audience")
+		return ErrInvalidToken
 	}
 
 	if claims.TokenType != AccessToken {
-		return fmt.Errorf("invalid token type")
+		return ErrInvalidToken
 	}
 
 	// Use the token's expiry time, capped at a minimum to prevent replay attacks
@@ -303,10 +302,11 @@ func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (
 // All operations (CreateAccessToken, CreateRefreshToken, VerifyAccessToken, etc.) are synchronous.
 // No shutdown hooks are needed for cleanup.
 
-// validateClaims performs common claim validation for both TokenMaker and Verifier
+// validateClaims performs common claim validation for both TokenMaker and Verifier.
+// It returns ErrInvalidToken for any failure to prevent information leakage.
 func validateClaims(claims *TokenClaims, issuer, audience string, expectedType TokenType, now time.Time) error {
 	if claims.Issuer != issuer {
-		return fmt.Errorf("invalid issuer")
+		return ErrInvalidToken
 	}
 
 	validAudience := false
@@ -317,18 +317,18 @@ func validateClaims(claims *TokenClaims, issuer, audience string, expectedType T
 		}
 	}
 	if !validAudience {
-		return fmt.Errorf("invalid audience")
+		return ErrInvalidToken
 	}
 
 	if claims.TokenType != expectedType {
-		return fmt.Errorf("invalid token type")
+		return ErrInvalidToken
 	}
 
-	if now.Before(claims.NotBefore) {
-		return fmt.Errorf("token not yet valid")
+	if now.Before(claims.NotBefore.Add(-DefaultLeeway)) {
+		return ErrInvalidToken
 	}
-	if now.After(claims.ExpiresAt) {
-		return fmt.Errorf("token expired")
+	if now.After(claims.ExpiresAt.Add(DefaultLeeway)) {
+		return ErrInvalidToken
 	}
 
 	return nil

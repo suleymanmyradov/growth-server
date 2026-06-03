@@ -9,7 +9,7 @@ import (
 type Config struct {
 	zrpc.RpcServerConf
 	Postgres struct {
-		Datasource      string
+		Datasource      string `secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
@@ -20,7 +20,12 @@ type Config struct {
 		ReminderDueTopic string
 		ConsumerGroup    string
 	}
+	Auth struct {
+		Secret   string `secret:"true"`
+		Issuer   string
+		Audience string
+	}
 	ServiceAuth struct {
-		Secret string
+		Secret string `secret:"true"`
 	}
 }

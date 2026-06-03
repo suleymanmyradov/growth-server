@@ -38,6 +38,7 @@ import (
 type ServiceContext struct {
 	Config             config.Config
 	Auth               rest.Middleware
+	RateLimit          rest.Middleware
 	AuthRpc            authservice.AuthService
 	NotificationsRpc   notificationsClient.Notifications
 	SavedRpc           clientsaved.Saved
@@ -91,6 +92,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
 	}
 
+	limiters := middleware.BuildRateLimiters(c.RateLimit)
+
 	return &ServiceContext{
 		Config: c,
 		Auth: middleware.JWTMiddleware(middleware.JWTVerifierConfig{
@@ -98,6 +101,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Issuer:   c.Auth.Issuer,
 			Audience: c.Auth.Audience,
 		}),
+		RateLimit:          middleware.RateLimitMiddleware(limiters),
 		AuthRpc:            authRpc,
 		NotificationsRpc:   notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),
 		SavedRpc:           clientsaved.NewSaved(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),

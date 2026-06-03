@@ -181,7 +181,7 @@ func TestCheckQuota_NoStore(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestCheckQuota_StoreError_FailOpen(t *testing.T) {
+func TestCheckQuota_StoreError_FailClosed(t *testing.T) {
 	cfg := testConfig("test-key")
 	cfg.Quota.UserDailyTokenCap = 100
 	store := &mockQuotaStore{userErr: context.DeadlineExceeded}
@@ -190,7 +190,7 @@ func TestCheckQuota_StoreError_FailOpen(t *testing.T) {
 
 	cl := c.(*client)
 	err = cl.checkQuota(context.Background(), Metadata{UserID: "user1"})
-	assert.NoError(t, err) // fail open
+	assert.ErrorIs(t, err, ErrQuotaExceeded) // fail closed
 }
 
 func TestToFromEinoMessage(t *testing.T) {

@@ -15,7 +15,9 @@ import (
 // retryFn is the function signature for operations that can be retried.
 type retryFn func(ctx context.Context) error
 
-// withRetry wraps an operation with exponential backoff and circuit breaker.
+// withRetry wraps an operation with exponential backoff, per-attempt timeouts,
+// and circuit breaker. Retryable errors (429/5xx) are retried without tripping
+// the breaker; non-retryable errors count as breaker failures.
 func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) error {
 	eb := backoff.NewExponentialBackOff()
 	eb.InitialInterval = c.cfg.RetryBackoff
@@ -24,30 +26,51 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 	attempt := 0
 	operation := func() (struct{}, error) {
 		attempt++
-		lastErr := fn(ctx)
-		if lastErr == nil {
-			return struct{}{}, nil
+
+		// Per-attempt timeout: isolate each attempt so a slow first call
+		// doesn't starve retries of their own deadline budget.
+		perAttemptTimeout := c.cfg.DefaultTimeout
+		if deadline, ok := ctx.Deadline(); ok {
+			remaining := time.Until(deadline)
+			if remaining > 0 && remaining < perAttemptTimeout {
+				perAttemptTimeout = remaining
+			}
+		}
+		attemptCtx, cancel := context.WithTimeout(ctx, perAttemptTimeout)
+		defer cancel()
+
+		// Always run through the circuit breaker. The acceptable function
+		// tells the breaker to ignore retryable errors (they don't count as
+		// failures) so the breaker only tracks non-retryable errors and
+		// successes. When the breaker is open, DoWithAcceptable returns
+		// ErrServiceUnavailable immediately.
+		brk := c.breakerFor(modelID)
+		var lastErr error
+		brkErr := brk.DoWithAcceptable(func() error {
+			lastErr = fn(attemptCtx)
+			return lastErr
+		}, func(err error) bool {
+			if err == nil {
+				return true
+			}
+			// Retryable errors are "acceptable" — the breaker should NOT
+			// count them as failures.
+			return isRetryable(err)
+		})
+
+		if brkErr != nil {
+			// Breaker is open.
+			logx.WithContext(ctx).Infof("ai: circuit breaker open for model %s: %v", modelID, brkErr)
+			return struct{}{}, backoff.Permanent(fmt.Errorf("ai: circuit breaker: %w", brkErr))
 		}
 
-		if isRetryable(lastErr) {
-			// Retryable errors (429, 5xx) should be retried with backoff.
-			// They don't trip the circuit breaker.
+		if lastErr != nil {
+			// Acceptable retryable error: trigger backoff retry.
 			logx.WithContext(ctx).Infof("ai: retryable error on model %s (attempt %d): %v", modelID, attempt, lastErr)
 			return struct{}{}, lastErr
 		}
 
-		// Non-retryable errors go through the circuit breaker.
-		// If the breaker is open, stop retrying immediately.
-		brk := c.breakerFor(modelID)
-		if err := brk.DoWithAcceptable(func() error {
-			return lastErr
-		}, acceptable); err != nil {
-			logx.WithContext(ctx).Infof("ai: circuit breaker open for model %s: %v", modelID, err)
-			return struct{}{}, backoff.Permanent(fmt.Errorf("ai: circuit breaker: %w", err))
-		}
-
-		// Non-retryable, non-breaker error: don't retry.
-		return struct{}{}, backoff.Permanent(lastErr)
+		return struct{}{}, nil
 	}
 
 	_, err := backoff.Retry(ctx, operation,
@@ -58,15 +81,6 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 		return fmt.Errorf("ai: retries exhausted for model %s: %w", modelID, err)
 	}
 	return nil
-}
-
-// acceptable determines which errors the circuit breaker should count as failures.
-func acceptable(err error) bool {
-	if err == nil {
-		return true
-	}
-	// Non-retryable errors (4xx except 429) should not trip the breaker.
-	return !isRetryable(err)
 }
 
 // isRetryable returns true for 429 and 5xx errors.

@@ -27,12 +27,24 @@ func main() {
 	conf.MustLoad(*configFile, &c)
 	logx.Infof("starting gateway with config: %+v", configsafe.MaskSecrets(c))
 
+	// Harden defaults if not explicitly configured in YAML
+	if c.MaxConns == 0 {
+		c.MaxConns = 10000
+	}
+	if c.MaxBytes == 0 {
+		c.MaxBytes = 1 << 20 // 1 MB
+	}
+
 	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()
 
+	ctx := svc.NewServiceContext(c)
+
+	// Order matters: rate limit first so abusive requests are rejected
+	// before auth or response-shape overhead.
+	server.Use(ctx.RateLimit)
 	server.Use(middleware.ResponseShapeMiddleware())
 
-	ctx := svc.NewServiceContext(c)
 	handler.RegisterHandlers(server, ctx)
 
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)

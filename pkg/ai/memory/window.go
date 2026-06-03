@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -12,6 +13,7 @@ import (
 type ConversationWindow struct {
 	mu          sync.RWMutex
 	maxMessages int
+	maxTokens   int
 	messages    []ai.Message
 }
 
@@ -23,15 +25,33 @@ func NewConversationWindow(maxMessages int) *ConversationWindow {
 	return &ConversationWindow{maxMessages: maxMessages}
 }
 
-// Add appends messages and trims to maxMessages, always preserving
-// the first message if it is a system message.
+// NewConversationWindowTokens creates a window that trims messages to stay
+// within maxTokens (approximate). When maxTokens > 0, maxMessages is ignored.
+func NewConversationWindowTokens(maxTokens int) *ConversationWindow {
+	if maxTokens < 1 {
+		maxTokens = 1
+	}
+	return &ConversationWindow{maxTokens: maxTokens}
+}
+
+// Add appends messages and trims, preserving the system message if present.
+// Trimming is by message count (maxMessages) unless maxTokens is set,
+// in which case it drops oldest messages until the total is under budget.
 func (w *ConversationWindow) Add(msgs ...ai.Message) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
 	w.messages = append(w.messages, msgs...)
 
-	// If we exceed the limit, trim from the front.
+	if w.maxTokens > 0 {
+		w.trimByTokens()
+		return
+	}
+
+	w.trimByCount()
+}
+
+func (w *ConversationWindow) trimByCount() {
 	if len(w.messages) <= w.maxMessages {
 		return
 	}
@@ -49,6 +69,39 @@ func (w *ConversationWindow) Add(msgs ...ai.Message) {
 	} else {
 		w.messages = w.messages[excess:]
 	}
+}
+
+func (w *ConversationWindow) trimByTokens() {
+	for {
+		total := approximateTokens(w.messages)
+		if total <= w.maxTokens {
+			return
+		}
+		if len(w.messages) <= 1 {
+			return
+		}
+		// Drop the oldest non-system message, or the oldest message if
+		// there's no system message.
+		if len(w.messages) > 1 && w.messages[0].Role == ai.RoleSystem {
+			w.messages = append(w.messages[:1], w.messages[2:]...)
+		} else {
+			w.messages = w.messages[1:]
+		}
+	}
+}
+
+// approximateTokens returns a rough token count for a slice of messages.
+// Uses the rule of thumb: 1 token ~ 0.75 English words, so words * 1.33.
+func approximateTokens(msgs []ai.Message) int {
+	var words int
+	for _, m := range msgs {
+		words += len(strings.Fields(m.Content))
+		for _, tc := range m.ToolCalls {
+			words += len(strings.Fields(tc.Fn.Name))
+			words += len(strings.Fields(tc.Fn.Arguments))
+		}
+	}
+	return int(float64(words) * 1.33)
 }
 
 // Messages returns the current window of messages.

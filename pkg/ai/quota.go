@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 )
 
 // QuotaStore is the interface for per-user and global quota tracking.
@@ -37,6 +38,9 @@ func dailyKey(prefix, id string) string {
 }
 
 func (s *redisQuotaStore) CheckUserQuota(ctx context.Context, userID string, cap int64) (bool, error) {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
 	key := dailyKey("user", userID)
 	val, err := s.client.Get(ctx, key).Int64()
 	if err != nil && err != redis.Nil {
@@ -46,16 +50,23 @@ func (s *redisQuotaStore) CheckUserQuota(ctx context.Context, userID string, cap
 }
 
 func (s *redisQuotaStore) IncrUserTokens(ctx context.Context, userID string, tokens int64) error {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
 	key := dailyKey("user", userID)
 	if err := s.client.IncrBy(ctx, key, tokens).Err(); err != nil {
 		return fmt.Errorf("ai.QuotaStore: incr user tokens: %w", err)
 	}
 	// Set TTL to 48h on first write (covers timezone edge).
-	s.client.Expire(ctx, key, 48*time.Hour)
+	ttl := redisutil.JitteredTTL(48*time.Hour, 2*time.Hour)
+	s.client.Expire(ctx, key, ttl)
 	return nil
 }
 
 func (s *redisQuotaStore) CheckGlobalQuota(ctx context.Context, costCap int64) (bool, error) {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
 	key := dailyKey("global", "cost")
 	val, err := s.client.Get(ctx, key).Int64()
 	if err != nil && err != redis.Nil {
@@ -65,11 +76,15 @@ func (s *redisQuotaStore) CheckGlobalQuota(ctx context.Context, costCap int64) (
 }
 
 func (s *redisQuotaStore) IncrGlobalCost(ctx context.Context, microDollars int64) error {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
 	key := dailyKey("global", "cost")
 	if err := s.client.IncrBy(ctx, key, microDollars).Err(); err != nil {
 		return fmt.Errorf("ai.QuotaStore: incr global cost: %w", err)
 	}
-	s.client.Expire(ctx, key, 48*time.Hour)
+	ttl := redisutil.JitteredTTL(48*time.Hour, 2*time.Hour)
+	s.client.Expire(ctx, key, ttl)
 	return nil
 }
 

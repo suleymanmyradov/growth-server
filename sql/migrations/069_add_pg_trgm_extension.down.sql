@@ -1,1 +1,0 @@
--- pg_trgm extension is left installed; dropping it can break other indexes

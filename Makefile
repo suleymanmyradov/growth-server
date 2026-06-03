@@ -51,7 +51,12 @@ migrate-up:
 		echo "Installing migrate tool..."; \
 		go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest; \
 	fi
-	migrate -path sql/migrations -database "postgres://growthmind:growthmind123@localhost:5434/growthmind?sslmode=disable" up
+	@if [ -z "$(DATABASE_URL)" ]; then \
+		echo "Error: DATABASE_URL is not set"; \
+		echo "Example: export DATABASE_URL=postgres://user:password@localhost:5434/dbname?sslmode=disable"; \
+		exit 1; \
+	fi
+	migrate -path sql/migrations -database "$(DATABASE_URL)" up
 
 # Run database migrations down
 migrate-down:
@@ -60,7 +65,12 @@ migrate-down:
 		echo "Installing migrate tool..."; \
 		go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest; \
 	fi
-	migrate -path sql/migrations -database "postgres://growthmind:growthmind123@localhost:5434/growthmind?sslmode=disable" down
+	@if [ -z "$(DATABASE_URL)" ]; then \
+		echo "Error: DATABASE_URL is not set"; \
+		echo "Example: export DATABASE_URL=postgres://user:password@localhost:5434/dbname?sslmode=disable"; \
+		exit 1; \
+	fi
+	migrate -path sql/migrations -database "$(DATABASE_URL)" down
 
 generate-api:
 	@echo "Generating API gateway..."

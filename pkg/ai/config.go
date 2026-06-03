@@ -66,7 +66,7 @@ type FallbackPolicy struct {
 // go-zero YAML configs via conf.MustLoad.
 type Config struct {
 	// APIKey is the OpenRouter API key (env: OPENROUTER_API_KEY). Never logged.
-	APIKey string `json:"api_key"`
+	APIKey string `json:"api_key" secret:"true"`
 	// BaseURL defaults to https://openrouter.ai/api/v1.
 	BaseURL string `json:"base_url"`
 	// Models maps ModelProfile to model ID. Merged over DefaultModels.
@@ -97,7 +97,7 @@ type QuotaConfig struct {
 	// RedisAddr is the Redis address for quota tracking.
 	RedisAddr string `json:"redis_addr"`
 	// RedisPassword for Redis auth.
-	RedisPassword string `json:"redis_password"`
+	RedisPassword string `json:"redis_password" secret:"true"`
 	// RedisDB selects the Redis database number.
 	RedisDB int `json:"redis_db"`
 	// UserDailyTokenCap is the max tokens a single user can consume per day.

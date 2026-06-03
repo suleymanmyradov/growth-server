@@ -42,7 +42,7 @@ func (c *client) Generate(ctx context.Context, req GenerateRequest) (GenerateRes
 			return resp, nil
 		}
 		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
-		recordMetrics(req.ModelProfile, m.modelID, "error")
+		recordMetrics(req.ModelProfile, m.modelID, "error", Usage{}, 0, latencyMS)
 		return GenerateResponse{}, fmt.Errorf("ai.Generate: %w", err)
 	}
 
@@ -52,7 +52,7 @@ func (c *client) Generate(ctx context.Context, req GenerateRequest) (GenerateRes
 
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
 	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
-	recordMetrics(req.ModelProfile, m.modelID, "ok")
+	recordMetrics(req.ModelProfile, m.modelID, "ok", usage, costUSD, latencyMS)
 
 	return GenerateResponse{
 		Message:   fromEinoMessage(result),
@@ -71,7 +71,7 @@ func (c *client) generateWithTools(ctx context.Context, m openaiModel, req Gener
 
 	if err != nil {
 		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
-		recordMetrics(req.ModelProfile, m.modelID, "error")
+		recordMetrics(req.ModelProfile, m.modelID, "error", Usage{}, 0, latencyMS)
 		return GenerateResponse{}, fmt.Errorf("ai.Generate: %w", err)
 	}
 
@@ -81,7 +81,7 @@ func (c *client) generateWithTools(ctx context.Context, m openaiModel, req Gener
 
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
 	c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
-	recordMetrics(req.ModelProfile, m.modelID, "ok")
+	recordMetrics(req.ModelProfile, m.modelID, "ok", usage, costUSD, latencyMS)
 
 	return GenerateResponse{
 		Message:   fromEinoMessage(result),
@@ -109,7 +109,7 @@ func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*s
 	latencyMS := time.Since(start).Milliseconds()
 	if err != nil {
 		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
-		recordMetrics(ModelFallback, fb.modelID, "error")
+		recordMetrics(ModelFallback, fb.modelID, "error", Usage{}, 0, latencyMS)
 		return GenerateResponse{}, fmt.Errorf("ai.Generate fallback also failed: %w (primary: %v)", err, primaryErr)
 	}
 
@@ -117,7 +117,7 @@ func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*s
 	costUSD := c.cfg.ComputeCost(fb.modelID, usage.PromptTokens, usage.CompletionTokens)
 	c.recordUsage(ctx, req.Metadata, usage, costUSD)
 	c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
-	recordMetrics(ModelFallback, fb.modelID, "ok")
+	recordMetrics(ModelFallback, fb.modelID, "ok", usage, costUSD, latencyMS)
 
 	return GenerateResponse{
 		Message:   fromEinoMessage(result),

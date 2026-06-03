@@ -1,6 +1,12 @@
 // Package s2s provides service-to-service authentication interceptors.
 // It uses a shared HMAC secret to sign and verify inter-service RPC calls,
 // preventing unauthorized internal access even if the network boundary is breached.
+//
+// Security model:
+//   - The shared secret must be loaded from environment/config and must never be empty in production.
+//   - An empty secret causes a fatal error at construction time; there is no "skip if empty" fallback.
+//   - The s2s interceptor should be chained BEFORE the auth/mdpropagate interceptor so that
+//     identity propagation only happens after the caller is authenticated as an internal service.
 package s2s
 
 import (
@@ -29,6 +35,18 @@ type Config struct {
 	Secret string
 }
 
+// MustValidate ensures the config is safe for production use. It returns an error
+// if the secret is empty, preventing accidental fail-open deployments.
+func (c Config) MustValidate() error {
+	if c.Secret == "" {
+		return fmt.Errorf("s2s: shared secret is required; set a non-empty secret or disable the service")
+	}
+	if len(c.Secret) < 32 {
+		return fmt.Errorf("s2s: shared secret must be at least 32 bytes")
+	}
+	return nil
+}
+
 // Sign computes an HMAC-SHA256 signature over "method:timestamp" using the shared secret.
 func Sign(secret, method string, timestamp int64) string {
 	msg := fmt.Sprintf("%s:%d", method, timestamp)
@@ -55,9 +73,6 @@ func Verify(secret, method, sig string, timestamp int64, maxSkew time.Duration) 
 // with a service authentication token derived from the shared secret.
 func UnaryClientInterceptor(cfg Config) grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
-		if cfg.Secret == "" {
-			return invoker(ctx, method, req, reply, cc, opts...)
-		}
 		ts := time.Now().Unix()
 		sig := Sign(cfg.Secret, method, ts)
 		ctx = metadata.AppendToOutgoingContext(ctx, mdServiceAuth, sig, mdServiceAuthTs, strconv.FormatInt(ts, 10))
@@ -70,9 +85,6 @@ func UnaryClientInterceptor(cfg Config) grpc.UnaryClientInterceptor {
 // and reflection methods.
 func UnaryServerInterceptor(cfg Config) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		if cfg.Secret == "" {
-			return handler(ctx, req)
-		}
 		if shouldSkipValidation(info.FullMethod) {
 			return handler(ctx, req)
 		}

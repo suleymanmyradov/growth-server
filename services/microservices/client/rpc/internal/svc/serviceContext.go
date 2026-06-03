@@ -2,8 +2,6 @@ package svc
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
@@ -33,17 +32,6 @@ type ServiceContext struct {
 	Authz            *authz.Checker
 	pool             *pgxpool.Pool
 	redis            *redis.Client
-}
-
-func mustNewRedis(addr, password string, db int) *redis.Client {
-	c := redis.NewClient(&redis.Options{Addr: addr, Password: password, DB: db})
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := c.Ping(ctx).Err(); err != nil {
-		_ = c.Close()
-		panic(fmt.Errorf("redis ping: %w", err))
-	}
-	return c
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -70,16 +58,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var redisClient *redis.Client
 	var authzChecker *authz.Checker
 	if c.Redis.Addr != "" {
-		redisClient = mustNewRedis(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
-		authzChecker = authz.NewChecker(authz.NewRedisCache(redisClient), func(ctx context.Context, userID uuid.UUID) (authz.UserStatus, error) {
-			// Use user_settings as a proxy for user existence in the client service.
-			// The auth service is the canonical source of truth for user status.
-			_, err := repo.UserSettings.GetUserSettings(ctx, userID)
-			if err != nil {
-				return authz.StatusNotFound, nil
-			}
-			return authz.StatusActive, nil
-		})
+		client, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; authz caching disabled: %v", err)
+		} else {
+			redisClient = client
+			authzChecker = authz.NewChecker(authz.NewRedisCache(redisClient), func(ctx context.Context, userID uuid.UUID) (authz.UserStatus, error) {
+				// Use user_settings as a proxy for user existence in the client service.
+				// The auth service is the canonical source of truth for user status.
+				_, err := repo.UserSettings.GetUserSettings(ctx, userID)
+				if err != nil {
+					return authz.StatusNotFound, nil
+				}
+				return authz.StatusActive, nil
+			})
+		}
 	} else {
 		logx.Info("Redis not configured; authz caching disabled")
 	}
