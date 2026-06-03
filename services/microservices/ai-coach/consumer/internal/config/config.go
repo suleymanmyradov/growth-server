@@ -17,6 +17,14 @@ type Config struct {
 		Brokers       []string
 		EventsTopic   string
 		ConsumerGroup string
+		DLQTopic      string
+		ForceCommit   bool
+		Processors    int
+		Consumers     int
+	}
+	Consumer struct {
+		Timeout     time.Duration
+		Concurrency int
 	}
 	AI ai.Config
 }
