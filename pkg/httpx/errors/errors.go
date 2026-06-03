@@ -172,29 +172,25 @@ func HandleGrpcError(w http.ResponseWriter, err error) {
 
 	httpStatus := GrpcToHTTPStatus(st.Code())
 
-	// Check for PLAN_LIMIT_REACHED error with structured details
-	msg := st.Message()
-	if strings.HasPrefix(msg, "PLAN_LIMIT_REACHED:") {
-		parts := strings.SplitN(msg, ":", 3)
-		limit := ""
-		trigger := ""
-		if len(parts) >= 2 {
-			limit = parts[1]
+	// Check for PlanLimitDetail in gRPC status details.
+	for _, d := range st.Details() {
+		if detail, ok := d.(interface {
+			GetLimit() string
+			GetUpgradeTrigger() string
+		}); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusPaymentRequired)
+			_ = json.NewEncoder(w).Encode(ErrorResponse{
+				Code:           "plan_limit_reached",
+				Message:        "You have reached the Free plan limit for this feature",
+				Limit:          detail.GetLimit(),
+				UpgradeTrigger: detail.GetUpgradeTrigger(),
+			})
+			return
 		}
-		if len(parts) >= 3 {
-			trigger = parts[2]
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusPaymentRequired)
-		_ = json.NewEncoder(w).Encode(ErrorResponse{
-			Code:           "plan_limit_reached",
-			Message:        "You have reached the Free plan limit for this feature",
-			Limit:          limit,
-			UpgradeTrigger: trigger,
-		})
-		return
 	}
 
+	msg := st.Message()
 	sanitizedMessage := SanitizeErrorMessage(st.Code(), msg)
 
 	w.Header().Set("Content-Type", "application/json")
