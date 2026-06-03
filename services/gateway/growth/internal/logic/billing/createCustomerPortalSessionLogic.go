@@ -31,8 +31,6 @@ func (l *CreateCustomerPortalSessionLogic) CreateCustomerPortalSession() (resp *
 	}
 
 	return &types.CreateCustomerPortalSessionResponse{
-		Data: types.CreateCustomerPortalSessionData{
-			PortalUrl: rpcResp.PortalUrl,
-		},
+		PortalUrl: rpcResp.PortalUrl,
 	}, nil
 }

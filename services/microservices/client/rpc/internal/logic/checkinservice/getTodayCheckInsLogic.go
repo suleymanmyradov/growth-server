@@ -39,9 +39,9 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(in *client.GetTodayCheckInsRequ
 		return nil, status.Error(codes.Internal, "failed to get check-ins")
 	}
 
-	var pbCheckIns []*client.CheckIn
-	for _, ci := range checkIns {
-		pbCheckIns = append(pbCheckIns, checkInToProto(ci))
+	pbCheckIns := make([]*client.CheckIn, len(checkIns))
+	for i, ci := range checkIns {
+		pbCheckIns[i] = checkInToProto(ci)
 	}
 
 	return &client.GetTodayCheckInsResponse{

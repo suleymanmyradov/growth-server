@@ -1,10 +1,12 @@
 package articleslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -38,33 +40,57 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 	var pbArticles []*client.Article
 	var totalCount int64
 
+	// Parse user ID if provided
+	userID, userErr := uuid.Parse(in.UserId)
+	hasUser := in.UserId != "" && userErr == nil
+
 	// Filter by category slug if provided
 	if in.CategorySlug != "" {
-		articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(l.ctx, in.CategorySlug, limit, offset)
-		if err != nil {
-			l.Errorf("Failed to list articles by category: %v", err)
-return nil, status.Error(codes.Internal, "failed to list articles by category")
+		if hasUser {
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlugWithSaved(l.ctx, in.CategorySlug, limit, offset, userID)
+			if err != nil {
+				l.Errorf("Failed to list articles by category with saved: %v", err)
+				return nil, status.Error(codes.Internal, "failed to list articles by category")
+			}
+			pbArticles = make([]*client.Article, len(articles))
+			for i, a := range articles {
+				pbArticles[i] = convertCategorySlugWithSavedRowToPbArticle(a)
+			}
+		} else {
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(l.ctx, in.CategorySlug, limit, offset)
+			if err != nil {
+				l.Errorf("Failed to list articles by category: %v", err)
+				return nil, status.Error(codes.Internal, "failed to list articles by category")
+			}
+			pbArticles = make([]*client.Article, len(articles))
+			for i, a := range articles {
+				pbArticles[i] = convertCategorySlugRowToPbArticle(a)
+			}
 		}
-		for _, a := range articles {
-			pbArticles = append(pbArticles, convertCategorySlugRowToPbArticle(a))
-		}
-		totalCount, err = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(l.ctx, in.CategorySlug)
-		if err != nil {
-			l.Errorf("Failed to count articles by category: %v", err)
-		}
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(l.ctx, in.CategorySlug)
 	} else {
-		articles, err := l.svcCtx.Repo.Articles.ListArticles(l.ctx, limit, offset)
-		if err != nil {
-			l.Errorf("Failed to list articles: %v", err)
-return nil, status.Error(codes.Internal, "failed to list articles")
+		if hasUser {
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesWithSaved(l.ctx, limit, offset, userID)
+			if err != nil {
+				l.Errorf("Failed to list articles with saved: %v", err)
+				return nil, status.Error(codes.Internal, "failed to list articles")
+			}
+			pbArticles = make([]*client.Article, len(articles))
+			for i, a := range articles {
+				pbArticles[i] = convertListWithSavedRowToPbArticle(a)
+			}
+		} else {
+			articles, err := l.svcCtx.Repo.Articles.ListArticles(l.ctx, limit, offset)
+			if err != nil {
+				l.Errorf("Failed to list articles: %v", err)
+				return nil, status.Error(codes.Internal, "failed to list articles")
+			}
+			pbArticles = make([]*client.Article, len(articles))
+			for i, a := range articles {
+				pbArticles[i] = convertListRowToPbArticle(a)
+			}
 		}
-		for _, a := range articles {
-			pbArticles = append(pbArticles, convertListRowToPbArticle(a))
-		}
-		totalCount, err = l.svcCtx.Repo.Articles.CountArticles(l.ctx)
-		if err != nil {
-			l.Errorf("Failed to count articles: %v", err)
-		}
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(l.ctx)
 	}
 
 	return &client.ListArticlesResponse{

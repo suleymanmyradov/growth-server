@@ -22,12 +22,14 @@ func GetArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := articles.NewGetArticleLogic(r.Context(), svcCtx)
+		ctx := optionalAuth(r, svcCtx)
+
+		l := articles.NewGetArticleLogic(ctx, svcCtx)
 		resp, err := l.GetArticle(&req)
 		if err != nil {
 			errors.HandleGrpcError(w, err)
 		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			httpx.OkJsonCtx(ctx, w, resp)
 		}
 	}
 }

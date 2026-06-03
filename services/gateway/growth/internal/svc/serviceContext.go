@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
@@ -39,6 +40,7 @@ type ServiceContext struct {
 	Config             config.Config
 	Auth               rest.Middleware
 	RateLimit          rest.Middleware
+	TokenMaker         *jwt.TokenMaker
 	AuthRpc            authservice.AuthService
 	NotificationsRpc   notificationsClient.Notifications
 	SavedRpc           clientsaved.Saved
@@ -94,6 +96,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	limiters := middleware.BuildRateLimiters(c.RateLimit)
 
+	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
+		Secret:   c.Auth.Secret,
+		Issuer:   c.Auth.Issuer,
+		Audience: c.Auth.Audience,
+	}, nil)
+	if err != nil {
+		logx.Must(fmt.Errorf("init token maker: %w", err))
+	}
+
 	return &ServiceContext{
 		Config: c,
 		Auth: middleware.JWTMiddleware(middleware.JWTVerifierConfig{
@@ -101,6 +112,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Issuer:   c.Auth.Issuer,
 			Audience: c.Auth.Audience,
 		}),
+		TokenMaker:         tokenMaker,
 		RateLimit:          middleware.RateLimitMiddleware(limiters),
 		AuthRpc:            authRpc,
 		NotificationsRpc:   notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),

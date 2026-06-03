@@ -152,7 +152,8 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 		return nil, err
 	}
 
-	isPro := sub.PlanCode == "pro" && (sub.Status == db.SubscriptionStatusTypeActive || sub.Status == db.SubscriptionStatusTypeTrialing)
+	// past_due retains pro benefits during Stripe's grace period until explicit cancellation.
+	isPro := sub.PlanCode == "pro" && (sub.Status == db.SubscriptionStatusTypeActive || sub.Status == db.SubscriptionStatusTypeTrialing || sub.Status == db.SubscriptionStatusTypePastDue)
 
 	canCreateGoal := isPro || activeGoals < int64(sub.ActiveGoalLimit)
 	canCreateHabit := isPro || activeHabits < int64(sub.ActiveHabitLimit)
@@ -185,6 +186,27 @@ func NullStringPtr(s *string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
+}
+
+func (r *billingRepo) IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.IsStripeEventProcessed")
+	defer span.End()
+
+	return r.db.IsStripeEventProcessed(ctx, stripeEventID)
+}
+
+func (r *billingRepo) MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.MarkStripeEventProcessed")
+	defer span.End()
+
+	return r.db.MarkStripeEventProcessed(ctx, stripeEventID, eventType)
+}
+
+func (r *billingRepo) ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.ListExpiredActiveSubscriptions")
+	defer span.End()
+
+	return r.db.ListExpiredActiveSubscriptions(ctx, limit)
 }
 
 // NullJSON returns json.RawMessage for metadata.

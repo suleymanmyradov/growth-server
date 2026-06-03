@@ -59,9 +59,9 @@ return nil, status.Error(codes.Internal, "failed to list goals")
 return nil, status.Error(codes.Internal, "failed to count goals")
 	}
 
-	var pbGoals []*client.Goal
-	for _, g := range goals {
-		pbGoals = append(pbGoals, goalToProto(g))
+	pbGoals := make([]*client.Goal, len(goals))
+	for i, g := range goals {
+		pbGoals[i] = goalToProto(g)
 	}
 
 	return &client.ListGoalsResponse{

@@ -25,7 +25,9 @@ help:
 	@echo "  build-conversations  - Build conversations service"
 	@echo "  build-notifications  - Build notifications service"
 	@echo "  build-ai-coach       - Build ai-coach service"
+	@echo "  build-search-sync    - Build search-sync service"
 	@echo "  build-gateway        - Build gateway service"
+	@echo "  build-billing-reconciler - Build billing-reconciler command"
 	@echo "  lint                 - Run golangci-lint"
 	@echo "  clean                - Clean build artifacts"
 	
@@ -134,7 +136,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-search-sync build-gateway
+build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-search-sync build-gateway build-billing-reconciler
 	@echo "All services built successfully!"
 
 build-auth:
@@ -176,6 +178,11 @@ build-gateway:
 	@echo "Building gateway service..."
 	@mkdir -p bin
 	go build -o bin/gateway ./services/gateway/growth
+
+build-billing-reconciler:
+	@echo "Building billing-reconciler..."
+	@mkdir -p bin
+	go build -o bin/billing-reconciler ./services/microservices/client/rpc/cmd/billing-reconciler
 
 clean:
 	@echo "Cleaning build artifacts..."

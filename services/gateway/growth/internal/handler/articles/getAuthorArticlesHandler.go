@@ -4,8 +4,9 @@
 package articles
 
 import (
-	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
+
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/articles"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -21,12 +22,14 @@ func GetAuthorArticlesHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		l := articles.NewGetAuthorArticlesLogic(r.Context(), svcCtx)
+		ctx := optionalAuth(r, svcCtx)
+
+		l := articles.NewGetAuthorArticlesLogic(ctx, svcCtx)
 		resp, err := l.GetAuthorArticles(&req)
 		if err != nil {
 			errors.HandleGrpcError(w, err)
 		} else {
-			httpx.OkJsonCtx(r.Context(), w, resp)
+			httpx.OkJsonCtx(ctx, w, resp)
 		}
 	}
 }

@@ -4698,6 +4698,7 @@ type Article struct {
 	Category      *ArticleCategory       `protobuf:"bytes,12,opt,name=category,proto3" json:"category,omitempty"`
 	CreatedAt     int64                  `protobuf:"varint,13,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
 	UpdatedAt     int64                  `protobuf:"varint,14,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	IsSaved       bool                   `protobuf:"varint,15,opt,name=isSaved,proto3" json:"isSaved,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4830,6 +4831,13 @@ func (x *Article) GetUpdatedAt() int64 {
 	return 0
 }
 
+func (x *Article) GetIsSaved() bool {
+	if x != nil {
+		return x.IsSaved
+	}
+	return false
+}
+
 type ListArticlesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`
@@ -4837,6 +4845,7 @@ type ListArticlesRequest struct {
 	CategorySlug  string                 `protobuf:"bytes,3,opt,name=categorySlug,proto3" json:"categorySlug,omitempty"`
 	Tag           string                 `protobuf:"bytes,4,opt,name=tag,proto3" json:"tag,omitempty"`
 	AuthorId      string                 `protobuf:"bytes,5,opt,name=authorId,proto3" json:"authorId,omitempty"`
+	UserId        string                 `protobuf:"bytes,6,opt,name=userId,proto3" json:"userId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4906,6 +4915,13 @@ func (x *ListArticlesRequest) GetAuthorId() string {
 	return ""
 }
 
+func (x *ListArticlesRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 type ListArticlesResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Articles      []*Article             `protobuf:"bytes,1,rep,name=articles,proto3" json:"articles,omitempty"`
@@ -4961,6 +4977,7 @@ func (x *ListArticlesResponse) GetTotalCount() int32 {
 type GetArticleRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ArticleId     string                 `protobuf:"bytes,1,opt,name=articleId,proto3" json:"articleId,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -4998,6 +5015,13 @@ func (*GetArticleRequest) Descriptor() ([]byte, []int) {
 func (x *GetArticleRequest) GetArticleId() string {
 	if x != nil {
 		return x.ArticleId
+	}
+	return ""
+}
+
+func (x *GetArticleRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
 	}
 	return ""
 }
@@ -5259,6 +5283,7 @@ type GetAuthorArticlesRequest struct {
 	AuthorId      string                 `protobuf:"bytes,1,opt,name=authorId,proto3" json:"authorId,omitempty"`
 	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	UserId        string                 `protobuf:"bytes,4,opt,name=userId,proto3" json:"userId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5312,6 +5337,13 @@ func (x *GetAuthorArticlesRequest) GetOffset() int32 {
 		return x.Offset
 	}
 	return 0
+}
+
+func (x *GetAuthorArticlesRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
 }
 
 type GetAuthorArticlesResponse struct {
@@ -11317,7 +11349,7 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x0fArticleCategory\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04slug\x18\x03 \x01(\tR\x04slug\"\x90\x03\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\"\xaa\x03\n" +
 	"\aArticle\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
@@ -11335,20 +11367,23 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x06shares\x18\v \x01(\x05R\x06shares\x123\n" +
 	"\bcategory\x18\f \x01(\v2\x17.client.ArticleCategoryR\bcategory\x12\x1c\n" +
 	"\tcreatedAt\x18\r \x01(\x03R\tcreatedAt\x12\x1c\n" +
-	"\tupdatedAt\x18\x0e \x01(\x03R\tupdatedAt\"\x95\x01\n" +
+	"\tupdatedAt\x18\x0e \x01(\x03R\tupdatedAt\x12\x18\n" +
+	"\aisSaved\x18\x0f \x01(\bR\aisSaved\"\xad\x01\n" +
 	"\x13ListArticlesRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x02 \x01(\x05R\x06offset\x12\"\n" +
 	"\fcategorySlug\x18\x03 \x01(\tR\fcategorySlug\x12\x10\n" +
 	"\x03tag\x18\x04 \x01(\tR\x03tag\x12\x1a\n" +
-	"\bauthorId\x18\x05 \x01(\tR\bauthorId\"c\n" +
+	"\bauthorId\x18\x05 \x01(\tR\bauthorId\x12\x16\n" +
+	"\x06userId\x18\x06 \x01(\tR\x06userId\"c\n" +
 	"\x14ListArticlesResponse\x12+\n" +
 	"\barticles\x18\x01 \x03(\v2\x0f.client.ArticleR\barticles\x12\x1e\n" +
 	"\n" +
 	"totalCount\x18\x02 \x01(\x05R\n" +
-	"totalCount\"1\n" +
+	"totalCount\"I\n" +
 	"\x11GetArticleRequest\x12\x1c\n" +
-	"\tarticleId\x18\x01 \x01(\tR\tarticleId\"?\n" +
+	"\tarticleId\x18\x01 \x01(\tR\tarticleId\x12\x16\n" +
+	"\x06userId\x18\x02 \x01(\tR\x06userId\"?\n" +
 	"\x12GetArticleResponse\x12)\n" +
 	"\aarticle\x18\x01 \x01(\v2\x0f.client.ArticleR\aarticle\"J\n" +
 	"\x12LikeArticleRequest\x12\x1c\n" +
@@ -11362,11 +11397,12 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x1a\n" +
 	"\bplatform\x18\x03 \x01(\tR\bplatform\"0\n" +
 	"\x14ShareArticleResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"d\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"|\n" +
 	"\x18GetAuthorArticlesRequest\x12\x1a\n" +
 	"\bauthorId\x18\x01 \x01(\tR\bauthorId\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
-	"\x06offset\x18\x03 \x01(\x05R\x06offset\"h\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12\x16\n" +
+	"\x06userId\x18\x04 \x01(\tR\x06userId\"h\n" +
 	"\x19GetAuthorArticlesResponse\x12+\n" +
 	"\barticles\x18\x01 \x03(\v2\x0f.client.ArticleR\barticles\x12\x1e\n" +
 	"\n" +

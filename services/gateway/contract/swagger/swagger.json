@@ -187,7 +187,8 @@
                       "author",
                       "publishedAt",
                       "createdAt",
-                      "updatedAt"
+                      "updatedAt",
+                      "isSaved"
                     ],
                     "properties": {
                       "author": {
@@ -235,6 +236,171 @@
                       "imageUrl": {
                         "type": "string",
                         "example": "https://example.com/article.jpg"
+                      },
+                      "isSaved": {
+                        "type": "boolean"
+                      },
+                      "publishedAt": {
+                        "type": "string",
+                        "example": "2024-01-01T00:00:00Z"
+                      },
+                      "readTime": {
+                        "type": "integer",
+                        "example": 5
+                      },
+                      "title": {
+                        "type": "string",
+                        "example": "10 Habits for Personal Growth"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "example": "2024-01-15T00:00:00Z"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/author/{authorId}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "GetAuthorArticles",
+        "operationId": "articlesGetAuthorArticles",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "authorId",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "excerpt",
+                      "content",
+                      "readTime",
+                      "imageUrl",
+                      "author",
+                      "publishedAt",
+                      "createdAt",
+                      "updatedAt",
+                      "isSaved"
+                    ],
+                    "properties": {
+                      "author": {
+                        "type": "string",
+                        "example": "John Smith"
+                      },
+                      "category": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "slug"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "cat-123"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Personal Development"
+                          },
+                          "slug": {
+                            "type": "string",
+                            "example": "personal-development"
+                          }
+                        }
+                      },
+                      "content": {
+                        "type": "string",
+                        "example": "Full article content here..."
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "example": "2024-01-01T00:00:00Z"
+                      },
+                      "excerpt": {
+                        "type": "string",
+                        "example": "Discover the top habits that can transform your life..."
+                      },
+                      "id": {
+                        "type": "string",
+                        "example": "article-123"
+                      },
+                      "imageUrl": {
+                        "type": "string",
+                        "example": "https://example.com/article.jpg"
+                      },
+                      "isSaved": {
+                        "type": "boolean"
                       },
                       "publishedAt": {
                         "type": "string",
@@ -327,7 +493,8 @@
                     "author",
                     "publishedAt",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "isSaved"
                   ],
                   "properties": {
                     "author": {
@@ -376,6 +543,9 @@
                       "type": "string",
                       "example": "https://example.com/article.jpg"
                     },
+                    "isSaved": {
+                      "type": "boolean"
+                    },
                     "publishedAt": {
                       "type": "string",
                       "example": "2024-01-01T00:00:00Z"
@@ -393,6 +563,103 @@
                       "example": "2024-01-15T00:00:00Z"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/like": {
+      "post": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "LikeArticle",
+        "operationId": "articlesLikeArticle",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "newLikeCount": {
+                  "type": "integer"
+                },
+                "success": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}/share": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "ShareArticle",
+        "operationId": "articlesShareArticle",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "platform"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean"
                 }
               }
             }
@@ -812,6 +1079,464 @@
         }
       }
     },
+    "/api/v1/billing/checkout": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "CreateCheckoutSession",
+        "operationId": "billingCreateCheckoutSession",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "planCode",
+                "billingInterval"
+              ],
+              "properties": {
+                "billingInterval": {
+                  "type": "string",
+                  "example": "monthly"
+                },
+                "planCode": {
+                  "type": "string",
+                  "example": "pro"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "checkoutUrl": {
+                  "type": "string",
+                  "example": "https://checkout.stripe.com/..."
+                },
+                "sessionId": {
+                  "type": "string",
+                  "example": "cs_test_..."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing/overview": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "GetBillingOverview",
+        "operationId": "billingGetBillingOverview",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "billingMode": {
+                  "type": "string",
+                  "example": "fake_door"
+                },
+                "entitlements": {
+                  "type": "object",
+                  "required": [
+                    "planCode",
+                    "status",
+                    "personalizedAiEnabled",
+                    "canCreateGoal",
+                    "canCreateHabit",
+                    "canViewWeeklyReviewHistory",
+                    "canUsePersonalizedAi",
+                    "canCreatePlanAdjustment",
+                    "currentActiveGoals",
+                    "currentActiveHabits",
+                    "currentPendingAdjustments"
+                  ],
+                  "properties": {
+                    "activeGoalLimit": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "activeHabitLimit": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "canCreateGoal": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "canCreateHabit": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "canCreatePlanAdjustment": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "canUsePersonalizedAi": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "canViewWeeklyReviewHistory": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "currentActiveGoals": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "currentActiveHabits": {
+                      "type": "integer",
+                      "example": 2
+                    },
+                    "currentPendingAdjustments": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "personalizedAiEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "planAdjustmentLimit": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "planCode": {
+                      "type": "string",
+                      "example": "free"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "free"
+                    },
+                    "weeklyReviewHistoryLimit": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                },
+                "plans": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "code",
+                      "name",
+                      "priceMonthlyCents",
+                      "priceAnnualCents",
+                      "personalizedAiEnabled",
+                      "isActive"
+                    ],
+                    "properties": {
+                      "activeGoalLimit": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "activeHabitLimit": {
+                        "type": "integer",
+                        "example": 3
+                      },
+                      "code": {
+                        "type": "string",
+                        "example": "free"
+                      },
+                      "description": {
+                        "type": "string",
+                        "example": "Start with the core accountability loop"
+                      },
+                      "id": {
+                        "type": "string",
+                        "example": "plan-123"
+                      },
+                      "isActive": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "Free"
+                      },
+                      "personalizedAiEnabled": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "planAdjustmentLimit": {
+                        "type": "integer",
+                        "example": 3
+                      },
+                      "priceAnnualCents": {
+                        "type": "integer",
+                        "example": 0
+                      },
+                      "priceMonthlyCents": {
+                        "type": "integer",
+                        "example": 0
+                      },
+                      "weeklyReviewHistoryLimit": {
+                        "type": "integer",
+                        "example": 1
+                      }
+                    }
+                  }
+                },
+                "subscription": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "planId",
+                    "planCode",
+                    "planName",
+                    "status",
+                    "cancelAtPeriodEnd"
+                  ],
+                  "properties": {
+                    "billingInterval": {
+                      "type": "string",
+                      "example": "monthly"
+                    },
+                    "cancelAtPeriodEnd": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "currentPeriodEnd": {
+                      "type": "string",
+                      "example": "2024-02-01T00:00:00Z"
+                    },
+                    "currentPeriodStart": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "sub-123"
+                    },
+                    "planCode": {
+                      "type": "string",
+                      "example": "free"
+                    },
+                    "planId": {
+                      "type": "string",
+                      "example": "plan-123"
+                    },
+                    "planName": {
+                      "type": "string",
+                      "example": "Free"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "free"
+                    },
+                    "stripeCustomerId": {
+                      "type": "string"
+                    },
+                    "stripeSubscriptionId": {
+                      "type": "string"
+                    },
+                    "trialEnd": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing/portal": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "CreateCustomerPortalSession",
+        "operationId": "billingCreateCustomerPortalSession",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "portalUrl": {
+                  "type": "string",
+                  "example": "https://billing.stripe.com/..."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing/upgrade-events": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "TrackUpgradeEvent",
+        "operationId": "billingTrackUpgradeEvent",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "eventType",
+                "surface"
+              ],
+              "properties": {
+                "billingInterval": {
+                  "type": "string",
+                  "example": "monthly"
+                },
+                "eventType": {
+                  "type": "string",
+                  "example": "prompt_viewed"
+                },
+                "feedbackNote": {
+                  "type": "string"
+                },
+                "feedbackReason": {
+                  "type": "string",
+                  "example": "too_expensive"
+                },
+                "metadataJson": {
+                  "type": "string"
+                },
+                "planCode": {
+                  "type": "string",
+                  "example": "pro"
+                },
+                "surface": {
+                  "type": "string",
+                  "example": "goal_create_limit"
+                },
+                "trigger": {
+                  "type": "string",
+                  "example": "goal_limit"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "eventId": {
+                  "type": "string",
+                  "example": "event-123"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/billing/webhook": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "HandleStripeWebhook",
+        "operationId": "billingHandleStripeWebhook",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "eventType",
+                "payloadJson"
+              ],
+              "properties": {
+                "eventType": {
+                  "type": "string",
+                  "example": "checkout.session.completed"
+                },
+                "payloadJson": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "processed": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/categories": {
       "get": {
         "produces": [
@@ -881,6 +1606,400 @@
                       "updatedAt": {
                         "type": "string",
                         "example": "2024-01-15T00:00:00Z"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/check-ins": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "CreateCheckIn",
+        "operationId": "checkinCreateCheckIn",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "habitId",
+                "status"
+              ],
+              "properties": {
+                "blocker": {
+                  "type": "string",
+                  "example": "lack_of_time"
+                },
+                "energy": {
+                  "type": "string",
+                  "example": "high"
+                },
+                "habitId": {
+                  "type": "string",
+                  "example": "habit-123"
+                },
+                "mood": {
+                  "type": "string",
+                  "example": "great"
+                },
+                "note": {
+                  "type": "string",
+                  "example": "Felt motivated today"
+                },
+                "status": {
+                  "type": "string",
+                  "example": "completed"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "aiFeedback": {
+                  "type": "string",
+                  "example": "Great job keeping your streak!"
+                },
+                "checkIn": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "habitId",
+                    "status",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "blocker": {
+                      "type": "string",
+                      "example": "lack_of_time"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-15T08:00:00Z"
+                    },
+                    "energy": {
+                      "type": "string",
+                      "example": "high"
+                    },
+                    "habitId": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "checkin-123"
+                    },
+                    "mood": {
+                      "type": "string",
+                      "example": "great"
+                    },
+                    "note": {
+                      "type": "string",
+                      "example": "Felt motivated today"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "completed"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                },
+                "habit": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "streak",
+                    "completed",
+                    "category",
+                    "userId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "category": {
+                      "type": "string",
+                      "example": "fitness"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "30 minutes of cardio every morning"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Morning Exercise"
+                    },
+                    "streak": {
+                      "type": "integer",
+                      "example": 7
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/check-ins/checked-today": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "HasCheckedInToday",
+        "operationId": "checkinHasCheckedInToday",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "habitId",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "checkedIn": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/check-ins/history": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "GetCheckInHistory",
+        "operationId": "checkinGetCheckInHistory",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "page",
+                "limit"
+              ],
+              "properties": {
+                "habitId": {
+                  "type": "string",
+                  "example": "habit-123"
+                },
+                "limit": {
+                  "type": "integer",
+                  "default": 20,
+                  "example": 20
+                },
+                "page": {
+                  "type": "integer",
+                  "default": 1,
+                  "example": 1
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "checkIns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "userId",
+                      "habitId",
+                      "status",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "blocker": {
+                        "type": "string",
+                        "example": "lack_of_time"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "example": "2024-01-15T08:00:00Z"
+                      },
+                      "energy": {
+                        "type": "string",
+                        "example": "high"
+                      },
+                      "habitId": {
+                        "type": "string",
+                        "example": "habit-123"
+                      },
+                      "id": {
+                        "type": "string",
+                        "example": "checkin-123"
+                      },
+                      "mood": {
+                        "type": "string",
+                        "example": "great"
+                      },
+                      "note": {
+                        "type": "string",
+                        "example": "Felt motivated today"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "completed"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "example": "user-123"
+                      }
+                    }
+                  }
+                },
+                "total": {
+                  "type": "integer",
+                  "example": 10
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/check-ins/today": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "GetTodayCheckIns",
+        "operationId": "checkinGetTodayCheckIns",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "checkIns": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "userId",
+                      "habitId",
+                      "status",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "blocker": {
+                        "type": "string",
+                        "example": "lack_of_time"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "example": "2024-01-15T08:00:00Z"
+                      },
+                      "energy": {
+                        "type": "string",
+                        "example": "high"
+                      },
+                      "habitId": {
+                        "type": "string",
+                        "example": "habit-123"
+                      },
+                      "id": {
+                        "type": "string",
+                        "example": "checkin-123"
+                      },
+                      "mood": {
+                        "type": "string",
+                        "example": "great"
+                      },
+                      "note": {
+                        "type": "string",
+                        "example": "Felt motivated today"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "completed"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "example": "user-123"
                       }
                     }
                   }
@@ -2853,6 +3972,1367 @@
         }
       }
     },
+    "/api/v1/personalization/coaching": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GeneratePersonalizedCoaching",
+        "operationId": "personalizationGeneratePersonalizedCoaching",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "userMessage"
+              ],
+              "properties": {
+                "context": {
+                  "type": "string",
+                  "example": "User has been struggling with motivation"
+                },
+                "userMessage": {
+                  "type": "string",
+                  "example": "User missed 3 consecutive check-ins"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "coachingResponse": {
+                  "type": "string",
+                  "example": "I noticed you've missed a few check-ins lately..."
+                },
+                "context": {
+                  "type": "string",
+                  "example": "User has been struggling with motivation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/coaching-profile": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GetCoachingProfile",
+        "operationId": "personalizationGetCoachingProfile",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "accountabilityStyle",
+                    "preferredTone",
+                    "difficultyPreference",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "accountabilityStyle": {
+                      "type": "string",
+                      "example": "balanced"
+                    },
+                    "coachingNotes": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "commonBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": "[\"lack_of_time\""
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "difficultyPreference": {
+                      "type": "string",
+                      "example": "adaptive"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "profile-123"
+                    },
+                    "lastContextRefreshAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "preferredTone": {
+                      "type": "string",
+                      "example": "supportive"
+                    },
+                    "primaryMotivation": {
+                      "type": "string",
+                      "example": "personal_growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "UpsertCoachingProfile",
+        "operationId": "personalizationUpsertCoachingProfile",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accountabilityStyle": {
+                  "type": "string",
+                  "example": "balanced"
+                },
+                "coachingNotes": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "commonBlockers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": "[\"lack_of_time\""
+                },
+                "difficultyPreference": {
+                  "type": "string",
+                  "example": "adaptive"
+                },
+                "preferredTone": {
+                  "type": "string",
+                  "example": "supportive"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "accountabilityStyle",
+                    "preferredTone",
+                    "difficultyPreference",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "accountabilityStyle": {
+                      "type": "string",
+                      "example": "balanced"
+                    },
+                    "coachingNotes": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "commonBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": "[\"lack_of_time\""
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "difficultyPreference": {
+                      "type": "string",
+                      "example": "adaptive"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "profile-123"
+                    },
+                    "lastContextRefreshAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "preferredTone": {
+                      "type": "string",
+                      "example": "supportive"
+                    },
+                    "primaryMotivation": {
+                      "type": "string",
+                      "example": "personal_growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/coaching-profile/preferences": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "UpdateCoachingProfilePreferences",
+        "operationId": "personalizationUpdateCoachingProfilePreferences",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "accountabilityStyle",
+                "preferredTone",
+                "difficultyPreference"
+              ],
+              "properties": {
+                "accountabilityStyle": {
+                  "type": "string",
+                  "example": "balanced"
+                },
+                "difficultyPreference": {
+                  "type": "string",
+                  "example": "adaptive"
+                },
+                "preferredTone": {
+                  "type": "string",
+                  "example": "supportive"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "accountabilityStyle",
+                    "preferredTone",
+                    "difficultyPreference",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "accountabilityStyle": {
+                      "type": "string",
+                      "example": "balanced"
+                    },
+                    "coachingNotes": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "commonBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": "[\"lack_of_time\""
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "difficultyPreference": {
+                      "type": "string",
+                      "example": "adaptive"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "profile-123"
+                    },
+                    "lastContextRefreshAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "preferredTone": {
+                      "type": "string",
+                      "example": "supportive"
+                    },
+                    "primaryMotivation": {
+                      "type": "string",
+                      "example": "personal_growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/context": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GetPersonalizationContext",
+        "operationId": "personalizationGetPersonalizationContext",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "name": "forceRefresh",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "profile",
+                    "activeGoals",
+                    "activeHabits",
+                    "recentCheckIns",
+                    "pendingSuggestions"
+                  ],
+                  "properties": {
+                    "activeGoals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "category",
+                          "progress",
+                          "completed",
+                          "userId",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string",
+                            "example": "fitness"
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "description": {
+                            "type": "string",
+                            "example": "Complete a 42.195km marathon race"
+                          },
+                          "dueDate": {
+                            "type": "string",
+                            "example": "2024-12-31T00:00:00Z"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "goal-123"
+                          },
+                          "progress": {
+                            "type": "integer",
+                            "example": 50
+                          },
+                          "relatedHabitIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": "[\"habit-1\""
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Run a marathon"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      }
+                    },
+                    "activeHabits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "streak",
+                          "completed",
+                          "category",
+                          "userId",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string",
+                            "example": "fitness"
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "description": {
+                            "type": "string",
+                            "example": "30 minutes of cardio every morning"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "habit-123"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Morning Exercise"
+                          },
+                          "streak": {
+                            "type": "integer",
+                            "example": 7
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      }
+                    },
+                    "latestWeeklyReview": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "weekStart",
+                        "weekEnd",
+                        "totalHabits",
+                        "completedCheckIns",
+                        "missedCheckIns",
+                        "completionRate",
+                        "moodSummary",
+                        "energySummary",
+                        "habitBreakdown",
+                        "suggestedAdjustments",
+                        "nextWeekPlan",
+                        "generatedAt"
+                      ],
+                      "properties": {
+                        "aiSummary": {
+                          "type": "string"
+                        },
+                        "bestDay": {
+                          "type": "string"
+                        },
+                        "completedCheckIns": {
+                          "type": "integer"
+                        },
+                        "completionRate": {
+                          "type": "number"
+                        },
+                        "energySummary": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "generatedAt": {
+                          "type": "string"
+                        },
+                        "habitBreakdown": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "habitId",
+                              "habitName",
+                              "totalCheckIns",
+                              "completedCount",
+                              "missedCount",
+                              "completionRate"
+                            ],
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "completedCount": {
+                                "type": "integer"
+                              },
+                              "completionRate": {
+                                "type": "number"
+                              },
+                              "habitId": {
+                                "type": "string"
+                              },
+                              "habitName": {
+                                "type": "string"
+                              },
+                              "lastCheckInAt": {
+                                "type": "string"
+                              },
+                              "missedCount": {
+                                "type": "integer"
+                              },
+                              "totalCheckIns": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "hardestDay": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "missedCheckIns": {
+                          "type": "integer"
+                        },
+                        "moodSummary": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "nextWeekPlan": {
+                          "type": "object",
+                          "required": [
+                            "focus",
+                            "commitments",
+                            "risks",
+                            "recoveryActions"
+                          ],
+                          "properties": {
+                            "commitments": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "focus": {
+                              "type": "string"
+                            },
+                            "recoveryActions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "risks": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "suggestedAdjustments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "habitName",
+                              "adjustmentType",
+                              "reason",
+                              "suggestion"
+                            ],
+                            "properties": {
+                              "adjustmentType": {
+                                "type": "string"
+                              },
+                              "habitId": {
+                                "type": "string"
+                              },
+                              "habitName": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "suggestion": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "topBlocker": {
+                          "type": "string"
+                        },
+                        "totalHabits": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "weekEnd": {
+                          "type": "string"
+                        },
+                        "weekStart": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "patternInsights": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "pendingSuggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "userId",
+                          "adjustmentType",
+                          "source",
+                          "suggestion",
+                          "status",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "adjustmentType": {
+                            "type": "string",
+                            "example": "reduce_frequency"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "goalId": {
+                            "type": "string",
+                            "example": "goal-123"
+                          },
+                          "habitId": {
+                            "type": "string",
+                            "example": "habit-123"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "suggestion-123"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "reason": {
+                            "type": "string",
+                            "example": "Based on your recent completion patterns"
+                          },
+                          "source": {
+                            "type": "string",
+                            "example": "weekly_review"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "pending"
+                          },
+                          "suggestion": {
+                            "type": "string",
+                            "example": "Consider reducing from daily to 3x per week"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      }
+                    },
+                    "profile": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "accountabilityStyle",
+                        "preferredTone",
+                        "difficultyPreference",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "accountabilityStyle": {
+                          "type": "string",
+                          "example": "balanced"
+                        },
+                        "coachingNotes": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        },
+                        "commonBlockers": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": "[\"lack_of_time\""
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "example": "2024-01-01T00:00:00Z"
+                        },
+                        "difficultyPreference": {
+                          "type": "string",
+                          "example": "adaptive"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "profile-123"
+                        },
+                        "lastContextRefreshAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "preferredTone": {
+                          "type": "string",
+                          "example": "supportive"
+                        },
+                        "primaryMotivation": {
+                          "type": "string",
+                          "example": "personal_growth"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "example": "user-123"
+                        }
+                      }
+                    },
+                    "recentCheckIns": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "userId",
+                          "habitId",
+                          "status",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "blocker": {
+                            "type": "string",
+                            "example": "lack_of_time"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-15T08:00:00Z"
+                          },
+                          "energy": {
+                            "type": "string",
+                            "example": "high"
+                          },
+                          "habitId": {
+                            "type": "string",
+                            "example": "habit-123"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "checkin-123"
+                          },
+                          "mood": {
+                            "type": "string",
+                            "example": "great"
+                          },
+                          "note": {
+                            "type": "string",
+                            "example": "Felt motivated today"
+                          },
+                          "status": {
+                            "type": "string",
+                            "example": "completed"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/plan-adjustments": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "ListPendingPlanAdjustmentSuggestions",
+        "operationId": "personalizationListPendingPlanAdjustmentSuggestions",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "userId",
+                      "adjustmentType",
+                      "source",
+                      "suggestion",
+                      "status",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "adjustmentType": {
+                        "type": "string",
+                        "example": "reduce_frequency"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "example": "2024-01-15T00:00:00Z"
+                      },
+                      "goalId": {
+                        "type": "string",
+                        "example": "goal-123"
+                      },
+                      "habitId": {
+                        "type": "string",
+                        "example": "habit-123"
+                      },
+                      "id": {
+                        "type": "string",
+                        "example": "suggestion-123"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "string"
+                        }
+                      },
+                      "reason": {
+                        "type": "string",
+                        "example": "Based on your recent completion patterns"
+                      },
+                      "source": {
+                        "type": "string",
+                        "example": "weekly_review"
+                      },
+                      "status": {
+                        "type": "string",
+                        "example": "pending"
+                      },
+                      "suggestion": {
+                        "type": "string",
+                        "example": "Consider reducing from daily to 3x per week"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "example": "2024-01-15T00:00:00Z"
+                      },
+                      "userId": {
+                        "type": "string",
+                        "example": "user-123"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "CreatePlanAdjustmentSuggestion",
+        "operationId": "personalizationCreatePlanAdjustmentSuggestion",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "adjustmentType",
+                "source",
+                "suggestion"
+              ],
+              "properties": {
+                "adjustmentType": {
+                  "type": "string",
+                  "example": "reduce_frequency"
+                },
+                "goalId": {
+                  "type": "string",
+                  "example": "goal-123"
+                },
+                "habitId": {
+                  "type": "string",
+                  "example": "habit-123"
+                },
+                "metadata": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "Based on your recent completion patterns"
+                },
+                "source": {
+                  "type": "string",
+                  "example": "weekly_review"
+                },
+                "suggestion": {
+                  "type": "string",
+                  "example": "Consider reducing from daily to 3x per week"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "adjustmentType",
+                    "source",
+                    "suggestion",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "adjustmentType": {
+                      "type": "string",
+                      "example": "reduce_frequency"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "goalId": {
+                      "type": "string",
+                      "example": "goal-123"
+                    },
+                    "habitId": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "suggestion-123"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "reason": {
+                      "type": "string",
+                      "example": "Based on your recent completion patterns"
+                    },
+                    "source": {
+                      "type": "string",
+                      "example": "weekly_review"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending"
+                    },
+                    "suggestion": {
+                      "type": "string",
+                      "example": "Consider reducing from daily to 3x per week"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/plan-adjustments/{id}/apply": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "ApplyPlanAdjustmentSuggestion",
+        "operationId": "personalizationApplyPlanAdjustmentSuggestion",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "adjustmentType",
+                    "source",
+                    "suggestion",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "adjustmentType": {
+                      "type": "string",
+                      "example": "reduce_frequency"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "goalId": {
+                      "type": "string",
+                      "example": "goal-123"
+                    },
+                    "habitId": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "suggestion-123"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "reason": {
+                      "type": "string",
+                      "example": "Based on your recent completion patterns"
+                    },
+                    "source": {
+                      "type": "string",
+                      "example": "weekly_review"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending"
+                    },
+                    "suggestion": {
+                      "type": "string",
+                      "example": "Consider reducing from daily to 3x per week"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/plan-adjustments/{id}/status": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "UpdatePlanAdjustmentSuggestionStatus",
+        "operationId": "personalizationUpdatePlanAdjustmentSuggestionStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "status"
+              ],
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "accepted"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "adjustmentType",
+                    "source",
+                    "suggestion",
+                    "status",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "adjustmentType": {
+                      "type": "string",
+                      "example": "reduce_frequency"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "goalId": {
+                      "type": "string",
+                      "example": "goal-123"
+                    },
+                    "habitId": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "suggestion-123"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    },
+                    "reason": {
+                      "type": "string",
+                      "example": "Based on your recent completion patterns"
+                    },
+                    "source": {
+                      "type": "string",
+                      "example": "weekly_review"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "pending"
+                    },
+                    "suggestion": {
+                      "type": "string",
+                      "example": "Consider reducing from daily to 3x per week"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile": {
       "put": {
         "consumes": [
@@ -3292,6 +5772,305 @@
         }
       }
     },
+    "/api/v1/saved/detailed": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Saved Items"
+        ],
+        "summary": "ListSavedDetailed",
+        "operationId": "savedListSavedDetailed",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "itemType",
+                      "itemId",
+                      "userId",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "article": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "excerpt",
+                          "content",
+                          "readTime",
+                          "imageUrl",
+                          "author",
+                          "publishedAt",
+                          "createdAt",
+                          "updatedAt",
+                          "isSaved"
+                        ],
+                        "properties": {
+                          "author": {
+                            "type": "string",
+                            "example": "John Smith"
+                          },
+                          "category": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "name",
+                              "slug"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string",
+                                "example": "cat-123"
+                              },
+                              "name": {
+                                "type": "string",
+                                "example": "Personal Development"
+                              },
+                              "slug": {
+                                "type": "string",
+                                "example": "personal-development"
+                              }
+                            }
+                          },
+                          "content": {
+                            "type": "string",
+                            "example": "Full article content here..."
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "excerpt": {
+                            "type": "string",
+                            "example": "Discover the top habits that can transform your life..."
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "article-123"
+                          },
+                          "imageUrl": {
+                            "type": "string",
+                            "example": "https://example.com/article.jpg"
+                          },
+                          "isSaved": {
+                            "type": "boolean"
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "readTime": {
+                            "type": "integer",
+                            "example": 5
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "10 Habits for Personal Growth"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          }
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "goal": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "description",
+                          "category",
+                          "progress",
+                          "completed",
+                          "userId",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string",
+                            "example": "fitness"
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "description": {
+                            "type": "string",
+                            "example": "Complete a 42.195km marathon race"
+                          },
+                          "dueDate": {
+                            "type": "string",
+                            "example": "2024-12-31T00:00:00Z"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "goal-123"
+                          },
+                          "progress": {
+                            "type": "integer",
+                            "example": 50
+                          },
+                          "relatedHabitIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "example": "[\"habit-1\""
+                          },
+                          "title": {
+                            "type": "string",
+                            "example": "Run a marathon"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      },
+                      "habit": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "streak",
+                          "completed",
+                          "category",
+                          "userId",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string",
+                            "example": "fitness"
+                          },
+                          "completed": {
+                            "type": "boolean",
+                            "example": false
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "example": "2024-01-01T00:00:00Z"
+                          },
+                          "description": {
+                            "type": "string",
+                            "example": "30 minutes of cardio every morning"
+                          },
+                          "id": {
+                            "type": "string",
+                            "example": "habit-123"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "Morning Exercise"
+                          },
+                          "streak": {
+                            "type": "integer",
+                            "example": 7
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "example": "2024-01-15T00:00:00Z"
+                          },
+                          "userId": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "itemId": {
+                        "type": "string"
+                      },
+                      "itemType": {
+                        "description": "\"article\", \"goal\", \"habit\"",
+                        "type": "string"
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/saved/{id}": {
       "delete": {
         "consumes": [
@@ -3473,11 +6252,22 @@
                     "pushNotifications",
                     "habitReminders",
                     "goalReminders",
+                    "accountabilityStyle",
+                    "checkInTime",
+                    "onboardingCompleted",
                     "userId",
                     "createdAt",
                     "updatedAt"
                   ],
                   "properties": {
+                    "accountabilityStyle": {
+                      "type": "string",
+                      "example": "balanced"
+                    },
+                    "checkInTime": {
+                      "type": "string",
+                      "example": "09:00"
+                    },
                     "createdAt": {
                       "type": "string",
                       "example": "2024-01-01T00:00:00Z"
@@ -3501,6 +6291,10 @@
                     "language": {
                       "type": "string",
                       "example": "en"
+                    },
+                    "onboardingCompleted": {
+                      "type": "boolean",
+                      "example": false
                     },
                     "pushNotifications": {
                       "type": "boolean",
@@ -3552,6 +6346,12 @@
             "schema": {
               "type": "object",
               "properties": {
+                "accountabilityStyle": {
+                  "type": "string"
+                },
+                "checkInTime": {
+                  "type": "string"
+                },
                 "emailNotifications": {
                   "type": "boolean"
                 },
@@ -3563,6 +6363,9 @@
                 },
                 "language": {
                   "type": "string"
+                },
+                "onboardingCompleted": {
+                  "type": "boolean"
                 },
                 "pushNotifications": {
                   "type": "boolean"
@@ -3594,11 +6397,22 @@
                     "pushNotifications",
                     "habitReminders",
                     "goalReminders",
+                    "accountabilityStyle",
+                    "checkInTime",
+                    "onboardingCompleted",
                     "userId",
                     "createdAt",
                     "updatedAt"
                   ],
                   "properties": {
+                    "accountabilityStyle": {
+                      "type": "string",
+                      "example": "balanced"
+                    },
+                    "checkInTime": {
+                      "type": "string",
+                      "example": "09:00"
+                    },
                     "createdAt": {
                       "type": "string",
                       "example": "2024-01-01T00:00:00Z"
@@ -3622,6 +6436,10 @@
                     "language": {
                       "type": "string",
                       "example": "en"
+                    },
+                    "onboardingCompleted": {
+                      "type": "boolean",
+                      "example": false
                     },
                     "pushNotifications": {
                       "type": "boolean",
@@ -3650,9 +6468,870 @@
           }
         }
       }
+    },
+    "/api/v1/weekly-reviews": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "ListWeeklyReviews",
+        "operationId": "weeklyreviewListWeeklyReviews",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "userId",
+                      "weekStart",
+                      "weekEnd",
+                      "totalHabits",
+                      "completedCheckIns",
+                      "missedCheckIns",
+                      "completionRate",
+                      "moodSummary",
+                      "energySummary",
+                      "habitBreakdown",
+                      "suggestedAdjustments",
+                      "nextWeekPlan",
+                      "generatedAt"
+                    ],
+                    "properties": {
+                      "aiSummary": {
+                        "type": "string"
+                      },
+                      "bestDay": {
+                        "type": "string"
+                      },
+                      "completedCheckIns": {
+                        "type": "integer"
+                      },
+                      "completionRate": {
+                        "type": "number"
+                      },
+                      "energySummary": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "integer"
+                        }
+                      },
+                      "generatedAt": {
+                        "type": "string"
+                      },
+                      "habitBreakdown": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "habitId",
+                            "habitName",
+                            "totalCheckIns",
+                            "completedCount",
+                            "missedCount",
+                            "completionRate"
+                          ],
+                          "properties": {
+                            "category": {
+                              "type": "string"
+                            },
+                            "completedCount": {
+                              "type": "integer"
+                            },
+                            "completionRate": {
+                              "type": "number"
+                            },
+                            "habitId": {
+                              "type": "string"
+                            },
+                            "habitName": {
+                              "type": "string"
+                            },
+                            "lastCheckInAt": {
+                              "type": "string"
+                            },
+                            "missedCount": {
+                              "type": "integer"
+                            },
+                            "totalCheckIns": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      },
+                      "hardestDay": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "missedCheckIns": {
+                        "type": "integer"
+                      },
+                      "moodSummary": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "type": "integer"
+                        }
+                      },
+                      "nextWeekPlan": {
+                        "type": "object",
+                        "required": [
+                          "focus",
+                          "commitments",
+                          "risks",
+                          "recoveryActions"
+                        ],
+                        "properties": {
+                          "commitments": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "focus": {
+                            "type": "string"
+                          },
+                          "recoveryActions": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "risks": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "suggestedAdjustments": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": [
+                            "habitName",
+                            "adjustmentType",
+                            "reason",
+                            "suggestion"
+                          ],
+                          "properties": {
+                            "adjustmentType": {
+                              "type": "string"
+                            },
+                            "habitId": {
+                              "type": "string"
+                            },
+                            "habitName": {
+                              "type": "string"
+                            },
+                            "reason": {
+                              "type": "string"
+                            },
+                            "suggestion": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "topBlocker": {
+                        "type": "string"
+                      },
+                      "totalHabits": {
+                        "type": "integer"
+                      },
+                      "userId": {
+                        "type": "string"
+                      },
+                      "weekEnd": {
+                        "type": "string"
+                      },
+                      "weekStart": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weekly-reviews/current": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "GetCurrentWeeklyReview",
+        "operationId": "weeklyreviewGetCurrentWeeklyReview",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "weekStart",
+                    "weekEnd",
+                    "totalHabits",
+                    "completedCheckIns",
+                    "missedCheckIns",
+                    "completionRate",
+                    "moodSummary",
+                    "energySummary",
+                    "habitBreakdown",
+                    "suggestedAdjustments",
+                    "nextWeekPlan",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "aiSummary": {
+                      "type": "string"
+                    },
+                    "bestDay": {
+                      "type": "string"
+                    },
+                    "completedCheckIns": {
+                      "type": "integer"
+                    },
+                    "completionRate": {
+                      "type": "number"
+                    },
+                    "energySummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "habitBreakdown": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitId",
+                          "habitName",
+                          "totalCheckIns",
+                          "completedCount",
+                          "missedCount",
+                          "completionRate"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "completedCount": {
+                            "type": "integer"
+                          },
+                          "completionRate": {
+                            "type": "number"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "lastCheckInAt": {
+                            "type": "string"
+                          },
+                          "missedCount": {
+                            "type": "integer"
+                          },
+                          "totalCheckIns": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "hardestDay": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "missedCheckIns": {
+                      "type": "integer"
+                    },
+                    "moodSummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "nextWeekPlan": {
+                      "type": "object",
+                      "required": [
+                        "focus",
+                        "commitments",
+                        "risks",
+                        "recoveryActions"
+                      ],
+                      "properties": {
+                        "commitments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "focus": {
+                          "type": "string"
+                        },
+                        "recoveryActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "risks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "suggestedAdjustments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitName",
+                          "adjustmentType",
+                          "reason",
+                          "suggestion"
+                        ],
+                        "properties": {
+                          "adjustmentType": {
+                            "type": "string"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "topBlocker": {
+                      "type": "string"
+                    },
+                    "totalHabits": {
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "weekEnd": {
+                      "type": "string"
+                    },
+                    "weekStart": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weekly-reviews/generate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "GenerateWeeklyReview",
+        "operationId": "weeklyreviewGenerateWeeklyReview",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "forceRegenerate": {
+                  "type": "boolean"
+                },
+                "weekStart": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "weekStart",
+                    "weekEnd",
+                    "totalHabits",
+                    "completedCheckIns",
+                    "missedCheckIns",
+                    "completionRate",
+                    "moodSummary",
+                    "energySummary",
+                    "habitBreakdown",
+                    "suggestedAdjustments",
+                    "nextWeekPlan",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "aiSummary": {
+                      "type": "string"
+                    },
+                    "bestDay": {
+                      "type": "string"
+                    },
+                    "completedCheckIns": {
+                      "type": "integer"
+                    },
+                    "completionRate": {
+                      "type": "number"
+                    },
+                    "energySummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "habitBreakdown": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitId",
+                          "habitName",
+                          "totalCheckIns",
+                          "completedCount",
+                          "missedCount",
+                          "completionRate"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "completedCount": {
+                            "type": "integer"
+                          },
+                          "completionRate": {
+                            "type": "number"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "lastCheckInAt": {
+                            "type": "string"
+                          },
+                          "missedCount": {
+                            "type": "integer"
+                          },
+                          "totalCheckIns": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "hardestDay": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "missedCheckIns": {
+                      "type": "integer"
+                    },
+                    "moodSummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "nextWeekPlan": {
+                      "type": "object",
+                      "required": [
+                        "focus",
+                        "commitments",
+                        "risks",
+                        "recoveryActions"
+                      ],
+                      "properties": {
+                        "commitments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "focus": {
+                          "type": "string"
+                        },
+                        "recoveryActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "risks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "suggestedAdjustments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitName",
+                          "adjustmentType",
+                          "reason",
+                          "suggestion"
+                        ],
+                        "properties": {
+                          "adjustmentType": {
+                            "type": "string"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "topBlocker": {
+                      "type": "string"
+                    },
+                    "totalHabits": {
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "weekEnd": {
+                      "type": "string"
+                    },
+                    "weekStart": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weekly-reviews/{weekStart}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "GetWeeklyReview",
+        "operationId": "weeklyreviewGetWeeklyReview",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "weekStart",
+                    "weekEnd",
+                    "totalHabits",
+                    "completedCheckIns",
+                    "missedCheckIns",
+                    "completionRate",
+                    "moodSummary",
+                    "energySummary",
+                    "habitBreakdown",
+                    "suggestedAdjustments",
+                    "nextWeekPlan",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "aiSummary": {
+                      "type": "string"
+                    },
+                    "bestDay": {
+                      "type": "string"
+                    },
+                    "completedCheckIns": {
+                      "type": "integer"
+                    },
+                    "completionRate": {
+                      "type": "number"
+                    },
+                    "energySummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "habitBreakdown": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitId",
+                          "habitName",
+                          "totalCheckIns",
+                          "completedCount",
+                          "missedCount",
+                          "completionRate"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "completedCount": {
+                            "type": "integer"
+                          },
+                          "completionRate": {
+                            "type": "number"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "lastCheckInAt": {
+                            "type": "string"
+                          },
+                          "missedCount": {
+                            "type": "integer"
+                          },
+                          "totalCheckIns": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "hardestDay": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "missedCheckIns": {
+                      "type": "integer"
+                    },
+                    "moodSummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "nextWeekPlan": {
+                      "type": "object",
+                      "required": [
+                        "focus",
+                        "commitments",
+                        "risks",
+                        "recoveryActions"
+                      ],
+                      "properties": {
+                        "commitments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "focus": {
+                          "type": "string"
+                        },
+                        "recoveryActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "risks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "suggestedAdjustments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitName",
+                          "adjustmentType",
+                          "reason",
+                          "suggestion"
+                        ],
+                        "properties": {
+                          "adjustmentType": {
+                            "type": "string"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "topBlocker": {
+                      "type": "string"
+                    },
+                    "totalHabits": {
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "weekEnd": {
+                      "type": "string"
+                    },
+                    "weekStart": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
-  "x-date": "2026-05-06 22:53:01",
+  "x-date": "2026-06-03 14:23:53",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

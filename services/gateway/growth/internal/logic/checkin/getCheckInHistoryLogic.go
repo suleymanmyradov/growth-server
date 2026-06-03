@@ -60,12 +60,7 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(req *types.GetCheckInHistoryR
 	}
 
 	return &types.GetCheckInHistoryResponse{
-		Data: checkIns,
-		Page: types.PageResponse{
-			Total:      int64(rpcResp.Total),
-			Page:       req.Page,
-			Limit:      req.Limit,
-			TotalPages: int((int64(rpcResp.Total) + int64(req.Limit) - 1) / int64(req.Limit)),
-		},
+		CheckIns: checkIns,
+		Total:    int(rpcResp.Total),
 	}, nil
 }

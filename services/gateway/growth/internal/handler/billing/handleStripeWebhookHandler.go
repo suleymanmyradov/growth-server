@@ -40,7 +40,7 @@ func HandleStripeWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 				errors.WriteError(w, http.StatusBadRequest, "invalid signature")
 				return
 			}
-			// Parse the verified payload to extract event data
+			// Parse the verified payload to extract event data and event ID
 			var payload map[string]interface{}
 			if jsonErr := json.Unmarshal(body, &payload); jsonErr != nil {
 				errors.WriteParseError(w, jsonErr)
@@ -54,6 +54,12 @@ func HandleStripeWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			dataJSON, marshalErr := json.Marshal(dataObj)
 			if marshalErr != nil {
 				errors.WriteParseError(w, marshalErr)
+				return
+			}
+
+			stripeEventID, _ := payload["id"].(string)
+			if stripeEventID == "" {
+				errors.WriteError(w, http.StatusBadRequest, "missing event id")
 				return
 			}
 

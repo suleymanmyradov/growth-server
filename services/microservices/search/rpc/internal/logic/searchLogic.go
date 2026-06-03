@@ -45,28 +45,28 @@ func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse,
 	}
 
 	// Build filters
-	var filters []string
+	filters := make([]string, 0, 3)
 
 	// Security filter: public articles OR user's own private docs
 	userID := strings.TrimSpace(req.UserId)
 	if userID != "" {
-		filters = append(filters, fmt.Sprintf(`(visibility = "public" OR user_id = "%s")`, userID))
+		filters = append(filters, `(visibility = "public" OR user_id = "`+userID+`")`)
 	} else {
 		filters = append(filters, `visibility = "public"`)
 	}
 
 	// Type filter
 	if len(req.Types) > 0 {
-		var typeFilters []string
-		for _, t := range req.Types {
-			typeFilters = append(typeFilters, fmt.Sprintf(`type = "%s"`, t))
+		typeFilters := make([]string, len(req.Types))
+		for i, t := range req.Types {
+			typeFilters[i] = `type = "` + t + `"`
 		}
 		filters = append(filters, "("+strings.Join(typeFilters, " OR ")+")")
 	}
 
 	// Category filter
-	if strings.TrimSpace(req.Category) != "" {
-		filters = append(filters, fmt.Sprintf(`category = "%s"`, req.Category))
+	if cat := strings.TrimSpace(req.Category); cat != "" {
+		filters = append(filters, `category = "`+cat+`"`)
 	}
 
 	searchReq := &meilisearch.SearchRequest{
@@ -81,25 +81,22 @@ func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse,
 	}
 
 	// Aggregate counts by type
-	counts := make(map[string]int32)
+	counts := make(map[string]int32, len(result.Hits))
 
-	var results []*search.SearchResult
+	results := make([]*search.SearchResult, 0, len(result.Hits))
 	for _, hit := range result.Hits {
 		doc, ok := hit.(map[string]any)
 		if !ok {
 			continue
 		}
 
-		id, _ := doc["id"].(string)
-		_ = id
-
 		entityType, _ := doc["type"].(string)
 		title, _ := doc["title"].(string)
 		description, _ := doc["description"].(string)
 		url, _ := doc["url"].(string)
 
-		// Build metadata
-		metadata := make(map[string]string)
+		// Build metadata (at most 2 keys)
+		metadata := make(map[string]string, 2)
 		if v, ok := doc["category"].(string); ok && v != "" {
 			metadata["category"] = v
 		}

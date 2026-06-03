@@ -1216,6 +1216,64 @@ func AllSavedItemTypeValues() []SavedItemType {
 	}
 }
 
+type SearchEventOperation string
+
+const (
+	SearchEventOperationUpsert SearchEventOperation = "upsert"
+	SearchEventOperationDelete SearchEventOperation = "delete"
+)
+
+func (e *SearchEventOperation) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = SearchEventOperation(s)
+	case string:
+		*e = SearchEventOperation(s)
+	default:
+		return fmt.Errorf("unsupported scan type for SearchEventOperation: %T", src)
+	}
+	return nil
+}
+
+type NullSearchEventOperation struct {
+	SearchEventOperation SearchEventOperation `json:"search_event_operation"`
+	Valid                bool                 `json:"valid"` // Valid is true if SearchEventOperation is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullSearchEventOperation) Scan(value interface{}) error {
+	if value == nil {
+		ns.SearchEventOperation, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.SearchEventOperation.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullSearchEventOperation) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.SearchEventOperation), nil
+}
+
+func (e SearchEventOperation) Valid() bool {
+	switch e {
+	case SearchEventOperationUpsert,
+		SearchEventOperationDelete:
+		return true
+	}
+	return false
+}
+
+func AllSearchEventOperationValues() []SearchEventOperation {
+	return []SearchEventOperation{
+		SearchEventOperationUpsert,
+		SearchEventOperationDelete,
+	}
+}
+
 type SubscriptionStatusType string
 
 const (
@@ -1482,7 +1540,6 @@ type Category struct {
 	UpdatedAt  pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
-// Check-in records are immutable events - they have no updated_at column and should never be modified after creation
 type CheckIn struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
@@ -1493,8 +1550,7 @@ type CheckIn struct {
 	Blocker   *BlockerType       `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	// User's local date at time of check-in, used for timezone-aware deduplication
-	LocalDate pgtype.Date `db:"local_date" json:"local_date"`
+	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
 }
 
 type Conversation struct {
@@ -1577,6 +1633,7 @@ type Plan struct {
 	IsActive                 bool               `db:"is_active" json:"is_active"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Currency                 string             `db:"currency" json:"currency"`
 }
 
 type PlanAdjustmentSuggestion struct {
@@ -1599,6 +1656,12 @@ type PlanAdjustmentSuggestion struct {
 type ProcessedEvent struct {
 	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
 	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
+type ProcessedStripeEvent struct {
+	StripeEventID string             `db:"stripe_event_id" json:"stripe_event_id"`
+	EventType     string             `db:"event_type" json:"event_type"`
+	ProcessedAt   pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type Profile struct {
@@ -1646,13 +1709,28 @@ type SavedHabit struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-// DEPRECATED: Use saved_articles, saved_goals, saved_habits instead. Kept for backward compatibility during transition.
 type SavedItem struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	ItemType  SavedItemType      `db:"item_type" json:"item_type"`
 	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type SearchOutbox struct {
+	ID          uuid.UUID            `db:"id" json:"id"`
+	EntityType  string               `db:"entity_type" json:"entity_type"`
+	EntityID    uuid.UUID            `db:"entity_id" json:"entity_id"`
+	Operation   SearchEventOperation `db:"operation" json:"operation"`
+	Payload     []byte               `db:"payload" json:"payload"`
+	Status      string               `db:"status" json:"status"`
+	Attempts    int32                `db:"attempts" json:"attempts"`
+	AvailableAt pgtype.Timestamptz   `db:"available_at" json:"available_at"`
+	LockedAt    pgtype.Timestamptz   `db:"locked_at" json:"locked_at"`
+	LockedBy    *string              `db:"locked_by" json:"locked_by"`
+	ProcessedAt pgtype.Timestamptz   `db:"processed_at" json:"processed_at"`
+	Error       *string              `db:"error" json:"error"`
+	CreatedAt   pgtype.Timestamptz   `db:"created_at" json:"created_at"`
 }
 
 type UpgradeEvent struct {

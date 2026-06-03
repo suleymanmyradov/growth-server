@@ -34,7 +34,7 @@ func NewRedisQuotaStore(client *redis.Client) QuotaStore {
 }
 
 func dailyKey(prefix, id string) string {
-	return fmt.Sprintf("ai:quota:%s:%s:%s", prefix, id, time.Now().UTC().Format("2006-01-02"))
+	return "ai:quota:" + prefix + ":" + id + ":" + time.Now().UTC().Format("2006-01-02")
 }
 
 func (s *redisQuotaStore) CheckUserQuota(ctx context.Context, userID string, cap int64) (bool, error) {

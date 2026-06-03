@@ -82,6 +82,7 @@ type Querier interface {
 	GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error)
 	GetArticleShare(ctx context.Context, id uuid.UUID) (ArticleShare, error)
 	GetArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (ArticleShare, error)
+	GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (GetArticleWithSavedRow, error)
 	GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetBlockerStatsForWeekRow, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (Category, error)
 	GetCategoryBySlug(ctx context.Context, slug string, entityType EntityType) (Category, error)
@@ -124,6 +125,7 @@ type Querier interface {
 	IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error)
 	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
 	IsItemSaved(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (bool, error)
+	IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error)
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 	ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
@@ -146,8 +148,12 @@ type Querier interface {
 	ListArticleSharesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
 	ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error)
 	ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error)
+	ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByAuthorWithSavedRow, error)
 	ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error)
+	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByCategorySlugWithSavedRow, error)
+	ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesWithSavedRow, error)
 	ListCategories(ctx context.Context, entityType EntityType) ([]Category, error)
+	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]ListExpiredActiveSubscriptionsRow, error)
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Goal, error)
 	// Keyset pagination: more efficient than OFFSET for deep pages.
 	// Pass last_created_at from previous page (or NULL for first page).
@@ -176,6 +182,7 @@ type Querier interface {
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]WeeklyReview, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
 	MarkHabitCompleted(ctx context.Context, iD uuid.UUID, version int32) (Habit, error)
+	MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error)
 	// TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings

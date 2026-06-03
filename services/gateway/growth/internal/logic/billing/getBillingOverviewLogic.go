@@ -81,11 +81,9 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 	}
 
 	return &types.BillingOverviewResponse{
-		Data: types.BillingOverviewData{
-			Plans:        plans,
-			Subscription: sub,
-			Entitlements: ent,
-			BillingMode:  rpcResp.BillingMode,
-		},
+		Plans:        plans,
+		Subscription: sub,
+		Entitlements: ent,
+		BillingMode:  rpcResp.BillingMode,
 	}, nil
 }

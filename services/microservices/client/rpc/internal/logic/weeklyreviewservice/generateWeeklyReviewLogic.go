@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +19,32 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+var (
+	tzCacheMu sync.RWMutex
+	tzCache   = make(map[string]*time.Location)
+)
+
+// loadLocationCached returns a *time.Location, caching successful lookups.
+func loadLocationCached(name string) (*time.Location, error) {
+	if name == "" || name == "UTC" {
+		return time.UTC, nil
+	}
+	tzCacheMu.RLock()
+	loc, ok := tzCache[name]
+	tzCacheMu.RUnlock()
+	if ok {
+		return loc, nil
+	}
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return nil, err
+	}
+	tzCacheMu.Lock()
+	tzCache[name] = loc
+	tzCacheMu.Unlock()
+	return loc, nil
+}
 
 type GenerateWeeklyReviewLogic struct {
 	ctx    context.Context
@@ -48,7 +75,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	loc := time.UTC
 	if settings.Timezone != "" {
 		var err error
-		loc, err = time.LoadLocation(settings.Timezone)
+		loc, err = loadLocationCached(settings.Timezone)
 		if err != nil {
 			l.Infof("invalid timezone %s, using UTC: %v", settings.Timezone, err)
 			loc = time.UTC
@@ -128,13 +155,13 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	if err != nil {
 		l.Infof("failed to get goals: %v", err)
 	}
-	var goalTitles []string
-	for _, g := range goals {
-		goalTitles = append(goalTitles, g.Title)
+	goalTitles := make([]string, len(goals))
+	for i, g := range goals {
+		goalTitles[i] = g.Title
 	}
 
 	// Build detected patterns from pattern insights
-	detectedPatterns := []string{}
+	detectedPatterns := make([]string, 0, 6+len(patternInsights.RiskFactors))
 	if patternInsights.CompletionPattern != "" {
 		detectedPatterns = append(detectedPatterns, "Completion pattern: "+patternInsights.CompletionPattern)
 	}
@@ -394,6 +421,8 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 	}
 
 	stats.totalHabits = len(habitStats)
+	stats.habitBreakdowns = make([]prompts.HabitBreakdownInput, 0, len(habitStats))
+	stats.habitBreakdownsForDB = make([]habitBreakdownDB, 0, len(habitStats))
 	for _, h := range habitStats {
 		completed := int(h.CompletedCount)
 		missed := int(h.MissedCount)
@@ -464,6 +493,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 	if err != nil {
 		return stats, err
 	}
+	stats.blockerStats = make([]prompts.BlockerInput, 0, len(blockerStats))
 	for _, b := range blockerStats {
 		stats.blockerStats = append(stats.blockerStats, prompts.BlockerInput{
 			Blocker: b.Blocker,
@@ -478,6 +508,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 	if err != nil {
 		return stats, err
 	}
+	stats.moodStats = make([]prompts.MoodInput, 0, len(moodStats))
 	for _, m := range moodStats {
 		stats.moodStats = append(stats.moodStats, prompts.MoodInput{
 			Mood:  m.Mood,
@@ -490,6 +521,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 	if err != nil {
 		return stats, err
 	}
+	stats.energyStats = make([]prompts.EnergyInput, 0, len(energyStats))
 	for _, e := range energyStats {
 		stats.energyStats = append(stats.energyStats, prompts.EnergyInput{
 			Energy: e.Energy,
@@ -541,13 +573,13 @@ func dbReviewToProto(r db.WeeklyReview) *client.WeeklyReview {
 	var habitBreakdowns []habitBreakdownDB
 	_ = json.Unmarshal(r.HabitBreakdown, &habitBreakdowns)
 
-	protoHabits := make([]*client.WeeklyReviewHabitBreakdown, 0, len(habitBreakdowns))
-	for _, h := range habitBreakdowns {
+	protoHabits := make([]*client.WeeklyReviewHabitBreakdown, len(habitBreakdowns))
+	for i, h := range habitBreakdowns {
 		var lastCheckInAt int64
 		if t, err := time.Parse(time.RFC3339, h.LastCheckInAt); err == nil {
 			lastCheckInAt = t.Unix()
 		}
-		protoHabits = append(protoHabits, &client.WeeklyReviewHabitBreakdown{
+		protoHabits[i] = &client.WeeklyReviewHabitBreakdown{
 			HabitId:        h.HabitID,
 			HabitName:      h.HabitName,
 			Category:       h.Category,
@@ -556,20 +588,20 @@ func dbReviewToProto(r db.WeeklyReview) *client.WeeklyReview {
 			MissedCount:    int32(h.MissedCount),
 			CompletionRate: h.CompletionRate,
 			LastCheckInAt:  lastCheckInAt,
-		})
+		}
 	}
 
 	var adjustments []prompts.WeeklyReviewAdjustment
 	_ = json.Unmarshal(r.SuggestedAdjustments, &adjustments)
-	protoAdjustments := make([]*client.WeeklyReviewAdjustment, 0, len(adjustments))
-	for _, a := range adjustments {
-		protoAdjustments = append(protoAdjustments, &client.WeeklyReviewAdjustment{
+	protoAdjustments := make([]*client.WeeklyReviewAdjustment, len(adjustments))
+	for i, a := range adjustments {
+		protoAdjustments[i] = &client.WeeklyReviewAdjustment{
 			HabitId:        a.HabitID,
 			HabitName:      a.HabitName,
 			Reason:         a.Reason,
 			Suggestion:     a.Suggestion,
 			AdjustmentType: a.AdjustmentType,
-		})
+		}
 	}
 
 	var nextWeekPlan prompts.WeeklyReviewNextWeekPlan

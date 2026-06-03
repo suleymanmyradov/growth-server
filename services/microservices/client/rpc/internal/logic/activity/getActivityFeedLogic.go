@@ -53,15 +53,15 @@ return nil, status.Error(codes.Internal, "invalid user id")
 return nil, status.Error(codes.Internal, "failed to list activities")
 	}
 
-	var pbActivities []*client.ActivityItem
-	for _, a := range activities {
-		pbActivities = append(pbActivities, &client.ActivityItem{
+	pbActivities := make([]*client.ActivityItem, len(activities))
+	for i, a := range activities {
+		pbActivities[i] = &client.ActivityItem{
 			Id:          a.ID.String(),
 			UserId:      a.UserID.String(),
 			Type:        string(a.ItemType),
 			Description: a.Title,
 			Timestamp:   a.CreatedAt.Time.Unix(),
-		})
+		}
 	}
 
 	return &client.GetActivityFeedResponse{

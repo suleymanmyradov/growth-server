@@ -1,10 +1,12 @@
 package articleslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,15 +36,30 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 		offset = in.Offset
 	}
 
-	articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(l.ctx, in.AuthorId, limit, offset)
-	if err != nil {
-		l.Errorf("Failed to list author articles: %v", err)
-return nil, status.Error(codes.Internal, "failed to list author articles")
-	}
+	userID, userErr := uuid.Parse(in.UserId)
+	hasUser := in.UserId != "" && userErr == nil
 
 	var pbArticles []*client.Article
-	for _, a := range articles {
-		pbArticles = append(pbArticles, convertAuthorRowToPbArticle(a))
+	if hasUser {
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthorWithSaved(l.ctx, in.AuthorId, limit, offset, userID)
+		if err != nil {
+			l.Errorf("Failed to list author articles with saved: %v", err)
+			return nil, status.Error(codes.Internal, "failed to list author articles")
+		}
+		pbArticles = make([]*client.Article, len(articles))
+		for i, a := range articles {
+			pbArticles[i] = convertAuthorWithSavedRowToPbArticle(a)
+		}
+	} else {
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(l.ctx, in.AuthorId, limit, offset)
+		if err != nil {
+			l.Errorf("Failed to list author articles: %v", err)
+			return nil, status.Error(codes.Internal, "failed to list author articles")
+		}
+		pbArticles = make([]*client.Article, len(articles))
+		for i, a := range articles {
+			pbArticles[i] = convertAuthorRowToPbArticle(a)
+		}
 	}
 
 	return &client.GetAuthorArticlesResponse{

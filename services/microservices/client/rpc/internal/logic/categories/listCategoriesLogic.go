@@ -31,9 +31,9 @@ func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (
 		return nil, err
 	}
 
-	var pbCategories []*client.Category
-	for _, c := range categories {
-		pbCategories = append(pbCategories, &client.Category{
+	pbCategories := make([]*client.Category, len(categories))
+	for i, c := range categories {
+		pbCategories[i] = &client.Category{
 			Id:         c.ID.String(),
 			Name:       c.Name,
 			Slug:       c.Slug,
@@ -41,7 +41,7 @@ func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (
 			SortOrder:  c.SortOrder,
 			CreatedAt:  c.CreatedAt.Time.Unix(),
 			UpdatedAt:  c.UpdatedAt.Time.Unix(),
-		})
+		}
 	}
 
 	return &client.ListCategoriesResponse{

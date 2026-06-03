@@ -59,9 +59,9 @@ return nil, status.Error(codes.Internal, "failed to list habits")
 return nil, status.Error(codes.Internal, "failed to count habits")
 	}
 
-	var pbHabits []*client.Habit
-	for _, h := range habits {
-		pbHabits = append(pbHabits, habitToProto(h))
+	pbHabits := make([]*client.Habit, len(habits))
+	for i, h := range habits {
+		pbHabits[i] = habitToProto(h)
 	}
 
 	return &client.ListHabitsResponse{

@@ -4,11 +4,13 @@
 package articles
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
@@ -37,9 +39,16 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 
 	l.Infof("Fetching article with id: %s", req.Id)
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.GetArticle(l.ctx, &clientarticles.GetArticleRequest{
+	rpcReq := &clientarticles.GetArticleRequest{
 		ArticleId: req.Id,
-	})
+	}
+
+	// Pass user ID if authenticated so backend can compute isSaved
+	if p, ok := principal.PrincipalFrom(l.ctx); ok {
+		rpcReq.UserId = p.UserID
+	}
+
+	rpcResp, err := l.svcCtx.ArticlesRpc.GetArticle(l.ctx, rpcReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get article from rpc: %w", err)
 	}
@@ -64,6 +73,7 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 		PublishedAt: formatTime(rpcArticle.PublishedAt),
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
+		IsSaved:     rpcArticle.IsSaved,
 	}
 
 	l.Infof("Successfully fetched article: %s", article.Title)

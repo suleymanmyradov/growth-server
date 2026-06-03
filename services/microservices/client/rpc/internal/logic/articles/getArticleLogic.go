@@ -37,13 +37,28 @@ func (l *GetArticleLogic) GetArticle(in *client.GetArticleRequest) (*client.GetA
 		return nil, status.Error(codes.InvalidArgument, "invalid article ID")
 	}
 
-	article, err := l.svcCtx.Repo.Articles.GetArticleByID(l.ctx, articleID)
-	if err != nil {
-		l.Errorf("failed to get article: %v", err)
-		return nil, status.Error(codes.NotFound, "article not found")
+	// Parse user ID if provided
+	userID, userErr := uuid.Parse(in.UserId)
+	hasUser := in.UserId != "" && userErr == nil
+
+	var pbArticle *client.Article
+	if hasUser {
+		article, err := l.svcCtx.Repo.Articles.GetArticleByIDWithSaved(l.ctx, articleID, userID)
+		if err != nil {
+			l.Errorf("failed to get article with saved: %v", err)
+			return nil, status.Error(codes.NotFound, "article not found")
+		}
+		pbArticle = convertGetWithSavedRowToPbArticle(article)
+	} else {
+		article, err := l.svcCtx.Repo.Articles.GetArticleByID(l.ctx, articleID)
+		if err != nil {
+			l.Errorf("failed to get article: %v", err)
+			return nil, status.Error(codes.NotFound, "article not found")
+		}
+		pbArticle = convertGetRowToPbArticle(article)
 	}
 
 	return &client.GetArticleResponse{
-		Article: convertGetRowToPbArticle(article),
+		Article: pbArticle,
 	}, nil
 }

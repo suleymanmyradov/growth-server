@@ -43,6 +43,6 @@ func (l *HasCheckedInTodayLogic) HasCheckedInToday(req *types.HasCheckedInTodayR
 	}
 
 	return &types.HasCheckedInTodayResponse{
-		Data: rpcResp.CheckedIn,
+		CheckedIn: rpcResp.CheckedIn,
 	}, nil
 }
