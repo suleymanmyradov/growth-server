@@ -33,7 +33,6 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
-	"google.golang.org/grpc"
 )
 
 type ServiceContext struct {
@@ -74,17 +73,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	s2sCfg := s2s.Config{Secret: c.ServiceAuth.Secret}
 
-	// Base client options with auth propagation, s2s signing, and default timeout
+	// Base client options with auth propagation, s2s signing, and default timeout.
+	// Use zrpc.WithUnaryClientInterceptor so go-zero built-in interceptors
+	// (trace, prometheus, breaker, timeout, duration) are still applied.
 	baseOpts := []zrpc.ClientOption{
-		zrpc.WithDialOption(grpc.WithUnaryInterceptor(mdpropagate.UnaryClientInterceptor())),
-		zrpc.WithDialOption(grpc.WithUnaryInterceptor(s2s.UnaryClientInterceptor(s2sCfg))),
+		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
+		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
 		zrpc.WithTimeout(time.Second * 3),
 	}
 
 	// AI coach can be slower; give it a longer timeout
 	aiCoachOpts := []zrpc.ClientOption{
-		zrpc.WithDialOption(grpc.WithUnaryInterceptor(mdpropagate.UnaryClientInterceptor())),
-		zrpc.WithDialOption(grpc.WithUnaryInterceptor(s2s.UnaryClientInterceptor(s2sCfg))),
+		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
+		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
 		zrpc.WithTimeout(time.Second * 15),
 	}
 

@@ -81,3 +81,10 @@ RateLimit:
   AuthQuota: "60,5"             # 5 requests per 60 sec per IP (login/register/refresh)
   AIQuota: "60,10"              # 10 AI requests per 60 sec per user
   SearchQuota: "60,30"          # 30 search requests per 60 sec per IP
+
+# Distributed tracing (OTLP / Zipkin / Jaeger)
+Telemetry:
+  Name: growth-gateway
+  Endpoint: "${TRACE_ENDPOINT}" # e.g. http://otel-collector:4317 or http://jaeger:14268/api/traces
+  Sampler: 1.0
+  Batcher: otlpgrpc             # otlpgrpc | otlphttp | zipkin | file

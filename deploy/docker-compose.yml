@@ -85,56 +85,6 @@ services:
       timeout: 5s
       retries: 5
 
-  notifications-rpc:
-    build:
-      context: ../services/microservices/notifications/rpc
-      dockerfile: Dockerfile
-    container_name: growthmind-notifications-rpc
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=growthmind
-      - POSTGRES_USER=growthmind
-      - POSTGRES_PASSWORD=growthmind123
-      - ETCD_ENDPOINTS=etcd:2379
-      - ETCD_KEY=notifications.rpc
-      - KAFKA_BROKERS=redpanda:9092
-    ports:
-      - "9093:9092"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      etcd:
-        condition: service_healthy
-      redpanda:
-        condition: service_healthy
-    networks:
-      - growthmind-network
-    restart: unless-stopped
-
-  ai-coach-consumer:
-    build:
-      context: ../services/microservices/ai-coach/consumer
-      dockerfile: Dockerfile
-    container_name: growthmind-ai-coach-consumer
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=growthmind
-      - POSTGRES_USER=growthmind
-      - POSTGRES_PASSWORD=growthmind123
-      - KAFKA_BROKERS=redpanda:9092
-      - AI_API_KEY=${AI_API_KEY}
-      - AI_BASE_URL=https://openrouter.ai/api/v1
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redpanda:
-        condition: service_healthy
-    networks:
-      - growthmind-network
-    restart: unless-stopped
-
   meilisearch:
     image: getmeili/meilisearch:v1.11
     container_name: growthmind-meilisearch
@@ -152,28 +102,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  search-sync:
-    build:
-      context: ../services/microservices/search-sync
-      dockerfile: Dockerfile
-    container_name: growthmind-search-sync
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=growthmind
-      - POSTGRES_USER=growthmind
-      - POSTGRES_PASSWORD=growthmind123
-      - MEILI_HOST=http://meilisearch:7700
-      - MEILI_API_KEY=${MEILI_MASTER_KEY:-growthmind_meili_dev_key}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      meilisearch:
-        condition: service_healthy
-    networks:
-      - growthmind-network
-    restart: unless-stopped
 
 volumes:
   postgres_data:
