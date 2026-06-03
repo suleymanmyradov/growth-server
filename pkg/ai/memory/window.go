@@ -1,10 +1,16 @@
 package memory
 
-import "github.com/suleymanmyradov/growth-server/pkg/ai"
+import (
+	"sync"
+
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
+)
 
 // ConversationWindow keeps the last N messages, dropping the oldest.
 // Use it to bound the context window before sending to the model.
+// Safe for concurrent use.
 type ConversationWindow struct {
+	mu          sync.RWMutex
 	maxMessages int
 	messages    []ai.Message
 }
@@ -20,6 +26,9 @@ func NewConversationWindow(maxMessages int) *ConversationWindow {
 // Add appends messages and trims to maxMessages, always preserving
 // the first message if it is a system message.
 func (w *ConversationWindow) Add(msgs ...ai.Message) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	w.messages = append(w.messages, msgs...)
 
 	// If we exceed the limit, trim from the front.
@@ -44,15 +53,23 @@ func (w *ConversationWindow) Add(msgs ...ai.Message) {
 
 // Messages returns the current window of messages.
 func (w *ConversationWindow) Messages() []ai.Message {
-	return w.messages
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	out := make([]ai.Message, len(w.messages))
+	copy(out, w.messages)
+	return out
 }
 
 // Clear removes all messages.
 func (w *ConversationWindow) Clear() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.messages = w.messages[:0]
 }
 
 // Len returns the current number of messages.
 func (w *ConversationWindow) Len() int {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
 	return len(w.messages)
 }

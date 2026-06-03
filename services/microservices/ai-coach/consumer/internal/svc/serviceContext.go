@@ -1,6 +1,8 @@
 package svc
 
 import (
+	"sync"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -16,13 +18,14 @@ import (
 )
 
 type ServiceContext struct {
-	Config    config.Config
-	Repo      *repository.Repository
-	AI        ai.Client
-	TxRunner  *postgres.PgxTxRunner
-	EventsQ   queue.MessageQueue
-	EventsPub *events.Publisher
-	pool      *pgxpool.Pool
+	Config      config.Config
+	Repo        *repository.Repository
+	AI          ai.Client
+	TxRunner    *postgres.PgxTxRunner
+	EventsQ     queue.MessageQueue
+	EventsPub   *events.Publisher
+	pool        *pgxpool.Pool
+	consumerWg  sync.WaitGroup
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -79,7 +82,11 @@ func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 
 // StartConsumers launches the kq queue.
 func (s *ServiceContext) StartConsumers() {
-	go s.EventsQ.Start()
+	s.consumerWg.Add(1)
+	go func() {
+		defer s.consumerWg.Done()
+		s.EventsQ.Start()
+	}()
 	logx.Info("started ai-coach kafka consumer")
 }
 
@@ -87,6 +94,7 @@ func (s *ServiceContext) Close() {
 	if s.EventsQ != nil {
 		s.EventsQ.Stop()
 	}
+	s.consumerWg.Wait()
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
 	}

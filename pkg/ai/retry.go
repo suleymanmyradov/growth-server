@@ -9,7 +9,6 @@ import (
 
 	"github.com/cenkalti/backoff/v5"
 	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
-	"github.com/zeromicro/go-zero/core/breaker"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -39,7 +38,7 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 
 		// Non-retryable errors go through the circuit breaker.
 		// If the breaker is open, stop retrying immediately.
-		brk := breaker.NewBreaker(breaker.WithName("ai:" + modelID))
+		brk := c.breakerFor(modelID)
 		if err := brk.DoWithAcceptable(func() error {
 			return lastErr
 		}, acceptable); err != nil {
