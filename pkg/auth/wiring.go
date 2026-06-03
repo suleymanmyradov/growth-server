@@ -36,6 +36,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
 )
 
@@ -114,9 +115,11 @@ func ExampleServiceServerOptions(cfg ExampleConfig, tokenVerifier mdpropagate.To
 	}
 }
 
-// ExampleServiceClientOptions returns the recommended gRPC client interceptors
+// ExampleServiceClientOptions returns the recommended zrpc client options
 // for calls from gateway to downstream services.
-func ExampleServiceClientOptions(cfg ExampleConfig) []grpc.DialOption {
+// Using zrpc.WithUnaryClientInterceptor preserves go-zero built-in interceptors
+// (trace, prometheus, breaker, timeout, duration).
+func ExampleServiceClientOptions(cfg ExampleConfig) []zrpc.ClientOption {
 	if err := cfg.S2S.MustValidate(); err != nil {
 		logx.Must(err)
 	}
@@ -124,8 +127,9 @@ func ExampleServiceClientOptions(cfg ExampleConfig) []grpc.DialOption {
 	s2sClient := s2s.UnaryClientInterceptor(s2s.Config{Secret: cfg.S2S.Secret})
 	authClient := mdpropagate.UnaryClientInterceptor()
 
-	return []grpc.DialOption{
-		grpc.WithChainUnaryInterceptor(s2sClient, authClient),
+	return []zrpc.ClientOption{
+		zrpc.WithUnaryClientInterceptor(s2sClient),
+		zrpc.WithUnaryClientInterceptor(authClient),
 	}
 }
 

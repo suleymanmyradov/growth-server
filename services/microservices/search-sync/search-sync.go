@@ -26,6 +26,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	c.MustSetUp()
 	logx.Infof("starting search-sync with config: %+v", configsafe.MaskSecrets(c))
 
 	// Set defaults

@@ -5,8 +5,11 @@ SQLC_SERVICES := auth client conversations search notifications
 help:
 	@echo "Available commands:"
 	@echo "  deps                - Install dependencies"
-	@echo "  docker-up           - Start development infrastructure"
-	@echo "  docker-down         - Stop development infrastructure"
+	@echo "  docker-up           - Start development dependencies (Postgres, Redis, Etcd, Redpanda, Meilisearch)"
+	@echo "  docker-down         - Stop development dependencies"
+	@echo "  run-notifications   - Run notifications service locally"
+	@echo "  run-ai-coach        - Run ai-coach consumer locally"
+	@echo "  run-search-sync     - Run search-sync worker locally"
 	@echo "  migrate-up          - Run database migrations"
 	@echo "  migrate-down        - Rollback database migrations"
 	@echo "  generate-api        - Generate API gateway from contract"
@@ -36,15 +39,33 @@ deps:
 	go mod tidy
 	go mod download
 
-# Start development infrastructure (PostgreSQL, Redis, Meilisearch)
+# Start development dependencies (PostgreSQL, Redis, Etcd, Redpanda, Meilisearch)
 docker-up:
-	@echo "Starting development infrastructure..."
-	docker-compose -f deploy/docker-compose.yml up -d
+	@echo "Starting development dependencies..."
+	docker compose -f deploy/docker-compose.yml up -d
 
-# Stop development infrastructure
+# Stop development dependencies
 docker-down:
-	@echo "Stopping development infrastructure..."
-	docker-compose -f deploy/docker-compose.yml down
+	@echo "Stopping development dependencies..."
+	docker compose -f deploy/docker-compose.yml down
+
+# Run notifications service locally (connects to docker dependencies)
+run-notifications: build-notifications
+	@echo "Running notifications service..."
+	@mkdir -p logs
+	./bin/notifications -f services/microservices/notifications/rpc/etc/notifications.yaml
+
+# Run ai-coach consumer locally (connects to docker dependencies)
+run-ai-coach: build-ai-coach
+	@echo "Running ai-coach consumer..."
+	@mkdir -p logs
+	./bin/ai-coach -f services/microservices/ai-coach/consumer/etc/ai-coach.yaml
+
+# Run search-sync worker locally (connects to docker dependencies)
+run-search-sync: build-search-sync
+	@echo "Running search-sync worker..."
+	@mkdir -p logs
+	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml
 
 # Run database migrations up
 migrate-up:

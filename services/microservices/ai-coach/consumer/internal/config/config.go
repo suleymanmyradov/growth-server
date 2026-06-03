@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type Config struct {
@@ -27,4 +28,6 @@ type Config struct {
 		Concurrency int
 	}
 	AI ai.Config
+	// Telemetry configures distributed tracing for the consumer.
+	Telemetry trace.Config `json:",optional"`
 }

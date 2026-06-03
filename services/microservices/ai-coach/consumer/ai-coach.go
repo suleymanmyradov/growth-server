@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/svc"
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 var configFile = flag.String("f", "etc/ai-coach.yaml", "the config file")
@@ -18,6 +19,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c)
+	trace.StartAgent(c.Telemetry)
 	ctx := svc.NewServiceContext(c)
 
 	// Start Kafka consumer.
