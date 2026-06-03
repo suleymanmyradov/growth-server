@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -67,6 +68,7 @@ type Checker struct {
 	cache Cache
 	// Lookup is called on cache miss to fetch the canonical status from the DB.
 	Lookup func(ctx context.Context, userID uuid.UUID) (UserStatus, error)
+	group  singleflight.Group
 }
 
 // NewChecker creates an authz checker backed by the given cache.
@@ -125,26 +127,32 @@ func (c *Checker) getStatus(ctx context.Context, userID uuid.UUID) (UserStatus, 
 			return StatusNotFound, nil
 		}
 	}
-	// Cache miss or unexpected value; perform lookup.
-	statusCode, err := c.Lookup(ctx, userID)
+	// Cache miss or unexpected value; perform lookup with singleflight deduplication.
+	result, err, _ := c.group.Do(key, func() (interface{}, error) {
+		statusCode, lookupErr := c.Lookup(ctx, userID)
+		if lookupErr != nil {
+			return StatusUnknown, lookupErr
+		}
+
+		var cacheVal string
+		switch statusCode {
+		case StatusActive:
+			cacheVal = "active"
+		case StatusInactive:
+			cacheVal = "inactive"
+		case StatusNotFound:
+			cacheVal = "notfound"
+		default:
+			return statusCode, nil
+		}
+
+		_ = c.cache.Set(ctx, key, cacheVal, userStatusTTL)
+		return statusCode, nil
+	})
 	if err != nil {
 		return StatusUnknown, err
 	}
-
-	var cacheVal string
-	switch statusCode {
-	case StatusActive:
-		cacheVal = "active"
-	case StatusInactive:
-		cacheVal = "inactive"
-	case StatusNotFound:
-		cacheVal = "notfound"
-	default:
-		return statusCode, nil
-	}
-
-	_ = c.cache.Set(ctx, key, cacheVal, userStatusTTL)
-	return statusCode, nil
+	return result.(UserStatus), nil
 }
 
 // MustParseUUID is a helper that parses a UUID or returns an error.

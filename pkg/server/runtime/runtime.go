@@ -21,22 +21,28 @@ type Options struct {
 	ShutdownWait time.Duration
 }
 
-func Run(start func(), opts Options) {
+func Run(start func(ctx context.Context), opts Options) {
 	if opts.ShutdownWait == 0 {
 		opts.ShutdownWait = 10 * time.Second
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go func() { defer wg.Done(); start() }()
+	go func() {
+		defer wg.Done()
+		start(ctx)
+	}()
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 	logx.Info("shutdown signal received")
 
-	ctx, cancel := context.WithTimeout(context.Background(), opts.ShutdownWait)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), opts.ShutdownWait)
+	defer shutdownCancel()
 
 	if opts.REST != nil {
 		opts.REST.Stop()
@@ -44,8 +50,9 @@ func Run(start func(), opts Options) {
 	if opts.RPC != nil {
 		opts.RPC.Stop()
 	}
+	cancel()
 	for _, fn := range opts.OnShutdown {
-		_ = fn(ctx)
+		_ = fn(shutdownCtx)
 	}
 	wg.Wait()
 }

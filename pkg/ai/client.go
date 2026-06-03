@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 
 	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
+	"github.com/zeromicro/go-zero/core/breaker"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
@@ -49,9 +51,10 @@ type Client interface {
 
 // client implements Client.
 type client struct {
-	cfg    Config
-	models map[ModelProfile]openaiModel // profile → eino model
-	opts   clientOptions
+	cfg      Config
+	models   map[ModelProfile]openaiModel // profile → eino model
+	opts     clientOptions
+	breakers sync.Map // modelID → *breaker.Breaker
 }
 
 // openaiModel wraps an Eino ChatModel with its model ID.
@@ -104,6 +107,16 @@ func New(cfg Config, opts ...Option) (Client, error) {
 	}
 
 	return &client{cfg: cfg, models: models, opts: o}, nil
+}
+
+// breakerFor returns the circuit breaker for the given modelID, creating one if necessary.
+func (c *client) breakerFor(modelID string) breaker.Breaker {
+	if b, ok := c.breakers.Load(modelID); ok {
+		return b.(breaker.Breaker)
+	}
+	b := breaker.NewBreaker(breaker.WithName("ai:" + modelID))
+	actual, _ := c.breakers.LoadOrStore(modelID, b)
+	return actual.(breaker.Breaker)
 }
 
 // modelFor returns the eino model for the given profile.

@@ -47,7 +47,7 @@ func main() {
 		s2s.UnaryServerInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret}),
 	)
 
-	runtime.Run(s.Start, runtime.Options{
+	runtime.Run(func(_ context.Context) { s.Start() }, runtime.Options{
 		RPC: s,
 		OnShutdown: []func(context.Context) error{
 			func(_ context.Context) error {

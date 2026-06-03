@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"github.com/cloudwego/eino/components/model"
@@ -39,6 +40,7 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 	}
 
 	return &einoStreamReader{
+		ctx:     ctx,
 		stream:  einoStream,
 		profile: req.ModelProfile,
 		modelID: m.modelID,
@@ -50,6 +52,7 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 
 // einoStreamReader adapts Eino's StreamReader[*schema.Message] to our StreamReader.
 type einoStreamReader struct {
+	ctx     context.Context
 	stream  *schema.StreamReader[*schema.Message]
 	profile ModelProfile
 	modelID string
@@ -57,24 +60,24 @@ type einoStreamReader struct {
 	client  *client
 	start   time.Time
 	total   Usage
-	done    bool
+	done    atomic.Bool
 }
 
 // Recv returns the next Chunk from the stream.
 func (r *einoStreamReader) Recv() (Chunk, error) {
-	if r.done {
+	if r.done.Load() {
 		return Chunk{}, io.EOF
 	}
 
 	msg, err := r.stream.Recv()
 	if err != nil {
 		if err == io.EOF {
-			r.done = true
-			r.client.logCall(context.Background(), r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, nil)
+			r.done.Store(true)
+			r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, nil)
 			recordMetrics(r.profile, r.modelID, "ok")
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
-		r.client.logCall(context.Background(), r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, err)
+		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, err)
 		recordMetrics(r.profile, r.modelID, "error")
 		return Chunk{}, err
 	}
@@ -116,7 +119,7 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 // Close releases the underlying stream.
 func (r *einoStreamReader) Close() {
 	r.stream.Close()
-	r.done = true
+	r.done.Store(true)
 }
 
 // Ensure einoStreamReader implements StreamReader.
