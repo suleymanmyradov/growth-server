@@ -1196,10 +1196,18 @@ message CreateCustomerPortalSessionResponse {
 message HandleStripeWebhookRequest {
   string eventType = 1;
   string payloadJson = 2;
+  string stripeEventId = 3;
 }
 
 message HandleStripeWebhookResponse {
   bool processed = 1;
+}
+
+// PlanLimitDetail is attached to gRPC status details when a plan limit is reached.
+// It is used by the gateway to render structured 402 / payment_required responses.
+message PlanLimitDetail {
+  string limit = 1;
+  string upgrade_trigger = 2;
 }
 
 service BillingService {

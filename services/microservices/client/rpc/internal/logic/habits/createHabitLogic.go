@@ -43,7 +43,12 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	if subErr == nil {
 		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanCreateHabit {
-			return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:active_habits:habit_limit")
+			st := status.New(codes.FailedPrecondition, "plan limit reached")
+			st, _ = st.WithDetails(&client.PlanLimitDetail{
+				Limit:          "active_habits",
+				UpgradeTrigger: "habit_limit",
+			})
+			return nil, st.Err()
 		}
 	}
 

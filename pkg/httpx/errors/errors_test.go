@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
@@ -176,4 +178,27 @@ func TestHandleGrpcError(t *testing.T) {
 			assert.Equal(t, tt.expectedGrpcCode, resp.Code)
 		})
 	}
+}
+
+func TestHandleGrpcError_PlanLimitDetail(t *testing.T) {
+	st := status.New(codes.FailedPrecondition, "plan limit reached")
+	st, err := st.WithDetails(&client.PlanLimitDetail{
+		Limit:          "active_goals",
+		UpgradeTrigger: "goal_limit",
+	})
+	require.NoError(t, err)
+
+	w := httptest.NewRecorder()
+	HandleGrpcError(w, st.Err())
+
+	assert.Equal(t, http.StatusPaymentRequired, w.Code)
+	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
+
+	var resp ErrorResponse
+	err = json.NewDecoder(w.Body).Decode(&resp)
+	require.NoError(t, err)
+	assert.Equal(t, "plan_limit_reached", resp.Code)
+	assert.Equal(t, "You have reached the Free plan limit for this feature", resp.Message)
+	assert.Equal(t, "active_goals", resp.Limit)
+	assert.Equal(t, "goal_limit", resp.UpgradeTrigger)
 }

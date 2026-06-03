@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
+	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/internal/server"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/internal/svc"
@@ -53,6 +54,7 @@ func main() {
 	}
 
 	s.AddUnaryInterceptors(
+		recovery.UnaryServerInterceptor(),
 		mdpropagate.UnaryServerInterceptorOptional(tokenVerifier),
 		s2s.UnaryServerInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret}),
 	)

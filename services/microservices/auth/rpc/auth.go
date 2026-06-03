@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
+	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/server"
@@ -36,6 +37,8 @@ func main() {
 			reflection.Register(grpcServer)
 		}
 	})
+
+	s.AddUnaryInterceptors(recovery.UnaryServerInterceptor())
 
 	runtime.Run(func(_ context.Context) { s.Start() }, runtime.Options{
 		RPC: s,
