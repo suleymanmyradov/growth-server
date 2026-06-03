@@ -111,7 +111,7 @@ func TestWriteError(t *testing.T) {
 	var resp ErrorResponse
 	err := json.NewDecoder(w.Body).Decode(&resp)
 	require.NoError(t, err)
-	assert.Equal(t, "error", resp.Code)
+	assert.Equal(t, "bad_request", resp.Code)
 	assert.Equal(t, "bad request", resp.Message)
 }
 
@@ -156,7 +156,7 @@ func TestHandleGrpcError(t *testing.T) {
 			grpcErr:          assert.AnError,
 			expectedCode:     http.StatusInternalServerError,
 			expectedMsg:      "an error occurred",
-			expectedGrpcCode: "error",
+			expectedGrpcCode: "internal_error",
 		},
 	}
 

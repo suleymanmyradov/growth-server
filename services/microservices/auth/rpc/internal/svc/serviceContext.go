@@ -3,12 +3,12 @@ package svc
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	goredis "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
@@ -16,24 +16,13 @@ import (
 )
 
 type ServiceContext struct {
-	Config       config.Config
-	Repo         *repository.Repository
-	TokenMaker   *jwt.TokenMaker
-	TxRunner     *postgres.PgxTxRunner
-	RedisClient  *goredis.Client
-	cancel       context.CancelFunc
-	pool         *pgxpool.Pool
-}
-
-func mustNewRedis(addr, password string, db int) *goredis.Client {
-	c := goredis.NewClient(&goredis.Options{Addr: addr, Password: password, DB: db})
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	if err := c.Ping(ctx).Err(); err != nil {
-		_ = c.Close()
-		panic(fmt.Errorf("redis ping: %w", err))
-	}
-	return c
+	Config      config.Config
+	Repo        *repository.Repository
+	TokenMaker  *jwt.TokenMaker
+	TxRunner    *postgres.PgxTxRunner
+	RedisClient *redis.Client
+	cancel      context.CancelFunc
+	pool        *pgxpool.Pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -43,15 +32,24 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	repo := repository.NewRepository(queries)
 	txRunner := postgres.NewPgxTxRunner(pool)
 
-	redisClient := mustNewRedis(c.Cache.Redis.Addr, c.Cache.Redis.Password, c.Cache.Redis.DB)
+	var tokenRepo jwt.RevocationRepository
+	var redisClient *redis.Client
+	if c.Cache.Redis.Addr != "" {
+		client, err := redisutil.NewClient(c.Cache.Redis.Addr, c.Cache.Redis.Password, c.Cache.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; token revocation disabled: %v", err)
+		} else {
+			redisClient = client
+			tokenRepo, err = repository.NewCmdableRedisRepository(client)
+			if err != nil {
+				logx.Errorf("redis revocation repository init failed: %v", err)
+				tokenRepo = nil
+			}
+		}
+	}
 
 	if c.JWT.Secret == "" {
 		logx.Must(fmt.Errorf("JWT.Secret is required"))
-	}
-
-	tokenRepo, err := repository.NewCmdableRedisRepository(redisClient)
-	if err != nil {
-		logx.Must(err)
 	}
 
 	cancel := func() {}
@@ -86,6 +84,9 @@ func (s *ServiceContext) Pool() *pgxpool.Pool {
 func (s *ServiceContext) Close() {
 	if s.cancel != nil {
 		s.cancel()
+	}
+	if s.RedisClient != nil {
+		_ = s.RedisClient.Close()
 	}
 	if s.pool != nil {
 		s.pool.Close()

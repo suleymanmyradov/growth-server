@@ -1,5 +1,8 @@
 // Package authz provides lightweight authorization helpers for downstream services.
 // It caches user existence/active status in Redis to avoid repeated DB lookups.
+//
+// Usage: wire the Checker into gRPC interceptors or handler logic after the
+// Principal has been extracted and verified (e.g., by mdpropagate).
 package authz
 
 import (
@@ -10,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -63,6 +67,19 @@ const (
 	StatusNotFound
 )
 
+func (s UserStatus) String() string {
+	switch s {
+	case StatusActive:
+		return "active"
+	case StatusInactive:
+		return "inactive"
+	case StatusNotFound:
+		return "notfound"
+	default:
+		return "unknown"
+	}
+}
+
 // Checker performs cached user status checks.
 type Checker struct {
 	cache Cache
@@ -108,6 +125,25 @@ func (c *Checker) CheckUser(ctx context.Context, userID uuid.UUID) error {
 	}
 }
 
+// MustHaveRole returns nil if the principal in ctx has at least one of the required roles.
+// It returns PermissionDenied otherwise.
+func (c *Checker) MustHaveRole(ctx context.Context, required ...string) error {
+	p, ok := principal.PrincipalFrom(ctx)
+	if !ok {
+		return status.Error(codes.Unauthenticated, "missing principal")
+	}
+	roleSet := make(map[string]struct{}, len(p.Roles))
+	for _, r := range p.Roles {
+		roleSet[r] = struct{}{}
+	}
+	for _, r := range required {
+		if _, ok := roleSet[r]; ok {
+			return nil
+		}
+	}
+	return status.Error(codes.PermissionDenied, "insufficient permissions")
+}
+
 // Invalidate removes the cached status for a user (call after updates that affect authz).
 func (c *Checker) Invalidate(ctx context.Context, userID uuid.UUID) error {
 	key := userStatusPrefix + userID.String()
@@ -116,7 +152,12 @@ func (c *Checker) Invalidate(ctx context.Context, userID uuid.UUID) error {
 
 func (c *Checker) getStatus(ctx context.Context, userID uuid.UUID) (UserStatus, error) {
 	key := userStatusPrefix + userID.String()
-	val, err := c.cache.Get(ctx, key)
+
+	// Fast path: read from cache with a short timeout so a slow Redis
+	// node doesn't block the authorization check.
+	cacheCtx, cancel := context.WithTimeout(ctx, 250*time.Millisecond)
+	val, err := c.cache.Get(cacheCtx, key)
+	cancel()
 	if err == nil {
 		switch val {
 		case "active":
@@ -126,8 +167,14 @@ func (c *Checker) getStatus(ctx context.Context, userID uuid.UUID) (UserStatus, 
 		case "notfound":
 			return StatusNotFound, nil
 		}
+	} else if err != redis.Nil {
+		// Redis error (not a simple miss): log and fall through to DB lookup.
+		// We intentionally degrade gracefully rather than failing the request.
+		// A structured logger is not available here; rely on caller telemetry.
 	}
-	// Cache miss or unexpected value; perform lookup with singleflight deduplication.
+
+	// Cache miss, unexpected value, or Redis error; perform lookup with
+	// singleflight deduplication to prevent thundering herd on cold start.
 	result, err, _ := c.group.Do(key, func() (interface{}, error) {
 		statusCode, lookupErr := c.Lookup(ctx, userID)
 		if lookupErr != nil {
@@ -146,7 +193,10 @@ func (c *Checker) getStatus(ctx context.Context, userID uuid.UUID) (UserStatus, 
 			return statusCode, nil
 		}
 
-		_ = c.cache.Set(ctx, key, cacheVal, userStatusTTL)
+		// Write back to cache on a best-effort basis; ignore Redis write errors
+		// so that a transient Redis outage doesn't fail the authz check.
+		ttl := redisutil.JitteredTTL(userStatusTTL, 10*time.Second)
+		_ = c.cache.Set(ctx, key, cacheVal, ttl)
 		return statusCode, nil
 	})
 	if err != nil {

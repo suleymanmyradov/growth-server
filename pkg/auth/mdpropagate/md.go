@@ -1,9 +1,7 @@
 package mdpropagate
 
 // Metadata keys for gRPC context propagation.
+// All keys use the "growth-" prefix to avoid collisions with other middleware.
 const (
-	MDUserID    = "x-user-id"
-	MDUsername  = "x-username"
-	MDRoles     = "x-roles"
-	MDSessionID = "x-session-id"
+	MDAuthorization = "growth-authorization"
 )

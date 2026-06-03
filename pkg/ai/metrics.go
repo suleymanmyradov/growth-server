@@ -52,6 +52,10 @@ func init() {
 }
 
 // recordMetrics records Prometheus metrics for a call.
-func recordMetrics(profile ModelProfile, modelID, status string) {
+func recordMetrics(profile ModelProfile, modelID, status string, usage Usage, costUSD float64, latencyMS int64) {
 	requestsTotal.WithLabelValues(string(profile), modelID, status).Inc()
+	tokensTotal.WithLabelValues(string(profile), modelID, "prompt").Add(float64(usage.PromptTokens))
+	tokensTotal.WithLabelValues(string(profile), modelID, "completion").Add(float64(usage.CompletionTokens))
+	costUSDTotal.WithLabelValues(string(profile)).Add(costUSD)
+	requestDuration.WithLabelValues(string(profile), modelID).Observe(float64(latencyMS) / 1000.0)
 }

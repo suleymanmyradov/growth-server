@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
@@ -61,8 +62,19 @@ func main() {
 		}
 	})
 
+	// Verify JWT tokens so downstream services don't blindly trust gateway headers.
+	// In production, replace this with jwt.NewVerifier using a public key (RS256/ES256).
+	tokenVerifier, err := jwt.NewTokenMaker(jwt.Config{
+		Secret:   c.Auth.Secret,
+		Issuer:   c.Auth.Issuer,
+		Audience: c.Auth.Audience,
+	}, nil)
+	if err != nil {
+		logx.Must(err)
+	}
+
 	s.AddUnaryInterceptors(
-		mdpropagate.UnaryServerInterceptor(),
+		mdpropagate.UnaryServerInterceptor(tokenVerifier),
 		s2s.UnaryServerInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret}),
 	)
 

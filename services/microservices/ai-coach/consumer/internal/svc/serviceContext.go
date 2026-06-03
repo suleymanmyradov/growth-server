@@ -6,8 +6,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository"
@@ -37,7 +39,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// AI client.
 	var aiClient ai.Client
 	if c.AI.APIKey != "" {
-		client, err := ai.New(c.AI)
+		opts := []ai.Option{}
+		if c.AI.Quota.RedisAddr != "" {
+			redisClient, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
+			if err == nil {
+				opts = append(opts, ai.WithQuotaStore(ai.NewRedisQuotaStore(redisClient)))
+			} else {
+				logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
+			}
+		}
+		client, err := ai.New(c.AI, opts...)
 		if err != nil {
 			logx.Errorf("failed to create AI client: %v", err)
 		} else {
@@ -51,8 +62,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
 	}
 
+	// Safety classifier (if AI client is available).
+	var classifier safety.Classifier
+	if aiClient != nil {
+		classifier = safety.NewLLMClassifier(aiClient)
+	}
+
 	// Create consumer handler.
-	handler := consumer.NewEventsHandler(repo, aiClient, eventsPub)
+	handler := consumer.NewEventsHandler(repo, aiClient, eventsPub, classifier)
 
 	// Create kq queue.
 	eventsQ := kq.MustNewQueue(

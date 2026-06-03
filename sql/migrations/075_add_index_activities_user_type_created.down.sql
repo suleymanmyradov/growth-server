@@ -1,1 +1,0 @@
-DROP INDEX IF EXISTS idx_activities_user_type_created_desc;

@@ -99,7 +99,7 @@ func (r *fakeRepo) MarkProcessed(_ context.Context, eventID uuid.UUID) error {
 }
 
 func TestEventsHandler_InvalidEnvelope(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
 	err := h.Consume(context.Background(), "", "not-json")
 	if err != nil {
 		t.Fatalf("expected nil on invalid envelope, got %v", err)
@@ -107,7 +107,7 @@ func TestEventsHandler_InvalidEnvelope(t *testing.T) {
 }
 
 func TestEventsHandler_InvalidEventID(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
 	env := events.Envelope{EventID: "not-a-uuid", EventType: string(events.TypeCheckInCreated)}
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
@@ -117,7 +117,7 @@ func TestEventsHandler_InvalidEventID(t *testing.T) {
 }
 
 func TestEventsHandler_UnhandledEventType(t *testing.T) {
-	h := NewEventsHandler(&repository.Repository{}, nil, nil)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
 	env, _ := events.NewEnvelope("unknown_type", nil)
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))

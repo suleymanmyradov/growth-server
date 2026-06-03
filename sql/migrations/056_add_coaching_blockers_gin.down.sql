@@ -1,2 +1,0 @@
-DROP INDEX CONCURRENTLY IF EXISTS idx_coaching_blockers;
-DROP INDEX CONCURRENTLY IF EXISTS idx_coaching_notes;

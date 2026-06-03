@@ -10,7 +10,7 @@ import (
 )
 
 func TestSignAndVerify(t *testing.T) {
-	secret := "my-shared-secret"
+	secret := "my-shared-secret-must-be-at-least-32-by"
 	method := "/service.Method"
 	ts := time.Now().Unix()
 
@@ -24,7 +24,7 @@ func TestSignAndVerify(t *testing.T) {
 	}
 
 	// Wrong secret
-	if Verify("wrong-secret", method, sig, ts, 5*time.Minute) {
+	if Verify("wrong-secret-must-be-at-least-32-by", method, sig, ts, 5*time.Minute) {
 		t.Fatal("expected signature to fail with wrong secret")
 	}
 
@@ -48,8 +48,41 @@ func TestSignAndVerify(t *testing.T) {
 	}
 }
 
+func TestMustValidate(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     Config
+		wantErr bool
+	}{
+		{
+			name:    "valid secret",
+			cfg:     Config{Secret: "this-is-a-valid-secret-32-bytes-long"},
+			wantErr: false,
+		},
+		{
+			name:    "empty secret",
+			cfg:     Config{Secret: ""},
+			wantErr: true,
+		},
+		{
+			name:    "short secret",
+			cfg:     Config{Secret: "short"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.MustValidate()
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("MustValidate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestUnaryClientInterceptorSign(t *testing.T) {
-	cfg := Config{Secret: "test-secret"}
+	cfg := Config{Secret: "test-secret-must-be-at-least-32-bytes"}
 	// We can't easily call the interceptor directly without a real grpc.ClientConn,
 	// but we can test that Sign produces deterministic output.
 	sig := Sign(cfg.Secret, "/test.Method", 1234567890)
@@ -79,7 +112,7 @@ func TestShouldSkipValidation(t *testing.T) {
 }
 
 func TestVerifyWithMetadata(t *testing.T) {
-	secret := "test-secret"
+	secret := "test-secret-must-be-at-least-32-bytes"
 	method := "/test.Method"
 	ts := time.Now().Unix()
 	sig := Sign(secret, method, ts)

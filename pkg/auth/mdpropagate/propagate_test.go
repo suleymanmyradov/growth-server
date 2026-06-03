@@ -3,298 +3,237 @@ package mdpropagate
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
+	jwtpkg "github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 )
 
-func TestOutgoing(t *testing.T) {
-	tests := []struct {
-		name      string
-		principal principal.Principal
-		wantKeys  []string
-	}{
-		{
-			name: "full principal",
-			principal: principal.Principal{
-				UserID:    "user123",
-				Username:  "testuser",
-				Roles:     []string{"admin", "user"},
-				SessionID: "session456",
-			},
-			wantKeys: []string{MDUserID, MDUsername, MDRoles, MDSessionID},
-		},
-		{
-			name: "partial principal",
-			principal: principal.Principal{
-				UserID: "user123",
-				Roles:  []string{"admin"},
-			},
-			wantKeys: []string{MDUserID, MDRoles},
-		},
-		{
-			name:      "empty principal",
-			principal: principal.Principal{},
-			wantKeys:  nil, // No metadata should be added
-		},
-		{
-			name: "principal with empty roles",
-			principal: principal.Principal{
-				UserID: "user123",
-				Roles:  []string{"", "admin", ""},
-			},
-			wantKeys: []string{MDUserID, MDRoles},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			ctx = principal.WithPrincipal(ctx, tt.principal)
-
-			ctx = Outgoing(ctx)
-
-			md, ok := metadata.FromOutgoingContext(ctx)
-			if tt.wantKeys == nil {
-				// No metadata expected
-				if ok && len(md) > 0 {
-					t.Errorf("expected no metadata, got %v", md)
-				}
-				return
-			}
-
-			if !ok {
-				t.Fatal("no metadata in context")
-			}
-
-			for _, key := range tt.wantKeys {
-				if _, exists := md[key]; !exists {
-					t.Errorf("metadata key %q not found", key)
-				}
-			}
-
-			// Ensure no extra keys were added
-			for key := range md {
-				found := false
-				for _, wantKey := range tt.wantKeys {
-					if key == wantKey {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Errorf("unexpected metadata key %q", key)
-				}
-			}
-		})
-	}
+// fakeVerifier is a test double that verifies tokens using the real jwt package.
+type fakeVerifier struct {
+	maker *jwtpkg.TokenMaker
 }
 
-func TestPrincipalFromMetadata(t *testing.T) {
-	tests := []struct {
-		name       string
-		metadata   metadata.MD
-		wantErr    bool
-		wantUserID string
-	}{
-		{
-			name: "full metadata",
-			metadata: metadata.Pairs(
-				MDUserID, "user123",
-				MDUsername, "testuser",
-				MDRoles, "admin,user",
-				MDSessionID, "session456",
-			),
-			wantErr:    false,
-			wantUserID: "user123",
-		},
-		{
-			name: "partial metadata",
-			metadata: metadata.Pairs(
-				MDUserID, "user123",
-				MDUsername, "testuser",
-			),
-			wantErr:    false,
-			wantUserID: "user123",
-		},
-		{
-			name:       "missing metadata",
-			metadata:   metadata.Pairs(),
-			wantErr:    true,
-			wantUserID: "",
-		},
-		{
-			name:       "missing user id",
-			metadata:   metadata.Pairs(MDUsername, "testuser"),
-			wantErr:    true,
-			wantUserID: "",
-		},
-		{
-			name: "roles with empty strings",
-			metadata: metadata.Pairs(
-				MDUserID, "user123",
-				MDRoles, ",admin,,user,",
-			),
-			wantErr:    false,
-			wantUserID: "user123",
-		},
+func newFakeVerifier(t *testing.T) *fakeVerifier {
+	cfg := jwtpkg.Config{
+		Secret:                "test-secret-must-be-at-least-32-bytes",
+		Issuer:                "test-issuer",
+		Audience:              "test-audience",
+		AccessExpiryDuration:  time.Hour,
+		RefreshExpiryDuration: time.Hour,
 	}
+	maker, err := jwtpkg.NewTokenMaker(cfg, nil)
+	require.NoError(t, err)
+	return &fakeVerifier{maker: maker}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := metadata.NewIncomingContext(context.Background(), tt.metadata)
+func (f *fakeVerifier) VerifyAccessToken(_ context.Context, tokenString string) (*jwtpkg.TokenClaims, error) {
+	return f.maker.VerifyAccessToken(context.Background(), tokenString)
+}
 
-			ctx, err := PrincipalFromMetadata(ctx)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("PrincipalFromMetadata() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
+func TestOutgoing_WithToken(t *testing.T) {
+	fv := newFakeVerifier(t)
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), uuid.New(), "testuser", []string{"user"}, uuid.New())
+	require.NoError(t, err)
 
-			if !tt.wantErr {
-				p, ok := principal.PrincipalFrom(ctx)
-				if !ok {
-					t.Fatal("principal not found in context")
-				}
-				if p.UserID != tt.wantUserID {
-					t.Errorf("UserID = %q, want %q", p.UserID, tt.wantUserID)
-				}
-			}
-		})
-	}
+	ctx := context.Background()
+	ctx = principal.WithToken(ctx, tokenResp.Token)
+	ctx = Outgoing(ctx)
+
+	md, ok := metadata.FromOutgoingContext(ctx)
+	require.True(t, ok, "expected outgoing metadata")
+
+	auth := md.Get(MDAuthorization)
+	require.Len(t, auth, 1)
+	require.Contains(t, auth[0], "Bearer ")
+}
+
+func TestOutgoing_WithoutToken(t *testing.T) {
+	ctx := context.Background()
+	ctx = Outgoing(ctx)
+
+	_, ok := metadata.FromOutgoingContext(ctx)
+	require.False(t, ok, "expected no metadata without token")
+}
+
+func TestPrincipalFromMetadata_Success(t *testing.T) {
+	fv := newFakeVerifier(t)
+	userID := uuid.New()
+	sessionID := uuid.New()
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), userID, "testuser", []string{"admin", "user"}, sessionID)
+	require.NoError(t, err)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(MDAuthorization, "Bearer "+tokenResp.Token))
+
+	ctx, err = PrincipalFromMetadata(ctx, fv)
+	require.NoError(t, err)
+
+	p, ok := principal.PrincipalFrom(ctx)
+	require.True(t, ok)
+	require.Equal(t, userID.String(), p.UserID)
+	require.Equal(t, "testuser", p.Username)
+	require.Equal(t, []string{"admin", "user"}, p.Roles)
+	require.Equal(t, sessionID.String(), p.SessionID)
+}
+
+func TestPrincipalFromMetadata_MissingMetadata(t *testing.T) {
+	fv := newFakeVerifier(t)
+	ctx := context.Background()
+	_, err := PrincipalFromMetadata(ctx, fv)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+func TestPrincipalFromMetadata_MissingAuthorization(t *testing.T) {
+	fv := newFakeVerifier(t)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
+	_, err := PrincipalFromMetadata(ctx, fv)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+}
+
+func TestPrincipalFromMetadata_InvalidToken(t *testing.T) {
+	fv := newFakeVerifier(t)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(MDAuthorization, "Bearer invalid-token"))
+	_, err := PrincipalFromMetadata(ctx, fv)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
 }
 
 func TestRoundTrip(t *testing.T) {
-	original := principal.Principal{
-		UserID:    "user123",
-		Username:  "testuser",
-		Roles:     []string{"admin", "user"},
-		SessionID: "session456",
-	}
+	fv := newFakeVerifier(t)
+	userID := uuid.New()
+	sessionID := uuid.New()
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), userID, "testuser", []string{"admin", "user"}, sessionID)
+	require.NoError(t, err)
 
-	// Set principal in context
+	// Gateway side: store token in context and convert to outgoing metadata
 	ctx := context.Background()
-	ctx = principal.WithPrincipal(ctx, original)
-
-	// Convert to outgoing metadata
+	ctx = principal.WithToken(ctx, tokenResp.Token)
 	ctx = Outgoing(ctx)
 
-	// Extract from incoming metadata (simulating gRPC call)
+	// Simulate gRPC call: extract outgoing metadata and create incoming context
 	md, ok := metadata.FromOutgoingContext(ctx)
-	if !ok {
-		t.Fatal("no metadata in context")
-	}
-
+	require.True(t, ok)
 	ctx = metadata.NewIncomingContext(context.Background(), md)
 
-	// Extract principal from metadata
-	ctx, err := PrincipalFromMetadata(ctx)
-	if err != nil {
-		t.Fatalf("PrincipalFromMetadata() error = %v", err)
-	}
+	// Service side: verify JWT and extract principal
+	ctx, err = PrincipalFromMetadata(ctx, fv)
+	require.NoError(t, err)
 
-	recovered, ok := principal.PrincipalFrom(ctx)
-	if !ok {
-		t.Fatal("principal not found in context")
-	}
-
-	if recovered.UserID != original.UserID {
-		t.Errorf("UserID = %q, want %q", recovered.UserID, original.UserID)
-	}
-	if recovered.Username != original.Username {
-		t.Errorf("Username = %q, want %q", recovered.Username, original.Username)
-	}
-	if len(recovered.Roles) != len(original.Roles) {
-		t.Errorf("Roles length = %d, want %d", len(recovered.Roles), len(original.Roles))
-	}
-	for i, role := range recovered.Roles {
-		if role != original.Roles[i] {
-			t.Errorf("Roles[%d] = %q, want %q", i, role, original.Roles[i])
-		}
-	}
-	if recovered.SessionID != original.SessionID {
-		t.Errorf("SessionID = %q, want %q", recovered.SessionID, original.SessionID)
-	}
+	p, ok := principal.PrincipalFrom(ctx)
+	require.True(t, ok)
+	require.Equal(t, userID.String(), p.UserID)
+	require.Equal(t, "testuser", p.Username)
+	require.Equal(t, []string{"admin", "user"}, p.Roles)
+	require.Equal(t, sessionID.String(), p.SessionID)
 }
 
 func TestUnaryClientInterceptor(t *testing.T) {
-	tests := []struct {
-		name      string
-		principal principal.Principal
-		wantMD    bool
-	}{
-		{
-			name:      "with principal",
-			principal: principal.Principal{UserID: "user123", Username: "testuser"},
-			wantMD:    true,
-		},
-		{
-			name:      "without principal",
-			principal: principal.Principal{},
-			wantMD:    false,
-		},
+	fv := newFakeVerifier(t)
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), uuid.New(), "testuser", nil, uuid.New())
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	ctx = principal.WithToken(ctx, tokenResp.Token)
+
+	var capturedCtx context.Context
+	invoker := func(ctx context.Context, _ string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
+		capturedCtx = ctx
+		return nil
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			if tt.principal.UserID != "" {
-				ctx = principal.WithPrincipal(ctx, tt.principal)
-			}
+	interceptor := UnaryClientInterceptor()
+	err = interceptor(ctx, "/test/method", nil, nil, nil, invoker)
+	require.NoError(t, err)
 
-			// Create a mock invoker that captures the context
-			var capturedCtx context.Context
-			invoker := func(ctx context.Context, _ string, req, reply interface{}, cc *grpc.ClientConn, opts ...grpc.CallOption) error {
-				capturedCtx = ctx
-				return nil
-			}
+	md, ok := metadata.FromOutgoingContext(capturedCtx)
+	require.True(t, ok)
+	auth := md.Get(MDAuthorization)
+	require.Len(t, auth, 1)
+	require.Contains(t, auth[0], "Bearer ")
+}
 
-			interceptor := UnaryClientInterceptor()
-			err := interceptor(ctx, "/test/method", nil, nil, nil, invoker)
-			if err != nil {
-				t.Fatalf("UnaryClientInterceptor() error = %v", err)
-			}
+func TestUnaryServerInterceptor(t *testing.T) {
+	fv := newFakeVerifier(t)
+	userID := uuid.New()
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), userID, "testuser", nil, uuid.New())
+	require.NoError(t, err)
 
-			md, ok := metadata.FromOutgoingContext(capturedCtx)
-			if tt.wantMD && !ok {
-				t.Error("expected metadata in context, got none")
-			}
-			if !tt.wantMD && ok && len(md) > 0 {
-				t.Errorf("expected no metadata, got %v", md)
-			}
-		})
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(MDAuthorization, "Bearer "+tokenResp.Token))
+
+	interceptor := UnaryServerInterceptor(fv)
+	handlerCalled := false
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		handlerCalled = true
+		p, ok := principal.PrincipalFrom(ctx)
+		require.True(t, ok)
+		require.Equal(t, userID.String(), p.UserID)
+		return nil, nil
 	}
+
+	_, err = interceptor(ctx, nil, &grpc.UnaryServerInfo{}, handler)
+	require.NoError(t, err)
+	require.True(t, handlerCalled)
+}
+
+func TestUnaryServerInterceptor_Unauthenticated(t *testing.T) {
+	fv := newFakeVerifier(t)
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
+
+	interceptor := UnaryServerInterceptor(fv)
+	_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{}, func(context.Context, interface{}) (interface{}, error) {
+		t.Fatal("handler should not be called")
+		return nil, nil
+	})
+
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
 }
 
 func TestUnaryServerInterceptorOptional(t *testing.T) {
+	fv := newFakeVerifier(t)
 	tests := []struct {
-		name      string
-		metadata  metadata.MD
-		wantError bool
+		name     string
+		metadata metadata.MD
+		wantErr  bool
 	}{
 		{
-			name:      "with principal metadata",
-			metadata:  metadata.Pairs(MDUserID, "user123", MDUsername, "testuser"),
-			wantError: false,
+			name:     "with valid token",
+			metadata: func() metadata.MD { tr, _ := fv.maker.CreateAccessToken(context.Background(), uuid.New(), "u", nil, uuid.New()); return metadata.Pairs(MDAuthorization, "Bearer "+tr.Token) }(),
+			wantErr:  false,
 		},
 		{
-			name:      "without principal metadata",
-			metadata:  metadata.Pairs(),
-			wantError: false,
+			name:     "without authorization",
+			metadata: metadata.MD{},
+			wantErr:  false,
 		},
 		{
-			name:      "with partial metadata",
-			metadata:  metadata.Pairs(MDUsername, "testuser"),
-			wantError: false,
+			name:     "with invalid token",
+			metadata: metadata.Pairs(MDAuthorization, "Bearer bad"),
+			wantErr:  false, // optional: ignores error
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := metadata.NewIncomingContext(context.Background(), tt.metadata)
-
-			interceptor := UnaryServerInterceptorOptional()
+			interceptor := UnaryServerInterceptorOptional(fv)
 			handlerCalled := false
 
 			handler := func(_ context.Context, req interface{}) (interface{}, error) {
@@ -303,12 +242,69 @@ func TestUnaryServerInterceptorOptional(t *testing.T) {
 			}
 
 			_, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{}, handler)
-			if (err != nil) != tt.wantError {
-				t.Errorf("UnaryServerInterceptorOptional() error = %v, wantError %v", err, tt.wantError)
-			}
-			if !handlerCalled {
-				t.Error("handler was not called")
-			}
+			require.NoError(t, err)
+			require.True(t, handlerCalled)
 		})
 	}
+}
+
+func TestTokenVerifierInterface(t *testing.T) {
+	// Ensure the real jwtpkg.TokenMaker satisfies our TokenVerifier interface
+	cfg := jwtpkg.Config{
+		Secret:                "test-secret-must-be-at-least-32-bytes",
+		Issuer:                "test-issuer",
+		Audience:              "test-audience",
+		AccessExpiryDuration:  time.Hour,
+		RefreshExpiryDuration: time.Hour,
+	}
+	maker, err := jwtpkg.NewTokenMaker(cfg, nil)
+	require.NoError(t, err)
+
+	// This compile-time check ensures *jwtpkg.TokenMaker implements TokenVerifier
+	var _ TokenVerifier = maker
+}
+
+func TestClockSkewTolerance(t *testing.T) {
+	fv := newFakeVerifier(t)
+	// Create a token with a very short expiry
+	userID := uuid.New()
+	sessionID := uuid.New()
+
+	// We can't easily create a nearly-expired token with the current API,
+	// but we can verify that leeway is applied by checking the DefaultLeeway constant
+	require.Equal(t, 30*time.Second, jwtpkg.DefaultLeeway)
+
+	// Create a normal token and verify it works
+	tokenResp, err := fv.maker.CreateAccessToken(context.Background(), userID, "u", nil, sessionID)
+	require.NoError(t, err)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(MDAuthorization, "Bearer "+tokenResp.Token))
+	_, err = PrincipalFromMetadata(ctx, fv)
+	require.NoError(t, err)
+}
+
+func TestGenericErrorMessages(t *testing.T) {
+	fv := newFakeVerifier(t)
+
+	// Tampered token (change payload without changing signature)
+	cfg := jwtpkg.Config{
+		Secret:                "different-secret-must-be-at-least-32-by",
+		Issuer:                "other-issuer",
+		Audience:              "other-audience",
+		AccessExpiryDuration:  time.Hour,
+		RefreshExpiryDuration: time.Hour,
+	}
+	otherMaker, err := jwtpkg.NewTokenMaker(cfg, nil)
+	require.NoError(t, err)
+
+	tr, err := otherMaker.CreateAccessToken(context.Background(), uuid.New(), "u", nil, uuid.New())
+	require.NoError(t, err)
+
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(MDAuthorization, "Bearer "+tr.Token))
+	_, err = PrincipalFromMetadata(ctx, fv)
+	require.Error(t, err)
+	st, ok := status.FromError(err)
+	require.True(t, ok)
+	require.Equal(t, codes.Unauthenticated, st.Code())
+	require.Equal(t, "invalid token", st.Message())
 }

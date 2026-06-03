@@ -1,31 +1,83 @@
-Name: growthapi
+# Example gateway configuration.
+# Copy to services/gateway/growth/etc/growthapi.yaml and customize.
+# NEVER commit the real YAML to git (see .gitignore).
+
+Name: growth-gateway
 Host: 0.0.0.0
-Port: 9999
-CORS:
-  Origins:
-    - http://localhost:3000
-Auth:
-  Secret: change-me-to-a-strong-secret
-  Issuer: growth-auth
-  Audience: growth-api
+Port: 8888
+
+# Connection / DoS hardening
+MaxConns: 10000
+MaxBytes: 1048576   # 1 MB
+Timeout: 3000      # 3 seconds
+
+# Middleware toggles (go-zero defaults are generally safe)
+Middlewares:
+  Trace: true
+  Log: true
+  Prometheus: true
+  MaxConns: true
+  Breaker: true
+  Shedding: true
+  Timeout: true
+  Recover: true
+  Metrics: true
+  MaxBytes: true
+  Gunzip: true
+
+# Downstream gRPC service endpoints
 AuthRpc:
-  Target: 127.0.0.1:9081
+  Endpoints:
+    - 127.0.0.1:8081
+  Target: ""
+  Etcd: null
+  NonBlock: true
+
 ClientRpc:
-  Target: 127.0.0.1:9082
+  Endpoints:
+    - 127.0.0.1:8082
+  NonBlock: true
+
 SearchRpc:
-  Target: 127.0.0.1:9083
+  Endpoints:
+    - 127.0.0.1:8083
+  NonBlock: true
+
 ConversationsRpc:
-  Target: 127.0.0.1:9084
-NotificationsRpc:
-  Target: 127.0.0.1:9085
+  Endpoints:
+    - 127.0.0.1:8084
+  NonBlock: true
+
 AICoachRpc:
-  Target: 127.0.0.1:9086
+  Endpoints:
+    - 127.0.0.1:8085
+  NonBlock: true
+
+NotificationsRpc:
+  Endpoints:
+    - 127.0.0.1:8086
+  NonBlock: true
+
+Auth:
+  Secret: "${JWT_SECRET}"      # REQUIRED: load from env
+  Issuer: "growth"
+  Audience: "growth-api"
 
 ServiceAuth:
-  Secret: ${SERVICE_AUTH_SECRET:-}
+  Secret: "${S2S_SECRET}"      # REQUIRED: inter-service HMAC secret
 
-Telemetry:
-  Name: growthapi
-  Endpoint: http://localhost:14268/api/traces
-  Sampler: 1.0
-  Batcher: zipkin
+Billing:
+  Mode: "stripe_test"           # disabled | fake_door | stripe_test | stripe_live
+  StripeSecretKey: "${STRIPE_SECRET_KEY}"
+  StripeWebhookSecret: "${STRIPE_WEBHOOK_SECRET}"
+  FrontendURL: "https://growth.app"
+
+# Rate limiting (Redis-backed fixed-window)
+RateLimit:
+  Redis:
+    Host: "127.0.0.1:6379"
+    Type: "node"
+    Pass: "${REDIS_PASSWORD}"   # optional
+  AuthQuota: "60,5"             # 5 requests per 60 sec per IP (login/register/refresh)
+  AIQuota: "60,10"              # 10 AI requests per 60 sec per user
+  SearchQuota: "60,30"          # 30 search requests per 60 sec per IP

@@ -50,6 +50,9 @@ type Metadata struct {
 	UserID         string `json:"user_id,omitempty"`
 	Feature        string `json:"feature,omitempty"`
 	ConversationID string `json:"conversation_id,omitempty"`
+	// PromptHash is a stable hash of the prompt template / version used for
+	// this call. Enables tracing which prompt version generated a response.
+	PromptHash string `json:"prompt_hash,omitempty"`
 }
 
 // ResponseFormat controls structured output.
@@ -126,10 +129,13 @@ type AgentRequest struct {
 	Tools []Tool `json:"tools"`
 	// MaxSteps limits the model<->tool round-trip loop.
 	MaxSteps int `json:"max_steps"`
-	// Temperature controls randomness.
-	Temperature *float32 `json:"temperature,omitempty"`
 	// MaxTokens limits output length per generation step.
 	MaxTokens *int `json:"max_tokens,omitempty"`
+	// MaxTotalTokens limits the cumulative prompt + completion tokens across
+	// all agent steps. Zero means no limit. Exceeding this aborts the loop.
+	MaxTotalTokens int `json:"max_total_tokens,omitempty"`
+	// Temperature controls randomness.
+	Temperature *float32 `json:"temperature,omitempty"`
 	// Metadata carries call-level context for logging/spend tracking.
 	Metadata Metadata `json:"metadata,omitempty"`
 }

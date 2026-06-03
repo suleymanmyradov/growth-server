@@ -4,6 +4,7 @@
 package config
 
 import (
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -17,17 +18,18 @@ type Config struct {
 	ConversationsRpc zrpc.RpcClientConf
 	AICoachRpc       zrpc.RpcClientConf
 	Auth             struct {
-		Secret   string
+		Secret   string `secret:"true"`
 		Issuer   string
 		Audience string
 	}
 	Billing struct {
 		Mode                string // disabled, fake_door, stripe_test, stripe_live
-		StripeSecretKey     string
-		StripeWebhookSecret string
+		StripeSecretKey     string `secret:"true"`
+		StripeWebhookSecret string `secret:"true"`
 		FrontendURL         string
 	}
 	ServiceAuth struct {
-		Secret string
+		Secret string `secret:"true"`
 	}
+	RateLimit middleware.RateLimitConfig
 }

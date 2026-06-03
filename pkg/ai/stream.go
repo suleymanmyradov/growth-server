@@ -9,6 +9,7 @@ import (
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
+	"github.com/zeromicro/go-zero/core/logx"
 )
 
 // Stream performs streaming generation.
@@ -34,8 +35,13 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		return genErr
 	})
 	if streamErr != nil {
-		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, time.Since(start).Milliseconds(), 0, streamErr)
-		recordMetrics(req.ModelProfile, m.modelID, "error")
+		// Try fallback if configured for the initial stream setup.
+		if sr, fbErr := c.tryFallbackStream(ctx, req, msgs, opts, streamErr, start); fbErr == nil {
+			return sr, nil
+		}
+		latencyMS := time.Since(start).Milliseconds()
+		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
+		recordMetrics(req.ModelProfile, m.modelID, "error", Usage{}, 0, latencyMS)
 		return nil, fmt.Errorf("ai.Stream: %w", streamErr)
 	}
 
@@ -44,6 +50,42 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		stream:  einoStream,
 		profile: req.ModelProfile,
 		modelID: m.modelID,
+		meta:    req.Metadata,
+		client:  c,
+		start:   start,
+	}, nil
+}
+
+// tryFallbackStream attempts the fallback model for stream setup.
+func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msgs []*schema.Message, opts []model.Option, primaryErr error, start time.Time) (StreamReader, error) {
+	if !c.cfg.FallbackPolicy.Enabled {
+		return nil, primaryErr
+	}
+	fb, ok := c.fallbackModel()
+	if !ok {
+		return nil, primaryErr
+	}
+
+	logx.WithContext(ctx).Infof("ai: primary stream failed, trying fallback: %v", primaryErr)
+
+	var einoStream *schema.StreamReader[*schema.Message]
+	streamErr := c.withRetry(ctx, fb.modelID, func(ctx context.Context) error {
+		var genErr error
+		einoStream, genErr = fb.chat.Stream(ctx, msgs, opts...)
+		return genErr
+	})
+	if streamErr != nil {
+		latencyMS := time.Since(start).Milliseconds()
+		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
+		recordMetrics(ModelFallback, fb.modelID, "error", Usage{}, 0, latencyMS)
+		return nil, fmt.Errorf("ai.Stream fallback also failed: %w (primary: %v)", streamErr, primaryErr)
+	}
+
+	return &einoStreamReader{
+		ctx:     ctx,
+		stream:  einoStream,
+		profile: ModelFallback,
+		modelID: fb.modelID,
 		meta:    req.Metadata,
 		client:  c,
 		start:   start,
@@ -71,14 +113,17 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 
 	msg, err := r.stream.Recv()
 	if err != nil {
+		latencyMS := time.Since(r.start).Milliseconds()
 		if err == io.EOF {
 			r.done.Store(true)
-			r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, nil)
-			recordMetrics(r.profile, r.modelID, "ok")
+			costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
+			r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
+			r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, costUSD, nil)
+			recordMetrics(r.profile, r.modelID, "ok", r.total, costUSD, latencyMS)
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
-		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), 0, err)
-		recordMetrics(r.profile, r.modelID, "error")
+		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, 0, err)
+		recordMetrics(r.profile, r.modelID, "error", r.total, 0, latencyMS)
 		return Chunk{}, err
 	}
 

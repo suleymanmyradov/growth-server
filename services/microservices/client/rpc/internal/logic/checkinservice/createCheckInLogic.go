@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -18,6 +19,22 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// backgroundSem caps the number of concurrent fire-and-forget goroutines
+// spawned by CreateCheckIn to prevent goroutine exhaustion under load.
+var backgroundSem = make(chan struct{}, 100)
+
+func runBackground(f func()) {
+	select {
+	case backgroundSem <- struct{}{}:
+		go func() {
+			defer func() { <-backgroundSem }()
+			f()
+		}()
+	default:
+		logx.Error("background task dropped: semaphore full")
+	}
+}
 
 type CreateCheckInLogic struct {
 	ctx    context.Context
@@ -49,6 +66,23 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+	}
+
+	// Validate enum values and length bounds before persistence / AI prompts.
+	if in.Status != "completed" && in.Status != "missed" {
+		return nil, status.Error(codes.InvalidArgument, "status must be 'completed' or 'missed'")
+	}
+	if in.Note != "" && !validator.MaxLength(in.Note, 1000) {
+		return nil, status.Error(codes.InvalidArgument, "note exceeds maximum length of 1000 characters")
+	}
+	if in.Mood != "" && !validator.MaxLength(in.Mood, 50) {
+		return nil, status.Error(codes.InvalidArgument, "mood exceeds maximum length of 50 characters")
+	}
+	if in.Energy != "" && !validator.MaxLength(in.Energy, 50) {
+		return nil, status.Error(codes.InvalidArgument, "energy exceeds maximum length of 50 characters")
+	}
+	if in.Blocker != "" && !validator.MaxLength(in.Blocker, 200) {
+		return nil, status.Error(codes.InvalidArgument, "blocker exceeds maximum length of 200 characters")
 	}
 
 	// Wrap all state-mutating operations in a transaction with RLS context.
@@ -123,7 +157,7 @@ return nil, status.Error(codes.Internal, "failed check-in workflow")
 
 	// Fire-and-forget publish check-in event to Kafka.
 	if l.svcCtx.EventsPub != nil {
-		go func() {
+		runBackground(func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			env, err := events.NewEnvelope(events.TypeCheckInCreated, events.CheckInCreated{
@@ -141,18 +175,18 @@ return nil, status.Error(codes.Internal, "failed check-in workflow")
 			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
 				logx.Errorf("publish check-in event: %v", err)
 			}
-		}()
+		})
 	}
 
 	// Fire-and-forget: generate AI feedback (non-blocking, best-effort)
-	go func() {
+	runBackground(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		feedback := l.generateAIFeedback(ctx, in, habit)
 		if feedback != "" {
 			l.Infof("AI feedback generated for check-in %s: %s", checkIn.ID, feedback)
 		}
-	}()
+	})
 
 	return &client.CreateCheckInResponse{
 		CheckIn:    checkInToProto(checkIn),

@@ -135,6 +135,7 @@ func (c *client) fallbackModel() (openaiModel, bool) {
 }
 
 // checkQuota checks per-user and global quotas before making a call.
+// It fails CLOSED: if the quota store is unreachable, the call is blocked.
 func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 	if c.opts.quotaStore == nil {
 		return nil
@@ -143,7 +144,7 @@ func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 		ok, err := c.opts.quotaStore.CheckUserQuota(ctx, meta.UserID, c.cfg.Quota.UserDailyTokenCap)
 		if err != nil {
 			logx.WithContext(ctx).Errorf("ai: quota check error for user %s: %v", meta.UserID, err)
-			return nil // fail open on quota store errors
+			return &QuotaError{Limit: "user_daily_unavailable", Cap: c.cfg.Quota.UserDailyTokenCap}
 		}
 		if !ok {
 			return &QuotaError{Limit: "user_daily", Cap: c.cfg.Quota.UserDailyTokenCap}
@@ -153,7 +154,7 @@ func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 		ok, err := c.opts.quotaStore.CheckGlobalQuota(ctx, int64(c.cfg.Quota.GlobalDailyCostCapUSD*1e6))
 		if err != nil {
 			logx.WithContext(ctx).Errorf("ai: global quota check error: %v", err)
-			return nil
+			return &QuotaError{Limit: "global_daily_unavailable", Cap: int64(c.cfg.Quota.GlobalDailyCostCapUSD * 1e6)}
 		}
 		if !ok {
 			return &QuotaError{Limit: "global_daily", Cap: int64(c.cfg.Quota.GlobalDailyCostCapUSD * 1e6)}
@@ -189,6 +190,7 @@ func (c *client) logCall(ctx context.Context, profile ModelProfile, modelID stri
 			logx.Field("feature", meta.Feature),
 			logx.Field("user_id", meta.UserID),
 			logx.Field("conversation_id", meta.ConversationID),
+			logx.Field("prompt_hash", meta.PromptHash),
 			logx.Field("prompt_tokens", usage.PromptTokens),
 			logx.Field("completion_tokens", usage.CompletionTokens),
 			logx.Field("latency_ms", latencyMS),

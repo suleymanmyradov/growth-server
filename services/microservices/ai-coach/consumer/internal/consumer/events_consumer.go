@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository"
@@ -20,6 +21,11 @@ type AIClient interface {
 	Generate(ctx context.Context, req ai.GenerateRequest) (ai.GenerateResponse, error)
 }
 
+// SafetyClassifier pre-screens user input for safety concerns.
+type SafetyClassifier interface {
+	Classify(ctx context.Context, text string) (safety.Verdict, error)
+}
+
 // Publisher publishes event envelopes.
 type Publisher interface {
 	Publish(ctx context.Context, env events.Envelope) error
@@ -28,14 +34,15 @@ type Publisher interface {
 // EventsHandler consumes domain events from the growth.events topic and
 // generates AI coaching feedback for check-in events.
 type EventsHandler struct {
-	repo *repository.Repository
-	ai   AIClient
-	pub  Publisher
+	repo      *repository.Repository
+	ai        AIClient
+	pub       Publisher
+	classifier SafetyClassifier
 }
 
 // NewEventsHandler creates a handler with the given dependencies.
-func NewEventsHandler(repo *repository.Repository, aiClient AIClient, pub Publisher) *EventsHandler {
-	return &EventsHandler{repo: repo, ai: aiClient, pub: pub}
+func NewEventsHandler(repo *repository.Repository, aiClient AIClient, pub Publisher, classifier SafetyClassifier) *EventsHandler {
+	return &EventsHandler{repo: repo, ai: aiClient, pub: pub, classifier: classifier}
 }
 
 // Consume is the kq.ConsumeHandler callback.
@@ -110,6 +117,18 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, env events.Envelop
 		AccountabilityStyle: accountabilityStyle,
 		Streak:              p.Streak,
 		RecentPattern:       recentPattern,
+	}
+
+	// Safety check on user-generated fields before sending to the model.
+	if h.classifier != nil {
+		verdict, err := h.classifier.Classify(ctx, p.HabitName)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("safety classification error: %v", err)
+		} else if verdict.Category != safety.CategorySafe {
+			logx.WithContext(ctx).Infof("safety block: category=%s confidence=%.2f reason=%s", verdict.Category, verdict.Confidence, verdict.Reason)
+			_ = h.repo.MarkProcessed(ctx, eventID)
+			return nil
+		}
 	}
 
 	system := prompts.BuildSystemPrompt(accountabilityStyle)
