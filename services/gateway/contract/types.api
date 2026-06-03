@@ -214,6 +214,7 @@ type (
 		publishedAt string           `json:"publishedAt,example=2024-01-01T00:00:00Z"`
 		createdAt   string           `json:"createdAt,example=2024-01-01T00:00:00Z"`
 		updatedAt   string           `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+		isSaved     bool             `json:"isSaved"`
 	}
 	ArticleResponse {
 		data Article `json:"data"`

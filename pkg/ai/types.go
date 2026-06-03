@@ -154,10 +154,13 @@ type AgentResponse struct {
 func toEinoMessages(msgs []Message, system string) []*einoMessage {
 	var out []*einoMessage
 	if system != "" {
+		out = make([]*einoMessage, 0, len(msgs)+1)
 		out = append(out, &einoMessage{
 			Role:    einoSystem,
 			Content: system,
 		})
+	} else {
+		out = make([]*einoMessage, 0, len(msgs))
 	}
 	for _, m := range msgs {
 		out = append(out, toEinoMessage(m))

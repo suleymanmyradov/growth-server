@@ -78,6 +78,42 @@ func convertAuthorRowToPbArticle(a db.ListArticlesByAuthorRow) *client.Article {
 	return pb
 }
 
+func convertAuthorWithSavedRowToPbArticle(a db.ListArticlesByAuthorWithSavedRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		IsSaved:     a.IsSaved,
+	}
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.UUID.String(),
+			Name: categoryName,
+			Slug: categorySlug,
+		}
+	}
+	return pb
+}
+
 func convertListRowToPbArticle(a db.ListArticlesRow) *client.Article {
 	pb := &client.Article{
 		Id:          a.ID.String(),
@@ -137,6 +173,106 @@ func convertCategorySlugRowToPbArticle(a db.ListArticlesByCategorySlugRow) *clie
 			Id:   a.CategoryID.String(),
 			Name: a.CategoryName,
 			Slug: a.CategorySlug,
+		}
+	}
+	return pb
+}
+
+func convertListWithSavedRowToPbArticle(a db.ListArticlesWithSavedRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		IsSaved:     a.IsSaved,
+	}
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.UUID.String(),
+			Name: categoryName,
+			Slug: categorySlug,
+		}
+	}
+	return pb
+}
+
+func convertCategorySlugWithSavedRowToPbArticle(a db.ListArticlesByCategorySlugWithSavedRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		IsSaved:     a.IsSaved,
+	}
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID != uuid.Nil {
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.String(),
+			Name: a.CategoryName,
+			Slug: a.CategorySlug,
+		}
+	}
+	return pb
+}
+
+func convertGetWithSavedRowToPbArticle(a db.GetArticleWithSavedRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		IsSaved:     a.IsSaved,
+	}
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.UUID.String(),
+			Name: categoryName,
+			Slug: categorySlug,
 		}
 	}
 	return pb

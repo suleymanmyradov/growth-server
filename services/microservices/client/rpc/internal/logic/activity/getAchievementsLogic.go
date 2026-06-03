@@ -45,7 +45,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 return nil, status.Error(codes.Internal, "failed to get achievements")
 	}
 
-	var achievements []*client.Achievement
+	achievements := make([]*client.Achievement, 0, len(rows))
 	for _, r := range rows {
 		unlockedAt, ok := r.UnlockedAt.(time.Time)
 		if !ok {

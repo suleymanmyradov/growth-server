@@ -65,12 +65,12 @@ return nil, status.Error(codes.Internal, "invalid month")
 return nil, status.Error(codes.Internal, "failed to get activity calendar")
 	}
 
-	var days []*client.CalendarDay
-	for _, r := range rows {
-		days = append(days, &client.CalendarDay{
+	days := make([]*client.CalendarDay, len(rows))
+	for i, r := range rows {
+		days[i] = &client.CalendarDay{
 			Date:  r.Day.Time.Format("2006-01-02"),
 			Count: int32(r.ActivityCount),
-		})
+		}
 	}
 
 	return &client.GetActivityCalendarResponse{Days: days}, nil

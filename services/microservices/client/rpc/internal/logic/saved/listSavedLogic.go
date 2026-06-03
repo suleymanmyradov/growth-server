@@ -57,8 +57,9 @@ return nil, status.Error(codes.Internal, "invalid user id")
 			l.Errorf("Failed to list saved items by type: %v", err)
 return nil, status.Error(codes.Internal, "failed to list saved items by type")
 		}
-		for _, item := range dbItems {
-			items = append(items, convertDbSavedItemToPb(item))
+		items = make([]*client.SavedItem, len(dbItems))
+		for i, item := range dbItems {
+			items[i] = convertDbSavedItemToPb(item)
 		}
 	} else {
 		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByUser(l.ctx, userID, limit, offset)
@@ -66,8 +67,9 @@ return nil, status.Error(codes.Internal, "failed to list saved items by type")
 			l.Errorf("Failed to list saved items: %v", err)
 return nil, status.Error(codes.Internal, "failed to list saved items")
 		}
-		for _, item := range dbItems {
-			items = append(items, convertDbSavedItemToPb(item))
+		items = make([]*client.SavedItem, len(dbItems))
+		for i, item := range dbItems {
+			items[i] = convertDbSavedItemToPb(item)
 		}
 	}
 

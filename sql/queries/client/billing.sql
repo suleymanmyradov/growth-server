@@ -1,12 +1,10 @@
 -- name: ListActivePlans :many
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
-FROM plans
+SELECT * FROM plans
 WHERE is_active = TRUE
 ORDER BY price_monthly_cents ASC;
 
 -- name: GetPlanByCode :one
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
-FROM plans
+SELECT * FROM plans
 WHERE code = $1 AND is_active = TRUE;
 
 -- name: GetUserSubscription :one
@@ -104,3 +102,28 @@ SELECT
 FROM user_subscriptions us
 JOIN plans p ON p.id = us.plan_id
 WHERE us.stripe_customer_id = $1;
+
+-- name: IsStripeEventProcessed :one
+SELECT EXISTS(SELECT 1 FROM processed_stripe_events WHERE stripe_event_id = $1);
+
+-- name: MarkStripeEventProcessed :exec
+INSERT INTO processed_stripe_events (stripe_event_id, event_type)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING;
+
+-- name: ListExpiredActiveSubscriptions :many
+SELECT
+    us.id, us.user_id, us.plan_id, us.status, us.billing_interval, us.current_period_start, us.current_period_end, us.trial_end, us.cancel_at_period_end, us.stripe_customer_id, us.stripe_subscription_id, us.created_at, us.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM user_subscriptions us
+JOIN plans p ON p.id = us.plan_id
+WHERE us.status IN ('active', 'trialing')
+  AND us.cancel_at_period_end = true
+  AND us.current_period_end < NOW()
+LIMIT $1;

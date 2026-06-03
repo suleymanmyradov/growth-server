@@ -70,9 +70,9 @@ func (l *GetBillingOverviewLogic) GetBillingOverview(in *client.GetBillingOvervi
 	}
 
 	// Convert to proto
-	var pbPlans []*client.Plan
-	for _, plan := range plans {
-		pbPlans = append(pbPlans, planToProto(plan))
+	pbPlans := make([]*client.Plan, len(plans))
+	for i, plan := range plans {
+		pbPlans[i] = planToProto(plan)
 	}
 
 	billingMode := "fake_door"

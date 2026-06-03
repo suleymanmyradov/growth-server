@@ -31,6 +31,13 @@ func (r *ArticlesRepo) ListArticles(ctx context.Context, limit, offset int32) ([
 	return r.db.ListArticles(ctx, limit, offset)
 }
 
+func (r *ArticlesRepo) ListArticlesWithSaved(ctx context.Context, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesWithSavedRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesWithSaved")
+	defer span.End()
+
+	return r.db.ListArticlesWithSaved(ctx, limit, offset, userID)
+}
+
 func (r *ArticlesRepo) ListArticlesByCategorySlug(ctx context.Context, slug string, limit, offset int32) ([]db.ListArticlesByCategorySlugRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByCategorySlug")
 	defer span.End()
@@ -38,11 +45,25 @@ func (r *ArticlesRepo) ListArticlesByCategorySlug(ctx context.Context, slug stri
 	return r.db.ListArticlesByCategorySlug(ctx, slug, limit, offset)
 }
 
+func (r *ArticlesRepo) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByCategorySlugWithSavedRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByCategorySlugWithSaved")
+	defer span.End()
+
+	return r.db.ListArticlesByCategorySlugWithSaved(ctx, slug, limit, offset, userID)
+}
+
 func (r *ArticlesRepo) ListArticlesByAuthor(ctx context.Context, author string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByAuthor")
 	defer span.End()
 
 	return r.db.ListArticlesByAuthor(ctx, author, limit, offset)
+}
+
+func (r *ArticlesRepo) ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByAuthorWithSavedRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ListArticlesByAuthorWithSaved")
+	defer span.End()
+
+	return r.db.ListArticlesByAuthorWithSaved(ctx, author, limit, offset, userID)
 }
 
 func (r *ArticlesRepo) SearchArticles(ctx context.Context, query string, limit, offset int32) ([]db.SearchArticlesRow, error) {
@@ -57,6 +78,13 @@ func (r *ArticlesRepo) GetArticleByID(ctx context.Context, id uuid.UUID) (db.Get
 	defer span.End()
 
 	return r.db.GetArticle(ctx, id)
+}
+
+func (r *ArticlesRepo) GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.GetArticleWithSavedRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.GetArticleByIDWithSaved")
+	defer span.End()
+
+	return r.db.GetArticleWithSaved(ctx, id, userID)
 }
 
 func (r *ArticlesRepo) GetArticleByTitle(ctx context.Context, title string) (db.GetArticleByTitleRow, error) {

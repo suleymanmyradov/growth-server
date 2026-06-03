@@ -15,18 +15,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type HandleStripeWebhookLogic struct {
-	ctx    context.Context
-	svcCtx *svc.ServiceContext
-	logx.Logger
-}
-
-func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HandleStripeWebhookLogic {
-	return &HandleStripeWebhookLogic{
-		ctx:    ctx,
-		svcCtx: svcCtx,
-		Logger: logx.WithContext(ctx),
-	}
+// stripeEventTopLevel is used to extract the event ID from the raw Stripe payload.
+type stripeEventTopLevel struct {
+	ID   string          `json:"id"`
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
 }
 
 // stripeSubscriptionData represents the data.object from Stripe subscription events.
@@ -69,25 +62,89 @@ type stripeCheckoutSession struct {
 	Subscription string `json:"subscription"`
 }
 
+// stripeInvoiceData represents the data.object from Stripe invoice events.
+type stripeInvoiceData struct {
+	Object stripeInvoice `json:"object"`
+}
+
+type stripeInvoice struct {
+	ID           string `json:"id"`
+	Customer     string `json:"customer"`
+	Subscription string `json:"subscription"`
+	Status       string `json:"status"`
+}
+
+// stripeDisputeData represents the data.object from Stripe dispute events.
+type stripeDisputeData struct {
+	Object stripeDispute `json:"object"`
+}
+
+type stripeDispute struct {
+	ID        string `json:"id"`
+	Charge    string `json:"charge"`
+	Amount    int64  `json:"amount"`
+	Currency  string `json:"currency"`
+	Status    string `json:"status"`
+	Reason    string `json:"reason"`
+	PaymentIntent string `json:"payment_intent"`
+}
+
+type HandleStripeWebhookLogic struct {
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+	logx.Logger
+}
+
+func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HandleStripeWebhookLogic {
+	return &HandleStripeWebhookLogic{
+		ctx:    ctx,
+		svcCtx: svcCtx,
+		Logger: logx.WithContext(ctx),
+	}
+}
+
 func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWebhookRequest) (*client.HandleStripeWebhookResponse, error) {
-	// The gateway verifies the Stripe signature and forwards:
-	//   EventType   = the verified Stripe event type (e.g. "checkout.session.completed")
-	//   PayloadJson = the Stripe event's "data" object (e.g. {"object":{...}})
-	// Use the verified EventType for dispatch; pass PayloadJson directly to handlers
-	// since each handler already expects the raw data object.
+	// Idempotency: skip duplicate events using the Stripe event ID.
+	if in.StripeEventId != "" {
+		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(l.ctx, in.StripeEventId)
+		if err != nil {
+			l.Errorf("idempotency check failed: %v", err)
+			return nil, status.Error(codes.Internal, "idempotency check failed")
+		}
+		if processed {
+			l.Infof("duplicate webhook skipped: %s", in.StripeEventId)
+			return &client.HandleStripeWebhookResponse{Processed: true}, nil
+		}
+	}
+
+	var result *client.HandleStripeWebhookResponse
+	var handleErr error
+
 	switch in.EventType {
 	case "checkout.session.completed":
-		return l.handleCheckoutCompleted(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleCheckoutCompleted(json.RawMessage(in.PayloadJson))
 	case "customer.subscription.created", "customer.subscription.updated":
-		return l.handleSubscriptionUpdated(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleSubscriptionUpdated(json.RawMessage(in.PayloadJson))
 	case "customer.subscription.deleted":
-		return l.handleSubscriptionDeleted(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleSubscriptionDeleted(json.RawMessage(in.PayloadJson))
 	case "invoice.payment_failed":
-		return l.handlePaymentFailed(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handlePaymentFailed(json.RawMessage(in.PayloadJson))
+	case "charge.dispute.created":
+		result, handleErr = l.handleDisputeCreated(json.RawMessage(in.PayloadJson))
 	default:
 		l.Infof("Unhandled webhook event type: %s", in.EventType)
-		return &client.HandleStripeWebhookResponse{Processed: true}, nil
+		result = &client.HandleStripeWebhookResponse{Processed: true}
 	}
+
+	// Mark as processed only on success to allow retries on transient failures.
+	if handleErr == nil && in.StripeEventId != "" {
+		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(l.ctx, in.StripeEventId, in.EventType); markErr != nil {
+			l.Errorf("failed to mark stripe event processed: %v", markErr)
+			// Non-fatal: the business logic succeeded.
+		}
+	}
+
+	return result, handleErr
 }
 
 func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
@@ -125,7 +182,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 			_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 				UserID:               existingSub.UserID,
 				PlanID:               proPlan.ID,
-				Status:               "active",
+				Status:               db.SubscriptionStatusTypeActive,
 				StripeCustomerID:     &checkout.Object.Customer,
 				StripeSubscriptionID: &checkout.Object.Subscription,
 			})
@@ -155,6 +212,14 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
+	}
+
+	// Guard against stale webhooks: if the DB has a different subscription ID,
+	// the user has already re-subscribed and we should not overwrite the new one.
+	if existingSub.StripeSubscriptionID != nil && *existingSub.StripeSubscriptionID != sub.ID {
+		l.Infof("Stale subscription update ignored: db_sub=%s webhook_sub=%s customer=%s",
+			*existingSub.StripeSubscriptionID, sub.ID, customerID)
+		return &client.HandleStripeWebhookResponse{Processed: true}, nil
 	}
 
 	// Determine plan based on Stripe price ID
@@ -231,6 +296,14 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 		return nil, status.Error(codes.NotFound, "subscription not found")
 	}
 
+	// Guard against stale webhooks: if the DB has a different subscription ID,
+	// the user has already re-subscribed and we should not overwrite the new one.
+	if existingSub.StripeSubscriptionID != nil && *existingSub.StripeSubscriptionID != subData.Object.ID {
+		l.Infof("Stale subscription deletion ignored: db_sub=%s webhook_sub=%s customer=%s",
+			*existingSub.StripeSubscriptionID, subData.Object.ID, customerID)
+		return &client.HandleStripeWebhookResponse{Processed: true}, nil
+	}
+
 	// Downgrade to free plan
 	freePlan, err := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "free")
 	if err != nil {
@@ -241,7 +314,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               freePlan.ID,
-		Status:               "canceled",
+		Status:               db.SubscriptionStatusTypeCanceled,
 		CancelAtPeriodEnd:    false,
 		StripeCustomerID:     &subData.Object.Customer,
 		StripeSubscriptionID: &subData.Object.ID,
@@ -255,37 +328,61 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 }
 
 func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
-	var subData stripeSubscriptionData
-	if err := json.Unmarshal(data, &subData); err != nil {
-		l.Errorf("Failed to parse subscription data: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid subscription data")
+	var invoiceData stripeInvoiceData
+	if err := json.Unmarshal(data, &invoiceData); err != nil {
+		l.Errorf("Failed to parse invoice data: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid invoice data")
 	}
 
-	customerID := subData.Object.Customer
+	invoice := invoiceData.Object
+	customerID := invoice.Customer
 	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
 	}
 
-	// Update status to past_due
-	proPlan, err := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "pro")
-	if err != nil {
-		l.Errorf("Failed to get pro plan: %v", err)
-		return nil, status.Error(codes.NotFound, "plan not found")
-	}
-
+	// Update status to past_due; keep the current plan so grace-period logic applies.
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
-		PlanID:               proPlan.ID,
-		Status:               "past_due",
-		StripeCustomerID:     &subData.Object.Customer,
-		StripeSubscriptionID: &subData.Object.ID,
+		PlanID:               existingSub.PlanID,
+		Status:               db.SubscriptionStatusTypePastDue,
+		StripeCustomerID:     &invoice.Customer,
+		StripeSubscriptionID: &invoice.Subscription,
 	})
 	if err != nil {
 		l.Errorf("Failed to update subscription to past_due: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update subscription")
 	}
+
+	l.Infof("Payment failed: invoice=%s customer=%s subscription=%s", invoice.ID, invoice.Customer, invoice.Subscription)
+	return &client.HandleStripeWebhookResponse{Processed: true}, nil
+}
+
+func (l *HandleStripeWebhookLogic) handleDisputeCreated(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+	var disputeData stripeDisputeData
+	if err := json.Unmarshal(data, &disputeData); err != nil {
+		l.Errorf("Failed to parse dispute data: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid dispute data")
+	}
+
+	dispute := disputeData.Object
+
+	// Log dispute for audit and ops visibility. In production, integrate with
+	// your support/alerts pipeline (e.g., email ops, create ticket).
+	l.Errorf("STRIPE DISPUTE: id=%s charge=%s amount=%d %s reason=%s status=%s",
+		dispute.ID, dispute.Charge, dispute.Amount, dispute.Currency,
+		dispute.Reason, dispute.Status,
+	)
+
+	// Freeze the subscription by downgrading to free until the dispute is resolved.
+	// This prevents continued service access during a contested charge.
+	// When the dispute is won (charge.dispute.closed with status=won), the customer
+	// can re-subscribe and the checkout webhook will restore their plan.
+	//
+	// Note: We do not have a direct customer mapping from the dispute payload.
+	// In a full implementation, resolve the charge -> payment_intent -> customer
+	// via Stripe API or maintain a charge lookup table. For now, log aggressively.
 
 	return &client.HandleStripeWebhookResponse{Processed: true}, nil
 }

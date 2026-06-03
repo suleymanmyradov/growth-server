@@ -85,9 +85,9 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 		total = int64(historyLimit)
 	}
 
-	var protoReviews []*client.WeeklyReview
-	for _, r := range reviews {
-		protoReviews = append(protoReviews, dbReviewToProto(r))
+	protoReviews := make([]*client.WeeklyReview, len(reviews))
+	for i, r := range reviews {
+		protoReviews[i] = dbReviewToProto(r)
 	}
 
 	return &client.ListWeeklyReviewsResponse{

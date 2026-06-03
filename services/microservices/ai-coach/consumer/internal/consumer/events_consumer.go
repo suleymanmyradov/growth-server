@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,6 +56,7 @@ type EventsHandler struct {
 	sem         chan struct{}
 	aiTimeout   time.Duration
 	serviceName string
+	safetyCache sync.Map // habitName -> safety.Verdict
 }
 
 // EventsHandlerOptions carries optional configuration for the handler.
@@ -218,12 +220,19 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, env events.Envelop
 
 	// Safety check on user-generated fields before sending to the model.
 	if h.classifier != nil {
-		verdict, err := h.classifier.Classify(ctx, p.HabitName)
-		if err != nil {
-			logx.WithContext(ctx).Errorf("safety classification error: %v", err)
-			// Treat safety-classifier errors as transient so we retry rather than
-			// skip a potentially-valid event.
-			return fmt.Errorf("safety classification: %w", err)
+		var verdict safety.Verdict
+		if cached, ok := h.safetyCache.Load(p.HabitName); ok {
+			verdict = cached.(safety.Verdict)
+		} else {
+			var err error
+			verdict, err = h.classifier.Classify(ctx, p.HabitName)
+			if err != nil {
+				logx.WithContext(ctx).Errorf("safety classification error: %v", err)
+				// Treat safety-classifier errors as transient so we retry rather than
+				// skip a potentially-valid event.
+				return fmt.Errorf("safety classification: %w", err)
+			}
+			h.safetyCache.Store(p.HabitName, verdict)
 		}
 		if verdict.Category != safety.CategorySafe {
 			logx.WithContext(ctx).Infof("safety block: category=%s confidence=%.2f reason=%s", verdict.Category, verdict.Confidence, verdict.Reason)

@@ -57,6 +57,6 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(req *types.GetTodayCheckInsRequ
 	}
 
 	return &types.GetTodayCheckInsResponse{
-		Data: checkIns,
+		CheckIns: checkIns,
 	}, nil
 }

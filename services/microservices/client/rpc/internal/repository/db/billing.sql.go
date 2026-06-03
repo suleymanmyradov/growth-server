@@ -157,8 +157,7 @@ func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEvent
 }
 
 const getPlanByCode = `-- name: GetPlanByCode :one
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
-FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at, currency FROM plans
 WHERE code = $1 AND is_active = TRUE
 `
 
@@ -182,6 +181,7 @@ func (q *Queries) GetPlanByCode(ctx context.Context, code string) (Plan, error) 
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Currency,
 	)
 	return i, err
 }
@@ -318,9 +318,19 @@ func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, str
 	return i, err
 }
 
+const isStripeEventProcessed = `-- name: IsStripeEventProcessed :one
+SELECT EXISTS(SELECT 1 FROM processed_stripe_events WHERE stripe_event_id = $1)
+`
+
+func (q *Queries) IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error) {
+	row := q.db.QueryRow(ctx, isStripeEventProcessed, stripeEventID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listActivePlans = `-- name: ListActivePlans :many
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
-FROM plans
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at, currency FROM plans
 WHERE is_active = TRUE
 ORDER BY price_monthly_cents ASC
 `
@@ -351,6 +361,7 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Currency,
 		); err != nil {
 			return nil, err
 		}
@@ -360,6 +371,99 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const listExpiredActiveSubscriptions = `-- name: ListExpiredActiveSubscriptions :many
+SELECT
+    us.id, us.user_id, us.plan_id, us.status, us.billing_interval, us.current_period_start, us.current_period_end, us.trial_end, us.cancel_at_period_end, us.stripe_customer_id, us.stripe_subscription_id, us.created_at, us.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM user_subscriptions us
+JOIN plans p ON p.id = us.plan_id
+WHERE us.status IN ('active', 'trialing')
+  AND us.cancel_at_period_end = true
+  AND us.current_period_end < NOW()
+LIMIT $1
+`
+
+type ListExpiredActiveSubscriptionsRow struct {
+	ID                       uuid.UUID              `db:"id" json:"id"`
+	UserID                   uuid.UUID              `db:"user_id" json:"user_id"`
+	PlanID                   uuid.UUID              `db:"plan_id" json:"plan_id"`
+	Status                   SubscriptionStatusType `db:"status" json:"status"`
+	BillingInterval          *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart       pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd         pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                 pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd        bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID         *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID     *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt                pgtype.Timestamptz     `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz     `db:"updated_at" json:"updated_at"`
+	PlanCode                 string                 `db:"plan_code" json:"plan_code"`
+	PlanName                 string                 `db:"plan_name" json:"plan_name"`
+	ActiveGoalLimit          int32                  `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32                  `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32                  `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32                  `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool                   `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+}
+
+func (q *Queries) ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]ListExpiredActiveSubscriptionsRow, error) {
+	rows, err := q.db.Query(ctx, listExpiredActiveSubscriptions, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListExpiredActiveSubscriptionsRow{}
+	for rows.Next() {
+		var i ListExpiredActiveSubscriptionsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.PlanID,
+			&i.Status,
+			&i.BillingInterval,
+			&i.CurrentPeriodStart,
+			&i.CurrentPeriodEnd,
+			&i.TrialEnd,
+			&i.CancelAtPeriodEnd,
+			&i.StripeCustomerID,
+			&i.StripeSubscriptionID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.PlanCode,
+			&i.PlanName,
+			&i.ActiveGoalLimit,
+			&i.ActiveHabitLimit,
+			&i.WeeklyReviewHistoryLimit,
+			&i.PlanAdjustmentLimit,
+			&i.PersonalizedAiEnabled,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markStripeEventProcessed = `-- name: MarkStripeEventProcessed :exec
+INSERT INTO processed_stripe_events (stripe_event_id, event_type)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+func (q *Queries) MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error {
+	_, err := q.db.Exec(ctx, markStripeEventProcessed, stripeEventID, eventType)
+	return err
 }
 
 const upsertUserSubscription = `-- name: UpsertUserSubscription :one

@@ -10,10 +10,14 @@ import (
 
 type IArticles interface {
 	ListArticles(ctx context.Context, limit, offset int32) ([]db.ListArticlesRow, error)
+	ListArticlesWithSaved(ctx context.Context, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesWithSavedRow, error)
 	ListArticlesByCategorySlug(ctx context.Context, slug string, limit, offset int32) ([]db.ListArticlesByCategorySlugRow, error)
+	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByCategorySlugWithSavedRow, error)
 	ListArticlesByAuthor(ctx context.Context, author string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error)
+	ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByAuthorWithSavedRow, error)
 	SearchArticles(ctx context.Context, query string, limit, offset int32) ([]db.SearchArticlesRow, error)
 	GetArticleByID(ctx context.Context, id uuid.UUID) (db.GetArticleRow, error)
+	GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.GetArticleWithSavedRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (db.GetArticleByTitleRow, error)
 	CreateArticle(ctx context.Context, params db.CreateArticleParams) (db.CreateArticleRow, error)
 	UpdateArticle(ctx context.Context, params db.UpdateArticleParams) (db.UpdateArticleRow, error)
@@ -146,6 +150,9 @@ type IBilling interface {
 	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*EntitlementsResult, error)
+	IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error)
+	MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error
+	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error)
 }
 
 type IPlanAdjustmentSuggestions interface {

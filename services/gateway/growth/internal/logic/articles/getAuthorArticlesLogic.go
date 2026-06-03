@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
@@ -30,11 +31,18 @@ func NewGetAuthorArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 
 func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesRequest) (resp *types.ArticlesResponse, err error) {
 	offset := (req.Page - 1) * req.Limit
-	rpcResp, err := l.svcCtx.ArticlesRpc.GetAuthorArticles(l.ctx, &clientarticles.GetAuthorArticlesRequest{
+
+	rpcReq := &clientarticles.GetAuthorArticlesRequest{
 		AuthorId: req.AuthorId,
 		Offset:   int32(offset),
 		Limit:    int32(req.Limit),
-	})
+	}
+
+	if p, ok := principal.PrincipalFrom(l.ctx); ok {
+		rpcReq.UserId = p.UserID
+	}
+
+	rpcResp, err := l.svcCtx.ArticlesRpc.GetAuthorArticles(l.ctx, rpcReq)
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +69,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesR
 			PublishedAt: formatTime(a.PublishedAt),
 			CreatedAt:   formatTime(a.CreatedAt),
 			UpdatedAt:   formatTime(a.UpdatedAt),
+			IsSaved:     a.IsSaved,
 		})
 	}
 

@@ -194,9 +194,59 @@ func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArtic
 	return i, err
 }
 
-const listArticles = `-- name: ListArticles :many
+const getArticleWithSaved = `-- name: GetArticleWithSaved :one
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.id = $1
+`
+
+type GetArticleWithSavedRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+}
+
+func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (GetArticleWithSavedRow, error) {
+	row := q.db.QueryRow(ctx, getArticleWithSaved, iD, userID)
+	var i GetArticleWithSavedRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Excerpt,
+		&i.Content,
+		&i.ReadTime,
+		&i.ImageUrl,
+		&i.Author,
+		&i.PublishedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategorySlug,
+		&i.IsSaved,
+	)
+	return i, err
+}
+
+const listArticles = `-- name: ListArticles :many
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug
 FROM articles a
@@ -317,6 +367,76 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit
 	return items, nil
 }
 
+const listArticlesByAuthorWithSaved = `-- name: ListArticlesByAuthorWithSaved :many
+SELECT 
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.author = $1
+ORDER BY a.published_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListArticlesByAuthorWithSavedRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+}
+
+func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByAuthorWithSavedRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByAuthorWithSaved,
+		author,
+		limit,
+		offset,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArticlesByAuthorWithSavedRow{}
+	for rows.Next() {
+		var i ListArticlesByAuthorWithSavedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Excerpt,
+			&i.Content,
+			&i.ReadTime,
+			&i.ImageUrl,
+			&i.Author,
+			&i.PublishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CategoryID,
+			&i.CategoryName,
+			&i.CategorySlug,
+			&i.IsSaved,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listArticlesByCategorySlug = `-- name: ListArticlesByCategorySlug :many
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
@@ -368,6 +488,141 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, l
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesByCategorySlugWithSaved = `-- name: ListArticlesByCategorySlugWithSaved :many
+SELECT 
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+FROM articles a
+JOIN categories c ON a.category_id = c.id
+LEFT JOIN saved_articles sa ON sa.article_id = a.id AND sa.user_id = $4
+WHERE c.slug = $1
+ORDER BY a.published_at DESC
+LIMIT $2 OFFSET $3
+`
+
+type ListArticlesByCategorySlugWithSavedRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.UUID          `db:"category_id" json:"category_id"`
+	CategoryName string             `db:"category_name" json:"category_name"`
+	CategorySlug string             `db:"category_slug" json:"category_slug"`
+	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+}
+
+func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByCategorySlugWithSavedRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByCategorySlugWithSaved,
+		slug,
+		limit,
+		offset,
+		userID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArticlesByCategorySlugWithSavedRow{}
+	for rows.Next() {
+		var i ListArticlesByCategorySlugWithSavedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Excerpt,
+			&i.Content,
+			&i.ReadTime,
+			&i.ImageUrl,
+			&i.Author,
+			&i.PublishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CategoryID,
+			&i.CategoryName,
+			&i.CategorySlug,
+			&i.IsSaved,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listArticlesWithSaved = `-- name: ListArticlesWithSaved :many
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+ORDER BY a.published_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListArticlesWithSavedRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+}
+
+func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesWithSavedRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesWithSaved, limit, offset, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArticlesWithSavedRow{}
+	for rows.Next() {
+		var i ListArticlesWithSavedRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Excerpt,
+			&i.Content,
+			&i.ReadTime,
+			&i.ImageUrl,
+			&i.Author,
+			&i.PublishedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CategoryID,
+			&i.CategoryName,
+			&i.CategorySlug,
+			&i.IsSaved,
 		); err != nil {
 			return nil, err
 		}

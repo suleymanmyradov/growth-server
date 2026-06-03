@@ -525,6 +525,7 @@ message Article {
   ArticleCategory category = 12;
   int64 createdAt = 13;
   int64 updatedAt = 14;
+  bool isSaved = 15;
 }
 
 message ListArticlesRequest {
@@ -533,6 +534,7 @@ message ListArticlesRequest {
   string categorySlug = 3;
   string tag = 4;
   string authorId = 5;
+  string userId = 6;
 }
 
 message ListArticlesResponse {
@@ -542,6 +544,7 @@ message ListArticlesResponse {
 
 message GetArticleRequest {
   string articleId = 1;
+  string userId = 2;
 }
 
 message GetArticleResponse {
@@ -572,6 +575,7 @@ message GetAuthorArticlesRequest {
   string authorId = 1;
   int32 limit = 2;
   int32 offset = 3;
+  string userId = 4;
 }
 
 message GetAuthorArticlesResponse {
