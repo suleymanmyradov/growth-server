@@ -81,11 +81,11 @@ type TokenMaker struct {
 }
 
 type Config struct {
-	Secret                string
-	Issuer                string
-	Audience              string
-	AccessExpiryDuration  time.Duration
-	RefreshExpiryDuration time.Duration
+	Secret                string        `json:",optional" secret:"true"`
+	Issuer                string        `json:",optional"`
+	Audience              string        `json:",optional"`
+	AccessExpiryDuration  time.Duration `json:",optional"`
+	RefreshExpiryDuration time.Duration `json:",optional"`
 }
 
 func NewTokenMaker(cfg Config, repo RevocationRepository) (*TokenMaker, error) {

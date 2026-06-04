@@ -17,18 +17,18 @@ type Config struct {
 	SearchRpc        zrpc.RpcClientConf
 	AICoachRpc       zrpc.RpcClientConf
 	Auth             struct {
-		Secret   string
-		Issuer   string
-		Audience string
+		Secret   string `json:",optional" secret:"true"`
+		Issuer   string `json:",optional"`
+		Audience string `json:",optional"`
 	}
 	Billing struct {
-		Mode                string // disabled, fake_door, stripe_test, stripe_live
-		StripeSecretKey     string
-		StripeWebhookSecret string
-		FrontendURL         string
+		Mode                string `json:",optional"`
+		StripeSecretKey     string `json:",optional" secret:"true"`
+		StripeWebhookSecret string `json:",optional" secret:"true"`
+		FrontendURL         string `json:",optional"`
 	}
 	ServiceAuth struct {
-		Secret string
+		Secret string `json:",optional" secret:"true"`
 	}
 	RateLimit middleware.RateLimitConfig
 }

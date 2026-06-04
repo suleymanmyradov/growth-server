@@ -27,26 +27,23 @@ func (m MaskedValue) MarshalJSON() ([]byte, error) {
 }
 
 // MaskSecrets walks a struct and replaces any field tagged with `secret:"true"`
+// or any field with a sensitive name (Secret, Password, Pass, Key, Token, Datasource)
 // with a masked string representation. It returns a map that is safe to log.
 func MaskSecrets(cfg interface{}) map[string]interface{} {
 	val := reflect.ValueOf(cfg)
 	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-	return maskValue(val, "")
-}
-
-func maskValue(v reflect.Value, prefix string) map[string]interface{} {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
+		if val.IsNil() {
 			return nil
 		}
-		v = v.Elem()
+		val = val.Elem()
 	}
-	if v.Kind() != reflect.Struct {
+	if val.Kind() != reflect.Struct {
 		return nil
 	}
+	return maskStruct(val)
+}
 
+func maskStruct(v reflect.Value) map[string]interface{} {
 	result := make(map[string]interface{})
 	t := v.Type()
 	for i := 0; i < v.NumField(); i++ {
@@ -58,33 +55,42 @@ func maskValue(v reflect.Value, prefix string) map[string]interface{} {
 			continue
 		}
 
-		name := field.Name
-		if prefix != "" {
-			name = prefix + "." + name
+		// Flatten anonymous (embedded) structs into the parent map
+		if field.Anonymous && fv.Kind() == reflect.Struct {
+			nested := maskStruct(fv)
+			for k, v := range nested {
+				result[k] = v
+			}
+			continue
 		}
 
-		// Check for secret tag on the field
+		// Check for explicit secret tag on the field
 		if field.Tag.Get("secret") == "true" {
-			if fv.Kind() == reflect.String {
-				result[field.Name] = MaskedValue(fv.String()).String()
-			} else {
-				result[field.Name] = "****"
-			}
+			result[field.Name] = maskReflectValue(fv)
 			continue
 		}
 
 		// Recurse into nested structs
 		if fv.Kind() == reflect.Struct {
-			nested := maskValue(fv, "")
-			if len(nested) > 0 {
-				result[field.Name] = nested
-			}
+			result[field.Name] = maskStruct(fv)
+			continue
+		}
+
+		// Handle slices
+		if fv.Kind() == reflect.Slice || fv.Kind() == reflect.Array {
+			result[field.Name] = maskSlice(fv)
+			continue
+		}
+
+		// Handle maps
+		if fv.Kind() == reflect.Map {
+			result[field.Name] = maskMap(fv)
 			continue
 		}
 
 		// Handle string fields that look like secrets/keys by name
 		if fv.Kind() == reflect.String && isSensitiveName(field.Name) {
-			result[field.Name] = MaskedValue(fv.String()).String()
+			result[field.Name] = MaskedValue(fv.String())
 			continue
 		}
 
@@ -94,8 +100,55 @@ func maskValue(v reflect.Value, prefix string) map[string]interface{} {
 	return result
 }
 
+func maskReflectValue(v reflect.Value) interface{} {
+	switch v.Kind() {
+	case reflect.String:
+		return MaskedValue(v.String())
+	case reflect.Slice, reflect.Array:
+		return maskSlice(v)
+	case reflect.Map:
+		return maskMap(v)
+	case reflect.Struct:
+		return maskStruct(v)
+	case reflect.Ptr:
+		if v.IsNil() {
+			return nil
+		}
+		return maskReflectValue(v.Elem())
+	default:
+		return "****"
+	}
+}
+
+func maskSlice(v reflect.Value) interface{} {
+	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
+		return v.Interface()
+	}
+	result := make([]interface{}, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		elem := v.Index(i)
+		if elem.Kind() == reflect.Struct {
+			result[i] = maskStruct(elem)
+		} else {
+			result[i] = elem.Interface()
+		}
+	}
+	return result
+}
+
+func maskMap(v reflect.Value) interface{} {
+	if v.Kind() != reflect.Map {
+		return v.Interface()
+	}
+	result := make(map[string]interface{})
+	for _, key := range v.MapKeys() {
+		result[fmt.Sprint(key.Interface())] = v.MapIndex(key).Interface()
+	}
+	return result
+}
+
 var sensitiveNames = []string{
-	"Secret", "secret", "Password", "password", "Key", "key",
+	"Secret", "secret", "Password", "password", "Pass", "pass", "Key", "key",
 	"Token", "token", "APIKey", "apiKey", "api_key",
 	"StripeSecretKey", "StripeWebhookSecret",
 	"Datasource", "datasource",

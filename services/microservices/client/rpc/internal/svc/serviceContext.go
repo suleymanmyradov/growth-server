@@ -57,8 +57,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	var redisClient *redis.Client
 	var authzChecker *authz.Checker
-	if c.Redis.Addr != "" {
-		client, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+	if c.AppRedis.Addr != "" {
+		client, err := redisutil.NewClient(c.AppRedis.Addr, c.AppRedis.Password, c.AppRedis.DB)
 		if err != nil {
 			logx.Errorf("redis unavailable; authz caching disabled: %v", err)
 		} else {

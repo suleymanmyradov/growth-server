@@ -44,11 +44,7 @@ func main() {
 
 	// Verify JWT tokens so downstream services don't blindly trust gateway headers.
 	// In production, replace this with jwt.NewVerifier using a public key (RS256/ES256).
-	tokenVerifier, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:   c.Auth.Secret,
-		Issuer:   c.Auth.Issuer,
-		Audience: c.Auth.Audience,
-	}, nil)
+	tokenVerifier, err := jwt.NewTokenMaker(c.JWT, nil)
 	if err != nil {
 		logx.Must(err)
 	}
@@ -56,7 +52,7 @@ func main() {
 	s.AddUnaryInterceptors(
 		recovery.UnaryServerInterceptor(),
 		mdpropagate.UnaryServerInterceptorOptional(tokenVerifier),
-		s2s.UnaryServerInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret}),
+		s2s.UnaryServerInterceptor(c.ServiceAuth),
 	)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
