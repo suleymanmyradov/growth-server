@@ -251,7 +251,7 @@ build-gateway:
 build-billing-reconciler:
 	@echo "Building billing-reconciler..."
 	@mkdir -p bin
-	go build -o bin/billing-reconciler ./services/microservices/client/rpc/cmd/billing-reconciler
+	go build -o bin/billing-reconciler ./services/microservices/billing-reconciler
 
 clean:
 	@echo "Cleaning build artifacts..."
