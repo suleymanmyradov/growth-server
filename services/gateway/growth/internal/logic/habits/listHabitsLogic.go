@@ -1,15 +1,15 @@
 package habits
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
-
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -36,9 +36,8 @@ func (l *ListHabitsLogic) ListHabits(req *types.PageRequest) (resp *types.Habits
 	}
 
 	rpcResp, err := l.svcCtx.HabitsRpc.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
-		UserId: "",
-		Page:   int32(req.Page),
-		Limit:  int32(req.Limit),
+		Page:  int32(req.Page),
+		Limit: int32(req.Limit),
 	})
 	if err != nil {
 		return nil, err

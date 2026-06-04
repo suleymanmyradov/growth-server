@@ -9,14 +9,14 @@ import (
 type Config struct {
 	service.ServiceConf
 	Postgres struct {
-		Datasource      string `secret:"true"`
+		Datasource      string
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
 	}
 	Meili struct {
 		Host   string
-		APIKey string `secret:"true"`
+		APIKey string
 		Index  string
 	}
 	Sync struct {

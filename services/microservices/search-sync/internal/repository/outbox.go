@@ -256,43 +256,6 @@ func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[stri
 	return result, nil
 }
 
-func (r *OutboxRepository) GetConversation(ctx context.Context, id uuid.UUID) (map[string]any, error) {
-	query := `SELECT id, user_id, title, last_message, created_at, updated_at FROM conversations WHERE id = $1`
-
-	var doc struct {
-		ID          uuid.UUID `json:"id"`
-		UserID      uuid.UUID `json:"user_id"`
-		Title       string    `json:"title"`
-		LastMessage *string   `json:"last_message"`
-		CreatedAt   time.Time `json:"created_at"`
-		UpdatedAt   time.Time `json:"updated_at"`
-	}
-
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&doc.ID, &doc.UserID, &doc.Title, &doc.LastMessage, &doc.CreatedAt, &doc.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	result := map[string]any{
-		"id":          fmt.Sprintf("conversation:%s", doc.ID.String()),
-		"entity_id":   doc.ID.String(),
-		"type":        "conversation",
-		"user_id":     doc.UserID.String(),
-		"title":       doc.Title,
-		"description": nil,
-		"created_at":  doc.CreatedAt.Unix(),
-		"updated_at":  doc.UpdatedAt.Unix(),
-		"url":         "/ai-coach",
-		"visibility":  "private",
-	}
-	if doc.LastMessage != nil {
-		result["description"] = *doc.LastMessage
-	}
-	return result, nil
-}
-
 func (r *OutboxRepository) Backfill(ctx context.Context) error {
 	queries := []string{
 		`INSERT INTO search_outbox (entity_type, entity_id, operation)
@@ -303,9 +266,6 @@ func (r *OutboxRepository) Backfill(ctx context.Context) error {
 		 ON CONFLICT DO NOTHING`,
 		`INSERT INTO search_outbox (entity_type, entity_id, operation)
 		 SELECT 'habit', id, 'upsert' FROM habits
-		 ON CONFLICT DO NOTHING`,
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'conversation', id, 'upsert' FROM conversations
 		 ON CONFLICT DO NOTHING`,
 	}
 

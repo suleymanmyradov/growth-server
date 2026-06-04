@@ -189,7 +189,7 @@ func (c *client) logCall(ctx context.Context, profile ModelProfile, modelID stri
 			logx.Field("model", modelID),
 			logx.Field("feature", meta.Feature),
 			logx.Field("user_id", meta.UserID),
-			logx.Field("conversation_id", meta.ConversationID),
+
 			logx.Field("prompt_hash", meta.PromptHash),
 			logx.Field("prompt_tokens", usage.PromptTokens),
 			logx.Field("completion_tokens", usage.CompletionTokens),

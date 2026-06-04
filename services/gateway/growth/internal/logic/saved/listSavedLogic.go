@@ -35,7 +35,6 @@ func (l *ListSavedLogic) ListSaved(req *types.PageRequest) (resp *types.SavedIte
 	}
 
 	rpcResp, err := l.svcCtx.SavedRpc.ListSaved(l.ctx, &clientsaved.ListSavedRequest{
-		UserId: "",
 		Limit:  int32(req.Limit),
 		Offset: int32((req.Page - 1) * req.Limit),
 	})

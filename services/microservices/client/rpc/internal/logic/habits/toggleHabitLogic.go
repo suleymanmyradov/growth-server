@@ -1,11 +1,12 @@
 package habitslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 	"encoding/json"
 	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -34,14 +35,14 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 	habitID, err := uuid.Parse(in.HabitId)
 	if err != nil {
 		l.Errorf("Invalid habit ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid habit id")
+		return nil, status.Error(codes.Internal, "invalid habit id")
 	}
 
 	// Fetch habit first to get the owner user ID for RLS context.
 	preHabit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
 	if err != nil {
 		l.Errorf("Failed to get habit: %v", err)
-return nil, status.Error(codes.Internal, "failed to get habit")
+		return nil, status.Error(codes.Internal, "failed to get habit")
 	}
 
 	var resultHabit db.Habit
@@ -72,7 +73,7 @@ return nil, status.Error(codes.Internal, "failed to get habit")
 	})
 	if err != nil {
 		l.Errorf("Failed to toggle habit in tx: %v", err)
-return nil, status.Error(codes.Internal, "failed to toggle habit in tx")
+		return nil, status.Error(codes.Internal, "failed to toggle habit in tx")
 	}
 
 	return &client.ToggleHabitResponse{

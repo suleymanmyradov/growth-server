@@ -30,14 +30,13 @@ func NewListSavedDetailedLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp *types.SavedItemsDetailedResponse, err error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
 		return &types.SavedItemsDetailedResponse{Data: []types.SavedItemDetailed{}}, nil
 	}
 
 	// 1. Get saved items
 	rpcResp, err := l.svcCtx.SavedRpc.ListSaved(l.ctx, &clientsaved.ListSavedRequest{
-		UserId: "",
 		Limit:  int32(req.Limit),
 		Offset: int32((req.Page - 1) * req.Limit),
 	})
@@ -55,15 +54,13 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 	go func() {
 		defer wg.Done()
 		habitsResp, habitsErr = l.svcCtx.HabitsRpc.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
-			UserId: p.UserID,
-			Limit:  1000,
+			Limit: 1000,
 		})
 	}()
 	go func() {
 		defer wg.Done()
 		goalsResp, goalsErr = l.svcCtx.GoalsRpc.ListGoals(l.ctx, &clientgoals.ListGoalsRequest{
-			UserId: p.UserID,
-			Limit:  1000,
+			Limit: 1000,
 		})
 	}()
 	wg.Wait()

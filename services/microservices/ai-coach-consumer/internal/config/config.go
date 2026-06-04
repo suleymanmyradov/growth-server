@@ -9,7 +9,7 @@ import (
 
 type Config struct {
 	Postgres struct {
-		Datasource      string `secret:"true"`
+		Datasource      string
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration

@@ -1,5 +1,4 @@
 DROP TRIGGER IF EXISTS categories_search_sync ON public.categories;
-DROP TRIGGER IF EXISTS conversations_search_sync ON public.conversations;
 DROP TRIGGER IF EXISTS habits_search_sync ON public.habits;
 DROP TRIGGER IF EXISTS goals_search_sync ON public.goals;
 DROP TRIGGER IF EXISTS articles_search_sync ON public.articles;

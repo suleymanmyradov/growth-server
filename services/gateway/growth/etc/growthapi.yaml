@@ -29,8 +29,6 @@ Middlewares:
 AuthRpc:
   Endpoints:
     - 127.0.0.1:8081
-  Target: ""
-  Etcd: null
   NonBlock: true
 
 ClientRpc:
@@ -41,11 +39,6 @@ ClientRpc:
 SearchRpc:
   Endpoints:
     - 127.0.0.1:8083
-  NonBlock: true
-
-ConversationsRpc:
-  Endpoints:
-    - 127.0.0.1:8084
   NonBlock: true
 
 AICoachRpc:
@@ -59,17 +52,17 @@ NotificationsRpc:
   NonBlock: true
 
 Auth:
-  Secret: "${JWT_SECRET}"      # REQUIRED: load from env
+  Secret: 36be8f513d378b3e8560303d509a7a540385bc50b717c3d487c788210703390b
   Issuer: "growth"
   Audience: "growth-api"
 
 ServiceAuth:
-  Secret: "${S2S_SECRET}"      # REQUIRED: inter-service HMAC secret
+  Secret: 64a0e43ea92b735e40366c4696b213c01cdfe8a7905c7d364e7f2723bea166c0
 
 Billing:
   Mode: "stripe_test"           # disabled | fake_door | stripe_test | stripe_live
-  StripeSecretKey: "${STRIPE_SECRET_KEY}"
-  StripeWebhookSecret: "${STRIPE_WEBHOOK_SECRET}"
+  StripeSecretKey: sk_test_dev_placeholder
+  StripeWebhookSecret: whsec_dev_placeholder
   FrontendURL: "https://growth.app"
 
 # Rate limiting (Redis-backed fixed-window)
@@ -77,7 +70,7 @@ RateLimit:
   Redis:
     Host: "127.0.0.1:6379"
     Type: "node"
-    Pass: "${REDIS_PASSWORD}"   # optional
+    Pass: ""
   AuthQuota: "60,5"             # 5 requests per 60 sec per IP (login/register/refresh)
   AIQuota: "60,10"              # 10 AI requests per 60 sec per user
   SearchQuota: "60,30"          # 30 search requests per 60 sec per IP
@@ -85,6 +78,6 @@ RateLimit:
 # Distributed tracing (OTLP / Zipkin / Jaeger)
 Telemetry:
   Name: growth-gateway
-  Endpoint: "${TRACE_ENDPOINT}" # e.g. http://otel-collector:4317 or http://jaeger:14268/api/traces
+  Endpoint: http://localhost:14268/api/traces
   Sampler: 1.0
   Batcher: otlpgrpc             # otlpgrpc | otlphttp | zipkin | file

@@ -2506,8 +2506,7 @@ func (x *RemoveSavedResponse) GetSuccess() bool {
 
 type ListSavedRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	CollectionId  string                 `protobuf:"bytes,2,opt,name=collectionId,proto3" json:"collectionId,omitempty"`
+	CollectionId  string                 `protobuf:"bytes,1,opt,name=collectionId,proto3" json:"collectionId,omitempty"`
 	ItemType      string                 `protobuf:"bytes,3,opt,name=itemType,proto3" json:"itemType,omitempty"`
 	Limit         int32                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
 	Offset        int32                  `protobuf:"varint,5,opt,name=offset,proto3" json:"offset,omitempty"`
@@ -2543,13 +2542,6 @@ func (x *ListSavedRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListSavedRequest.ProtoReflect.Descriptor instead.
 func (*ListSavedRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{44}
-}
-
-func (x *ListSavedRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *ListSavedRequest) GetCollectionId() string {
@@ -3639,7 +3631,6 @@ func (x *UserSettings) GetOnboardingCompleted() bool {
 
 type GetSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3672,13 +3663,6 @@ func (x *GetSettingsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetSettingsRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{65}
-}
-
-func (x *GetSettingsRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 type GetSettingsResponse struct {
@@ -3727,8 +3711,7 @@ func (x *GetSettingsResponse) GetSettings() *UserSettings {
 
 type UpdateSettingsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Settings      *UserSettings          `protobuf:"bytes,2,opt,name=settings,proto3" json:"settings,omitempty"`
+	Settings      *UserSettings          `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3761,13 +3744,6 @@ func (x *UpdateSettingsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateSettingsRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSettingsRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{67}
-}
-
-func (x *UpdateSettingsRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *UpdateSettingsRequest) GetSettings() *UserSettings {
@@ -5516,9 +5492,8 @@ func (x *Habit) GetUpdatedAt() int64 {
 
 type ListHabitsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5551,13 +5526,6 @@ func (x *ListHabitsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListHabitsRequest.ProtoReflect.Descriptor instead.
 func (*ListHabitsRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{98}
-}
-
-func (x *ListHabitsRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *ListHabitsRequest) GetPage() int32 {
@@ -5716,10 +5684,9 @@ func (x *GetHabitResponse) GetHabit() *Habit {
 
 type CreateHabitRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5752,13 +5719,6 @@ func (x *CreateHabitRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateHabitRequest.ProtoReflect.Descriptor instead.
 func (*CreateHabitRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{102}
-}
-
-func (x *CreateHabitRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *CreateHabitRequest) GetName() string {
@@ -6320,9 +6280,8 @@ func (x *Goal) GetUpdatedAt() int64 {
 
 type ListGoalsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Page          int32                  `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6355,13 +6314,6 @@ func (x *ListGoalsRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ListGoalsRequest.ProtoReflect.Descriptor instead.
 func (*ListGoalsRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{113}
-}
-
-func (x *ListGoalsRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *ListGoalsRequest) GetPage() int32 {
@@ -6520,11 +6472,10 @@ func (x *GetGoalResponse) GetGoal() *Goal {
 
 type CreateGoalRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserId        string                 `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
-	DueDate       int64                  `protobuf:"varint,5,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	DueDate       int64                  `protobuf:"varint,4,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -6557,13 +6508,6 @@ func (x *CreateGoalRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CreateGoalRequest.ProtoReflect.Descriptor instead.
 func (*CreateGoalRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{117}
-}
-
-func (x *CreateGoalRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
 }
 
 func (x *CreateGoalRequest) GetTitle() string {
@@ -11210,10 +11154,9 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x12RemoveSavedRequest\x12\x18\n" +
 	"\asavedId\x18\x01 \x01(\tR\asavedId\"/\n" +
 	"\x13RemoveSavedResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x98\x01\n" +
-	"\x10ListSavedRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\"\n" +
-	"\fcollectionId\x18\x02 \x01(\tR\fcollectionId\x12\x1a\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x80\x01\n" +
+	"\x10ListSavedRequest\x12\"\n" +
+	"\fcollectionId\x18\x01 \x01(\tR\fcollectionId\x12\x1a\n" +
 	"\bitemType\x18\x03 \x01(\tR\bitemType\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\x12\x16\n" +
 	"\x06offset\x18\x05 \x01(\x05R\x06offset\"\\\n" +
@@ -11291,14 +11234,12 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\fprivacyLevel\x18\x06 \x01(\tR\fprivacyLevel\x120\n" +
 	"\x13accountabilityStyle\x18\a \x01(\tR\x13accountabilityStyle\x12 \n" +
 	"\vcheckInTime\x18\b \x01(\tR\vcheckInTime\x120\n" +
-	"\x13onboardingCompleted\x18\t \x01(\bR\x13onboardingCompleted\",\n" +
-	"\x12GetSettingsRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\"G\n" +
+	"\x13onboardingCompleted\x18\t \x01(\bR\x13onboardingCompleted\"\x14\n" +
+	"\x12GetSettingsRequest\"G\n" +
 	"\x13GetSettingsResponse\x120\n" +
-	"\bsettings\x18\x01 \x01(\v2\x14.client.UserSettingsR\bsettings\"a\n" +
-	"\x15UpdateSettingsRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x120\n" +
-	"\bsettings\x18\x02 \x01(\v2\x14.client.UserSettingsR\bsettings\"2\n" +
+	"\bsettings\x18\x01 \x01(\v2\x14.client.UserSettingsR\bsettings\"I\n" +
+	"\x15UpdateSettingsRequest\x120\n" +
+	"\bsettings\x18\x01 \x01(\v2\x14.client.UserSettingsR\bsettings\"2\n" +
 	"\x16UpdateSettingsResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\"/\n" +
 	"\x15GetPreferencesRequest\x12\x16\n" +
@@ -11419,23 +11360,21 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x0ecompletedToday\x18\b \x01(\bR\x0ecompletedToday\x12\x1c\n" +
 	"\tcreatedAt\x18\t \x01(\x03R\tcreatedAt\x12\x1c\n" +
 	"\tupdatedAt\x18\n" +
-	" \x01(\x03R\tupdatedAt\"U\n" +
-	"\x11ListHabitsRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"Q\n" +
+	" \x01(\x03R\tupdatedAt\"=\n" +
+	"\x11ListHabitsRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"Q\n" +
 	"\x12ListHabitsResponse\x12%\n" +
 	"\x06habits\x18\x01 \x03(\v2\r.client.HabitR\x06habits\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"+\n" +
 	"\x0fGetHabitRequest\x12\x18\n" +
 	"\ahabitId\x18\x01 \x01(\tR\ahabitId\"7\n" +
 	"\x10GetHabitResponse\x12#\n" +
-	"\x05habit\x18\x01 \x01(\v2\r.client.HabitR\x05habit\"~\n" +
-	"\x12CreateHabitRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1a\n" +
-	"\bcategory\x18\x04 \x01(\tR\bcategory\":\n" +
+	"\x05habit\x18\x01 \x01(\v2\r.client.HabitR\x05habit\"f\n" +
+	"\x12CreateHabitRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\":\n" +
 	"\x13CreateHabitResponse\x12#\n" +
 	"\x05habit\x18\x01 \x01(\v2\r.client.HabitR\x05habit\"\x80\x01\n" +
 	"\x12UpdateHabitRequest\x12\x18\n" +
@@ -11470,24 +11409,22 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\adueDate\x18\b \x01(\x03R\adueDate\x12\x1c\n" +
 	"\tcreatedAt\x18\t \x01(\x03R\tcreatedAt\x12\x1c\n" +
 	"\tupdatedAt\x18\n" +
-	" \x01(\x03R\tupdatedAt\"T\n" +
-	"\x10ListGoalsRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
-	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"M\n" +
+	" \x01(\x03R\tupdatedAt\"<\n" +
+	"\x10ListGoalsRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"M\n" +
 	"\x11ListGoalsResponse\x12\"\n" +
 	"\x05goals\x18\x01 \x03(\v2\f.client.GoalR\x05goals\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"(\n" +
 	"\x0eGetGoalRequest\x12\x16\n" +
 	"\x06goalId\x18\x01 \x01(\tR\x06goalId\"3\n" +
 	"\x0fGetGoalResponse\x12 \n" +
-	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\x99\x01\n" +
-	"\x11CreateGoalRequest\x12\x16\n" +
-	"\x06userId\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1a\n" +
-	"\bcategory\x18\x04 \x01(\tR\bcategory\x12\x18\n" +
-	"\adueDate\x18\x05 \x01(\x03R\adueDate\"6\n" +
+	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\x81\x01\n" +
+	"\x11CreateGoalRequest\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x18\n" +
+	"\adueDate\x18\x04 \x01(\x03R\adueDate\"6\n" +
 	"\x12CreateGoalResponse\x12 \n" +
 	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\x99\x01\n" +
 	"\x11UpdateGoalRequest\x12\x16\n" +

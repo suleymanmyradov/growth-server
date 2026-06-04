@@ -28,7 +28,10 @@ mkdir -p "$CONFIGDIR" "$LOGDIR"
 start_service auth-rpc "${BINDIR}/auth" "${ROOT}/services/microservices/auth/rpc/etc/auth.yaml"
 start_service client-rpc "${BINDIR}/client" "${ROOT}/services/microservices/client/rpc/etc/client.yaml"
 start_service search-rpc "${BINDIR}/search" "${ROOT}/services/microservices/search/rpc/etc/search.yaml"
-start_service conversations-rpc "${BINDIR}/conversations" "${ROOT}/services/microservices/conversations/rpc/etc/conversations.yaml"
+start_service notifications-rpc "${BINDIR}/notifications" "${ROOT}/services/microservices/notifications/rpc/etc/notifications.yaml"
+start_service ai-coach-rpc "${BINDIR}/ai-coach" "${ROOT}/services/microservices/ai-coach/rpc/etc/aicoach.yaml"
+start_service ai-coach-consumer "${BINDIR}/ai-coach-consumer" "${ROOT}/services/microservices/ai-coach-consumer/etc/ai-coach.yaml"
+start_service search-sync "${BINDIR}/search-sync" "${ROOT}/services/microservices/search-sync/etc/search-sync.yaml"
 
 # Start gateway
 start_service gateway "${BINDIR}/gateway" "${CONFIGDIR}/growthapi.yaml"

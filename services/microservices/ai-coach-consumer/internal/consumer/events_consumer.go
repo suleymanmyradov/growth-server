@@ -13,9 +13,9 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/prompts"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/prompts"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 

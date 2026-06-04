@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository/db"
 )
 
 // fakeAI returns a fixed response for every Generate call.

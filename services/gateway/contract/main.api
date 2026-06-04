@@ -162,29 +162,6 @@ service growthapi {
 }
 
 @server (
-	prefix:     /api/v1
-	group:      conversations
-	middleware: Auth
-	tags:       "Conversations"
-)
-service growthapi {
-	@handler ListConversations
-	get /conversations (ListConversationsRequest) returns (ConversationsResponse)
-
-	@handler StartConversation
-	post /conversations (StartConversationRequest) returns (ConversationResponse)
-
-	@handler GetConversation
-	get /conversations/:id (ConversationRequest) returns (ConversationDetailResponse)
-
-	@handler SendMessage
-	post /conversations/:id/messages (SendMessageRequest) returns (MessageResponse)
-
-	@handler GetMessages
-	get /conversations/:id/messages (GetMessagesRequest) returns (MessagesResponse)
-}
-
-@server (
 	prefix: /api/v1
 	group:  search
 	tags:   "Search"
