@@ -68,9 +68,7 @@ message VerifyAccessTokenResponse {
   int64 expires_at = 5;
 }
 
-message GetProfileRequest {
-  string user_id = 1;
-}
+message GetProfileRequest {}
 
 message GetProfileResponse {
   User user = 1;

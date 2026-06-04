@@ -77,8 +77,6 @@ func (s *Syncer) processRow(ctx context.Context, row repository.OutboxRow) {
 		doc, err = s.repo.GetGoal(ctx, row.EntityID)
 	case "habit":
 		doc, err = s.repo.GetHabit(ctx, row.EntityID)
-	case "conversation":
-		doc, err = s.repo.GetConversation(ctx, row.EntityID)
 	default:
 		err = fmt.Errorf("unknown entity type: %s", row.EntityType)
 	}

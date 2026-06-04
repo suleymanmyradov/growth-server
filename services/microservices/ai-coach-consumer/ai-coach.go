@@ -6,8 +6,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/config"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/consumer/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/config"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/svc"
 	"github.com/zeromicro/go-zero/core/conf"
 	"github.com/zeromicro/go-zero/core/trace"
 )

@@ -1,9 +1,10 @@
 package habitslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -31,14 +32,14 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 	habitID, err := uuid.Parse(in.HabitId)
 	if err != nil {
 		l.Errorf("Invalid habit ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid habit id")
+		return nil, status.Error(codes.Internal, "invalid habit id")
 	}
 
 	// Fetch current habit to get version for optimistic locking.
 	preHabit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
 	if err != nil {
 		l.Errorf("Failed to get habit: %v", err)
-return nil, status.Error(codes.Internal, "failed to get habit")
+		return nil, status.Error(codes.Internal, "failed to get habit")
 	}
 
 	var desc *string
@@ -55,7 +56,7 @@ return nil, status.Error(codes.Internal, "failed to get habit")
 	})
 	if err != nil {
 		l.Errorf("Failed to update habit: %v", err)
-return nil, status.Error(codes.Internal, "failed to update habit")
+		return nil, status.Error(codes.Internal, "failed to update habit")
 	}
 
 	return &client.UpdateHabitResponse{

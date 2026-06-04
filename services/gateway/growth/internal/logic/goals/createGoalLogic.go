@@ -42,7 +42,6 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 	}
 
 	rpcResp, err := l.svcCtx.GoalsRpc.CreateGoal(l.ctx, &clientgoals.CreateGoalRequest{
-		UserId:      "",
 		Title:       req.Title,
 		Description: req.Description,
 		Category:    req.Category,

@@ -277,62 +277,6 @@ func (db *DB) SeedData() error {
 		}
 	}
 
-	conversationIDs := make([]uuid.UUID, 3)
-	for i := 0; i < 3; i++ {
-		conversationIDs[i] = uuid.MustParse(fmt.Sprintf("50000000-0000-0000-0000-%012d", i+1))
-	}
-
-	conversations := []struct {
-		ID          uuid.UUID
-		Title       string
-		ItemType    string
-		LastMessage string
-		UserID      uuid.UUID
-	}{
-		{conversationIDs[0], "Productivity Coaching", "coach", "How can I improve my daily productivity?", userIDs[0]},
-		{conversationIDs[1], "Wellness Support", "therapist", "I've been feeling stressed lately", userIDs[1]},
-		{conversationIDs[2], "Career Guidance", "coach", "How do I advance in my tech career?", userIDs[2]},
-	}
-
-	for _, c := range conversations {
-		_, err = tx.Exec(`
-			INSERT INTO conversations (id, title, item_type, last_message, user_id, created_at, updated_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			c.ID, c.Title, c.ItemType, c.LastMessage, c.UserID, time.Now(), time.Now())
-		if err != nil {
-			return fmt.Errorf("error inserting conversation %s: %w", c.Title, err)
-		}
-	}
-
-	messageIDs := make([]uuid.UUID, 6)
-	for i := 0; i < 6; i++ {
-		messageIDs[i] = uuid.MustParse(fmt.Sprintf("60000000-0000-0000-0000-%012d", i+1))
-	}
-
-	messages := []struct {
-		ID             uuid.UUID
-		Content        string
-		Role           string
-		ConversationID uuid.UUID
-	}{
-		{messageIDs[0], "Hello! I'd like to discuss improving my productivity.", "user", conversationIDs[0]},
-		{messageIDs[1], "Great! Productivity is about working smarter, not harder. What specific challenges are you facing?", "assistant", conversationIDs[0]},
-		{messageIDs[2], "I struggle with time management and staying focused.", "user", conversationIDs[0]},
-		{messageIDs[3], "Hi, I need help managing my stress levels.", "user", conversationIDs[1]},
-		{messageIDs[4], "I'm here to help. Can you tell me more about what's causing you stress?", "assistant", conversationIDs[1]},
-		{messageIDs[5], "I want to advance in my career as a software developer.", "user", conversationIDs[2]},
-	}
-
-	for _, m := range messages {
-		_, err = tx.Exec(`
-			INSERT INTO messages (id, content, role, conversation_id, created_at)
-			VALUES ($1, $2, $3, $4, $5)`,
-			m.ID, m.Content, m.Role, m.ConversationID, time.Now())
-		if err != nil {
-			return fmt.Errorf("error inserting message: %w", err)
-		}
-	}
-
 	notificationIDs := make([]uuid.UUID, 6)
 	for i := 0; i < 6; i++ {
 		notificationIDs[i] = uuid.MustParse(fmt.Sprintf("70000000-0000-0000-0000-%012d", i+1))
@@ -466,8 +410,6 @@ func (db *DB) SeedData() error {
 	fmt.Printf("- %d goal-habit relations\n", len(goalHabitRelations))
 	fmt.Printf("- %d articles\n", len(articles))
 	fmt.Printf("- %d saved items\n", len(savedItems))
-	fmt.Printf("- %d conversations\n", len(conversations))
-	fmt.Printf("- %d messages\n", len(messages))
 	fmt.Printf("- %d notifications\n", len(notifications))
 	fmt.Printf("- %d activities\n", len(activities))
 	fmt.Printf("- %d user settings\n", len(userSettings))

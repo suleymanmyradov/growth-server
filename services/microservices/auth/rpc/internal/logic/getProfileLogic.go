@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -26,11 +27,12 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 }
 
 func (l *GetProfileLogic) GetProfile(in *auth.GetProfileRequest) (*auth.GetProfileResponse, error) {
-	if in == nil || in.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+	p, ok := principal.PrincipalFrom(l.ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	userID, err := uuid.Parse(in.UserId)
+	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("failed to parse user ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")

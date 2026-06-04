@@ -1,6 +1,6 @@
 # pkg/ai — Shared AI/LLM Layer
 
-Shared AI/LLM layer for the Growth platform. Used by coach, conversations,
+Shared AI/LLM layer for the Growth platform. Used by coach,
 notifications, and agent microservices. Built on [Eino](https://github.com/cloudwego/eino)
 with the OpenAI-compatible adapter routed through [OpenRouter](https://openrouter.ai).
 

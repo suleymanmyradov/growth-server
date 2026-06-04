@@ -42,7 +42,6 @@ func (l *CreateHabitLogic) CreateHabit(req *types.CreateHabitRequest) (resp *typ
 	}
 
 	rpcResp, err := l.svcCtx.HabitsRpc.CreateHabit(l.ctx, &clienthabits.CreateHabitRequest{
-		UserId:      "",
 		Name:        req.Name,
 		Description: req.Description,
 		Category:    req.Category,

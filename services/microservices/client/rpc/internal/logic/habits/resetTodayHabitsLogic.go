@@ -35,7 +35,7 @@ func (l *ResetTodayHabitsLogic) ResetTodayHabits(in *client.ResetTodayHabitsRequ
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	if l.svcCtx.Authz != nil {
@@ -47,7 +47,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	count, err := l.svcCtx.Repo.Habits.ResetTodayHabits(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to reset today habits: %v", err)
-return nil, status.Error(codes.Internal, "failed to reset today habits")
+		return nil, status.Error(codes.Internal, "failed to reset today habits")
 	}
 
 	return &client.ResetTodayHabitsResponse{

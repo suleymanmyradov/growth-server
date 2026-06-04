@@ -72,14 +72,6 @@ CREATE TYPE public.coach_tone_type AS ENUM (
     'challenging'
 );
 
---
--- Name: conversation_type; Type: TYPE; Schema: public; Owner: -
---
-
-CREATE TYPE public.conversation_type AS ENUM (
-    'coach',
-    'therapist'
-);
 
 --
 -- Name: difficulty_level_type; Type: TYPE; Schema: public; Owner: -
@@ -121,14 +113,6 @@ CREATE TYPE public.goal_status_type AS ENUM (
     'archived'
 );
 
---
--- Name: message_role_type; Type: TYPE; Schema: public; Owner: -
---
-
-CREATE TYPE public.message_role_type AS ENUM (
-    'user',
-    'assistant'
-);
 
 --
 -- Name: mood_type; Type: TYPE; Schema: public; Owner: -
@@ -528,21 +512,6 @@ CREATE TABLE public.check_ins (
 
 ALTER TABLE ONLY public.check_ins FORCE ROW LEVEL SECURITY;
 
---
--- Name: conversations; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.conversations (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
-    title character varying(200) NOT NULL,
-    item_type public.conversation_type NOT NULL,
-    last_message text,
-    user_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-ALTER TABLE ONLY public.conversations FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: goal_habit_relations; Type: TABLE; Schema: public; Owner: -
@@ -599,19 +568,6 @@ CREATE TABLE public.habits (
 
 ALTER TABLE ONLY public.habits FORCE ROW LEVEL SECURITY;
 
---
--- Name: messages; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.messages (
-    id uuid DEFAULT public.uuid_generate_v7() NOT NULL,
-    content text NOT NULL,
-    role public.message_role_type NOT NULL,
-    conversation_id uuid NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-ALTER TABLE ONLY public.messages FORCE ROW LEVEL SECURITY;
 
 --
 -- Name: notifications; Type: TABLE; Schema: public; Owner: -
@@ -970,12 +926,6 @@ ALTER TABLE ONLY public.categories
 ALTER TABLE ONLY public.check_ins
     ADD CONSTRAINT check_ins_pkey PRIMARY KEY (id);
 
---
--- Name: conversations conversations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conversations
-    ADD CONSTRAINT conversations_pkey PRIMARY KEY (id);
 
 --
 -- Name: goal_habit_relations goal_habit_relations_goal_id_habit_id_key; Type: CONSTRAINT; Schema: public; Owner: -
@@ -1005,12 +955,6 @@ ALTER TABLE ONLY public.goals
 ALTER TABLE ONLY public.habits
     ADD CONSTRAINT habits_pkey PRIMARY KEY (id);
 
---
--- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.messages
-    ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
 
 --
 -- Name: notifications notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: -
@@ -1408,23 +1352,6 @@ CREATE INDEX idx_coaching_blockers ON public.user_coaching_profiles USING gin (c
 
 CREATE INDEX idx_coaching_notes ON public.user_coaching_profiles USING gin (coaching_notes);
 
---
--- Name: idx_conversations_item_type; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_conversations_item_type ON public.conversations USING btree (item_type);
-
---
--- Name: idx_conversations_updated_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_conversations_updated_at ON public.conversations USING btree (updated_at);
-
---
--- Name: idx_conversations_user_id; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_conversations_user_id ON public.conversations USING btree (user_id);
 
 --
 -- Name: idx_goal_habit_relations_habit_id; Type: INDEX; Schema: public; Owner: -
@@ -1504,17 +1431,6 @@ CREATE INDEX idx_habits_user_id ON public.habits USING btree (user_id);
 
 CREATE INDEX idx_habits_version ON public.habits USING btree (id, version);
 
---
--- Name: idx_messages_conversation_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_messages_conversation_created_at ON public.messages USING btree (conversation_id, created_at);
-
---
--- Name: idx_messages_created_at; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX idx_messages_created_at ON public.messages USING btree (created_at);
 
 --
 -- Name: idx_notifications_created_at; Type: INDEX; Schema: public; Owner: -
@@ -1840,11 +1756,6 @@ CREATE TRIGGER update_articles_updated_at BEFORE UPDATE ON public.articles FOR E
 
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON public.categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
---
--- Name: conversations update_conversations_updated_at; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER update_conversations_updated_at BEFORE UPDATE ON public.conversations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 --
 -- Name: goals update_goals_updated_at; Type: TRIGGER; Schema: public; Owner: -
@@ -1974,12 +1885,6 @@ ALTER TABLE ONLY public.check_ins
 ALTER TABLE ONLY public.check_ins
     ADD CONSTRAINT check_ins_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
---
--- Name: conversations conversations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.conversations
-    ADD CONSTRAINT conversations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 --
 -- Name: articles fk_articles_category; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2016,12 +1921,6 @@ ALTER TABLE ONLY public.goals
 ALTER TABLE ONLY public.habits
     ADD CONSTRAINT habits_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
---
--- Name: messages messages_conversation_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.messages
-    ADD CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES public.conversations(id) ON DELETE CASCADE;
 
 --
 -- Name: notifications notifications_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
@@ -2211,17 +2110,6 @@ ALTER TABLE public.check_ins ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY check_ins_user_isolation ON public.check_ins USING ((user_id = public.current_app_user_id())) WITH CHECK ((user_id = public.current_app_user_id()));
 
---
--- Name: conversations; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
-
---
--- Name: conversations conversations_user_isolation; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY conversations_user_isolation ON public.conversations USING ((user_id = public.current_app_user_id())) WITH CHECK ((user_id = public.current_app_user_id()));
 
 --
 -- Name: goal_habit_relations; Type: ROW SECURITY; Schema: public; Owner: -
@@ -2263,21 +2151,6 @@ ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY habits_user_isolation ON public.habits USING ((user_id = public.current_app_user_id())) WITH CHECK ((user_id = public.current_app_user_id()));
 
---
--- Name: messages; Type: ROW SECURITY; Schema: public; Owner: -
---
-
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-
---
--- Name: messages messages_user_isolation; Type: POLICY; Schema: public; Owner: -
---
-
-CREATE POLICY messages_user_isolation ON public.messages USING ((conversation_id IN ( SELECT conversations.id
-   FROM public.conversations
-  WHERE (conversations.user_id = public.current_app_user_id())))) WITH CHECK ((conversation_id IN ( SELECT conversations.id
-   FROM public.conversations
-  WHERE (conversations.user_id = public.current_app_user_id()))));
 
 --
 -- Name: notifications; Type: ROW SECURITY; Schema: public; Owner: -

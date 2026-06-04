@@ -47,9 +47,9 @@ type Message struct {
 
 // Metadata carries call-level context for logging and spend tracking.
 type Metadata struct {
-	UserID         string `json:"user_id,omitempty"`
-	Feature        string `json:"feature,omitempty"`
-	ConversationID string `json:"conversation_id,omitempty"`
+	UserID  string `json:"user_id,omitempty"`
+	Feature string `json:"feature,omitempty"`
+
 	// PromptHash is a stable hash of the prompt template / version used for
 	// this call. Enables tracing which prompt version generated a response.
 	PromptHash string `json:"prompt_hash,omitempty"`

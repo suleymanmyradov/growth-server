@@ -27,7 +27,6 @@ import (
 	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 	clientsettings "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
 	clientweeklyreview "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
-	conversationsservice "github.com/suleymanmyradov/growth-server/services/microservices/conversations/rpc/client/conversationsservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -46,7 +45,6 @@ type ServiceContext struct {
 	SettingsRpc        clientsettings.Settings
 	ReportRpc          clientreport.Report
 	SearchRpc          searchservice.SearchService
-	ConversationsRpc   conversationsservice.ConversationsService
 	HabitsRpc          clienthabits.Habits
 	GoalsRpc           clientgoals.Goals
 	CategoriesRpc      clientcategories.Categories
@@ -121,7 +119,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SettingsRpc:        clientsettings.NewSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		ReportRpc:          clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		SearchRpc:          searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
-		ConversationsRpc:   conversationsservice.NewConversationsService(zrpc.MustNewClient(c.ConversationsRpc, baseOpts...)),
 		HabitsRpc:          clienthabits.NewHabits(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		GoalsRpc:           clientgoals.NewGoals(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		CategoriesRpc:      clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),

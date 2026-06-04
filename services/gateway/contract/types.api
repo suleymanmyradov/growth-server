@@ -291,78 +291,11 @@ type (
 	}
 )
 
-// Conversation types
-type (
-	Conversation {
-		id          string `json:"id,example=conv-123"`
-		title       string `json:"title,example=My Growth Journey"`
-		itemType    string `json:"type,example=coach"`
-		lastMessage string `json:"lastMessage,example=How can I improve my daily habits?"`
-		userId      string `json:"userId,example=user-123"`
-		createdAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-		updatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-	}
-	ConversationResponse {
-		data Conversation `json:"data"`
-	}
-	ConversationsResponse {
-		data []Conversation `json:"data"`
-		page PageResponse   `json:"page"`
-	}
-	ConversationDetail {
-		id        string    `json:"id"`
-		title     string    `json:"title"`
-		itemType  string    `json:"type"`
-		messages  []Message `json:"messages"`
-		userId    string    `json:"userId"`
-		createdAt string    `json:"createdAt"`
-		updatedAt string    `json:"updatedAt"`
-	}
-	ConversationDetailResponse {
-		data ConversationDetail `json:"data"`
-	}
-	Message {
-		id             string `json:"id,example=msg-123"`
-		content        string `json:"content,example=Hello, I need help with my goals"`
-		role           string `json:"role,example=user"`
-		conversationId string `json:"conversationId,example=conv-123"`
-		createdAt      string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-	}
-	MessageResponse {
-		data Message `json:"data"`
-	}
-	MessagesResponse {
-		data []Message    `json:"data"`
-		page PageResponse `json:"page"`
-	}
-	StartConversationRequest {
-		itemType       string `json:"type,example=coach"`
-		title          string `json:"title,optional,example=My Growth Journey"`
-		initialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
-	}
-	ConversationRequest {
-		id string `path:"id"`
-	}
-	SendMessageRequest {
-		content string `json:"content,example=How can I stay motivated?"`
-	}
-	GetMessagesRequest {
-		id    string `path:"id"`
-		page  int    `form:"page,default=1"`
-		limit int    `form:"limit,default=50"`
-	}
-	ListConversationsRequest {
-		itemType string `form:"type,optional"` // "coach" or "therapist"
-		page     int    `form:"page,default=1"`
-		limit    int    `form:"limit,default=20"`
-	}
-)
-
 // Search types
 type (
 	SearchResult {
 		id          string  `json:"id"`
-		itemType    string  `json:"type"` // "article", "goal", "habit", "conversation"
+		itemType    string  `json:"type"` // "article", "goal", "habit"
 		title       string  `json:"title"`
 		description string  `json:"description"`
 		score       float64 `json:"score"`
@@ -374,7 +307,7 @@ type (
 	}
 	SearchRequest {
 		q        string `form:"q"`
-		itemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+		itemType string `form:"type,optional"` // "article", "goal", "habit"
 		page     int    `form:"page,default=1"`
 		limit    int    `form:"limit,default=20"`
 	}

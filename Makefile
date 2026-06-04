@@ -1,15 +1,21 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-conversation-proto generate-notification-proto generate-ai-coach-proto generate-client-repo generate-auth-repo generate-conversations-repo generate-search-repo sqlc lint build build-auth build-client build-search build-conversations build-notifications build-ai-coach build-gateway clean
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-gateway clean run-auth run-client run-search run-aicoach run-gateway run-all
 SQLC_VERSION ?= v1.27.0
-SQLC_SERVICES := auth client conversations search notifications
+SQLC_SERVICES := auth client search notifications
 # Default target
 help:
 	@echo "Available commands:"
 	@echo "  deps                - Install dependencies"
-	@echo "  docker-up           - Start development dependencies (Postgres, Redis, Etcd, Redpanda, Meilisearch)"
+	@echo "  docker-up           - Start development dependencies (Postgres, Redis, Redpanda, Meilisearch)"
 	@echo "  docker-down         - Stop development dependencies"
+	@echo "  run-auth            - Run auth service locally"
+	@echo "  run-client          - Run client service locally"
+	@echo "  run-search          - Run search service locally"
+	@echo "  run-aicoach         - Run ai-coach RPC service locally"
 	@echo "  run-notifications   - Run notifications service locally"
-	@echo "  run-ai-coach        - Run ai-coach consumer locally"
+	@echo "  run-ai-coach-consumer - Run ai-coach consumer locally"
 	@echo "  run-search-sync     - Run search-sync worker locally"
+	@echo "  run-gateway         - Run API gateway locally"
+	@echo "  run-all             - Run all services locally"
 	@echo "  migrate-up          - Run database migrations"
 	@echo "  migrate-down        - Rollback database migrations"
 	@echo "  generate-api        - Generate API gateway from contract"
@@ -17,7 +23,6 @@ help:
 	@echo "  open-swagger        - Open Swagger UI in browser"
 	@echo "  generate-client-repo       - Generate client service repository layer"
 	@echo "  generate-auth-repo        - Generate auth service repository layer"
-	@echo "  generate-conversations-repo - Generate conversations service repository layer"
 	@echo "  generate-search-repo       - Generate search service repository layer"
 	@echo "  sqlc                 - Generate repository layer using sqlc"
 	@echo "    SQLC_VERSION=$(SQLC_VERSION)"
@@ -25,7 +30,6 @@ help:
 	@echo "  build-auth           - Build auth service"
 	@echo "  build-client         - Build client service"
 	@echo "  build-search         - Build search service"
-	@echo "  build-conversations  - Build conversations service"
 	@echo "  build-notifications  - Build notifications service"
 	@echo "  build-ai-coach       - Build ai-coach service"
 	@echo "  build-search-sync    - Build search-sync service"
@@ -39,7 +43,7 @@ deps:
 	go mod tidy
 	go mod download
 
-# Start development dependencies (PostgreSQL, Redis, Etcd, Redpanda, Meilisearch)
+# Start development dependencies (PostgreSQL, Redis, Redpanda, Meilisearch)
 docker-up:
 	@echo "Starting development dependencies..."
 	docker compose -f deploy/docker-compose.yml up -d
@@ -59,13 +63,64 @@ run-notifications: build-notifications
 run-ai-coach: build-ai-coach
 	@echo "Running ai-coach consumer..."
 	@mkdir -p logs
-	./bin/ai-coach -f services/microservices/ai-coach/consumer/etc/ai-coach.yaml
+	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml
 
 # Run search-sync worker locally (connects to docker dependencies)
 run-search-sync: build-search-sync
 	@echo "Running search-sync worker..."
 	@mkdir -p logs
 	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml
+
+# Run auth service locally (connects to docker dependencies)
+run-auth: build-auth
+	@echo "Running auth service..."
+	@mkdir -p logs
+	./bin/auth -f services/microservices/auth/rpc/etc/auth.yaml
+
+# Run client service locally (connects to docker dependencies)
+run-client: build-client
+	@echo "Running client service..."
+	@mkdir -p logs
+	./bin/client -f services/microservices/client/rpc/etc/client.yaml
+
+# Run search service locally (connects to docker dependencies)
+run-search: build-search
+	@echo "Running search service..."
+	@mkdir -p logs
+	./bin/search -f services/microservices/search/rpc/etc/search.yaml
+
+# Run ai-coach RPC service locally (connects to docker dependencies)
+run-aicoach: build-ai-coach
+	@echo "Running ai-coach RPC service..."
+	@mkdir -p logs
+	./bin/ai-coach -f services/microservices/ai-coach/rpc/etc/aicoach.yaml
+
+# Run ai-coach consumer locally (connects to docker dependencies)
+run-ai-coach-consumer: build-ai-coach
+	@echo "Running ai-coach consumer..."
+	@mkdir -p logs
+	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml
+
+# Run gateway locally (connects to docker dependencies)
+run-gateway: build-gateway
+	@echo "Running API gateway..."
+	@mkdir -p logs
+	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml
+
+# Run all services locally
+run-all: build
+	@echo "Running all services..."
+	@mkdir -p logs
+	./bin/auth -f services/microservices/auth/rpc/etc/auth.yaml > logs/auth.log 2>&1 &
+	./bin/client -f services/microservices/client/rpc/etc/client.yaml > logs/client.log 2>&1 &
+	./bin/search -f services/microservices/search/rpc/etc/search.yaml > logs/search.log 2>&1 &
+	./bin/ai-coach -f services/microservices/ai-coach/rpc/etc/aicoach.yaml > logs/ai-coach.log 2>&1 &
+	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml > logs/gateway.log 2>&1 &
+	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml > logs/ai-coach-consumer.log 2>&1 &
+	./bin/notifications -f services/microservices/notifications/rpc/etc/notifications.yaml > logs/notifications.log 2>&1 &
+	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml > logs/search-sync.log 2>&1 &
+	@echo "All services started. Logs are in the logs/ directory."
+	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|gateway|notifications|search-sync)'"
 
 # Run database migrations up
 migrate-up:
@@ -138,9 +193,6 @@ generate-auth-proto:
 generate-search-proto:
 	@echo "Generating search proto..."
 	goctl rpc protoc ./services/microservices/search/api/v1/search.proto --go_out=./services/microservices/search/rpc/pb --go-grpc_out=./services/microservices/search/rpc/pb --zrpc_out=./services/microservices/search/rpc --style goZero
-generate-conversations-proto:
-	@echo "Generating conversations proto..."
-	goctl rpc protoc ./services/microservices/conversations/api/v1/conversations.proto --go_out=./services/microservices/conversations/rpc/pb --go-grpc_out=./services/microservices/conversations/rpc/pb --zrpc_out=./services/microservices/conversations/rpc -m --style goZero
 generate-notification-proto:
 	@echo "Generating notifications proto..."
 	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc -m --style goZero
@@ -157,7 +209,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-conversations build-notifications build-ai-coach build-search-sync build-gateway build-billing-reconciler
+build: build-auth build-client build-search build-notifications build-ai-coach build-search-sync build-gateway build-billing-reconciler
 	@echo "All services built successfully!"
 
 build-auth:
@@ -175,11 +227,6 @@ build-search:
 	@mkdir -p bin
 	go build -o bin/search ./services/microservices/search/rpc
 
-build-conversations:
-	@echo "Building conversations service..."
-	@mkdir -p bin
-	go build -o bin/conversations ./services/microservices/conversations/rpc
-
 build-notifications:
 	@echo "Building notifications service..."
 	@mkdir -p bin
@@ -189,6 +236,7 @@ build-ai-coach:
 	@echo "Building ai-coach service..."
 	@mkdir -p bin
 	go build -o bin/ai-coach ./services/microservices/ai-coach/rpc
+	go build -o bin/ai-coach-consumer ./services/microservices/ai-coach-consumer
 
 build-search-sync:
 	@echo "Building search-sync service..."

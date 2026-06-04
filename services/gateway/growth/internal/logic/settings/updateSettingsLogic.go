@@ -36,7 +36,6 @@ func (l *UpdateSettingsLogic) UpdateSettings(req *types.UpdateSettingsRequest) (
 	}
 
 	_, err = l.svcCtx.SettingsRpc.UpdateSettings(l.ctx, &clientsettings.UpdateSettingsRequest{
-		UserId: "",
 		Settings: &client.UserSettings{
 			Theme:               req.Theme,
 			Language:            req.Language,

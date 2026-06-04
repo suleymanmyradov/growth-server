@@ -7,7 +7,7 @@ option go_package = "./search";
 message SearchRequest {
   string query = 1;
   string user_id = 2; // optional for personalized results
-  repeated string types = 3; // articles, habits, goals, conversations, profiles
+  repeated string types = 3; // articles, habits, goals, profiles
   string category = 4; // optional filter
   int32 limit = 5;
   int32 offset = 6;
@@ -21,7 +21,7 @@ message SearchResponse {
 
 message SearchResult {
   string id = 1;
-  string type = 2; // article, habit, goal, conversation, profile
+  string type = 2; // article, habit, goal, profile
   string title = 3;
   string description = 4;
   string url = 5;

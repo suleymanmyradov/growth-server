@@ -118,43 +118,6 @@ type CoachingProfileResponse struct {
 	Data CoachingProfile `json:"data"`
 }
 
-type Conversation struct {
-	Id          string `json:"id,example=conv-123"`
-	Title       string `json:"title,example=My Growth Journey"`
-	ItemType    string `json:"type,example=coach"`
-	LastMessage string `json:"lastMessage,example=How can I improve my daily habits?"`
-	UserId      string `json:"userId,example=user-123"`
-	CreatedAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-	UpdatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
-}
-
-type ConversationDetail struct {
-	Id        string    `json:"id"`
-	Title     string    `json:"title"`
-	ItemType  string    `json:"type"`
-	Messages  []Message `json:"messages"`
-	UserId    string    `json:"userId"`
-	CreatedAt string    `json:"createdAt"`
-	UpdatedAt string    `json:"updatedAt"`
-}
-
-type ConversationDetailResponse struct {
-	Data ConversationDetail `json:"data"`
-}
-
-type ConversationRequest struct {
-	Id string `path:"id"`
-}
-
-type ConversationResponse struct {
-	Data Conversation `json:"data"`
-}
-
-type ConversationsResponse struct {
-	Data []Conversation `json:"data"`
-	Page PageResponse   `json:"page"`
-}
-
 type CreateCheckInRequest struct {
 	HabitId string `json:"habitId,example=habit-123"`
 	Status  string `json:"status,example=completed"`
@@ -261,12 +224,6 @@ type GetCheckInHistoryResponse struct {
 	Total    int       `json:"total,example=10"`
 }
 
-type GetMessagesRequest struct {
-	Id    string `path:"id"`
-	Page  int    `form:"page,default=1"`
-	Limit int    `form:"limit,default=50"`
-}
-
 type GetPersonalizationContextRequest struct {
 	ForceRefresh bool `form:"forceRefresh,default=false,example=false"`
 }
@@ -361,33 +318,10 @@ type ListCategoriesRequest struct {
 	EntityType string `form:"entityType,example=habit"`
 }
 
-type ListConversationsRequest struct {
-	ItemType string `form:"type,optional"` // "coach" or "therapist"
-	Page     int    `form:"page,default=1"`
-	Limit    int    `form:"limit,default=20"`
-}
-
 type LoginRequest struct {
 	Email    string `json:"email,example=john@example.com"`
 	Password string `json:"password,example=securePassword123"`
 	DeviceId string `header:"X-Device-Id,optional,example=device-12345"`
-}
-
-type Message struct {
-	Id             string `json:"id,example=msg-123"`
-	Content        string `json:"content,example=Hello, I need help with my goals"`
-	Role           string `json:"role,example=user"`
-	ConversationId string `json:"conversationId,example=conv-123"`
-	CreatedAt      string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-}
-
-type MessageResponse struct {
-	Data Message `json:"data"`
-}
-
-type MessagesResponse struct {
-	Data []Message    `json:"data"`
-	Page PageResponse `json:"page"`
 }
 
 type Notification struct {
@@ -554,7 +488,7 @@ type SavedItemsResponse struct {
 
 type SearchRequest struct {
 	Q        string `form:"q"`
-	ItemType string `form:"type,optional"` // "article", "goal", "habit", "conversation"
+	ItemType string `form:"type,optional"` // "article", "goal", "habit"
 	Page     int    `form:"page,default=1"`
 	Limit    int    `form:"limit,default=20"`
 }
@@ -566,15 +500,11 @@ type SearchResponse struct {
 
 type SearchResult struct {
 	Id          string  `json:"id"`
-	ItemType    string  `json:"type"` // "article", "goal", "habit", "conversation"
+	ItemType    string  `json:"type"` // "article", "goal", "habit"
 	Title       string  `json:"title"`
 	Description string  `json:"description"`
 	Score       float64 `json:"score"`
 	Highlight   string  `json:"highlight,optional"`
-}
-
-type SendMessageRequest struct {
-	Content string `json:"content,example=How can I stay motivated?"`
 }
 
 type Settings struct {
@@ -605,12 +535,6 @@ type ShareArticleRequest struct {
 
 type ShareArticleResponse struct {
 	Success bool `json:"success"`
-}
-
-type StartConversationRequest struct {
-	ItemType       string `json:"type,example=coach"`
-	Title          string `json:"title,optional,example=My Growth Journey"`
-	InitialMessage string `json:"initialMessage,optional,example=I want to improve my habits"`
 }
 
 type StripeWebhookRequest struct {

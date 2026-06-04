@@ -12,7 +12,6 @@ import (
 	billing "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/billing"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
 	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
-	conversations "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
 	notifications "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/notifications"
@@ -192,40 +191,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodGet,
 					Path:    "/check-ins/today",
 					Handler: checkin.GetTodayCheckInsHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-	)
-
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations",
-					Handler: conversations.ListConversationsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/conversations",
-					Handler: conversations.StartConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations/:id",
-					Handler: conversations.GetConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/conversations/:id/messages",
-					Handler: conversations.SendMessageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations/:id/messages",
-					Handler: conversations.GetMessagesHandler(serverCtx),
 				},
 			}...,
 		),

@@ -34,9 +34,7 @@ func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResponse, err error) 
 		return nil, nil
 	}
 
-	rpcResp, err := l.svcCtx.AuthRpc.GetProfile(l.ctx, &authservice.GetProfileRequest{
-		UserId: "",
-	})
+	rpcResp, err := l.svcCtx.AuthRpc.GetProfile(l.ctx, &authservice.GetProfileRequest{})
 	if err != nil {
 		return nil, err
 	}

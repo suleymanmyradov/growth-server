@@ -44,7 +44,7 @@ import (
 // Use `secret:"true"` tags so configsafe.MaskSecrets will redact sensitive fields.
 type ExampleConfig struct {
 	JWT struct {
-		Secret                string        `json:"secret" secret:"true"`
+		Secret                string        `json:"secret"`
 		Issuer                string        `json:"issuer"`
 		Audience              string        `json:"audience"`
 		AccessExpiryDuration  time.Duration `json:"accessExpiryDuration"`

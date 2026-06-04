@@ -153,11 +153,6 @@ AFTER INSERT OR UPDATE OF name, description, category, updated_at
 OR DELETE ON public.habits
 FOR EACH ROW EXECUTE FUNCTION public.enqueue_search_sync_event('habit');
 
-CREATE TRIGGER conversations_search_sync
-AFTER INSERT OR UPDATE OF title, last_message, updated_at
-OR DELETE ON public.conversations
-FOR EACH ROW EXECUTE FUNCTION public.enqueue_search_sync_event('conversation');
-
 CREATE TRIGGER categories_search_sync
 AFTER UPDATE OF name, slug
 ON public.categories

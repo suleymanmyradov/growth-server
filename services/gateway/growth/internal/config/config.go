@@ -15,21 +15,20 @@ type Config struct {
 	NotificationsRpc zrpc.RpcClientConf
 	ClientRpc        zrpc.RpcClientConf
 	SearchRpc        zrpc.RpcClientConf
-	ConversationsRpc zrpc.RpcClientConf
 	AICoachRpc       zrpc.RpcClientConf
 	Auth             struct {
-		Secret   string `secret:"true"`
+		Secret   string
 		Issuer   string
 		Audience string
 	}
 	Billing struct {
 		Mode                string // disabled, fake_door, stripe_test, stripe_live
-		StripeSecretKey     string `secret:"true"`
-		StripeWebhookSecret string `secret:"true"`
+		StripeSecretKey     string
+		StripeWebhookSecret string
 		FrontendURL         string
 	}
 	ServiceAuth struct {
-		Secret string `secret:"true"`
+		Secret string
 	}
 	RateLimit middleware.RateLimitConfig
 }

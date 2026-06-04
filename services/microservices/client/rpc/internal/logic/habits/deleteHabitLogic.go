@@ -1,9 +1,10 @@
 package habitslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -30,13 +31,13 @@ func (l *DeleteHabitLogic) DeleteHabit(in *client.DeleteHabitRequest) (*client.D
 	habitID, err := uuid.Parse(in.HabitId)
 	if err != nil {
 		l.Errorf("Invalid habit ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid habit id")
+		return nil, status.Error(codes.Internal, "invalid habit id")
 	}
 
 	err = l.svcCtx.Repo.Habits.DeleteHabit(l.ctx, habitID)
 	if err != nil {
 		l.Errorf("Failed to delete habit: %v", err)
-return nil, status.Error(codes.Internal, "failed to delete habit")
+		return nil, status.Error(codes.Internal, "failed to delete habit")
 	}
 
 	return &client.DeleteHabitResponse{
