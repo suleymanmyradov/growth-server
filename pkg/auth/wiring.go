@@ -26,7 +26,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
@@ -43,13 +42,7 @@ import (
 // ExampleConfig shows how to structure auth configuration safely.
 // Use `secret:"true"` tags so configsafe.MaskSecrets will redact sensitive fields.
 type ExampleConfig struct {
-	JWT struct {
-		Secret                string        `json:"secret"`
-		Issuer                string        `json:"issuer"`
-		Audience              string        `json:"audience"`
-		AccessExpiryDuration  time.Duration `json:"accessExpiryDuration"`
-		RefreshExpiryDuration time.Duration `json:"refreshExpiryDuration"`
-	} `json:"jwt"`
+	JWT jwt.Config `json:"jwt"`
 	S2S s2s.Config `json:"s2s"`
 }
 

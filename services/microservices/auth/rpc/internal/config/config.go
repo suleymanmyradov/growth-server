@@ -9,7 +9,7 @@ import (
 type Config struct {
 	zrpc.RpcServerConf
 	Postgres struct {
-		Datasource      string `secret:"true"`
+		Datasource      string        `json:",optional" secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
@@ -17,16 +17,16 @@ type Config struct {
 	Cache struct {
 		Redis struct {
 			Addr     string
-			Password string `secret:"true"`
+			Password string `json:",optional" secret:"true"`
 			DB       int
 			Prefix   string
 		}
 	}
 	JWT struct {
-		Secret                string `secret:"true"`
-		Issuer                string
-		Audience              string
-		AccessExpiryDuration  time.Duration
-		RefreshExpiryDuration time.Duration
+		Secret                string        `json:",optional" secret:"true"`
+		Issuer                string        `json:",optional"`
+		Audience              string        `json:",optional"`
+		AccessExpiryDuration  time.Duration `json:",optional"`
+		RefreshExpiryDuration time.Duration `json:",optional"`
 	}
 }

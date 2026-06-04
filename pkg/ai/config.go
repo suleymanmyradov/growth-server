@@ -56,10 +56,10 @@ var DefaultCostRates = map[string]CostRate{
 // FallbackPolicy controls automatic retry with a fallback model.
 type FallbackPolicy struct {
 	// Enabled turns on fallback behaviour.
-	Enabled bool
+	Enabled bool `json:"enabled,optional"`
 	// MaxFailures is the number of failures on the primary model before
 	// retrying once with the fallback model.
-	MaxFailures int
+	MaxFailures int `json:"max_failures,optional"`
 }
 
 // Config holds all configuration for the AI client. It is loadable from
@@ -68,44 +68,44 @@ type Config struct {
 	// APIKey is the OpenRouter API key (env: OPENROUTER_API_KEY). Never logged.
 	APIKey string `json:"api_key"`
 	// BaseURL defaults to https://openrouter.ai/api/v1.
-	BaseURL string `json:"base_url"`
+	BaseURL string `json:"base_url,optional"`
 	// Models maps ModelProfile to model ID. Merged over DefaultModels.
-	Models map[ModelProfile]string `json:"models"`
+	Models map[ModelProfile]string `json:"models,optional"`
 	// CostRates maps model ID to per-1K-token pricing. Merged over DefaultCostRates.
-	CostRates map[string]CostRate `json:"cost_rates"`
+	CostRates map[string]CostRate `json:"cost_rates,optional"`
 	// DefaultTimeout per request.
-	DefaultTimeout time.Duration `json:"default_timeout"`
+	DefaultTimeout time.Duration `json:"default_timeout,optional"`
 	// MaxRetries for transient errors (429 / 5xx).
-	MaxRetries int `json:"max_retries"`
+	MaxRetries int `json:"max_retries,optional"`
 	// RetryBackoff is the initial backoff duration; doubles each retry.
-	RetryBackoff time.Duration `json:"retry_backoff"`
+	RetryBackoff time.Duration `json:"retry_backoff,optional"`
 	// HTTPReferer is the OpenRouter analytics HTTP-Referer header.
-	HTTPReferer string `json:"http_referer"`
+	HTTPReferer string `json:"http_referer,optional"`
 	// XTitle is the OpenRouter analytics X-Title header.
-	XTitle string `json:"x_title"`
+	XTitle string `json:"x_title,optional"`
 	// FallbackPolicy controls automatic retry with a fallback model.
-	FallbackPolicy FallbackPolicy `json:"fallback_policy"`
+	FallbackPolicy FallbackPolicy `json:"fallback_policy,optional"`
 	// LogPrompts enables logging of prompt/completion contents at info level.
 	// Only use in development; never enable in production.
-	LogPrompts bool `json:"log_prompts"`
+	LogPrompts bool `json:"log_prompts,optional"`
 	// Quota configuration (optional; requires Redis).
-	Quota QuotaConfig `json:"quota"`
+	Quota QuotaConfig `json:"quota,optional"`
 }
 
 // QuotaConfig controls per-user and global daily spend caps.
 type QuotaConfig struct {
 	// RedisAddr is the Redis address for quota tracking.
-	RedisAddr string `json:"redis_addr"`
+	RedisAddr string `json:"redis_addr,optional"`
 	// RedisPassword for Redis auth.
-	RedisPassword string `json:"redis_password"`
+	RedisPassword string `json:"redis_password,optional"`
 	// RedisDB selects the Redis database number.
-	RedisDB int `json:"redis_db"`
+	RedisDB int `json:"redis_db,optional"`
 	// UserDailyTokenCap is the max tokens a single user can consume per day.
 	// 0 means unlimited.
-	UserDailyTokenCap int64 `json:"user_daily_token_cap"`
+	UserDailyTokenCap int64 `json:"user_daily_token_cap,optional"`
 	// GlobalDailyCostCapUSD is the max total spend across all users per day.
 	// 0 means unlimited.
-	GlobalDailyCostCapUSD float64 `json:"global_daily_cost_cap_usd"`
+	GlobalDailyCostCapUSD float64 `json:"global_daily_cost_cap_usd,optional"`
 }
 
 // Validate checks required fields and applies defaults.

@@ -32,7 +32,7 @@ const (
 
 // Config holds the shared secret used for service-to-service authentication.
 type Config struct {
-	Secret string
+	Secret string `json:",optional" secret:"true"`
 }
 
 // MustValidate ensures the config is safe for production use. It returns an error

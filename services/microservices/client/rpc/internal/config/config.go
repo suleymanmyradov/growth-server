@@ -3,13 +3,15 @@ package config
 import (
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
 	Postgres struct {
-		Datasource      string `secret:"true"`
+		Datasource      string        `json:",optional" secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
@@ -20,22 +22,16 @@ type Config struct {
 	}
 	AICoachRpc zrpc.RpcClientConf
 	Billing    struct {
-		Mode                string // disabled, fake_door, stripe_test, stripe_live
-		StripeSecretKey     string `secret:"true"`
-		StripeWebhookSecret string `secret:"true"`
-		FrontendURL         string
+		Mode                string `json:",optional"`
+		StripeSecretKey     string `json:",optional" secret:"true"`
+		StripeWebhookSecret string `json:",optional" secret:"true"`
+		FrontendURL         string `json:",optional"`
 	}
-	Auth struct {
-		Secret   string `secret:"true"`
-		Issuer   string
-		Audience string
-	}
-	ServiceAuth struct {
-		Secret string `secret:"true"`
-	}
-	Redis struct {
+	JWT         jwt.Config `json:",optional"`
+	ServiceAuth s2s.Config `json:",optional"`
+	AppRedis    struct {
 		Addr     string
-		Password string `secret:"true"`
+		Password string `json:",optional" secret:"true"`
 		DB       int
 	}
 }
