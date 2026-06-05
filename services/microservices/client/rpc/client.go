@@ -72,7 +72,7 @@ func main() {
 
 	s.AddUnaryInterceptors(
 		recovery.UnaryServerInterceptor(),
-		mdpropagate.UnaryServerInterceptor(tokenVerifier),
+		mdpropagate.UnaryServerInterceptorOptional(tokenVerifier),
 		s2s.UnaryServerInterceptor(c.ServiceAuth),
 	)
 

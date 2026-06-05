@@ -64,7 +64,7 @@ func (r *TxRunner) RunSerializable(ctx context.Context, userID string, fn func(*
 
 func setRLSUserSQL(ctx context.Context, tx *sql.Tx, userID string) error {
 	if userID == "" {
-		return fmt.Errorf("userID cannot be empty for RLS")
+		return nil
 	}
 	_, err := tx.ExecContext(ctx, "SELECT set_config('app.current_user_id', $1, true)", userID)
 	return err
@@ -123,7 +123,7 @@ func (r *PgxTxRunner) RunSerializable(ctx context.Context, userID string, fn fun
 
 func setRLSUserPgx(ctx context.Context, tx pgx.Tx, userID string) error {
 	if userID == "" {
-		return fmt.Errorf("userID cannot be empty for RLS")
+		return nil
 	}
 	_, err := tx.Exec(ctx, "SELECT set_config('app.current_user_id', $1, true)", userID)
 	return err

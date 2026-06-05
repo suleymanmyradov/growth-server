@@ -85,7 +85,12 @@ func UnaryServerInterceptor(verifier TokenVerifier) func(ctx context.Context, re
 // Use this only for endpoints that may be called without authentication.
 func UnaryServerInterceptorOptional(verifier TokenVerifier) func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	return func(ctx context.Context, req interface{}, _ *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		ctx, _ = PrincipalFromMetadata(ctx, verifier) // Ignore error, proceed without principal
+		// PrincipalFromMetadata returns nil on failure; preserve the original
+		// context so downstream code (e.g. Redis calls with context timeouts)
+		// does not panic on a nil parent.
+		if principalCtx, err := PrincipalFromMetadata(ctx, verifier); err == nil && principalCtx != nil {
+			ctx = principalCtx
+		}
 		return handler(ctx, req)
 	}
 }
