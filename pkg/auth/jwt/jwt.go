@@ -24,29 +24,29 @@ const (
 )
 
 type TokenClaims struct {
-	ID        uuid.UUID `json:"jti"`
-	Subject   uuid.UUID `json:"sub"`
-	SessionID uuid.UUID `json:"sid"`
-	Username  string    `json:"usr,omitempty"`
-	Roles     []string  `json:"rls,omitempty"`
-	Issuer    string    `json:"iss"`
-	Audience  []string  `json:"aud"`
-	IssuedAt  time.Time `json:"iat"`
-	ExpiresAt time.Time `json:"exp"`
-	NotBefore time.Time `json:"nbf"`
-	TokenType TokenType `json:"typ"`
+	ID        uuid.UUID        `json:"jti"`
+	Subject   uuid.UUID        `json:"sub"`
+	SessionID uuid.UUID        `json:"sid"`
+	Username  string           `json:"usr,omitempty"`
+	Roles     []string         `json:"rls,omitempty"`
+	Issuer    string           `json:"iss"`
+	Audience  []string         `json:"aud"`
+	IssuedAt  *jwt.NumericDate `json:"iat"`
+	ExpiresAt *jwt.NumericDate `json:"exp"`
+	NotBefore *jwt.NumericDate `json:"nbf"`
+	TokenType TokenType        `json:"typ"`
 }
 
 func (c *TokenClaims) GetExpirationTime() (*jwt.NumericDate, error) {
-	return jwt.NewNumericDate(c.ExpiresAt), nil
+	return c.ExpiresAt, nil
 }
 
 func (c *TokenClaims) GetIssuedAt() (*jwt.NumericDate, error) {
-	return jwt.NewNumericDate(c.IssuedAt), nil
+	return c.IssuedAt, nil
 }
 
 func (c *TokenClaims) GetNotBefore() (*jwt.NumericDate, error) {
-	return jwt.NewNumericDate(c.NotBefore), nil
+	return c.NotBefore, nil
 }
 
 func (c *TokenClaims) GetIssuer() (string, error) {
@@ -121,9 +121,9 @@ func (tm *TokenMaker) CreateAccessToken(_ context.Context, userID uuid.UUID, use
 		Roles:     roles,
 		Issuer:    tm.issuer,
 		Audience:  []string{tm.audience},
-		IssuedAt:  now,
-		ExpiresAt: expiresAt,
-		NotBefore: now,
+		IssuedAt:  jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		NotBefore: jwt.NewNumericDate(now),
 		TokenType: AccessToken,
 	}
 
@@ -150,9 +150,9 @@ func (tm *TokenMaker) CreateRefreshToken(_ context.Context, userID uuid.UUID, us
 		Username:  username,
 		Issuer:    tm.issuer,
 		Audience:  []string{tm.audience},
-		IssuedAt:  now,
-		ExpiresAt: expiresAt,
-		NotBefore: now,
+		IssuedAt:  jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(expiresAt),
+		NotBefore: jwt.NewNumericDate(now),
 		TokenType: RefreshToken,
 	}
 
@@ -272,7 +272,7 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 	}
 
 	// Use the token's expiry time, capped at a minimum to prevent replay attacks
-	ttl := time.Until(claims.ExpiresAt)
+	ttl := time.Until(claims.ExpiresAt.Time)
 	if ttl < time.Minute {
 		ttl = time.Minute
 	}
@@ -287,7 +287,7 @@ func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (
 	}
 
 	if tm.repo != nil {
-		ttl := time.Until(oldClaims.ExpiresAt)
+		ttl := time.Until(oldClaims.ExpiresAt.Time)
 		if ttl > 0 {
 			if err := tm.repo.MarkTokenRevoke(ctx, RefreshToken, oldToken, ttl); err != nil {
 				return nil, fmt.Errorf("revoke old token: %w", err)

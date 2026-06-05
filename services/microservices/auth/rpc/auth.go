@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
@@ -38,7 +39,14 @@ func main() {
 		}
 	})
 
-	s.AddUnaryInterceptors(recovery.UnaryServerInterceptor())
+	// Extract the caller's principal from the gateway-propagated JWT so authed
+	// methods (e.g. GetProfile, UpdateProfile) can identify the user. Optional
+	// because public methods (Login, Register, RefreshToken, ValidateToken) are
+	// called without a principal and must still pass through.
+	s.AddUnaryInterceptors(
+		recovery.UnaryServerInterceptor(),
+		mdpropagate.UnaryServerInterceptorOptional(ctx.TokenMaker),
+	)
 
 	runtime.Run(func(_ context.Context) { s.Start() }, runtime.Options{
 		RPC: s,

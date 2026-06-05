@@ -28,36 +28,36 @@ Middlewares:
 # Downstream gRPC service endpoints
 AuthRpc:
   Endpoints:
-    - 127.0.0.1:8081
+    - 127.0.0.1:9081
   NonBlock: true
 
 ClientRpc:
   Endpoints:
-    - 127.0.0.1:8082
+    - 127.0.0.1:9082
   NonBlock: true
 
 SearchRpc:
   Endpoints:
-    - 127.0.0.1:8083
+    - 127.0.0.1:9083
   NonBlock: true
 
 AICoachRpc:
   Endpoints:
-    - 127.0.0.1:8085
+    - 127.0.0.1:9086
   NonBlock: true
 
 NotificationsRpc:
   Endpoints:
-    - 127.0.0.1:8086
+    - 127.0.0.1:8080
   NonBlock: true
 
 Auth:
   Secret: 36be8f513d378b3e8560303d509a7a540385bc50b717c3d487c788210703390b
-  Issuer: "growth"
+  Issuer: "growth-auth"
   Audience: "growth-api"
 
 ServiceAuth:
-  Secret: 64a0e43ea92b735e40366c4696b213c01cdfe8a7905c7d364e7f2723bea166c0
+  Secret: dd05451984339bccc6b388e8c81d1375f8a6e7191e716d7eec39e152e5e440b8
 
 Billing:
   Mode: "stripe_test"           # disabled | fake_door | stripe_test | stripe_live
@@ -78,6 +78,7 @@ RateLimit:
 # Distributed tracing (OTLP / Zipkin / Jaeger)
 Telemetry:
   Name: growth-gateway
-  Endpoint: http://localhost:14268/api/traces
+  # Empty disables trace export. Set to localhost:4317 with an OTLP gRPC collector (e.g. Jaeger) to enable.
+  Endpoint:
   Sampler: 1.0
   Batcher: otlpgrpc             # otlpgrpc | otlphttp | zipkin | file
