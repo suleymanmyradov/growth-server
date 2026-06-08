@@ -21,6 +21,7 @@ type Querier interface {
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType ActivityType) (int64, error)
 	CountAllSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int32, error)
+	CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountArticles(ctx context.Context) (int64, error)
@@ -40,6 +41,7 @@ type Querier interface {
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
+	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (ArticleLike, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (ArticleShare, error)
 	CreateCategory(ctx context.Context, name string, slug string, entityType EntityType, sortOrder int32) (Category, error)
 	// Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
@@ -58,6 +60,7 @@ type Querier interface {
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
+	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
 	DeleteArticleShare(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
@@ -121,6 +124,7 @@ type Querier interface {
 	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (WeeklyReview, error)
 	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
+	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 	IsArticleSaved(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (bool, error)
 	IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error)
 	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)

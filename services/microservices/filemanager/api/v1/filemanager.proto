@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package filemanager;
+
+option go_package = "./filemanager";
+
+message UploadFileRequest {
+  bytes data = 1;
+  string filename = 2;
+  string contentType = 3;
+  string folder = 4; // e.g. "avatars", "articles", "attachments"
+}
+
+message UploadFileResponse {
+  string url = 1;
+  string key = 2;
+}
+
+message GetPresignedURLRequest {
+  string key = 1;
+  string bucket = 2;
+  int32 expirySeconds = 3;
+}
+
+message GetPresignedURLResponse {
+  string url = 1;
+}
+
+message DeleteFileRequest {
+  string key = 1;
+  string bucket = 2;
+}
+
+message DeleteFileResponse {
+  bool success = 1;
+}
+
+service FileManager {
+  rpc UploadFile(UploadFileRequest) returns (UploadFileResponse);
+  rpc GetPresignedURL(GetPresignedURLRequest) returns (GetPresignedURLResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}

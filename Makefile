@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-gateway clean run-auth run-client run-search run-aicoach run-gateway run-all
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-all tmux-start tmux-stop tmux-attach
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -16,6 +16,9 @@ help:
 	@echo "  run-search-sync     - Run search-sync worker locally"
 	@echo "  run-gateway         - Run API gateway locally"
 	@echo "  run-all             - Run all services locally"
+	@echo "  tmux-start          - Start all services in a tmux session (no binaries)"
+	@echo "  tmux-stop           - Stop the tmux session"
+	@echo "  tmux-attach         - Attach to the running tmux session"
 	@echo "  migrate-up          - Run database migrations"
 	@echo "  migrate-down        - Rollback database migrations"
 	@echo "  generate-api        - Generate API gateway from contract"
@@ -101,6 +104,12 @@ run-ai-coach-consumer: build-ai-coach
 	@mkdir -p logs
 	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml
 
+# Run filemanager locally (connects to docker dependencies)
+run-filemanager: build-filemanager
+	@echo "Running filemanager service..."
+	@mkdir -p logs
+	./bin/filemanager -f services/microservices/filemanager/rpc/etc/filemanager.yaml
+
 # Run gateway locally (connects to docker dependencies)
 run-gateway: build-gateway
 	@echo "Running API gateway..."
@@ -115,12 +124,25 @@ run-all: build
 	./bin/client -f services/microservices/client/rpc/etc/client.yaml > logs/client.log 2>&1 &
 	./bin/search -f services/microservices/search/rpc/etc/search.yaml > logs/search.log 2>&1 &
 	./bin/ai-coach -f services/microservices/ai-coach/rpc/etc/aicoach.yaml > logs/ai-coach.log 2>&1 &
+	./bin/filemanager -f services/microservices/filemanager/rpc/etc/filemanager.yaml > logs/filemanager.log 2>&1 &
 	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml > logs/gateway.log 2>&1 &
 	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml > logs/ai-coach-consumer.log 2>&1 &
 	./bin/notifications -f services/microservices/notifications/rpc/etc/notifications.yaml > logs/notifications.log 2>&1 &
 	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml > logs/search-sync.log 2>&1 &
 	@echo "All services started. Logs are in the logs/ directory."
-	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|gateway|notifications|search-sync)'"
+	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|filemanager|gateway|notifications|search-sync)'"
+
+# Start all services in a tmux session and attach automatically
+tmux-start:
+	@./scripts/start-services.sh
+
+# Stop the tmux session
+tmux-stop:
+	@tmux kill-session -t growth 2>/dev/null && echo "Session 'growth' stopped." || echo "No session 'growth' running."
+
+# Attach to the running tmux session
+tmux-attach:
+	@tmux attach -t growth
 
 # Run database migrations up
 migrate-up:
@@ -199,6 +221,9 @@ generate-notification-proto:
 generate-ai-coach-proto:
 	@echo "Generating ai-coach proto..."
 	goctl rpc protoc ./services/microservices/ai-coach/api/v1/ai-coach.proto --go_out=./services/microservices/ai-coach/rpc/pb --go-grpc_out=./services/microservices/ai-coach/rpc/pb --zrpc_out=./services/microservices/ai-coach/rpc --style goZero
+generate-filemanager-proto:
+	@echo "Generating filemanager proto..."
+	goctl rpc protoc ./services/microservices/filemanager/api/v1/filemanager.proto --go_out=./services/microservices/filemanager/rpc/pb --go-grpc_out=./services/microservices/filemanager/rpc/pb --zrpc_out=./services/microservices/filemanager/rpc --style goZero
 
 # Lint with golangci-lint (Uber Go Style Guide recommended)
 lint:
@@ -209,7 +234,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-notifications build-ai-coach build-search-sync build-gateway build-billing-reconciler
+build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-billing-reconciler
 	@echo "All services built successfully!"
 
 build-auth:
@@ -237,6 +262,11 @@ build-ai-coach:
 	@mkdir -p bin
 	go build -o bin/ai-coach ./services/microservices/ai-coach/rpc
 	go build -o bin/ai-coach-consumer ./services/microservices/ai-coach-consumer
+
+build-filemanager:
+	@echo "Building filemanager service..."
+	@mkdir -p bin
+	go build -o bin/filemanager ./services/microservices/filemanager/rpc
 
 build-search-sync:
 	@echo "Building search-sync service..."

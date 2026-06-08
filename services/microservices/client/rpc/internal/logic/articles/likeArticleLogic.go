@@ -31,7 +31,7 @@ func (l *LikeArticleLogic) LikeArticle(in *client.LikeArticleRequest) (*client.L
 	articleID, err := uuid.Parse(in.ArticleId)
 	if err != nil {
 		l.Errorf("Invalid article ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid article id")
+		return nil, status.Error(codes.Internal, "invalid article id")
 	}
 
 	p, ok := principal.PrincipalFrom(l.ctx)
@@ -41,13 +41,44 @@ return nil, status.Error(codes.Internal, "invalid article id")
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	l.Infof("User %s liked article %s", userID, articleID)
+	// Check if already liked
+	isLiked, err := l.svcCtx.Repo.Articles.IsArticleLikedByUser(l.ctx, articleID, userID)
+	if err != nil {
+		l.Errorf("Failed to check if article is liked: %v", err)
+		return nil, status.Error(codes.Internal, "failed to check like status")
+	}
+
+	if isLiked {
+		// Unlike: delete the like
+		err = l.svcCtx.Repo.Articles.DeleteArticleLike(l.ctx, articleID, userID)
+		if err != nil {
+			l.Errorf("Failed to delete article like: %v", err)
+			return nil, status.Error(codes.Internal, "failed to unlike article")
+		}
+		l.Infof("User %s unliked article %s", userID, articleID)
+	} else {
+		// Like: create the like
+		_, err = l.svcCtx.Repo.Articles.CreateArticleLike(l.ctx, articleID, userID)
+		if err != nil {
+			l.Errorf("Failed to create article like: %v", err)
+			return nil, status.Error(codes.Internal, "failed to like article")
+		}
+		l.Infof("User %s liked article %s", userID, articleID)
+	}
+
+	// Get the updated count
+	count, err := l.svcCtx.Repo.Articles.CountArticleLikes(l.ctx, articleID)
+	if err != nil {
+		l.Errorf("Failed to count article likes: %v", err)
+		return nil, status.Error(codes.Internal, "failed to count likes")
+	}
 
 	return &client.LikeArticleResponse{
 		Success:      true,
-		NewLikeCount: 1,
+		NewLikeCount: int32(count),
+		IsLiked:      !isLiked,
 	}, nil
 }

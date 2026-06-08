@@ -235,13 +235,14 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 		return fmt.Errorf("revocation not enabled")
 	}
 
-	// Parse token without time validation to allow revocation of expired tokens
+	// Parse token without claims validation to allow revocation of expired tokens.
+	// Signature and algorithm are still verified; issuer/audience/type are checked manually below.
 	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrInvalidToken
 		}
 		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithLeeway(DefaultLeeway))
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
 	if err != nil || !token.Valid {
 		return ErrInvalidToken
 	}
@@ -271,6 +272,10 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 		return ErrInvalidToken
 	}
 
+	if claims.ExpiresAt == nil {
+		return ErrInvalidToken
+	}
+
 	// Use the token's expiry time, capped at a minimum to prevent replay attacks
 	ttl := time.Until(claims.ExpiresAt.Time)
 	if ttl < time.Minute {
@@ -286,7 +291,7 @@ func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (
 		return nil, fmt.Errorf("verify old token: %w", err)
 	}
 
-	if tm.repo != nil {
+	if tm.repo != nil && oldClaims.ExpiresAt != nil {
 		ttl := time.Until(oldClaims.ExpiresAt.Time)
 		if ttl > 0 {
 			if err := tm.repo.MarkTokenRevoke(ctx, RefreshToken, oldToken, ttl); err != nil {
@@ -324,6 +329,9 @@ func validateClaims(claims *TokenClaims, issuer, audience string, expectedType T
 		return ErrInvalidToken
 	}
 
+	if claims.NotBefore == nil || claims.ExpiresAt == nil {
+		return ErrInvalidToken
+	}
 	if now.Before(claims.NotBefore.Add(-DefaultLeeway)) {
 		return ErrInvalidToken
 	}

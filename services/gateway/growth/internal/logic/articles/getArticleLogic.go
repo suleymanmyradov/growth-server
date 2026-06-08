@@ -74,6 +74,8 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
 		IsSaved:     rpcArticle.IsSaved,
+		LikeCount:   int(rpcArticle.Likes),
+		IsLiked:     rpcArticle.IsLiked,
 	}
 
 	l.Infof("Successfully fetched article: %s", article.Title)

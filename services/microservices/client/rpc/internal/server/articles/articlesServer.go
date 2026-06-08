@@ -33,6 +33,21 @@ func (s *ArticlesServer) GetArticle(ctx context.Context, in *client.GetArticleRe
 	return l.GetArticle(in)
 }
 
+func (s *ArticlesServer) CreateArticle(ctx context.Context, in *client.CreateArticleRequest) (*client.CreateArticleResponse, error) {
+	l := articleslogic.NewCreateArticleLogic(ctx, s.svcCtx)
+	return l.CreateArticle(in)
+}
+
+func (s *ArticlesServer) UpdateArticle(ctx context.Context, in *client.UpdateArticleRequest) (*client.UpdateArticleResponse, error) {
+	l := articleslogic.NewUpdateArticleLogic(ctx, s.svcCtx)
+	return l.UpdateArticle(in)
+}
+
+func (s *ArticlesServer) DeleteArticle(ctx context.Context, in *client.DeleteArticleRequest) (*client.DeleteArticleResponse, error) {
+	l := articleslogic.NewDeleteArticleLogic(ctx, s.svcCtx)
+	return l.DeleteArticle(in)
+}
+
 func (s *ArticlesServer) LikeArticle(ctx context.Context, in *client.LikeArticleRequest) (*client.LikeArticleResponse, error) {
 	l := articleslogic.NewLikeArticleLogic(ctx, s.svcCtx)
 	return l.LikeArticle(in)

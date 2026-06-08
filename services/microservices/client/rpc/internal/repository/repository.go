@@ -25,6 +25,10 @@ type IArticles interface {
 	CountArticles(ctx context.Context) (int64, error)
 	CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
+	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error)
+	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
+	CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error)
+	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 }
 
 type ISavedItems interface {

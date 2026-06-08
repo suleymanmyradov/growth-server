@@ -215,6 +215,8 @@ type (
 		createdAt   string           `json:"createdAt,example=2024-01-01T00:00:00Z"`
 		updatedAt   string           `json:"updatedAt,example=2024-01-15T00:00:00Z"`
 		isSaved     bool             `json:"isSaved"`
+		likeCount   int              `json:"likeCount"`
+		isLiked     bool             `json:"isLiked"`
 	}
 	ArticleResponse {
 		data Article `json:"data"`
@@ -237,6 +239,7 @@ type (
 	LikeArticleResponse {
 		success      bool `json:"success"`
 		newLikeCount int  `json:"newLikeCount"`
+		isLiked      bool `json:"isLiked"`
 	}
 	ShareArticleRequest {
 		id       string `path:"id"`
@@ -249,6 +252,27 @@ type (
 		authorId string `form:"authorId"`
 		page     int    `form:"page,default=1"`
 		limit    int    `form:"limit,default=20"`
+	}
+	CreateArticleRequest {
+		title       string   `json:"title,example=10 Habits for Personal Growth"`
+		content     string   `json:"content,example=Full article content here..."`
+		summary     string   `json:"summary,optional"`
+		authorId    string   `json:"authorId,example=user-123"`
+		coverImage  string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
+		tags        []string `json:"tags,optional"`
+		readTime    int      `json:"readTime,example=5"`
+		categoryId  string   `json:"categoryId,optional,example=cat-123"`
+	}
+	UpdateArticleRequest {
+		id          string   `path:"id"`
+		title       string   `json:"title,optional"`
+		content     string   `json:"content,optional"`
+		summary     string   `json:"summary,optional"`
+		authorId    string   `json:"authorId,optional"`
+		coverImage  string   `json:"coverImage,optional"`
+		tags        []string `json:"tags,optional"`
+		readTime    int      `json:"readTime,optional"`
+		categoryId  string   `json:"categoryId,optional"`
 	}
 )
 

@@ -81,6 +81,7 @@ message UpdateProfileRequest {
   string location = 4;
   string website = 5;
   repeated string interests = 6;
+  string avatar_url = 7;
 }
 
 message UpdateProfileResponse {

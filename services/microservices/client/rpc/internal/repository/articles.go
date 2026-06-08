@@ -135,3 +135,31 @@ func (r *ArticlesRepo) CreateArticleShare(ctx context.Context, articleID uuid.UU
 
 	return r.db.CreateArticleShare(ctx, articleID, userID, platform)
 }
+
+func (r *ArticlesRepo) CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CreateArticleLike")
+	defer span.End()
+
+	return r.db.CreateArticleLike(ctx, articleID, userID)
+}
+
+func (r *ArticlesRepo) DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.DeleteArticleLike")
+	defer span.End()
+
+	return r.db.DeleteArticleLike(ctx, articleID, userID)
+}
+
+func (r *ArticlesRepo) CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CountArticleLikes")
+	defer span.End()
+
+	return r.db.CountArticleLikes(ctx, articleID)
+}
+
+func (r *ArticlesRepo) IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.IsArticleLikedByUser")
+	defer span.End()
+
+	return r.db.IsArticleLikedByUser(ctx, articleID, userID)
+}

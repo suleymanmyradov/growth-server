@@ -69,6 +69,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodPost,
+					Path:    "/articles",
+					Handler: articles.CreateArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/articles/:id",
+					Handler: articles.UpdateArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/articles/:id",
+					Handler: articles.DeleteArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
 					Path:    "/articles/:id/like",
 					Handler: articles.LikeArticleHandler(serverCtx),
 				},

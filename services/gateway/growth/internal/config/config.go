@@ -16,6 +16,7 @@ type Config struct {
 	ClientRpc        zrpc.RpcClientConf
 	SearchRpc        zrpc.RpcClientConf
 	AICoachRpc       zrpc.RpcClientConf
+	FileManagerRpc   zrpc.RpcClientConf
 	Auth             struct {
 		Secret   string `json:",optional" secret:"true"`
 		Issuer   string `json:",optional"`

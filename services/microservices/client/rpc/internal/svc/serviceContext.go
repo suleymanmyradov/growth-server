@@ -17,6 +17,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -26,6 +27,7 @@ type ServiceContext struct {
 	Repo             *repository.Repository
 	EventsPub        *events.Publisher
 	AICoachRpc       aicoachservice.AICoachService
+	FileManagerRpc   fileManagerClient.FileManager
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
 	TxRunner         *postgres.PgxTxRunner
@@ -54,6 +56,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	aiCoachRpc := aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc))
+	fileManagerRpc := fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc))
 
 	var redisClient *redis.Client
 	var authzChecker *authz.Checker
@@ -82,6 +85,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Repo:             repo,
 		EventsPub:        eventsPub,
 		AICoachRpc:       aiCoachRpc,
+		FileManagerRpc:   fileManagerRpc,
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
 		TxRunner:         txRunner,

@@ -2,7 +2,8 @@
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 ORDER BY a.published_at DESC
@@ -13,7 +14,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $3 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 ORDER BY a.published_at DESC
@@ -23,7 +26,8 @@ LIMIT $1 OFFSET $2;
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
@@ -35,7 +39,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $4 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 LEFT JOIN saved_articles sa ON sa.article_id = a.id AND sa.user_id = $4
@@ -47,7 +53,8 @@ LIMIT $2 OFFSET $3;
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
@@ -59,7 +66,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $4 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
@@ -70,7 +79,8 @@ LIMIT $2 OFFSET $3;
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.search_vector @@ plainto_tsquery('english', $1)
@@ -81,7 +91,8 @@ LIMIT $2 OFFSET $3;
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1;
@@ -91,7 +102,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $2 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1;
@@ -100,7 +113,8 @@ WHERE a.id = $1;
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.title = $1;
@@ -151,7 +165,8 @@ WHERE c.slug = $1;
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = ANY($1::uuid[]);

@@ -67,6 +67,8 @@ func (l *ListArticlesLogic) ListArticles(req *types.ListArticlesRequest) (resp *
 			CreatedAt:   formatTime(a.CreatedAt),
 			UpdatedAt:   formatTime(a.UpdatedAt),
 			IsSaved:     a.IsSaved,
+			LikeCount:   int(a.Likes),
+			IsLiked:     a.IsLiked,
 		})
 	}
 

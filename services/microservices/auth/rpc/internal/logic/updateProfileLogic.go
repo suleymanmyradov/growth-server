@@ -57,6 +57,7 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 		Location:  toNullString(in.Location),
 		Website:   toNullString(in.Website),
 		Interests: in.Interests,
+		AvatarUrl: toNullString(in.AvatarUrl),
 	})
 	if err != nil {
 		l.Errorf("failed to update profile: %v", err)

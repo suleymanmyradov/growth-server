@@ -134,6 +134,15 @@ service growthapi {
 	tags:       "Articles"
 )
 service growthapi {
+	@handler CreateArticle
+	post /articles (CreateArticleRequest) returns (ArticleResponse)
+
+	@handler UpdateArticle
+	put /articles/:id (UpdateArticleRequest) returns (ArticleResponse)
+
+	@handler DeleteArticle
+	delete /articles/:id (ArticleRequest) returns (EmptyResponse)
+
 	@handler LikeArticle
 	post /articles/:id/like (LikeArticleRequest) returns (LikeArticleResponse)
 

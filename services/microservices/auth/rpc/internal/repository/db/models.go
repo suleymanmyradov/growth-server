@@ -396,64 +396,6 @@ func AllCoachToneTypeValues() []CoachToneType {
 	}
 }
 
-type ConversationType string
-
-const (
-	ConversationTypeCoach     ConversationType = "coach"
-	ConversationTypeTherapist ConversationType = "therapist"
-)
-
-func (e *ConversationType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ConversationType(s)
-	case string:
-		*e = ConversationType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ConversationType: %T", src)
-	}
-	return nil
-}
-
-type NullConversationType struct {
-	ConversationType ConversationType `json:"conversation_type"`
-	Valid            bool             `json:"valid"` // Valid is true if ConversationType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullConversationType) Scan(value interface{}) error {
-	if value == nil {
-		ns.ConversationType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ConversationType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullConversationType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ConversationType), nil
-}
-
-func (e ConversationType) Valid() bool {
-	switch e {
-	case ConversationTypeCoach,
-		ConversationTypeTherapist:
-		return true
-	}
-	return false
-}
-
-func AllConversationTypeValues() []ConversationType {
-	return []ConversationType{
-		ConversationTypeCoach,
-		ConversationTypeTherapist,
-	}
-}
-
 type DifficultyLevelType string
 
 const (
@@ -695,64 +637,6 @@ func AllGoalStatusTypeValues() []GoalStatusType {
 		GoalStatusTypeActive,
 		GoalStatusTypeCompleted,
 		GoalStatusTypeArchived,
-	}
-}
-
-type MessageRoleType string
-
-const (
-	MessageRoleTypeUser      MessageRoleType = "user"
-	MessageRoleTypeAssistant MessageRoleType = "assistant"
-)
-
-func (e *MessageRoleType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = MessageRoleType(s)
-	case string:
-		*e = MessageRoleType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for MessageRoleType: %T", src)
-	}
-	return nil
-}
-
-type NullMessageRoleType struct {
-	MessageRoleType MessageRoleType `json:"message_role_type"`
-	Valid           bool            `json:"valid"` // Valid is true if MessageRoleType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullMessageRoleType) Scan(value interface{}) error {
-	if value == nil {
-		ns.MessageRoleType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.MessageRoleType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullMessageRoleType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.MessageRoleType), nil
-}
-
-func (e MessageRoleType) Valid() bool {
-	switch e {
-	case MessageRoleTypeUser,
-		MessageRoleTypeAssistant:
-		return true
-	}
-	return false
-}
-
-func AllMessageRoleTypeValues() []MessageRoleType {
-	return []MessageRoleType{
-		MessageRoleTypeUser,
-		MessageRoleTypeAssistant,
 	}
 }
 
@@ -1522,6 +1406,13 @@ type Article struct {
 	AiMetadata   []byte             `db:"ai_metadata" json:"ai_metadata"`
 }
 
+type ArticleLike struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 type ArticleShare struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
@@ -1551,16 +1442,6 @@ type CheckIn struct {
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
-}
-
-type Conversation struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	Title       string             `db:"title" json:"title"`
-	ItemType    ConversationType   `db:"item_type" json:"item_type"`
-	LastMessage *string            `db:"last_message" json:"last_message"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Goal struct {
@@ -1595,14 +1476,6 @@ type Habit struct {
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	Version     int32              `db:"version" json:"version"`
-}
-
-type Message struct {
-	ID             uuid.UUID          `db:"id" json:"id"`
-	Content        string             `db:"content" json:"content"`
-	Role           MessageRoleType    `db:"role" json:"role"`
-	ConversationID uuid.UUID          `db:"conversation_id" json:"conversation_id"`
-	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Notification struct {
