@@ -51,6 +51,11 @@ NotificationsRpc:
     - 127.0.0.1:8080
   NonBlock: true
 
+FileManagerRpc:
+  Endpoints:
+    - 127.0.0.1:9087
+  NonBlock: true
+
 Auth:
   Secret: 36be8f513d378b3e8560303d509a7a540385bc50b717c3d487c788210703390b
   Issuer: "growth-auth"

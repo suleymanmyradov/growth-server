@@ -35,6 +35,8 @@ type Article struct {
 	CreatedAt   string           `json:"createdAt,example=2024-01-01T00:00:00Z"`
 	UpdatedAt   string           `json:"updatedAt,example=2024-01-15T00:00:00Z"`
 	IsSaved     bool             `json:"isSaved"`
+	LikeCount   int              `json:"likeCount"`
+	IsLiked     bool             `json:"isLiked"`
 }
 
 type ArticleCategory struct {
@@ -116,6 +118,17 @@ type CoachingProfile struct {
 
 type CoachingProfileResponse struct {
 	Data CoachingProfile `json:"data"`
+}
+
+type CreateArticleRequest struct {
+	Title      string   `json:"title,example=10 Habits for Personal Growth"`
+	Content    string   `json:"content,example=Full article content here..."`
+	Summary    string   `json:"summary,optional"`
+	AuthorId   string   `json:"authorId,example=user-123"`
+	CoverImage string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
+	Tags       []string `json:"tags,optional"`
+	ReadTime   int      `json:"readTime,example=5"`
+	CategoryId string   `json:"categoryId,optional,example=cat-123"`
 }
 
 type CreateCheckInRequest struct {
@@ -306,6 +319,7 @@ type LikeArticleRequest struct {
 type LikeArticleResponse struct {
 	Success      bool `json:"success"`
 	NewLikeCount int  `json:"newLikeCount"`
+	IsLiked      bool `json:"isLiked"`
 }
 
 type ListArticlesRequest struct {
@@ -559,6 +573,18 @@ type TrackUpgradeEventRequest struct {
 
 type TrackUpgradeEventResponse struct {
 	EventId string `json:"eventId,example=event-123"`
+}
+
+type UpdateArticleRequest struct {
+	Id         string   `path:"id"`
+	Title      string   `json:"title,optional"`
+	Content    string   `json:"content,optional"`
+	Summary    string   `json:"summary,optional"`
+	AuthorId   string   `json:"authorId,optional"`
+	CoverImage string   `json:"coverImage,optional"`
+	Tags       []string `json:"tags,optional"`
+	ReadTime   int      `json:"readTime,optional"`
+	CategoryId string   `json:"categoryId,optional"`
 }
 
 type UpdateCoachingProfilePreferencesRequest struct {

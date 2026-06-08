@@ -116,9 +116,9 @@ func (db *DB) SeedData() error {
 		Interests []string
 		AvatarURL string
 	}{
-		{profileIDs[0], userIDs[0], "Passionate about personal growth and productivity", "San Francisco, CA", "https://johndoe.com", []string{"fitness", "productivity", "reading"}, "https://example.com/avatars/john.jpg"},
-		{profileIDs[1], userIDs[1], "Yoga enthusiast and mindfulness practitioner", "New York, NY", "https://janesmith.com", []string{"yoga", "meditation", "health"}, "https://example.com/avatars/jane.jpg"},
-		{profileIDs[2], userIDs[2], "Tech lover and continuous learner", "Austin, TX", "https://bobwilson.com", []string{"technology", "coding", "learning"}, "https://example.com/avatars/bob.jpg"},
+		{profileIDs[0], userIDs[0], "Passionate about personal growth and productivity", "San Francisco, CA", "https://johndoe.com", []string{"fitness", "productivity", "reading"}, "https://i.pravatar.cc/150?img=1"},
+		{profileIDs[1], userIDs[1], "Yoga enthusiast and mindfulness practitioner", "New York, NY", "https://janesmith.com", []string{"yoga", "meditation", "health"}, "https://i.pravatar.cc/150?img=2"},
+		{profileIDs[2], userIDs[2], "Tech lover and continuous learner", "Austin, TX", "https://bobwilson.com", []string{"technology", "coding", "learning"}, "https://i.pravatar.cc/150?img=3"},
 	}
 
 	for _, p := range profiles {
@@ -218,34 +218,70 @@ func (db *DB) SeedData() error {
 		}
 	}
 
+	// Seed article categories first (referenced by articles.category_id)
+	categoryIDs := make([]uuid.UUID, 3)
+	for i := 0; i < 3; i++ {
+		categoryIDs[i] = uuid.MustParse(fmt.Sprintf("50000000-0000-0000-0000-%012d", i+1))
+	}
+
+	categories := []struct {
+		ID         uuid.UUID
+		Name       string
+		Slug       string
+		EntityType string
+		SortOrder  int
+	}{
+		{categoryIDs[0], "Productivity", "productivity", "article", 1},
+		{categoryIDs[1], "Wellness", "wellness", "article", 2},
+		{categoryIDs[2], "Learning", "learning", "article", 3},
+	}
+
+	for _, c := range categories {
+		_, err = tx.Exec(`
+			INSERT INTO categories (id, name, slug, entity_type, sort_order, created_at, updated_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7)
+			ON CONFLICT (slug, entity_type) DO NOTHING`,
+			c.ID, c.Name, c.Slug, c.EntityType, c.SortOrder, time.Now(), time.Now())
+		if err != nil {
+			return fmt.Errorf("error inserting category %s: %w", c.Name, err)
+		}
+	}
+
 	articleIDs := make([]uuid.UUID, 6)
 	for i := 0; i < 6; i++ {
 		articleIDs[i] = uuid.MustParse(fmt.Sprintf("40000000-0000-0000-0000-%012d", i+1))
 	}
 
+	// Map article slug to category ID
+	catMap := map[string]uuid.UUID{
+		"productivity": categoryIDs[0],
+		"wellness":     categoryIDs[1],
+		"learning":     categoryIDs[2],
+	}
+
 	articles := []struct {
-		ID       uuid.UUID
-		Title    string
-		Excerpt  string
-		Content  string
-		Category string
-		ReadTime int
-		ImageURL string
-		Author   string
+		ID         uuid.UUID
+		Title      string
+		Excerpt    string
+		Content    string
+		CategoryID uuid.UUID
+		ReadTime   int
+		ImageURL   string
+		Author     string
 	}{
-		{articleIDs[0], "The Science of Habit Formation", "Understanding how habits work and how to build better ones", "Habits are the building blocks of our daily lives. Research shows that 40% of our actions are habits rather than conscious decisions...", "productivity", 8, "https://example.com/images/habits.jpg", "Dr. James Clear"},
-		{articleIDs[1], "Mindfulness for Beginners", "A practical guide to starting your meditation journey", "Mindfulness meditation has been shown to reduce stress, improve focus, and enhance overall well-being...", "wellness", 6, "https://example.com/images/mindfulness.jpg", "Sarah Johnson"},
-		{articleIDs[2], "The Power of Goal Setting", "How to set and achieve meaningful goals in your life", "Effective goal setting is more than just writing down what you want to achieve. It requires clarity, commitment, and a solid plan...", "productivity", 10, "https://example.com/images/goals.jpg", "Michael Chen"},
-		{articleIDs[3], "Building a Reading Habit", "Tips for making reading a daily practice", "Reading is one of the most powerful habits you can develop. It expands your knowledge, improves your vocabulary, and stimulates your mind...", "learning", 7, "https://example.com/images/reading.jpg", "Emily Davis"},
-		{articleIDs[4], "The Benefits of Morning Routines", "How starting your day right can transform your life", "Your morning routine sets the tone for the entire day. A well-structured morning can boost productivity and reduce stress...", "productivity", 5, "https://example.com/images/morning.jpg", "Alex Thompson"},
-		{articleIDs[5], "Finding Balance in Life", "Strategies for maintaining work-life balance", "In today's fast-paced world, finding balance between work, family, and personal time is more important than ever...", "wellness", 9, "https://example.com/images/balance.jpg", "Rachel Green"},
+		{articleIDs[0], "The Science of Habit Formation", "Understanding how habits work and how to build better ones", "Habits are the building blocks of our daily lives. Research shows that 40% of our actions are habits rather than conscious decisions...", catMap["productivity"], 8, "https://picsum.photos/800/600?random=1", "Dr. James Clear"},
+		{articleIDs[1], "Mindfulness for Beginners", "A practical guide to starting your meditation journey", "Mindfulness meditation has been shown to reduce stress, improve focus, and enhance overall well-being...", catMap["wellness"], 6, "https://picsum.photos/800/600?random=2", "Sarah Johnson"},
+		{articleIDs[2], "The Power of Goal Setting", "How to set and achieve meaningful goals in your life", "Effective goal setting is more than just writing down what you want to achieve. It requires clarity, commitment, and a solid plan...", catMap["productivity"], 10, "https://picsum.photos/800/600?random=3", "Michael Chen"},
+		{articleIDs[3], "Building a Reading Habit", "Tips for making reading a daily practice", "Reading is one of the most powerful habits you can develop. It expands your knowledge, improves your vocabulary, and stimulates your mind...", catMap["learning"], 7, "https://picsum.photos/800/600?random=4", "Emily Davis"},
+		{articleIDs[4], "The Benefits of Morning Routines", "How starting your day right can transform your life", "Your morning routine sets the tone for the entire day. A well-structured morning can boost productivity and reduce stress...", catMap["productivity"], 5, "https://picsum.photos/800/600?random=5", "Alex Thompson"},
+		{articleIDs[5], "Finding Balance in Life", "Strategies for maintaining work-life balance", "In today's fast-paced world, finding balance between work, family, and personal time is more important than ever...", catMap["wellness"], 9, "https://picsum.photos/800/600?random=6", "Rachel Green"},
 	}
 
 	for _, a := range articles {
 		_, err = tx.Exec(`
-			INSERT INTO articles (id, title, excerpt, content, category, read_time, image_url, author, published_at, created_at, updated_at)
+			INSERT INTO articles (id, title, excerpt, content, category_id, read_time, image_url, author, published_at, created_at, updated_at)
 			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-			a.ID, a.Title, a.Excerpt, a.Content, a.Category, a.ReadTime, a.ImageURL, a.Author, time.Now().AddDate(-1, 0, 0), time.Now(), time.Now())
+			a.ID, a.Title, a.Excerpt, a.Content, a.CategoryID, a.ReadTime, a.ImageURL, a.Author, time.Now().AddDate(-1, 0, 0), time.Now(), time.Now())
 		if err != nil {
 			return fmt.Errorf("error inserting article %s: %w", a.Title, err)
 		}

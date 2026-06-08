@@ -14,6 +14,10 @@ import (
 )
 
 type (
+	CreateArticleRequest      = client.CreateArticleRequest
+	CreateArticleResponse     = client.CreateArticleResponse
+	DeleteArticleRequest      = client.DeleteArticleRequest
+	DeleteArticleResponse     = client.DeleteArticleResponse
 	GetArticleRequest         = client.GetArticleRequest
 	GetArticleResponse        = client.GetArticleResponse
 	GetAuthorArticlesRequest  = client.GetAuthorArticlesRequest
@@ -24,10 +28,15 @@ type (
 	ListArticlesResponse      = client.ListArticlesResponse
 	ShareArticleRequest       = client.ShareArticleRequest
 	ShareArticleResponse      = client.ShareArticleResponse
+	UpdateArticleRequest      = client.UpdateArticleRequest
+	UpdateArticleResponse     = client.UpdateArticleResponse
 
 	Articles interface {
 		ListArticles(ctx context.Context, in *ListArticlesRequest, opts ...grpc.CallOption) (*ListArticlesResponse, error)
 		GetArticle(ctx context.Context, in *GetArticleRequest, opts ...grpc.CallOption) (*GetArticleResponse, error)
+		CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error)
+		UpdateArticle(ctx context.Context, in *UpdateArticleRequest, opts ...grpc.CallOption) (*UpdateArticleResponse, error)
+		DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...grpc.CallOption) (*DeleteArticleResponse, error)
 		LikeArticle(ctx context.Context, in *LikeArticleRequest, opts ...grpc.CallOption) (*LikeArticleResponse, error)
 		ShareArticle(ctx context.Context, in *ShareArticleRequest, opts ...grpc.CallOption) (*ShareArticleResponse, error)
 		GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error)
@@ -52,6 +61,21 @@ func (m *defaultArticles) ListArticles(ctx context.Context, in *ListArticlesRequ
 func (m *defaultArticles) GetArticle(ctx context.Context, in *GetArticleRequest, opts ...grpc.CallOption) (*GetArticleResponse, error) {
 	client := client.NewArticlesClient(m.cli.Conn())
 	return client.GetArticle(ctx, in, opts...)
+}
+
+func (m *defaultArticles) CreateArticle(ctx context.Context, in *CreateArticleRequest, opts ...grpc.CallOption) (*CreateArticleResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.CreateArticle(ctx, in, opts...)
+}
+
+func (m *defaultArticles) UpdateArticle(ctx context.Context, in *UpdateArticleRequest, opts ...grpc.CallOption) (*UpdateArticleResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.UpdateArticle(ctx, in, opts...)
+}
+
+func (m *defaultArticles) DeleteArticle(ctx context.Context, in *DeleteArticleRequest, opts ...grpc.CallOption) (*DeleteArticleResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.DeleteArticle(ctx, in, opts...)
 }
 
 func (m *defaultArticles) LikeArticle(ctx context.Context, in *LikeArticleRequest, opts ...grpc.CallOption) (*LikeArticleResponse, error) {

@@ -741,6 +741,7 @@ type UpdateProfileRequest struct {
 	Location      string                 `protobuf:"bytes,4,opt,name=location,proto3" json:"location,omitempty"`
 	Website       string                 `protobuf:"bytes,5,opt,name=website,proto3" json:"website,omitempty"`
 	Interests     []string               `protobuf:"bytes,6,rep,name=interests,proto3" json:"interests,omitempty"`
+	AvatarUrl     string                 `protobuf:"bytes,7,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -815,6 +816,13 @@ func (x *UpdateProfileRequest) GetInterests() []string {
 		return x.Interests
 	}
 	return nil
+}
+
+func (x *UpdateProfileRequest) GetAvatarUrl() string {
+	if x != nil {
+		return x.AvatarUrl
+	}
+	return ""
 }
 
 type UpdateProfileResponse struct {
@@ -1113,14 +1121,16 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x11GetProfileRequest\"4\n" +
 	"\x12GetProfileResponse\x12\x1e\n" +
 	"\x04user\x18\x01 \x01(\v2\n" +
-	".auth.UserR\x04user\"\xb2\x01\n" +
+	".auth.UserR\x04user\"\xd1\x01\n" +
 	"\x14UpdateProfileRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
 	"\tfull_name\x18\x02 \x01(\tR\bfullName\x12\x10\n" +
 	"\x03bio\x18\x03 \x01(\tR\x03bio\x12\x1a\n" +
 	"\blocation\x18\x04 \x01(\tR\blocation\x12\x18\n" +
 	"\awebsite\x18\x05 \x01(\tR\awebsite\x12\x1c\n" +
-	"\tinterests\x18\x06 \x03(\tR\tinterests\"7\n" +
+	"\tinterests\x18\x06 \x03(\tR\tinterests\x12\x1d\n" +
+	"\n" +
+	"avatar_url\x18\a \x01(\tR\tavatarUrl\"7\n" +
 	"\x15UpdateProfileResponse\x12\x1e\n" +
 	"\x04user\x18\x01 \x01(\v2\n" +
 	".auth.UserR\x04user\"v\n" +

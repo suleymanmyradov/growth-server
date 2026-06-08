@@ -104,7 +104,8 @@ const getArticle = `-- name: GetArticle :one
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1
@@ -124,6 +125,7 @@ type GetArticleRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, error) {
@@ -143,6 +145,7 @@ func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, 
 		&i.CategoryID,
 		&i.CategoryName,
 		&i.CategorySlug,
+		&i.LikeCount,
 	)
 	return i, err
 }
@@ -151,7 +154,8 @@ const getArticleByTitle = `-- name: GetArticleByTitle :one
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.title = $1
@@ -171,6 +175,7 @@ type GetArticleByTitleRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error) {
@@ -190,6 +195,7 @@ func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArtic
 		&i.CategoryID,
 		&i.CategoryName,
 		&i.CategorySlug,
+		&i.LikeCount,
 	)
 	return i, err
 }
@@ -199,7 +205,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $2 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1
@@ -220,6 +228,8 @@ type GetArticleWithSavedRow struct {
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
+	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
 func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (GetArticleWithSavedRow, error) {
@@ -240,6 +250,8 @@ func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID 
 		&i.CategoryName,
 		&i.CategorySlug,
 		&i.IsSaved,
+		&i.LikeCount,
+		&i.IsLiked,
 	)
 	return i, err
 }
@@ -248,7 +260,8 @@ const listArticles = `-- name: ListArticles :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 ORDER BY a.published_at DESC
@@ -269,6 +282,7 @@ type ListArticlesRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error) {
@@ -294,6 +308,7 @@ func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) (
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+			&i.LikeCount,
 		); err != nil {
 			return nil, err
 		}
@@ -309,7 +324,8 @@ const listArticlesByAuthor = `-- name: ListArticlesByAuthor :many
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
@@ -331,6 +347,7 @@ type ListArticlesByAuthorRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error) {
@@ -356,6 +373,7 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+			&i.LikeCount,
 		); err != nil {
 			return nil, err
 		}
@@ -372,7 +390,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $4 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
@@ -395,6 +415,8 @@ type ListArticlesByAuthorWithSavedRow struct {
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
+	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
 func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByAuthorWithSavedRow, error) {
@@ -426,6 +448,8 @@ func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author stri
 			&i.CategoryName,
 			&i.CategorySlug,
 			&i.IsSaved,
+			&i.LikeCount,
+			&i.IsLiked,
 		); err != nil {
 			return nil, err
 		}
@@ -441,7 +465,8 @@ const listArticlesByCategorySlug = `-- name: ListArticlesByCategorySlug :many
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
@@ -463,6 +488,7 @@ type ListArticlesByCategorySlugRow struct {
 	CategoryID   uuid.UUID          `db:"category_id" json:"category_id"`
 	CategoryName string             `db:"category_name" json:"category_name"`
 	CategorySlug string             `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error) {
@@ -488,6 +514,7 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, l
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+			&i.LikeCount,
 		); err != nil {
 			return nil, err
 		}
@@ -504,7 +531,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $4 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 LEFT JOIN saved_articles sa ON sa.article_id = a.id AND sa.user_id = $4
@@ -528,6 +557,8 @@ type ListArticlesByCategorySlugWithSavedRow struct {
 	CategoryName string             `db:"category_name" json:"category_name"`
 	CategorySlug string             `db:"category_slug" json:"category_slug"`
 	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
+	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
 func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByCategorySlugWithSavedRow, error) {
@@ -559,6 +590,8 @@ func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug 
 			&i.CategoryName,
 			&i.CategorySlug,
 			&i.IsSaved,
+			&i.LikeCount,
+			&i.IsLiked,
 		); err != nil {
 			return nil, err
 		}
@@ -575,7 +608,9 @@ SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved
+    EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
+    EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $3 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 ORDER BY a.published_at DESC
@@ -597,6 +632,8 @@ type ListArticlesWithSavedRow struct {
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	IsSaved      bool               `db:"is_saved" json:"is_saved"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
+	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
 func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesWithSavedRow, error) {
@@ -623,6 +660,8 @@ func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset
 			&i.CategoryName,
 			&i.CategorySlug,
 			&i.IsSaved,
+			&i.LikeCount,
+			&i.IsLiked,
 		); err != nil {
 			return nil, err
 		}
@@ -638,7 +677,8 @@ const searchArticles = `-- name: SearchArticles :many
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author, 
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.search_vector @@ plainto_tsquery('english', $1)
@@ -660,6 +700,7 @@ type SearchArticlesRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error) {
@@ -685,6 +726,7 @@ func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, lim
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+			&i.LikeCount,
 		); err != nil {
 			return nil, err
 		}
@@ -701,7 +743,8 @@ const searchArticlesSemantic = `-- name: SearchArticlesSemantic :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time, a.image_url, a.author,
     a.published_at, a.created_at, a.updated_at,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = ANY($1::uuid[])
@@ -721,6 +764,7 @@ type SearchArticlesSemanticRow struct {
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
 // TODO: Uncomment once pgvector extension is installed and migration 051_add_pgvector_embeddings
@@ -767,6 +811,7 @@ func (q *Queries) SearchArticlesSemantic(ctx context.Context, dollar_1 []uuid.UU
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
+			&i.LikeCount,
 		); err != nil {
 			return nil, err
 		}

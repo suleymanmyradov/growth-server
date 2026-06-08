@@ -27,8 +27,9 @@ import (
 	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 	clientsettings "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
 	clientweeklyreview "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
-	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -55,6 +56,7 @@ type ServiceContext struct {
 	PersonalizationRpc clientpersonalization.PersonalizationService
 	BillingRpc         clientbilling.BillingService
 	AICoachRpc         aicoachservice.AICoachService
+	FileManagerRpc     fileManagerClient.FileManager
 	StripeClient       *stripe.Client
 }
 
@@ -129,6 +131,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
 		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		AICoachRpc:         aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...)),
+		FileManagerRpc:     fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
 		StripeClient:       stripeClient,
 	}
 }

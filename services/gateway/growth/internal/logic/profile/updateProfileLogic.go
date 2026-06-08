@@ -5,6 +5,7 @@ package profile
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -29,18 +30,19 @@ func NewUpdateProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upd
 }
 
 func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileRequest) (resp *types.ProfileResponse, err error) {
-	_, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("unauthenticated")
 	}
 
 	rpcResp, err := l.svcCtx.AuthRpc.UpdateProfile(l.ctx, &authservice.UpdateProfileRequest{
-		UserId:    "",
+		UserId:    p.UserID,
 		FullName:  req.FullName,
 		Bio:       req.Bio,
 		Location:  req.Location,
 		Website:   req.Website,
 		Interests: req.Interests,
+		AvatarUrl: req.AvatarUrl,
 	})
 	if err != nil {
 		return nil, err

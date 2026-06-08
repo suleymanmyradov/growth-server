@@ -522,6 +522,7 @@ message Article {
   int64 createdAt = 13;
   int64 updatedAt = 14;
   bool isSaved = 15;
+  bool isLiked = 16;
 }
 
 message ListArticlesRequest {
@@ -555,6 +556,7 @@ message LikeArticleRequest {
 message LikeArticleResponse {
   bool success = 1;
   int32 newLikeCount = 2;
+  bool isLiked = 3;
 }
 
 message ShareArticleRequest {
@@ -579,9 +581,51 @@ message GetAuthorArticlesResponse {
   int32 totalCount = 2;
 }
 
+message CreateArticleRequest {
+  string title = 1;
+  string summary = 2;
+  string content = 3;
+  string authorId = 4;
+  string coverImage = 5;
+  repeated string tags = 6;
+  int32 readTime = 7;
+  string categoryId = 8;
+}
+
+message CreateArticleResponse {
+  Article article = 1;
+}
+
+message UpdateArticleRequest {
+  string articleId = 1;
+  string title = 2;
+  string summary = 3;
+  string content = 4;
+  string authorId = 5;
+  string coverImage = 6;
+  repeated string tags = 7;
+  int32 readTime = 8;
+  string categoryId = 9;
+}
+
+message UpdateArticleResponse {
+  Article article = 1;
+}
+
+message DeleteArticleRequest {
+  string articleId = 1;
+}
+
+message DeleteArticleResponse {
+  bool success = 1;
+}
+
 service Articles {
   rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse);
   rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+  rpc CreateArticle(CreateArticleRequest) returns (CreateArticleResponse);
+  rpc UpdateArticle(UpdateArticleRequest) returns (UpdateArticleResponse);
+  rpc DeleteArticle(DeleteArticleRequest) returns (DeleteArticleResponse);
   rpc LikeArticle(LikeArticleRequest) returns (LikeArticleResponse);
   rpc ShareArticle(ShareArticleRequest) returns (ShareArticleResponse);
   rpc GetAuthorArticles(GetAuthorArticlesRequest) returns (GetAuthorArticlesResponse);

@@ -2,12 +2,15 @@ package settingslogic
 
 import (
 	"context"
+	"fmt"
+	"mime"
+	"path/filepath"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
-
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,12 +38,31 @@ func (l *UploadAvatarLogic) UploadAvatar(in *client.UploadAvatarRequest) (*clien
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	l.Infof("Uploading avatar for user %s", userID)
+	ext := filepath.Ext(in.Format)
+	if ext == "" {
+		ext = "." + in.Format
+	}
+	filename := fmt.Sprintf("%s%s", userID.String(), ext)
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" {
+		contentType = "image/jpeg"
+	}
+
+	uploadResp, err := l.svcCtx.FileManagerRpc.UploadFile(l.ctx, &fileManagerClient.UploadFileRequest{
+		Data:        in.ImageData,
+		Filename:    filename,
+		ContentType: contentType,
+		Folder:      "avatars",
+	})
+	if err != nil {
+		l.Errorf("upload avatar to filemanager failed: %v", err)
+		return nil, status.Error(codes.Internal, "avatar upload failed")
+	}
 
 	return &client.UploadAvatarResponse{
-		AvatarUrl: "",
+		AvatarUrl: uploadResp.Url,
 	}, nil
 }

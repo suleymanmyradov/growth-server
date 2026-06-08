@@ -16,6 +16,7 @@ func convertGetRowToPbArticle(a db.GetArticleRow) *client.Article {
 		PublishedAt: a.PublishedAt.Time.Unix(),
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -52,6 +53,7 @@ func convertAuthorRowToPbArticle(a db.ListArticlesByAuthorRow) *client.Article {
 		PublishedAt: a.PublishedAt.Time.Unix(),
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -89,6 +91,8 @@ func convertAuthorWithSavedRowToPbArticle(a db.ListArticlesByAuthorWithSavedRow)
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		IsSaved:     a.IsSaved,
+		Likes:       int32(a.LikeCount),
+		IsLiked:     a.IsLiked,
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -124,6 +128,7 @@ func convertListRowToPbArticle(a db.ListArticlesRow) *client.Article {
 		PublishedAt: a.PublishedAt.Time.Unix(),
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -160,6 +165,7 @@ func convertCategorySlugRowToPbArticle(a db.ListArticlesByCategorySlugRow) *clie
 		PublishedAt: a.PublishedAt.Time.Unix(),
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -189,6 +195,8 @@ func convertListWithSavedRowToPbArticle(a db.ListArticlesWithSavedRow) *client.A
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		IsSaved:     a.IsSaved,
+		Likes:       int32(a.LikeCount),
+		IsLiked:     a.IsLiked,
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -225,6 +233,8 @@ func convertCategorySlugWithSavedRowToPbArticle(a db.ListArticlesByCategorySlugW
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		IsSaved:     a.IsSaved,
+		Likes:       int32(a.LikeCount),
+		IsLiked:     a.IsLiked,
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
@@ -253,6 +263,8 @@ func convertGetWithSavedRowToPbArticle(a db.GetArticleWithSavedRow) *client.Arti
 		CreatedAt:   a.CreatedAt.Time.Unix(),
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		IsSaved:     a.IsSaved,
+		Likes:       int32(a.LikeCount),
+		IsLiked:     a.IsLiked,
 	}
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
