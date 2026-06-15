@@ -5,7 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${DIR}/.." && pwd)"
 
 # Clean logs directory for fresh logs
-LOG_DIR="${ROOT}/logs"
+LOG_DIR="${ROOT}/bin/logs"
 rm -rf "${LOG_DIR}"
 mkdir -p "${LOG_DIR}"
 
