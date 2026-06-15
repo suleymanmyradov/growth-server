@@ -9,7 +9,7 @@ import (
 type Config struct {
 	service.ServiceConf
 	Postgres struct {
-		Datasource      string        `json:",optional" secret:"true"`
+		Datasource      string `json:",optional" secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration

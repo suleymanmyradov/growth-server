@@ -17,7 +17,7 @@ const (
 	SubscriptionStatusTypeTrialing SubscriptionStatusType = "trialing"
 	SubscriptionStatusTypeExpired  SubscriptionStatusType = "expired"
 	SubscriptionStatusTypePastDue  SubscriptionStatusType = "past_due"
-	SubscriptionStatusTypeFree   SubscriptionStatusType = "free"
+	SubscriptionStatusTypeFree     SubscriptionStatusType = "free"
 )
 
 // BillingIntervalType mirrors the Postgres enum.

@@ -39,7 +39,7 @@ func (l *ExportDataLogic) ExportData(in *client.ExportDataRequest) (*client.Expo
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	if l.svcCtx.Authz != nil {

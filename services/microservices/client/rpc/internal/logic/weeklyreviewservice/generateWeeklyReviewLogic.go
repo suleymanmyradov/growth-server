@@ -184,7 +184,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	for _, risk := range patternInsights.RiskFactors {
 		detectedPatterns = append(detectedPatterns, "Risk factor: "+risk)
 	}
-	
+
 	// Log detected patterns for verification (debug level to avoid log noise)
 	l.Debugf("Generated %d detected patterns for weekly review: %v", len(detectedPatterns), detectedPatterns)
 
@@ -225,24 +225,24 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	}
 
 	aiResp, aiErr := l.svcCtx.AICoachRpc.GenerateWeeklyReview(ctx, &aicoachservice.WeeklyReviewRequest{
-		UserId:                in.UserId,
-		AccountabilityStyle:   accountabilityStyle,
-		PreferredTone:             preferredTone,
-		DifficultyPreference:            difficultyPreference,
-		CommonBlockers:        commonBlockers,
-		Goals:                 goalTitles,
-		TotalHabits:           int32(stats.totalHabits),
-		CompletionRate:        float32(stats.completionRate),
-		CompletedCheckIns:     int32(stats.completedCheckIns),
-		MissedCheckIns:        int32(stats.missedCheckIns),
-		BestDay:               stats.bestDay,
-		HardestDay:            stats.hardestDay,
-		TopBlocker:            stats.topBlocker,
-		HabitBreakdowns:       habitBreakdowns,
-		BlockerStats:          blockerStats,
-		MoodStats:             moodStats,
-		EnergyStats:           energyStats,
-		DetectedPatterns:      detectedPatterns,
+		UserId:               in.UserId,
+		AccountabilityStyle:  accountabilityStyle,
+		PreferredTone:        preferredTone,
+		DifficultyPreference: difficultyPreference,
+		CommonBlockers:       commonBlockers,
+		Goals:                goalTitles,
+		TotalHabits:          int32(stats.totalHabits),
+		CompletionRate:       float32(stats.completionRate),
+		CompletedCheckIns:    int32(stats.completedCheckIns),
+		MissedCheckIns:       int32(stats.missedCheckIns),
+		BestDay:              stats.bestDay,
+		HardestDay:           stats.hardestDay,
+		TopBlocker:           stats.topBlocker,
+		HabitBreakdowns:      habitBreakdowns,
+		BlockerStats:         blockerStats,
+		MoodStats:            moodStats,
+		EnergyStats:          energyStats,
+		DetectedPatterns:     detectedPatterns,
 	})
 
 	var aiSummary string

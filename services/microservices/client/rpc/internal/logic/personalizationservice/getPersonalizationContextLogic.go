@@ -54,21 +54,21 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
 					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
-						UserID:               userID,
-						AccountabilityStyle:  "balanced",
-						CoachTone:            "supportive",
-						Difficulty:           "adaptive",
-						CommonBlockers:       []byte("[]"),
-						CoachingNotes:        []byte("{}"),
+						UserID:              userID,
+						AccountabilityStyle: "balanced",
+						CoachTone:           "supportive",
+						Difficulty:          "adaptive",
+						CommonBlockers:      []byte("[]"),
+						CoachingNotes:       []byte("{}"),
 					})
 				}
 			}
 			return &client.GetPersonalizationContextResponse{
 				Context: &client.PersonalizationContext{
-					Profile:         dbCoachingProfileToProto(profile),
-					ActiveGoals:     []*client.Goal{},
-					ActiveHabits:    []*client.Habit{},
-					RecentCheckIns:  []*client.CheckIn{},
+					Profile:            dbCoachingProfileToProto(profile),
+					ActiveGoals:        []*client.Goal{},
+					ActiveHabits:       []*client.Habit{},
+					RecentCheckIns:     []*client.CheckIn{},
 					PendingSuggestions: []*client.PlanAdjustmentSuggestion{},
 					PatternInsights: map[string]string{
 						"personalized_ai": "unavailable",
@@ -85,12 +85,12 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		// Create default profile if it doesn't exist
 		if errors.Is(err, sql.ErrNoRows) {
 			profile, err = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
-				UserID:               userID,
-				AccountabilityStyle:  "balanced",
-				CoachTone:            "supportive",
-				Difficulty:           "adaptive",
-				CommonBlockers:       []byte("[]"),
-				CoachingNotes:        []byte("{}"),
+				UserID:              userID,
+				AccountabilityStyle: "balanced",
+				CoachTone:           "supportive",
+				Difficulty:          "adaptive",
+				CommonBlockers:      []byte("[]"),
+				CoachingNotes:       []byte("{}"),
 			})
 			if err != nil {
 				l.Errorf("failed to create default coaching profile: %v", err)

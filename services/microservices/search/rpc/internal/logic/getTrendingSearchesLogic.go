@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetTrendingSearchesLogic struct {
@@ -25,6 +26,9 @@ func NewGetTrendingSearchesLogic(ctx context.Context, svcCtx *svc.ServiceContext
 
 // Analytics
 func (l *GetTrendingSearchesLogic) GetTrendingSearches(_ *search.GetTrendingSearchesRequest) (*search.GetTrendingSearchesResponse, error) {
+	_, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetTrendingSearchesLogic.GetTrendingSearches")
+	defer span.End()
+
 	// todo: add your logic here and delete this line
 
 	return &search.GetTrendingSearchesResponse{}, nil

@@ -144,7 +144,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 
 		description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
 		_, err = txRepo.Activities.CreateActivity(ctx, db.CreateActivityParams{
-			Type:    (activityType),
+			Type:        (activityType),
 			Title:       activityTitle,
 			Description: &description,
 			Metadata:    json.RawMessage("{}"),
@@ -157,7 +157,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	})
 	if err != nil {
 		l.Errorf("Failed check-in workflow: %v", err)
-return nil, status.Error(codes.Internal, "failed check-in workflow")
+		return nil, status.Error(codes.Internal, "failed check-in workflow")
 	}
 
 	// Fire-and-forget publish check-in event to Kafka.

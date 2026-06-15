@@ -38,19 +38,19 @@ func (l *SaveItemLogic) SaveItem(in *client.SaveItemRequest) (*client.SaveItemRe
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	itemID, err := uuid.Parse(in.ItemId)
 	if err != nil {
 		l.Errorf("Invalid item ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid item id")
+		return nil, status.Error(codes.Internal, "invalid item id")
 	}
 
 	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(ctx, (in.ItemType), itemID, userID)
 	if err != nil {
 		l.Errorf("Failed to save item: %v", err)
-return nil, status.Error(codes.Internal, "failed to save item")
+		return nil, status.Error(codes.Internal, "failed to save item")
 	}
 
 	return &client.SaveItemResponse{

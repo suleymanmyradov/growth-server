@@ -81,12 +81,12 @@ type stripeDisputeData struct {
 }
 
 type stripeDispute struct {
-	ID        string `json:"id"`
-	Charge    string `json:"charge"`
-	Amount    int64  `json:"amount"`
-	Currency  string `json:"currency"`
-	Status    string `json:"status"`
-	Reason    string `json:"reason"`
+	ID            string `json:"id"`
+	Charge        string `json:"charge"`
+	Amount        int64  `json:"amount"`
+	Currency      string `json:"currency"`
+	Status        string `json:"status"`
+	Reason        string `json:"reason"`
 	PaymentIntent string `json:"payment_intent"`
 }
 

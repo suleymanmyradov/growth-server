@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,9 @@ func NewCreateNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNotificationRequest) (*notifications.CreateNotificationResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreateNotificationLogic.CreateNotification")
+	defer span.End()
+
 	if in == nil {
 		return nil, status.Error(codes.InvalidArgument, "request is required")
 	}
@@ -47,24 +51,24 @@ func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNot
 	if in.UserId != "" {
 		userID, err = uuid.Parse(in.UserId)
 		if err != nil {
-			l.Errorf("Invalid user ID in request: %v", err)
+			logx.WithContext(ctx).Errorf("Invalid user ID in request: %v", err)
 			return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 		}
 	} else {
-		p, ok := principal.PrincipalFrom(l.ctx)
+		p, ok := principal.PrincipalFrom(ctx)
 		if !ok {
 			return nil, status.Error(codes.Unauthenticated, "missing principal and no userId provided")
 		}
 		userID, err = uuid.Parse(p.UserID)
 		if err != nil {
-			l.Errorf("Invalid user ID from principal: %v", err)
+			logx.WithContext(ctx).Errorf("Invalid user ID from principal: %v", err)
 			return nil, status.Error(codes.Internal, "invalid user ID")
 		}
 	}
 
-	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(l.ctx, in.Title, in.Message, in.Type, userID)
+	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(ctx, in.Title, in.Message, in.Type, userID)
 	if err != nil {
-		l.Errorf("Failed to create notification: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to create notification: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create notification")
 	}
 

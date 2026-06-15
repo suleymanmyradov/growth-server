@@ -62,7 +62,7 @@ func (l *ToggleHabitLogic) ToggleHabit(in *client.ToggleHabitRequest) (*client.T
 		if habit.Completed {
 			description := fmt.Sprintf("Completed habit: %s (streak: %d)", habit.Name, habit.Streak)
 			_, err := txRepo.Activities.CreateActivity(ctx, db.CreateActivityParams{
-				Type:    "habit_completed",
+				Type:        "habit_completed",
 				Title:       fmt.Sprintf("Completed %s", habit.Name),
 				Description: &description,
 				Metadata:    json.RawMessage("{}"),

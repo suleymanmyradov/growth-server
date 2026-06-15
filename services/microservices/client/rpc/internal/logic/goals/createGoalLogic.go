@@ -38,7 +38,7 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	// Check plan limit enforcement (auto-create free subscription if missing)
@@ -59,7 +59,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	goal, err := l.svcCtx.Repo.Goals.CreateGoal(ctx, params)
 	if err != nil {
 		l.Errorf("Failed to create goal: %v", err)
-return nil, status.Error(codes.Internal, "failed to create goal")
+		return nil, status.Error(codes.Internal, "failed to create goal")
 	}
 
 	return &client.CreateGoalResponse{

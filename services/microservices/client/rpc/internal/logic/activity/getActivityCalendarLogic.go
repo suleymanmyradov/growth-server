@@ -40,7 +40,7 @@ func (l *GetActivityCalendarLogic) GetActivityCalendar(in *client.GetActivityCal
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	var year, month int32
@@ -48,7 +48,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 		y, err := strconv.Atoi(in.Year)
 		if err != nil {
 			l.Errorf("Invalid year: %v", err)
-return nil, status.Error(codes.Internal, "invalid year")
+			return nil, status.Error(codes.Internal, "invalid year")
 		}
 		year = int32(y)
 	}
@@ -57,7 +57,7 @@ return nil, status.Error(codes.Internal, "invalid year")
 		m, err := strconv.Atoi(in.Month)
 		if err != nil {
 			l.Errorf("Invalid month: %v", err)
-return nil, status.Error(codes.Internal, "invalid month")
+			return nil, status.Error(codes.Internal, "invalid month")
 		}
 		month = int32(m)
 	}
@@ -65,7 +65,7 @@ return nil, status.Error(codes.Internal, "invalid month")
 	rows, err := l.svcCtx.Repo.Activities.GetActivityCalendar(ctx, userID, year, month)
 	if err != nil {
 		l.Errorf("Failed to get activity calendar: %v", err)
-return nil, status.Error(codes.Internal, "failed to get activity calendar")
+		return nil, status.Error(codes.Internal, "failed to get activity calendar")
 	}
 
 	days := make([]*client.CalendarDay, len(rows))

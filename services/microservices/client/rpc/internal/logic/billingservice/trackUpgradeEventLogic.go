@@ -74,7 +74,7 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 		UserID:          userID,
 		EventType:       (in.EventType),
 		Surface:         in.Surface,
-		TriggerSource:         trigger,
+		TriggerSource:   trigger,
 		Code:            planCodeValue(planCode),
 		BillingInterval: billingInterval,
 		FeedbackReason:  feedbackReason,

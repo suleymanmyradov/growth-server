@@ -38,13 +38,13 @@ func (l *GetStreaksLogic) GetStreaks(in *client.GetStreaksRequest) (*client.GetS
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	streaks, err := l.svcCtx.Repo.Activities.GetStreaks(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get streaks: %v", err)
-return nil, status.Error(codes.Internal, "failed to get streaks")
+		return nil, status.Error(codes.Internal, "failed to get streaks")
 	}
 
 	currentVal, ok := streaks.CurrentStreak.(int64)
