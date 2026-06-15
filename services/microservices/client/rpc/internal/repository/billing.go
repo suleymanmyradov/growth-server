@@ -71,14 +71,14 @@ func (r *billingRepo) GetUserSubscriptionByStripeCustomerID(ctx context.Context,
 	return r.db.GetUserSubscriptionByStripeCustomerID(ctx, stripeCustomerID)
 }
 
-func (r *billingRepo) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.UserSubscription, error) {
+func (r *billingRepo) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CreateDefaultFreeSubscription")
 	defer span.End()
 
 	return r.db.CreateDefaultFreeSubscription(ctx, userID)
 }
 
-func (r *billingRepo) UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.UserSubscription, error) {
+func (r *billingRepo) UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.Subscription, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.UpsertUserSubscription")
 	defer span.End()
 
@@ -153,7 +153,7 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 	}
 
 	// past_due retains pro benefits during Stripe's grace period until explicit cancellation.
-	isPro := sub.PlanCode == "pro" && (sub.Status == db.SubscriptionStatusTypeActive || sub.Status == db.SubscriptionStatusTypeTrialing || sub.Status == db.SubscriptionStatusTypePastDue)
+	isPro := sub.PlanCode == "pro" && (sub.Status == "active" || sub.Status == "trialing" || sub.Status == "past_due")
 
 	canCreateGoal := isPro || activeGoals < int64(sub.ActiveGoalLimit)
 	canCreateHabit := isPro || activeHabits < int64(sub.ActiveHabitLimit)
@@ -195,11 +195,11 @@ func (r *billingRepo) IsStripeEventProcessed(ctx context.Context, stripeEventID 
 	return r.db.IsStripeEventProcessed(ctx, stripeEventID)
 }
 
-func (r *billingRepo) MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error {
+func (r *billingRepo) MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.MarkStripeEventProcessed")
 	defer span.End()
 
-	return r.db.MarkStripeEventProcessed(ctx, stripeEventID, eventType)
+	return r.db.MarkStripeEventProcessed(ctx, stripeEventID)
 }
 
 func (r *billingRepo) ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error) {

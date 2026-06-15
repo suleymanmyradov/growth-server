@@ -24,41 +24,63 @@ func (q *Queries) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64
 }
 
 const createGoal = `-- name: CreateGoal :one
-INSERT INTO goals (title, description, category, due_date, user_id)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
+WITH ins AS (
+    INSERT INTO goals (title, description, category_id, due_date, user_id)
+    VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4, $5)
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+)
+SELECT ins.id, ins.user_id, ins.category_id, ins.title, ins.description, ins.status, ins.progress, ins.due_date, ins.created_at, ins.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (ins.status = 'completed') AS completed
+FROM ins
+LEFT JOIN categories c ON c.id = ins.category_id
 `
 
 type CreateGoalParams struct {
 	Title       string             `db:"title" json:"title"`
 	Description *string            `db:"description" json:"description"`
-	Category    string             `db:"category" json:"category"`
+	Slug        string             `db:"slug" json:"slug"`
 	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 }
 
-func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (Goal, error) {
+type CreateGoalRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateGoalRow, error) {
 	row := q.db.QueryRow(ctx, createGoal,
 		arg.Title,
 		arg.Description,
-		arg.Category,
+		arg.Slug,
 		arg.DueDate,
 		arg.UserID,
 	)
-	var i Goal
+	var i CreateGoalRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
 		&i.Title,
 		&i.Description,
-		&i.Category,
-		&i.DueDate,
+		&i.Status,
 		&i.Progress,
-		&i.Completed,
-		&i.UserID,
+		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Status,
-		&i.Version,
+		&i.Category,
+		&i.Completed,
 	)
 	return i, err
 }
@@ -73,60 +95,95 @@ func (q *Queries) DeleteGoal(ctx context.Context, id uuid.UUID) error {
 }
 
 const getGoal = `-- name: GetGoal :one
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
-FROM goals
-WHERE id = $1
+SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (g.status = 'completed') AS completed
+FROM goals g
+LEFT JOIN categories c ON c.id = g.category_id
+WHERE g.id = $1
 `
 
-func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (Goal, error) {
+type GetGoalRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error) {
 	row := q.db.QueryRow(ctx, getGoal, id)
-	var i Goal
+	var i GetGoalRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
 		&i.Title,
 		&i.Description,
-		&i.Category,
-		&i.DueDate,
+		&i.Status,
 		&i.Progress,
-		&i.Completed,
-		&i.UserID,
+		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Status,
-		&i.Version,
+		&i.Category,
+		&i.Completed,
 	)
 	return i, err
 }
 
 const getGoalsByIDs = `-- name: GetGoalsByIDs :many
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
-FROM goals
-WHERE id = ANY($1::uuid[])
+SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (g.status = 'completed') AS completed
+FROM goals g
+LEFT JOIN categories c ON c.id = g.category_id
+WHERE g.id = ANY($1::uuid[])
 `
 
-// Bulk lookup for goal list views (e.g. resolving saved goals).
-func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Goal, error) {
+type GetGoalsByIDsRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGoalsByIDsRow, error) {
 	rows, err := q.db.Query(ctx, getGoalsByIDs, dollar_1)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Goal{}
+	items := []GetGoalsByIDsRow{}
 	for rows.Next() {
-		var i Goal
+		var i GetGoalsByIDsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
+			&i.CategoryID,
 			&i.Title,
 			&i.Description,
-			&i.Category,
-			&i.DueDate,
+			&i.Status,
 			&i.Progress,
-			&i.Completed,
-			&i.UserID,
+			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Status,
-			&i.Version,
+			&i.Category,
+			&i.Completed,
 		); err != nil {
 			return nil, err
 		}
@@ -139,35 +196,56 @@ func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Go
 }
 
 const listGoals = `-- name: ListGoals :many
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
-FROM goals
-WHERE user_id = $1
-ORDER BY created_at DESC
+
+SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (g.status = 'completed') AS completed
+FROM goals g
+LEFT JOIN categories c ON c.id = g.category_id
+WHERE g.user_id = $1
+ORDER BY g.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Goal, error) {
+type ListGoalsRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+// Goal rows are returned with a resolved category slug and a derived
+// `completed` flag so callers never deal with category_id directly.
+func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error) {
 	rows, err := q.db.Query(ctx, listGoals, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Goal{}
+	items := []ListGoalsRow{}
 	for rows.Next() {
-		var i Goal
+		var i ListGoalsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
+			&i.CategoryID,
 			&i.Title,
 			&i.Description,
-			&i.Category,
-			&i.DueDate,
+			&i.Status,
 			&i.Progress,
-			&i.Completed,
-			&i.UserID,
+			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Status,
-			&i.Version,
+			&i.Category,
+			&i.Completed,
 		); err != nil {
 			return nil, err
 		}
@@ -180,38 +258,55 @@ func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, 
 }
 
 const listGoalsKeyset = `-- name: ListGoalsKeyset :many
-SELECT id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
-FROM goals
-WHERE user_id = $1
-  AND ($2::timestamptz IS NULL OR created_at < $2)
-ORDER BY created_at DESC
+SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (g.status = 'completed') AS completed
+FROM goals g
+LEFT JOIN categories c ON c.id = g.category_id
+WHERE g.user_id = $1
+  AND ($2::timestamptz IS NULL OR g.created_at < $2)
+ORDER BY g.created_at DESC
 LIMIT $3
 `
 
-// Keyset pagination: more efficient than OFFSET for deep pages.
-// Pass last_created_at from previous page (or NULL for first page).
-func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]Goal, error) {
+type ListGoalsKeysetRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+// Keyset pagination: pass last_created_at from the previous page (or NULL).
+func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListGoalsKeysetRow, error) {
 	rows, err := q.db.Query(ctx, listGoalsKeyset, userID, column2, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Goal{}
+	items := []ListGoalsKeysetRow{}
 	for rows.Next() {
-		var i Goal
+		var i ListGoalsKeysetRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.UserID,
+			&i.CategoryID,
 			&i.Title,
 			&i.Description,
-			&i.Category,
-			&i.DueDate,
+			&i.Status,
 			&i.Progress,
-			&i.Completed,
-			&i.UserID,
+			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.Status,
-			&i.Version,
+			&i.Category,
+			&i.Completed,
 		); err != nil {
 			return nil, err
 		}
@@ -224,104 +319,166 @@ func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2
 }
 
 const toggleGoal = `-- name: ToggleGoal :one
-UPDATE goals
-SET status = CASE WHEN status = 'completed' THEN 'active'::goal_status_type ELSE 'completed'::goal_status_type END,
-    progress = CASE WHEN status = 'completed' THEN 0 ELSE 100 END,
-    version = version + 1,
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND version = $2
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
+WITH upd AS (
+    UPDATE goals
+    SET status = CASE WHEN status = 'completed' THEN 'active' ELSE 'completed' END,
+        progress = CASE WHEN status = 'completed' THEN 0 ELSE 100 END
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
 `
 
-func (q *Queries) ToggleGoal(ctx context.Context, iD uuid.UUID, version int32) (Goal, error) {
-	row := q.db.QueryRow(ctx, toggleGoal, iD, version)
-	var i Goal
+type ToggleGoalRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error) {
+	row := q.db.QueryRow(ctx, toggleGoal, id)
+	var i ToggleGoalRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
 		&i.Title,
 		&i.Description,
-		&i.Category,
-		&i.DueDate,
+		&i.Status,
 		&i.Progress,
-		&i.Completed,
-		&i.UserID,
+		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Status,
-		&i.Version,
+		&i.Category,
+		&i.Completed,
 	)
 	return i, err
 }
 
 const updateGoal = `-- name: UpdateGoal :one
-UPDATE goals
-SET title = $2, description = $3, category = $4, due_date = $5, version = version + 1, updated_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND version = $6
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
+WITH upd AS (
+    UPDATE goals
+    SET title = $2, description = $3,
+        category_id = (SELECT c2.id FROM categories c2 WHERE c2.slug = $4),
+        due_date = $5
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
 `
 
 type UpdateGoalParams struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	Title       string             `db:"title" json:"title"`
 	Description *string            `db:"description" json:"description"`
-	Category    string             `db:"category" json:"category"`
+	Slug        string             `db:"slug" json:"slug"`
 	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	Version     int32              `db:"version" json:"version"`
 }
 
-func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (Goal, error) {
+type UpdateGoalRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error) {
 	row := q.db.QueryRow(ctx, updateGoal,
 		arg.ID,
 		arg.Title,
 		arg.Description,
-		arg.Category,
+		arg.Slug,
 		arg.DueDate,
-		arg.Version,
 	)
-	var i Goal
+	var i UpdateGoalRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
 		&i.Title,
 		&i.Description,
-		&i.Category,
-		&i.DueDate,
+		&i.Status,
 		&i.Progress,
-		&i.Completed,
-		&i.UserID,
+		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Status,
-		&i.Version,
+		&i.Category,
+		&i.Completed,
 	)
 	return i, err
 }
 
 const updateGoalProgress = `-- name: UpdateGoalProgress :one
-UPDATE goals
-SET progress = $2,
-    status = CASE WHEN $2 >= 100 THEN 'completed'::goal_status_type ELSE status END,
-    version = version + 1,
-    updated_at = CURRENT_TIMESTAMP
-WHERE id = $1 AND version = $3
-RETURNING id, title, description, category, due_date, progress, completed, user_id, created_at, updated_at, status, version
+WITH upd AS (
+    UPDATE goals
+    SET progress = $2,
+        status = CASE WHEN $2 >= 100 THEN 'completed' ELSE status END
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
 `
 
-func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32, version int32) (Goal, error) {
-	row := q.db.QueryRow(ctx, updateGoalProgress, iD, progress, version)
-	var i Goal
+type UpdateGoalProgressRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	Status      string             `db:"status" json:"status"`
+	Progress    int32              `db:"progress" json:"progress"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Category    string             `db:"category" json:"category"`
+	Completed   bool               `db:"completed" json:"completed"`
+}
+
+func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error) {
+	row := q.db.QueryRow(ctx, updateGoalProgress, iD, progress)
+	var i UpdateGoalProgressRow
 	err := row.Scan(
 		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
 		&i.Title,
 		&i.Description,
-		&i.Category,
-		&i.DueDate,
+		&i.Status,
 		&i.Progress,
-		&i.Completed,
-		&i.UserID,
+		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Status,
-		&i.Version,
+		&i.Category,
+		&i.Completed,
 	)
 	return i, err
 }

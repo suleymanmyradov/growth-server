@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -50,7 +49,7 @@ func (l *UpdatePlanAdjustmentSuggestionStatusLogic) UpdatePlanAdjustmentSuggesti
 	}
 
 	// Update suggestion status
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(l.ctx, suggestionID, userID, db.PlanAdjustmentStatusType(in.Status))
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(l.ctx, suggestionID, userID, (in.Status))
 	if err != nil {
 		l.Errorf("failed to update plan adjustment suggestion status: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update plan adjustment suggestion status")

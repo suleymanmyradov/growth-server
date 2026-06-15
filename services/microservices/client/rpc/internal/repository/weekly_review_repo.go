@@ -24,32 +24,42 @@ func (r *weeklyReviewsRepo) WithTx(tx pgx.Tx) *weeklyReviewsRepo {
 	return &weeklyReviewsRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *weeklyReviewsRepo) CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.WeeklyReview, error) {
+func (r *weeklyReviewsRepo) CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.GetWeeklyReviewRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.CreateWeeklyReview")
 	defer span.End()
 
-	return r.db.CreateWeeklyReview(ctx, params)
+	row, err := r.db.CreateWeeklyReview(ctx, params)
+	return db.GetWeeklyReviewRow(row), err
 }
 
-func (r *weeklyReviewsRepo) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart time.Time) (db.WeeklyReview, error) {
+func (r *weeklyReviewsRepo) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart time.Time) (db.GetWeeklyReviewRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetWeeklyReview")
 	defer span.End()
 
 	return r.db.GetWeeklyReview(ctx, userID, pgtype.Date{Time: weekStart, Valid: true})
 }
 
-func (r *weeklyReviewsRepo) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (db.WeeklyReview, error) {
+func (r *weeklyReviewsRepo) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (db.GetWeeklyReviewRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetCurrentWeeklyReview")
 	defer span.End()
 
-	return r.db.GetCurrentWeeklyReview(ctx, userID)
+	row, err := r.db.GetCurrentWeeklyReview(ctx, userID)
+	return db.GetWeeklyReviewRow(row), err
 }
 
-func (r *weeklyReviewsRepo) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.WeeklyReview, error) {
+func (r *weeklyReviewsRepo) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetWeeklyReviewRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.ListWeeklyReviews")
 	defer span.End()
 
-	return r.db.ListWeeklyReviews(ctx, userID, limit, offset)
+	rows, err := r.db.ListWeeklyReviews(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]db.GetWeeklyReviewRow, len(rows))
+	for i, row := range rows {
+		out[i] = db.GetWeeklyReviewRow(row)
+	}
+	return out, nil
 }
 
 func (r *weeklyReviewsRepo) CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error) {

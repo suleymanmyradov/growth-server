@@ -11,18 +11,13 @@ import (
 )
 
 type OutboxRow struct {
-	ID          uuid.UUID
+	ID          int64
 	EntityType  string
 	EntityID    uuid.UUID
 	Operation   string
-	Payload     []byte
-	Status      string
 	Attempts    int
+	LastError   *string
 	AvailableAt time.Time
-	LockedAt    *time.Time
-	LockedBy    *string
-	ProcessedAt *time.Time
-	Error       *string
 	CreatedAt   time.Time
 }
 
@@ -34,27 +29,29 @@ func NewOutboxRepository(pool *pgxpool.Pool) *OutboxRepository {
 	return &OutboxRepository{pool: pool}
 }
 
+// LockPending claims a batch using a visibility timeout: attempts is bumped
+// and available_at pushed lockTimeout into the future, so a crashed worker's
+// rows simply reappear once the timeout passes. workerID is kept for the
+// call signature but no longer stored.
 func (r *OutboxRepository) LockPending(ctx context.Context, batchSize int, workerID string, lockTimeout time.Duration) ([]OutboxRow, error) {
+	_ = workerID
 	query := `
 		WITH next AS (
 			SELECT id
 			FROM search_outbox
-			WHERE status IN ('pending', 'failed')
-			  AND available_at <= now()
-			ORDER BY created_at
+			WHERE available_at <= now()
+			ORDER BY id
 			LIMIT $1
 			FOR UPDATE SKIP LOCKED
 		)
 		UPDATE search_outbox o
-		SET status = 'processing',
-		    locked_at = now(),
-		    locked_by = $2,
-		    attempts = attempts + 1
+		SET attempts = attempts + 1,
+		    available_at = now() + $2::interval
 		FROM next
 		WHERE o.id = next.id
-		RETURNING o.id, o.entity_type, o.entity_id, o.operation, o.payload, o.status, o.attempts, o.available_at, o.locked_at, o.locked_by, o.processed_at, o.error, o.created_at`
+		RETURNING o.id, o.entity_type, o.entity_id, o.operation, o.attempts, o.last_error, o.available_at, o.created_at`
 
-	rows, err := r.pool.Query(ctx, query, batchSize, workerID)
+	rows, err := r.pool.Query(ctx, query, batchSize, lockTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("lock pending: %w", err)
 	}
@@ -65,8 +62,7 @@ func (r *OutboxRepository) LockPending(ctx context.Context, batchSize int, worke
 		var row OutboxRow
 		err := rows.Scan(
 			&row.ID, &row.EntityType, &row.EntityID, &row.Operation,
-			&row.Payload, &row.Status, &row.Attempts, &row.AvailableAt,
-			&row.LockedAt, &row.LockedBy, &row.ProcessedAt, &row.Error, &row.CreatedAt,
+			&row.Attempts, &row.LastError, &row.AvailableAt, &row.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan outbox row: %w", err)
@@ -79,20 +75,19 @@ func (r *OutboxRepository) LockPending(ctx context.Context, batchSize int, worke
 	return result, nil
 }
 
-func (r *OutboxRepository) MarkProcessed(ctx context.Context, id uuid.UUID) error {
-	_, err := r.pool.Exec(ctx,
-		`UPDATE search_outbox SET status = 'processed', processed_at = now(), error = NULL WHERE id = $1`,
-		id,
-	)
+// MarkProcessed removes the row: the outbox is insert-only and processed
+// rows have no further use.
+func (r *OutboxRepository) MarkProcessed(ctx context.Context, id int64) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM search_outbox WHERE id = $1`, id)
 	if err != nil {
 		return fmt.Errorf("mark processed: %w", err)
 	}
 	return nil
 }
 
-func (r *OutboxRepository) MarkFailed(ctx context.Context, id uuid.UUID, errMsg string, availableAt time.Time) error {
+func (r *OutboxRepository) MarkFailed(ctx context.Context, id int64, errMsg string, availableAt time.Time) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE search_outbox SET status = 'failed', error = $2, available_at = $3 WHERE id = $1`,
+		`UPDATE search_outbox SET last_error = $2, available_at = $3 WHERE id = $1`,
 		id, errMsg, availableAt,
 	)
 	if err != nil {
@@ -101,15 +96,9 @@ func (r *OutboxRepository) MarkFailed(ctx context.Context, id uuid.UUID, errMsg 
 	return nil
 }
 
+// ReleaseStaleLocks is a no-op under the visibility-timeout scheme: claimed
+// rows become visible again automatically when available_at passes.
 func (r *OutboxRepository) ReleaseStaleLocks(ctx context.Context, lockTimeout time.Duration) error {
-	_, err := r.pool.Exec(ctx,
-		`UPDATE search_outbox SET status = 'pending', locked_at = NULL, locked_by = NULL
-		 WHERE status = 'processing' AND locked_at < now() - $1::interval`,
-		lockTimeout,
-	)
-	if err != nil {
-		return fmt.Errorf("release stale locks: %w", err)
-	}
 	return nil
 }
 
@@ -178,7 +167,9 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 }
 
 func (r *OutboxRepository) GetGoal(ctx context.Context, id uuid.UUID) (map[string]any, error) {
-	query := `SELECT id, user_id, title, description, category, status, created_at, updated_at FROM goals WHERE id = $1`
+	query := `SELECT g.id, g.user_id, g.title, g.description, COALESCE(c.slug, '') AS category, g.status, g.created_at, g.updated_at
+	FROM goals g LEFT JOIN categories c ON c.id = g.category_id
+	WHERE g.id = $1`
 
 	var doc struct {
 		ID          uuid.UUID `json:"id"`
@@ -218,7 +209,9 @@ func (r *OutboxRepository) GetGoal(ctx context.Context, id uuid.UUID) (map[strin
 }
 
 func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[string]any, error) {
-	query := `SELECT id, user_id, name, description, category, created_at, updated_at FROM habits WHERE id = $1`
+	query := `SELECT h.id, h.user_id, h.name, h.description, COALESCE(c.slug, '') AS category, h.created_at, h.updated_at
+	FROM habits h LEFT JOIN categories c ON c.id = h.category_id
+	WHERE h.id = $1`
 
 	var doc struct {
 		ID          uuid.UUID `json:"id"`

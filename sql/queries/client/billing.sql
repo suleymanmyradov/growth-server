@@ -9,7 +9,7 @@ WHERE code = $1 AND is_active = TRUE;
 
 -- name: GetUserSubscription :one
 SELECT
-    us.*,
+    s.*,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -17,20 +17,20 @@ SELECT
     p.weekly_review_history_limit,
     p.plan_adjustment_limit,
     p.personalized_ai_enabled
-FROM user_subscriptions us
-JOIN plans p ON p.id = us.plan_id
-WHERE us.user_id = $1;
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.user_id = $1;
 
 -- name: CreateDefaultFreeSubscription :one
-INSERT INTO user_subscriptions (user_id, plan_id, status)
+INSERT INTO subscriptions (user_id, plan_id, status)
 SELECT $1, p.id, 'free'
 FROM plans p
 WHERE p.code = 'free'
-ON CONFLICT (user_id) DO UPDATE SET updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
+ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
+RETURNING *;
 
 -- name: UpsertUserSubscription :one
-INSERT INTO user_subscriptions (
+INSERT INTO subscriptions (
     user_id,
     plan_id,
     status,
@@ -53,29 +53,21 @@ DO UPDATE SET
     trial_end = EXCLUDED.trial_end,
     cancel_at_period_end = EXCLUDED.cancel_at_period_end,
     stripe_customer_id = EXCLUDED.stripe_customer_id,
-    stripe_subscription_id = EXCLUDED.stripe_subscription_id,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
+    stripe_subscription_id = EXCLUDED.stripe_subscription_id
+RETURNING *;
 
 -- name: CreateUpgradeEvent :one
-INSERT INTO upgrade_events (
-    user_id,
-    event_type,
-    surface,
-    trigger,
-    plan_code,
-    plan_id,
-    billing_interval,
-    feedback_reason,
-    feedback_note,
-    metadata
+WITH ins AS (
+    INSERT INTO upgrade_events (
+        user_id, event_type, surface, trigger_source, plan_id,
+        billing_interval, feedback_reason, feedback_note, metadata
+    )
+    VALUES ($1, $2, $3, $4, (SELECT p2.id FROM plans p2 WHERE p2.code = $5), $6, $7, $8, $9)
+    RETURNING *
 )
-VALUES (
-    $1, $2, $3, $4, $5,
-    (SELECT id FROM plans WHERE code = $5),
-    $6, $7, $8, $9
-)
-RETURNING id, user_id, event_type, surface, trigger, plan_code, plan_id, billing_interval, feedback_reason, feedback_note, metadata, created_at;
+SELECT ins.*, p.code AS plan_code
+FROM ins
+LEFT JOIN plans p ON p.id = ins.plan_id;
 
 -- name: CountActiveGoalsForUser :one
 SELECT COUNT(*) FROM goals
@@ -86,12 +78,12 @@ SELECT COUNT(*) FROM habits
 WHERE user_id = $1;
 
 -- name: CountPendingPlanAdjustmentsForUser :one
-SELECT COUNT(*) FROM plan_adjustment_suggestions
+SELECT COUNT(*) FROM plan_adjustments
 WHERE user_id = $1 AND status = 'pending';
 
 -- name: GetUserSubscriptionByStripeCustomerID :one
 SELECT
-    us.id, us.user_id, us.plan_id, us.status, us.billing_interval, us.current_period_start, us.current_period_end, us.trial_end, us.cancel_at_period_end, us.stripe_customer_id, us.stripe_subscription_id, us.created_at, us.updated_at,
+    s.*,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -99,21 +91,24 @@ SELECT
     p.weekly_review_history_limit,
     p.plan_adjustment_limit,
     p.personalized_ai_enabled
-FROM user_subscriptions us
-JOIN plans p ON p.id = us.plan_id
-WHERE us.stripe_customer_id = $1;
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.stripe_customer_id = $1;
 
 -- name: IsStripeEventProcessed :one
-SELECT EXISTS(SELECT 1 FROM processed_stripe_events WHERE stripe_event_id = $1);
+SELECT EXISTS(
+    SELECT 1 FROM processed_events
+    WHERE consumer = 'stripe_webhooks' AND event_id = $1
+);
 
 -- name: MarkStripeEventProcessed :exec
-INSERT INTO processed_stripe_events (stripe_event_id, event_type)
-VALUES ($1, $2)
+INSERT INTO processed_events (consumer, event_id)
+VALUES ('stripe_webhooks', $1)
 ON CONFLICT DO NOTHING;
 
 -- name: ListExpiredActiveSubscriptions :many
 SELECT
-    us.id, us.user_id, us.plan_id, us.status, us.billing_interval, us.current_period_start, us.current_period_end, us.trial_end, us.cancel_at_period_end, us.stripe_customer_id, us.stripe_subscription_id, us.created_at, us.updated_at,
+    s.*,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -121,9 +116,9 @@ SELECT
     p.weekly_review_history_limit,
     p.plan_adjustment_limit,
     p.personalized_ai_enabled
-FROM user_subscriptions us
-JOIN plans p ON p.id = us.plan_id
-WHERE us.status IN ('active', 'trialing')
-  AND us.cancel_at_period_end = true
-  AND us.current_period_end < NOW()
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.status IN ('active', 'trialing')
+  AND s.cancel_at_period_end = true
+  AND s.current_period_end < NOW()
 LIMIT $1;

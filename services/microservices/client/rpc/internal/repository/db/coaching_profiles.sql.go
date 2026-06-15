@@ -9,28 +9,56 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const deleteCoachingProfile = `-- name: DeleteCoachingProfile :exec
-DELETE FROM user_coaching_profiles WHERE user_id = $1
+UPDATE user_settings
+SET accountability_style = 'balanced',
+    coach_tone = 'supportive',
+    difficulty = 'adaptive',
+    primary_motivation = NULL,
+    common_blockers = '[]'::jsonb,
+    coaching_notes = '{}'::jsonb,
+    last_context_refresh_at = NULL
+WHERE user_id = $1
 `
 
+// Reset coaching fields to their defaults (settings row itself stays).
 func (q *Queries) DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteCoachingProfile, userID)
 	return err
 }
 
 const getCoachingProfile = `-- name: GetCoachingProfile :one
-SELECT id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
-FROM user_coaching_profiles
+
+SELECT user_id, accountability_style, coach_tone AS preferred_tone,
+       difficulty AS difficulty_preference, primary_motivation,
+       common_blockers, coaching_notes, last_context_refresh_at,
+       created_at, updated_at
+FROM user_settings
 WHERE user_id = $1
 `
 
-func (q *Queries) GetCoachingProfile(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error) {
+type GetCoachingProfileRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+// Coaching preferences live on user_settings now (no separate profile table).
+// These queries keep the coaching-profile shape the AI coach expects.
+func (q *Queries) GetCoachingProfile(ctx context.Context, userID uuid.UUID) (GetCoachingProfileRow, error) {
 	row := q.db.QueryRow(ctx, getCoachingProfile, userID)
-	var i UserCoachingProfile
+	var i GetCoachingProfileRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,
@@ -46,19 +74,32 @@ func (q *Queries) GetCoachingProfile(ctx context.Context, userID uuid.UUID) (Use
 }
 
 const updateCoachingProfileBlockers = `-- name: UpdateCoachingProfileBlockers :one
-UPDATE user_coaching_profiles
-SET
-    common_blockers = $2,
-    updated_at = CURRENT_TIMESTAMP
+UPDATE user_settings
+SET common_blockers = $2
 WHERE user_id = $1
-RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
+          difficulty AS difficulty_preference, primary_motivation,
+          common_blockers, coaching_notes, last_context_refresh_at,
+          created_at, updated_at
 `
 
-func (q *Queries) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UserCoachingProfile, error) {
+type UpdateCoachingProfileBlockersRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UpdateCoachingProfileBlockersRow, error) {
 	row := q.db.QueryRow(ctx, updateCoachingProfileBlockers, userID, commonBlockers)
-	var i UserCoachingProfile
+	var i UpdateCoachingProfileBlockersRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,
@@ -74,19 +115,32 @@ func (q *Queries) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid
 }
 
 const updateCoachingProfileContextRefresh = `-- name: UpdateCoachingProfileContextRefresh :one
-UPDATE user_coaching_profiles
-SET
-    last_context_refresh_at = CURRENT_TIMESTAMP,
-    updated_at = CURRENT_TIMESTAMP
+UPDATE user_settings
+SET last_context_refresh_at = now()
 WHERE user_id = $1
-RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
+          difficulty AS difficulty_preference, primary_motivation,
+          common_blockers, coaching_notes, last_context_refresh_at,
+          created_at, updated_at
 `
 
-func (q *Queries) UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (UserCoachingProfile, error) {
+type UpdateCoachingProfileContextRefreshRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (UpdateCoachingProfileContextRefreshRow, error) {
 	row := q.db.QueryRow(ctx, updateCoachingProfileContextRefresh, userID)
-	var i UserCoachingProfile
+	var i UpdateCoachingProfileContextRefreshRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,
@@ -102,19 +156,32 @@ func (q *Queries) UpdateCoachingProfileContextRefresh(ctx context.Context, userI
 }
 
 const updateCoachingProfileNotes = `-- name: UpdateCoachingProfileNotes :one
-UPDATE user_coaching_profiles
-SET
-    coaching_notes = $2,
-    updated_at = CURRENT_TIMESTAMP
+UPDATE user_settings
+SET coaching_notes = $2
 WHERE user_id = $1
-RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
+          difficulty AS difficulty_preference, primary_motivation,
+          common_blockers, coaching_notes, last_context_refresh_at,
+          created_at, updated_at
 `
 
-func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UserCoachingProfile, error) {
+type UpdateCoachingProfileNotesRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UpdateCoachingProfileNotesRow, error) {
 	row := q.db.QueryRow(ctx, updateCoachingProfileNotes, userID, coachingNotes)
-	var i UserCoachingProfile
+	var i UpdateCoachingProfileNotesRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,
@@ -130,35 +197,41 @@ func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UU
 }
 
 const updateCoachingProfilePreferences = `-- name: UpdateCoachingProfilePreferences :one
-INSERT INTO user_coaching_profiles (
-    user_id,
-    accountability_style,
-    preferred_tone,
-    difficulty_preference,
-    common_blockers,
-    coaching_notes,
-    last_context_refresh_at
-)
-VALUES ($1, $2, $3, $4, '[]'::jsonb, '{}'::jsonb, CURRENT_TIMESTAMP)
+INSERT INTO user_settings (user_id, accountability_style, coach_tone, difficulty)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_id)
 DO UPDATE SET
     accountability_style = EXCLUDED.accountability_style,
-    preferred_tone = EXCLUDED.preferred_tone,
-    difficulty_preference = EXCLUDED.difficulty_preference,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+    coach_tone = EXCLUDED.coach_tone,
+    difficulty = EXCLUDED.difficulty
+RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
+          difficulty AS difficulty_preference, primary_motivation,
+          common_blockers, coaching_notes, last_context_refresh_at,
+          created_at, updated_at
 `
 
-func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle AccountabilityStyleType, preferredTone CoachToneType, difficultyPreference DifficultyLevelType) (UserCoachingProfile, error) {
+type UpdateCoachingProfilePreferencesRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, coachTone string, difficulty string) (UpdateCoachingProfilePreferencesRow, error) {
 	row := q.db.QueryRow(ctx, updateCoachingProfilePreferences,
 		userID,
 		accountabilityStyle,
-		preferredTone,
-		difficultyPreference,
+		coachTone,
+		difficulty,
 	)
-	var i UserCoachingProfile
+	var i UpdateCoachingProfilePreferencesRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,
@@ -174,53 +247,61 @@ func (q *Queries) UpdateCoachingProfilePreferences(ctx context.Context, userID u
 }
 
 const upsertCoachingProfile = `-- name: UpsertCoachingProfile :one
-INSERT INTO user_coaching_profiles (
-    user_id,
-    accountability_style,
-    preferred_tone,
-    difficulty_preference,
-    primary_motivation,
-    common_blockers,
-    coaching_notes,
-    last_context_refresh_at
+INSERT INTO user_settings (
+    user_id, accountability_style, coach_tone, difficulty,
+    primary_motivation, common_blockers, coaching_notes, last_context_refresh_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+VALUES ($1, $2, $3, $4, $5, $6, $7, now())
 ON CONFLICT (user_id)
 DO UPDATE SET
     accountability_style = EXCLUDED.accountability_style,
-    preferred_tone = EXCLUDED.preferred_tone,
-    difficulty_preference = EXCLUDED.difficulty_preference,
+    coach_tone = EXCLUDED.coach_tone,
+    difficulty = EXCLUDED.difficulty,
     primary_motivation = EXCLUDED.primary_motivation,
     common_blockers = EXCLUDED.common_blockers,
     coaching_notes = EXCLUDED.coaching_notes,
-    last_context_refresh_at = CURRENT_TIMESTAMP,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, accountability_style, preferred_tone, difficulty_preference, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+    last_context_refresh_at = now()
+RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
+          difficulty AS difficulty_preference, primary_motivation,
+          common_blockers, coaching_notes, last_context_refresh_at,
+          created_at, updated_at
 `
 
 type UpsertCoachingProfileParams struct {
-	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
-	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    *string                 `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       []byte                  `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        []byte                  `db:"coaching_notes" json:"coaching_notes"`
+	UserID              uuid.UUID `db:"user_id" json:"user_id"`
+	AccountabilityStyle string    `db:"accountability_style" json:"accountability_style"`
+	CoachTone           string    `db:"coach_tone" json:"coach_tone"`
+	Difficulty          string    `db:"difficulty" json:"difficulty"`
+	PrimaryMotivation   *string   `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers      []byte    `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes       []byte    `db:"coaching_notes" json:"coaching_notes"`
 }
 
-func (q *Queries) UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UserCoachingProfile, error) {
+type UpsertCoachingProfileRow struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	PreferredTone        string             `db:"preferred_tone" json:"preferred_tone"`
+	DifficultyPreference string             `db:"difficulty_preference" json:"difficulty_preference"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+func (q *Queries) UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error) {
 	row := q.db.QueryRow(ctx, upsertCoachingProfile,
 		arg.UserID,
 		arg.AccountabilityStyle,
-		arg.PreferredTone,
-		arg.DifficultyPreference,
+		arg.CoachTone,
+		arg.Difficulty,
 		arg.PrimaryMotivation,
 		arg.CommonBlockers,
 		arg.CoachingNotes,
 	)
-	var i UserCoachingProfile
+	var i UpsertCoachingProfileRow
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
 		&i.AccountabilityStyle,
 		&i.PreferredTone,

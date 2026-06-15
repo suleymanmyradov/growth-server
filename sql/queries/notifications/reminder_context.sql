@@ -24,7 +24,7 @@ LEFT JOIN check_ins ci ON ci.habit_id = h.id
 GROUP BY usr.tz, usr.check_in_time, usr.habit_reminders, usr.onboarding_completed;
 
 -- name: MarkReminderSent :one
-UPDATE reminder_queue
-SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+UPDATE reminders
+SET sent_at = now()
 WHERE id = $1
-RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at;
+RETURNING *;

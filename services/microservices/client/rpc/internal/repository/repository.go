@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 )
 
@@ -31,14 +32,19 @@ type IArticles interface {
 	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 }
 
+// SavedItem is the uniform view over the three concrete saved tables.
+type SavedItem struct {
+	ID        uuid.UUID
+	ItemType  string
+	ItemID    uuid.UUID
+	UserID    uuid.UUID
+	CreatedAt pgtype.Timestamptz
+}
+
 type ISavedItems interface {
-	ListSavedItems(ctx context.Context, limit, offset int32) ([]db.SavedItem, error)
-	ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.SavedItem, error)
-	ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.SavedItem, error)
-	GetSavedItemByID(ctx context.Context, id uuid.UUID) (db.SavedItem, error)
-	GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (db.SavedItem, error)
-	CreateSavedItem(ctx context.Context, itemType db.SavedItemType, itemID uuid.UUID, userID uuid.UUID) (db.SavedItem, error)
-	DeleteSavedItem(ctx context.Context, id uuid.UUID) error
+	ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]SavedItem, error)
+	ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]SavedItem, error)
+	CreateSavedItem(ctx context.Context, itemType string, itemID uuid.UUID, userID uuid.UUID) (SavedItem, error)
 	DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) error
 	IsItemSaved(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (bool, error)
 	CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -63,47 +69,45 @@ type IActivities interface {
 }
 
 type IUserSettings interface {
-	GetUserSettings(ctx context.Context, userID uuid.UUID) (db.GetUserSettingsRow, error)
-	GetUserSettingsByID(ctx context.Context, id uuid.UUID) (db.GetUserSettingsByIDRow, error)
-	CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.CreateUserSettingsRow, error)
-	UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UpdateUserSettingsRow, error)
-	UpdateOnboardingSettings(ctx context.Context, params db.UpdateOnboardingSettingsParams) (db.UpdateOnboardingSettingsRow, error)
+	GetUserSettings(ctx context.Context, userID uuid.UUID) (db.UserSetting, error)
+	CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.UserSetting, error)
+	UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UserSetting, error)
+	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle string, checkInTime pgtype.Time, onboardingCompleted bool) (db.UserSetting, error)
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 }
 
 type IHabits interface {
-	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Habit, error)
-	GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, error)
-	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.Habit, error)
-	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.Habit, error)
+	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetHabitRow, error)
+	GetHabitByID(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
+	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error)
+	UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.GetHabitRow, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	ToggleHabit(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error)
-	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32, version int32) (db.Habit, error)
-	MarkHabitCompleted(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error)
+	ToggleHabit(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
+	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.GetHabitRow, error)
+	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 
 type IGoals interface {
-	ListGoals(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Goal, error)
-	GetGoalByID(ctx context.Context, id uuid.UUID) (db.Goal, error)
-	CreateGoal(ctx context.Context, params db.CreateGoalParams) (db.Goal, error)
-	UpdateGoal(ctx context.Context, params db.UpdateGoalParams) (db.Goal, error)
+	ListGoals(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetGoalRow, error)
+	GetGoalByID(ctx context.Context, id uuid.UUID) (db.GetGoalRow, error)
+	CreateGoal(ctx context.Context, params db.CreateGoalParams) (db.GetGoalRow, error)
+	UpdateGoal(ctx context.Context, params db.UpdateGoalParams) (db.GetGoalRow, error)
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
-	ToggleGoal(ctx context.Context, id uuid.UUID, version int32) (db.Goal, error)
-	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32, version int32) (db.Goal, error)
+	ToggleGoal(ctx context.Context, id uuid.UUID) (db.GetGoalRow, error)
+	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 }
 
 type ICategories interface {
-	ListCategories(ctx context.Context, entityType db.EntityType) ([]db.Category, error)
-	ListAllCategories(ctx context.Context) ([]db.Category, error)
+	ListCategories(ctx context.Context) ([]db.Category, error)
 	GetCategoryByID(ctx context.Context, id uuid.UUID) (db.Category, error)
-	GetCategoryBySlug(ctx context.Context, slug string, entityType db.EntityType) (db.Category, error)
-	CreateCategory(ctx context.Context, name string, slug string, entityType db.EntityType, sortOrder int32) (db.Category, error)
+	GetCategoryBySlug(ctx context.Context, slug string) (db.Category, error)
+	CreateCategory(ctx context.Context, name string, slug string, sortOrder int32) (db.Category, error)
 	UpdateCategory(ctx context.Context, id uuid.UUID, name string, slug string, sortOrder int32) (db.Category, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
-	CountCategoriesByType(ctx context.Context, entityType db.EntityType) (int64, error)
+	CountCategories(ctx context.Context) (int64, error)
 }
 
 type ICheckIns interface {
@@ -119,10 +123,10 @@ type ICheckIns interface {
 }
 
 type IWeeklyReviews interface {
-	CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.WeeklyReview, error)
-	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart time.Time) (db.WeeklyReview, error)
-	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (db.WeeklyReview, error)
-	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.WeeklyReview, error)
+	CreateWeeklyReview(ctx context.Context, params db.CreateWeeklyReviewParams) (db.GetWeeklyReviewRow, error)
+	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart time.Time) (db.GetWeeklyReviewRow, error)
+	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (db.GetWeeklyReviewRow, error)
+	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetWeeklyReviewRow, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetCheckInStatsForWeekRow, error)
 	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetDailyCheckInStatsForWeekRow, error)
@@ -132,12 +136,12 @@ type IWeeklyReviews interface {
 }
 
 type ICoachingProfiles interface {
-	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
-	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.UserCoachingProfile, error)
-	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle db.AccountabilityStyleType, preferredTone db.CoachToneType, difficultyPreference db.DifficultyLevelType) (db.UserCoachingProfile, error)
-	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.UserCoachingProfile, error)
-	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.UserCoachingProfile, error)
-	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.UserCoachingProfile, error)
+	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.GetCoachingProfileRow, error)
+	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.GetCoachingProfileRow, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, preferredTone string, difficultyPreference string) (db.GetCoachingProfileRow, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.GetCoachingProfileRow, error)
+	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.GetCoachingProfileRow, error)
+	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.GetCoachingProfileRow, error)
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 }
 
@@ -147,31 +151,31 @@ type IBilling interface {
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
 	GetOrCreateUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
 	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error)
-	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.UserSubscription, error)
-	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.UserSubscription, error)
+	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error)
+	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.Subscription, error)
 	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error)
 	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*EntitlementsResult, error)
 	IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error)
-	MarkStripeEventProcessed(ctx context.Context, stripeEventID string, eventType string) error
+	MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error
 	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error)
 }
 
 type IPlanAdjustmentSuggestions interface {
-	CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
-	GetPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error)
-	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
-	ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
-	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error)
-	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, id uuid.UUID, userID uuid.UUID, status db.PlanAdjustmentStatusType) (db.PlanAdjustmentSuggestion, error)
-	UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error)
+	CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustment, error)
+	GetPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustment, error)
+	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustment, error)
+	ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustment, error)
+	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustment, error)
+	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustment, error)
+	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, id uuid.UUID, userID uuid.UUID, status string) (db.PlanAdjustment, error)
+	UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustment, error)
 	DeletePlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) error
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
-	ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error)
+	ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustment, error)
 }
 
 type Repository struct {

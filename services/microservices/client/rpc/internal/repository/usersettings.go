@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
@@ -13,7 +15,7 @@ import (
 
 // userSettingsCacheEntry holds a cached settings row with its TTL.
 type userSettingsCacheEntry struct {
-	settings db.GetUserSettingsRow
+	settings db.UserSetting
 	expires  time.Time
 }
 
@@ -44,7 +46,7 @@ func (r *UserSettingsRepo) WithTx(tx pgx.Tx) *UserSettingsRepo {
 	}
 }
 
-func (r *UserSettingsRepo) GetUserSettings(ctx context.Context, userID uuid.UUID) (db.GetUserSettingsRow, error) {
+func (r *UserSettingsRepo) GetUserSettings(ctx context.Context, userID uuid.UUID) (db.UserSetting, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.GetUserSettings")
 	defer span.End()
 
@@ -60,7 +62,7 @@ func (r *UserSettingsRepo) GetUserSettings(ctx context.Context, userID uuid.UUID
 
 	settings, err := r.db.GetUserSettings(ctx, userID)
 	if err != nil {
-		return db.GetUserSettingsRow{}, err
+		return db.UserSetting{}, err
 	}
 
 	r.mu.Lock()
@@ -78,21 +80,14 @@ func (r *UserSettingsRepo) InvalidateCache(userID uuid.UUID) {
 	r.mu.Unlock()
 }
 
-func (r *UserSettingsRepo) GetUserSettingsByID(ctx context.Context, id uuid.UUID) (db.GetUserSettingsByIDRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.GetUserSettingsByID")
-	defer span.End()
-
-	return r.db.GetUserSettingsByID(ctx, id)
-}
-
-func (r *UserSettingsRepo) CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.CreateUserSettingsRow, error) {
+func (r *UserSettingsRepo) CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.UserSetting, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.CreateUserSettings")
 	defer span.End()
 
 	return r.db.CreateUserSettings(ctx, params)
 }
 
-func (r *UserSettingsRepo) UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UpdateUserSettingsRow, error) {
+func (r *UserSettingsRepo) UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UserSetting, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.UpdateUserSettings")
 	defer span.End()
 
@@ -114,13 +109,13 @@ func (r *UserSettingsRepo) DeleteUserSettings(ctx context.Context, userID uuid.U
 	return err
 }
 
-func (r *UserSettingsRepo) UpdateOnboardingSettings(ctx context.Context, params db.UpdateOnboardingSettingsParams) (db.UpdateOnboardingSettingsRow, error) {
+func (r *UserSettingsRepo) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle string, checkInTime pgtype.Time, onboardingCompleted bool) (db.UserSetting, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UserSettingsRepo.UpdateOnboardingSettings")
 	defer span.End()
 
-	result, err := r.db.UpdateOnboardingSettings(ctx, params)
+	result, err := r.db.UpdateOnboardingSettings(ctx, userID, accountabilityStyle, checkInTime, onboardingCompleted)
 	if err == nil {
-		r.InvalidateCache(params.UserID)
+		r.InvalidateCache(userID)
 	}
 	return result, err
 }

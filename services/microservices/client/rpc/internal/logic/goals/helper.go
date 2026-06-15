@@ -9,7 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
 
-func goalToProto(g db.Goal) *client.Goal {
+func goalToProto(g db.GetGoalRow) *client.Goal {
 	description := ""
 	if g.Description != nil {
 		description = *g.Description
@@ -44,7 +44,7 @@ func protoToGoalParams(title, description, category string, dueDate int64, userI
 	return db.CreateGoalParams{
 		Title:       title,
 		Description: desc,
-		Category:    category,
+		Slug:        category,
 		DueDate:     dueTime,
 		UserID:      userID,
 	}

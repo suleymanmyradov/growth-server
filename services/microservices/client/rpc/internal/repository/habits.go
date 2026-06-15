@@ -22,32 +22,42 @@ func (r *habitsRepo) WithTx(tx pgx.Tx) *habitsRepo {
 	return &habitsRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Habit, error) {
+func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ListHabits")
 	defer span.End()
 
-	return r.db.ListHabits(ctx, userID, limit, offset)
+	rows, err := r.db.ListHabits(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]db.GetHabitRow, len(rows))
+	for i, row := range rows {
+		out[i] = db.GetHabitRow(row)
+	}
+	return out, nil
 }
 
-func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID) (db.Habit, error) {
+func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitByID")
 	defer span.End()
 
 	return r.db.GetHabit(ctx, id)
 }
 
-func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.Habit, error) {
+func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.CreateHabit")
 	defer span.End()
 
-	return r.db.CreateHabit(ctx, name, description, category, userID)
+	row, err := r.db.CreateHabit(ctx, name, description, category, userID)
+	return db.GetHabitRow(row), err
 }
 
-func (r *habitsRepo) UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.Habit, error) {
+func (r *habitsRepo) UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabit")
 	defer span.End()
 
-	return r.db.UpdateHabit(ctx, params)
+	row, err := r.db.UpdateHabit(ctx, id, name, description, category)
+	return db.GetHabitRow(row), err
 }
 
 func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {
@@ -57,25 +67,28 @@ func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {
 	return r.db.DeleteHabit(ctx, id)
 }
 
-func (r *habitsRepo) ToggleHabit(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error) {
+func (r *habitsRepo) ToggleHabit(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ToggleHabit")
 	defer span.End()
 
-	return r.db.ToggleHabit(ctx, id, version)
+	row, err := r.db.ToggleHabit(ctx, id)
+	return db.GetHabitRow(row), err
 }
 
-func (r *habitsRepo) UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32, version int32) (db.Habit, error) {
+func (r *habitsRepo) UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitStreak")
 	defer span.End()
 
-	return r.db.UpdateHabitStreak(ctx, id, streak, version)
+	row, err := r.db.UpdateHabitStreak(ctx, id, streak)
+	return db.GetHabitRow(row), err
 }
 
-func (r *habitsRepo) MarkHabitCompleted(ctx context.Context, id uuid.UUID, version int32) (db.Habit, error) {
+func (r *habitsRepo) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.MarkHabitCompleted")
 	defer span.End()
 
-	return r.db.MarkHabitCompleted(ctx, id, version)
+	row, err := r.db.MarkHabitCompleted(ctx, id)
+	return db.GetHabitRow(row), err
 }
 
 func (r *habitsRepo) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {

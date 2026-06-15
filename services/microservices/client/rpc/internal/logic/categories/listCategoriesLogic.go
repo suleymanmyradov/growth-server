@@ -3,7 +3,6 @@ package categorieslogic
 import (
 	"context"
 
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -25,8 +24,7 @@ func NewListCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Li
 }
 
 func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (*client.ListCategoriesResponse, error) {
-	entityType := db.EntityType(in.EntityType)
-	categories, err := l.svcCtx.Repo.Categories.ListCategories(l.ctx, entityType)
+	categories, err := l.svcCtx.Repo.Categories.ListCategories(l.ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +35,6 @@ func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (
 			Id:         c.ID.String(),
 			Name:       c.Name,
 			Slug:       c.Slug,
-			EntityType: string(c.EntityType),
 			SortOrder:  c.SortOrder,
 			CreatedAt:  c.CreatedAt.Time.Unix(),
 			UpdatedAt:  c.UpdatedAt.Time.Unix(),

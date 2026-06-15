@@ -1,60 +1,64 @@
+-- week_end is derived (week_start + 6) and generated_at is just updated_at;
+-- both are exposed under their old names for callers.
+
 -- name: CreateWeeklyReview :one
-INSERT INTO weekly_reviews (
-    user_id,
-    week_start,
-    week_end,
-    total_habits,
-    completed_check_ins,
-    missed_check_ins,
-    completion_rate,
-    best_day,
-    hardest_day,
-    top_blocker,
-    mood_summary,
-    energy_summary,
-    habit_breakdown,
-    ai_summary,
-    suggested_adjustments,
-    next_week_plan
+WITH ins AS (
+    INSERT INTO weekly_reviews (
+        user_id,
+        week_start,
+        total_habits,
+        completed_check_ins,
+        missed_check_ins,
+        completion_rate,
+        best_day,
+        hardest_day,
+        top_blocker,
+        mood_summary,
+        energy_summary,
+        habit_breakdown,
+        ai_summary,
+        suggested_adjustments,
+        next_week_plan
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    ON CONFLICT (user_id, week_start)
+    DO UPDATE SET
+        total_habits = EXCLUDED.total_habits,
+        completed_check_ins = EXCLUDED.completed_check_ins,
+        missed_check_ins = EXCLUDED.missed_check_ins,
+        completion_rate = EXCLUDED.completion_rate,
+        best_day = EXCLUDED.best_day,
+        hardest_day = EXCLUDED.hardest_day,
+        top_blocker = EXCLUDED.top_blocker,
+        mood_summary = EXCLUDED.mood_summary,
+        energy_summary = EXCLUDED.energy_summary,
+        habit_breakdown = EXCLUDED.habit_breakdown,
+        ai_summary = EXCLUDED.ai_summary,
+        suggested_adjustments = EXCLUDED.suggested_adjustments,
+        next_week_plan = EXCLUDED.next_week_plan,
+        updated_at = now()
+    RETURNING *
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-ON CONFLICT (user_id, week_start)
-DO UPDATE SET
-    week_end = EXCLUDED.week_end,
-    total_habits = EXCLUDED.total_habits,
-    completed_check_ins = EXCLUDED.completed_check_ins,
-    missed_check_ins = EXCLUDED.missed_check_ins,
-    completion_rate = EXCLUDED.completion_rate,
-    best_day = EXCLUDED.best_day,
-    hardest_day = EXCLUDED.hardest_day,
-    top_blocker = EXCLUDED.top_blocker,
-    mood_summary = EXCLUDED.mood_summary,
-    energy_summary = EXCLUDED.energy_summary,
-    habit_breakdown = EXCLUDED.habit_breakdown,
-    ai_summary = EXCLUDED.ai_summary,
-    suggested_adjustments = EXCLUDED.suggested_adjustments,
-    next_week_plan = EXCLUDED.next_week_plan,
-    generated_at = CURRENT_TIMESTAMP,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at;
+SELECT ins.*, (ins.week_start + 6)::date AS week_end, ins.updated_at AS generated_at
+FROM ins;
 
 -- name: GetWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1 AND week_start = $2;
+SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1 AND wr.week_start = $2;
 
 -- name: GetCurrentWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1
-ORDER BY week_start DESC
+SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1
+ORDER BY wr.week_start DESC
 LIMIT 1;
 
 -- name: ListWeeklyReviews :many
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1
-ORDER BY week_start DESC
+SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1
+ORDER BY wr.week_start DESC
 LIMIT $2 OFFSET $3;
 
 -- name: CountWeeklyReviews :one
@@ -65,7 +69,7 @@ WHERE user_id = $1;
 SELECT
     h.id AS habit_id,
     h.name AS habit_name,
-    h.category AS habit_category,
+    COALESCE(c.slug, '')::varchar AS habit_category,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
@@ -78,17 +82,17 @@ SELECT
     )::numeric AS completion_rate,
     MAX(ci.created_at) AS last_check_in_at
 FROM habits h
+LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
    AND ci.created_at >= $2
    AND ci.created_at < $3
 WHERE h.user_id = $1
-GROUP BY h.id, h.name, h.category
+GROUP BY h.id, h.name, c.slug, h.created_at
 ORDER BY h.created_at DESC;
 
 -- name: GetDailyCheckInStatsForWeek :many
--- Uses local_date for correct day bucketing regardless of user timezone.
 SELECT
     ci.local_date AS day,
     COUNT(*) AS total_check_ins,

@@ -49,7 +49,7 @@ type Plan struct {
 	Currency                 string             `db:"currency" json:"currency"`
 }
 
-// UserSubscription mirrors the user_subscriptions table.
+// UserSubscription mirrors the subscriptions table.
 type UserSubscription struct {
 	ID                   uuid.UUID              `db:"id" json:"id"`
 	UserID               uuid.UUID              `db:"user_id" json:"user_id"`
@@ -124,7 +124,7 @@ func (r *BillingRepository) ListExpiredActiveSubscriptions(ctx context.Context, 
 	    p.weekly_review_history_limit,
 	    p.plan_adjustment_limit,
 	    p.personalized_ai_enabled
-	FROM user_subscriptions us
+	FROM subscriptions us
 	JOIN plans p ON p.id = us.plan_id
 	WHERE us.status IN ('active', 'trialing')
 	  AND us.cancel_at_period_end = true
@@ -207,7 +207,7 @@ func (r *BillingRepository) GetPlanByCode(ctx context.Context, code string) (Pla
 
 func (r *BillingRepository) UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (UserSubscription, error) {
 	query := `
-	INSERT INTO user_subscriptions (
+	INSERT INTO subscriptions (
 	    user_id,
 	    plan_id,
 	    status,

@@ -1,33 +1,27 @@
 -- name: GetUserSettings :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE user_id = $1;
-
--- name: GetUserSettingsByID :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE id = $1;
+SELECT * FROM user_settings WHERE user_id = $1;
 
 -- name: CreateUserSettings :one
 INSERT INTO user_settings (
     theme, language, timezone, email_notifications, push_notifications,
     habit_reminders, goal_reminders, user_id
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version;
+RETURNING *;
 
 -- name: UpdateUserSettings :one
 UPDATE user_settings
 SET theme = $2, language = $3, timezone = $4, email_notifications = $5,
-    push_notifications = $6, habit_reminders = $7, goal_reminders = $8, version = version + 1, updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1 AND version = $9
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version;
+    push_notifications = $6, habit_reminders = $7, goal_reminders = $8
+WHERE user_id = $1
+RETURNING *;
 
 -- name: UpdateOnboardingSettings :one
 UPDATE user_settings
 SET accountability_style = $2,
     check_in_time = $3,
-    onboarding_completed = $4,
-    version = version + 1,
-    updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1 AND version = $5
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version;
+    onboarding_completed = $4
+WHERE user_id = $1
+RETURNING *;
 
 -- name: DeleteUserSettings :exec
 DELETE FROM user_settings WHERE user_id = $1;
-

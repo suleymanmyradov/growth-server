@@ -1,34 +1,34 @@
+-- Reminders: sent_at IS NULL means pending.
+
 -- name: EnqueueReminder :one
-INSERT INTO reminder_queue (user_id, type, scheduled_at, metadata)
+INSERT INTO reminders (user_id, type, scheduled_at, metadata)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent = FALSE
+ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
-              metadata = EXCLUDED.metadata,
-              updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at;
+              metadata = EXCLUDED.metadata
+RETURNING *;
 
 -- name: CancelPendingReminderForDate :exec
-DELETE FROM reminder_queue
+DELETE FROM reminders
 WHERE user_id = $1
   AND type = $2
-  AND sent = FALSE
+  AND sent_at IS NULL
   AND (scheduled_at AT TIME ZONE $4::text)::date = $3::date;
 
 -- name: ClaimDueReminders :many
 WITH due AS (
-    SELECT id FROM reminder_queue
-    WHERE sent = FALSE AND scheduled_at <= CURRENT_TIMESTAMP
+    SELECT id FROM reminders
+    WHERE sent_at IS NULL AND scheduled_at <= now()
     ORDER BY scheduled_at
     LIMIT $1
     FOR UPDATE SKIP LOCKED
 )
-UPDATE reminder_queue r SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+UPDATE reminders r SET sent_at = now()
 FROM due
 WHERE r.id = due.id
-RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent, r.sent_at, r.metadata, r.created_at, r.updated_at;
+RETURNING r.*;
 
 -- name: GetPendingByUser :many
-SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
-FROM reminder_queue
-WHERE user_id = $1 AND sent = FALSE
+SELECT * FROM reminders
+WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at;

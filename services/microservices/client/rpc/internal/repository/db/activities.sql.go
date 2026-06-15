@@ -24,33 +24,33 @@ func (q *Queries) CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (
 }
 
 const countActivitiesByUserAndType = `-- name: CountActivitiesByUserAndType :one
-SELECT COUNT(*) FROM activities WHERE user_id = $1 AND item_type = $2
+SELECT COUNT(*) FROM activities WHERE user_id = $1 AND type = $2
 `
 
-func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, itemType ActivityType) (int64, error) {
-	row := q.db.QueryRow(ctx, countActivitiesByUserAndType, userID, itemType)
+func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error) {
+	row := q.db.QueryRow(ctx, countActivitiesByUserAndType, userID, type_)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const createActivity = `-- name: CreateActivity :one
-INSERT INTO activities (item_type, title, description, metadata, user_id)
+INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, item_type, title, description, metadata, user_id, created_at
+RETURNING id, user_id, type, title, description, metadata, created_at
 `
 
 type CreateActivityParams struct {
-	ItemType    ActivityType `db:"item_type" json:"item_type"`
-	Title       string       `db:"title" json:"title"`
-	Description *string      `db:"description" json:"description"`
-	Metadata    []byte       `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID    `db:"user_id" json:"user_id"`
+	Type        string    `db:"type" json:"type"`
+	Title       string    `db:"title" json:"title"`
+	Description *string   `db:"description" json:"description"`
+	Metadata    []byte    `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID `db:"user_id" json:"user_id"`
 }
 
 func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error) {
 	row := q.db.QueryRow(ctx, createActivity,
-		arg.ItemType,
+		arg.Type,
 		arg.Title,
 		arg.Description,
 		arg.Metadata,
@@ -59,11 +59,11 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 	var i Activity
 	err := row.Scan(
 		&i.ID,
-		&i.ItemType,
+		&i.UserID,
+		&i.Type,
 		&i.Title,
 		&i.Description,
 		&i.Metadata,
-		&i.UserID,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -91,10 +91,10 @@ const getAchievements = `-- name: GetAchievements :many
 WITH s AS (
   SELECT
     MIN(created_at)                                              AS first_at,
-    COUNT(*) FILTER (WHERE item_type = 'habit_completed')          AS habit_done,
-    MAX(created_at) FILTER (WHERE item_type = 'habit_completed')   AS last_habit_at,
-    COUNT(*) FILTER (WHERE item_type = 'goal_completed')           AS goal_done,
-    MAX(created_at) FILTER (WHERE item_type = 'goal_completed')    AS last_goal_at
+    COUNT(*) FILTER (WHERE type = 'habit_completed')          AS habit_done,
+    MAX(created_at) FILTER (WHERE type = 'habit_completed')   AS last_habit_at,
+    COUNT(*) FILTER (WHERE type = 'goal_completed')           AS goal_done,
+    MAX(created_at) FILTER (WHERE type = 'goal_completed')    AS last_goal_at
   FROM activities WHERE user_id = $1
 )
 SELECT 'first_activity'::text AS id,
@@ -150,7 +150,7 @@ func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetA
 }
 
 const getActivity = `-- name: GetActivity :one
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE id = $1
+SELECT id, user_id, type, title, description, metadata, created_at FROM activities WHERE id = $1
 `
 
 func (q *Queries) GetActivity(ctx context.Context, id uuid.UUID) (Activity, error) {
@@ -158,11 +158,11 @@ func (q *Queries) GetActivity(ctx context.Context, id uuid.UUID) (Activity, erro
 	var i Activity
 	err := row.Scan(
 		&i.ID,
-		&i.ItemType,
+		&i.UserID,
+		&i.Type,
 		&i.Title,
 		&i.Description,
 		&i.Metadata,
-		&i.UserID,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -205,7 +205,7 @@ func (q *Queries) GetActivityCalendar(ctx context.Context, userID uuid.UUID, cre
 }
 
 const getActivityFeed = `-- name: GetActivityFeed :many
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT id, user_id, type, title, description, metadata, created_at
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -223,11 +223,11 @@ func (q *Queries) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit i
 		var i Activity
 		if err := rows.Scan(
 			&i.ID,
-			&i.ItemType,
+			&i.UserID,
+			&i.Type,
 			&i.Title,
 			&i.Description,
 			&i.Metadata,
-			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -243,12 +243,12 @@ func (q *Queries) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit i
 const getActivityStats = `-- name: GetActivityStats :one
 SELECT
     COUNT(*) AS total_activities,
-    COUNT(*) FILTER (WHERE item_type = 'habit_completed') AS habit_completed,
-    COUNT(*) FILTER (WHERE item_type = 'goal_created') AS goal_created,
-    COUNT(*) FILTER (WHERE item_type = 'goal_completed') AS goal_completed,
-    COUNT(*) FILTER (WHERE item_type = 'article_saved') AS article_saved,
-    COUNT(*) FILTER (WHERE item_type = 'check_in_completed') AS check_in_completed,
-    COUNT(*) FILTER (WHERE item_type = 'check_in_missed') AS check_in_missed
+    COUNT(*) FILTER (WHERE type = 'habit_completed') AS habit_completed,
+    COUNT(*) FILTER (WHERE type = 'goal_created') AS goal_created,
+    COUNT(*) FILTER (WHERE type = 'goal_completed') AS goal_completed,
+    COUNT(*) FILTER (WHERE type = 'article_saved') AS article_saved,
+    COUNT(*) FILTER (WHERE type = 'check_in_completed') AS check_in_completed,
+    COUNT(*) FILTER (WHERE type = 'check_in_missed') AS check_in_missed
 FROM activities
 WHERE user_id = $1
 `
@@ -318,7 +318,7 @@ func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksR
 }
 
 const listActivities = `-- name: ListActivities :many
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities
+SELECT id, user_id, type, title, description, metadata, created_at FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -336,11 +336,11 @@ func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit in
 		var i Activity
 		if err := rows.Scan(
 			&i.ID,
-			&i.ItemType,
+			&i.UserID,
+			&i.Type,
 			&i.Title,
 			&i.Description,
 			&i.Metadata,
-			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -354,15 +354,15 @@ func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit in
 }
 
 const listActivitiesByType = `-- name: ListActivitiesByType :many
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1 AND item_type = $2
+SELECT id, user_id, type, title, description, metadata, created_at FROM activities WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType ActivityType, limit int32, offset int32) ([]Activity, error) {
+func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]Activity, error) {
 	rows, err := q.db.Query(ctx, listActivitiesByType,
 		userID,
-		itemType,
+		type_,
 		limit,
 		offset,
 	)
@@ -375,11 +375,11 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, it
 		var i Activity
 		if err := rows.Scan(
 			&i.ID,
-			&i.ItemType,
+			&i.UserID,
+			&i.Type,
 			&i.Title,
 			&i.Description,
 			&i.Metadata,
-			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -393,16 +393,16 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, it
 }
 
 const listActivitiesByTypes = `-- name: ListActivitiesByTypes :many
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT id, user_id, type, title, description, metadata, created_at
 FROM activities
 WHERE user_id = $1
-  AND item_type = ANY($2::activity_type[])
+  AND type = ANY($2::text[])
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
 // Filter activities by multiple types in a single round-trip.
-func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, column2 []ActivityType, limit int32, offset int32) ([]Activity, error) {
+func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, column2 []string, limit int32, offset int32) ([]Activity, error) {
 	rows, err := q.db.Query(ctx, listActivitiesByTypes,
 		userID,
 		column2,
@@ -418,11 +418,11 @@ func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, c
 		var i Activity
 		if err := rows.Scan(
 			&i.ID,
-			&i.ItemType,
+			&i.UserID,
+			&i.Type,
 			&i.Title,
 			&i.Description,
 			&i.Metadata,
-			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -436,7 +436,7 @@ func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, c
 }
 
 const listActivitiesKeyset = `-- name: ListActivitiesKeyset :many
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT id, user_id, type, title, description, metadata, created_at
 FROM activities
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)
@@ -457,11 +457,11 @@ func (q *Queries) ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, co
 		var i Activity
 		if err := rows.Scan(
 			&i.ID,
-			&i.ItemType,
+			&i.UserID,
+			&i.Type,
 			&i.Title,
 			&i.Description,
 			&i.Metadata,
-			&i.UserID,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -475,22 +475,22 @@ func (q *Queries) ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, co
 }
 
 const logActivity = `-- name: LogActivity :one
-INSERT INTO activities (item_type, title, description, metadata, user_id)
+INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, item_type, title, description, metadata, user_id, created_at
+RETURNING id, user_id, type, title, description, metadata, created_at
 `
 
 type LogActivityParams struct {
-	ItemType    ActivityType `db:"item_type" json:"item_type"`
-	Title       string       `db:"title" json:"title"`
-	Description *string      `db:"description" json:"description"`
-	Metadata    []byte       `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID    `db:"user_id" json:"user_id"`
+	Type        string    `db:"type" json:"type"`
+	Title       string    `db:"title" json:"title"`
+	Description *string   `db:"description" json:"description"`
+	Metadata    []byte    `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID `db:"user_id" json:"user_id"`
 }
 
 func (q *Queries) LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error) {
 	row := q.db.QueryRow(ctx, logActivity,
-		arg.ItemType,
+		arg.Type,
 		arg.Title,
 		arg.Description,
 		arg.Metadata,
@@ -499,11 +499,11 @@ func (q *Queries) LogActivity(ctx context.Context, arg LogActivityParams) (Activ
 	var i Activity
 	err := row.Scan(
 		&i.ID,
-		&i.ItemType,
+		&i.UserID,
+		&i.Type,
 		&i.Title,
 		&i.Description,
 		&i.Metadata,
-		&i.UserID,
 		&i.CreatedAt,
 	)
 	return i, err

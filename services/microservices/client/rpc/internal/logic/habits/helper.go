@@ -6,7 +6,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
 
-func habitToProto(h db.Habit) *client.Habit {
+func habitToProto(h db.GetHabitRow) *client.Habit {
 	description := ""
 	if h.Description != nil {
 		description = *h.Description

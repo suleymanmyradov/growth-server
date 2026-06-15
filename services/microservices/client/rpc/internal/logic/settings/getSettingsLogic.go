@@ -51,7 +51,7 @@ func (l *GetSettingsLogic) GetSettings(in *client.GetSettingsRequest) (*client.G
 	}, nil
 }
 
-func convertDbUserSettingsToPb(s db.GetUserSettingsRow) *client.UserSettings {
+func convertDbUserSettingsToPb(s db.UserSetting) *client.UserSettings {
 	pb := &client.UserSettings{
 		UserId:              s.UserID.String(),
 		Language:            s.Language,

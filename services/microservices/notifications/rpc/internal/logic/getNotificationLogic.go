@@ -62,7 +62,7 @@ func (l *GetNotificationLogic) GetNotification(in *notifications.GetNotification
 		Notification: &notifications.Notification{
 			Id:        notification.ID.String(),
 			UserId:    notification.UserID.String(),
-			Type:      string(notification.ItemType),
+			Type:      notification.Type,
 			Title:     notification.Title,
 			Message:   notification.Message,
 			Read:      notification.IsRead,

@@ -54,7 +54,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 
 	activity, err := l.svcCtx.Repo.Activities.LogActivity(l.ctx, db.LogActivityParams{
 		UserID:      userID,
-		ItemType:    db.ActivityType(in.Type),
+		Type:    (in.Type),
 		Title:       in.Description,
 		Description: description,
 		Metadata:    metadata,

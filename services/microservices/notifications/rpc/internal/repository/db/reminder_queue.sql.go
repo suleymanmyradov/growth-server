@@ -13,14 +13,14 @@ import (
 )
 
 const cancelPendingReminderForDate = `-- name: CancelPendingReminderForDate :exec
-DELETE FROM reminder_queue
+DELETE FROM reminders
 WHERE user_id = $1
   AND type = $2
-  AND sent = FALSE
+  AND sent_at IS NULL
   AND (scheduled_at AT TIME ZONE $4::text)::date = $3::date
 `
 
-func (q *Queries) CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ ReminderType, column3 pgtype.Date, column4 string) error {
+func (q *Queries) CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Date, column4 string) error {
 	_, err := q.db.Exec(ctx, cancelPendingReminderForDate,
 		userID,
 		type_,
@@ -32,37 +32,35 @@ func (q *Queries) CancelPendingReminderForDate(ctx context.Context, userID uuid.
 
 const claimDueReminders = `-- name: ClaimDueReminders :many
 WITH due AS (
-    SELECT id FROM reminder_queue
-    WHERE sent = FALSE AND scheduled_at <= CURRENT_TIMESTAMP
+    SELECT id FROM reminders
+    WHERE sent_at IS NULL AND scheduled_at <= now()
     ORDER BY scheduled_at
     LIMIT $1
     FOR UPDATE SKIP LOCKED
 )
-UPDATE reminder_queue r SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+UPDATE reminders r SET sent_at = now()
 FROM due
 WHERE r.id = due.id
-RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent, r.sent_at, r.metadata, r.created_at, r.updated_at
+RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent_at, r.metadata, r.created_at
 `
 
-func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]ReminderQueue, error) {
+func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error) {
 	rows, err := q.db.Query(ctx, claimDueReminders, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ReminderQueue{}
+	items := []Reminder{}
 	for rows.Next() {
-		var i ReminderQueue
+		var i Reminder
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Type,
 			&i.ScheduledAt,
-			&i.Sent,
 			&i.SentAt,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -75,63 +73,59 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminde
 }
 
 const enqueueReminder = `-- name: EnqueueReminder :one
-INSERT INTO reminder_queue (user_id, type, scheduled_at, metadata)
+
+INSERT INTO reminders (user_id, type, scheduled_at, metadata)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent = FALSE
+ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
-              metadata = EXCLUDED.metadata,
-              updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
+              metadata = EXCLUDED.metadata
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
 `
 
-func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ ReminderType, scheduledAt pgtype.Timestamptz, metadata []byte) (ReminderQueue, error) {
+// Reminders: sent_at IS NULL means pending.
+func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (Reminder, error) {
 	row := q.db.QueryRow(ctx, enqueueReminder,
 		userID,
 		type_,
 		scheduledAt,
 		metadata,
 	)
-	var i ReminderQueue
+	var i Reminder
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
 		&i.ScheduledAt,
-		&i.Sent,
 		&i.SentAt,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getPendingByUser = `-- name: GetPendingByUser :many
-SELECT id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
-FROM reminder_queue
-WHERE user_id = $1 AND sent = FALSE
+SELECT id, user_id, type, scheduled_at, sent_at, metadata, created_at FROM reminders
+WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at
 `
 
-func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error) {
+func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Reminder, error) {
 	rows, err := q.db.Query(ctx, getPendingByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ReminderQueue{}
+	items := []Reminder{}
 	for rows.Next() {
-		var i ReminderQueue
+		var i Reminder
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.Type,
 			&i.ScheduledAt,
-			&i.Sent,
 			&i.SentAt,
 			&i.Metadata,
 			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

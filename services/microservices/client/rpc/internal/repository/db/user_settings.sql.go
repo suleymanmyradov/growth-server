@@ -17,11 +17,11 @@ INSERT INTO user_settings (
     theme, language, timezone, email_notifications, push_notifications,
     habit_reminders, goal_reminders, user_id
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
+RETURNING user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
 type CreateUserSettingsParams struct {
-	Theme              ThemeType `db:"theme" json:"theme"`
+	Theme              string    `db:"theme" json:"theme"`
 	Language           string    `db:"language" json:"language"`
 	Timezone           string    `db:"timezone" json:"timezone"`
 	EmailNotifications bool      `db:"email_notifications" json:"email_notifications"`
@@ -31,25 +31,7 @@ type CreateUserSettingsParams struct {
 	UserID             uuid.UUID `db:"user_id" json:"user_id"`
 }
 
-type CreateUserSettingsRow struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (CreateUserSettingsRow, error) {
+func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (UserSetting, error) {
 	row := q.db.QueryRow(ctx, createUserSettings,
 		arg.Theme,
 		arg.Language,
@@ -60,9 +42,9 @@ func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettings
 		arg.GoalReminders,
 		arg.UserID,
 	)
-	var i CreateUserSettingsRow
+	var i UserSetting
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Theme,
 		&i.Language,
 		&i.Timezone,
@@ -70,13 +52,17 @@ func (q *Queries) CreateUserSettings(ctx context.Context, arg CreateUserSettings
 		&i.PushNotifications,
 		&i.HabitReminders,
 		&i.GoalReminders,
-		&i.AccountabilityStyle,
 		&i.CheckInTime,
 		&i.OnboardingCompleted,
-		&i.UserID,
+		&i.AccountabilityStyle,
+		&i.CoachTone,
+		&i.Difficulty,
+		&i.PrimaryMotivation,
+		&i.CommonBlockers,
+		&i.CoachingNotes,
+		&i.LastContextRefreshAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Version,
 	)
 	return i, err
 }
@@ -91,32 +77,14 @@ func (q *Queries) DeleteUserSettings(ctx context.Context, userID uuid.UUID) erro
 }
 
 const getUserSettings = `-- name: GetUserSettings :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE user_id = $1
+SELECT user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at FROM user_settings WHERE user_id = $1
 `
 
-type GetUserSettingsRow struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUserSettingsRow, error) {
+func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error) {
 	row := q.db.QueryRow(ctx, getUserSettings, userID)
-	var i GetUserSettingsRow
+	var i UserSetting
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Theme,
 		&i.Language,
 		&i.Timezone,
@@ -124,58 +92,17 @@ func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (GetUse
 		&i.PushNotifications,
 		&i.HabitReminders,
 		&i.GoalReminders,
-		&i.AccountabilityStyle,
 		&i.CheckInTime,
 		&i.OnboardingCompleted,
-		&i.UserID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Version,
-	)
-	return i, err
-}
-
-const getUserSettingsByID = `-- name: GetUserSettingsByID :one
-SELECT id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version FROM user_settings WHERE id = $1
-`
-
-type GetUserSettingsByIDRow struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-func (q *Queries) GetUserSettingsByID(ctx context.Context, id uuid.UUID) (GetUserSettingsByIDRow, error) {
-	row := q.db.QueryRow(ctx, getUserSettingsByID, id)
-	var i GetUserSettingsByIDRow
-	err := row.Scan(
-		&i.ID,
-		&i.Theme,
-		&i.Language,
-		&i.Timezone,
-		&i.EmailNotifications,
-		&i.PushNotifications,
-		&i.HabitReminders,
-		&i.GoalReminders,
 		&i.AccountabilityStyle,
-		&i.CheckInTime,
-		&i.OnboardingCompleted,
-		&i.UserID,
+		&i.CoachTone,
+		&i.Difficulty,
+		&i.PrimaryMotivation,
+		&i.CommonBlockers,
+		&i.CoachingNotes,
+		&i.LastContextRefreshAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Version,
 	)
 	return i, err
 }
@@ -184,50 +111,21 @@ const updateOnboardingSettings = `-- name: UpdateOnboardingSettings :one
 UPDATE user_settings
 SET accountability_style = $2,
     check_in_time = $3,
-    onboarding_completed = $4,
-    version = version + 1,
-    updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1 AND version = $5
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
+    onboarding_completed = $4
+WHERE user_id = $1
+RETURNING user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
-type UpdateOnboardingSettingsParams struct {
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-type UpdateOnboardingSettingsRow struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-func (q *Queries) UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboardingSettingsParams) (UpdateOnboardingSettingsRow, error) {
+func (q *Queries) UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle string, checkInTime pgtype.Time, onboardingCompleted bool) (UserSetting, error) {
 	row := q.db.QueryRow(ctx, updateOnboardingSettings,
-		arg.UserID,
-		arg.AccountabilityStyle,
-		arg.CheckInTime,
-		arg.OnboardingCompleted,
-		arg.Version,
+		userID,
+		accountabilityStyle,
+		checkInTime,
+		onboardingCompleted,
 	)
-	var i UpdateOnboardingSettingsRow
+	var i UserSetting
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Theme,
 		&i.Language,
 		&i.Timezone,
@@ -235,13 +133,17 @@ func (q *Queries) UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboar
 		&i.PushNotifications,
 		&i.HabitReminders,
 		&i.GoalReminders,
-		&i.AccountabilityStyle,
 		&i.CheckInTime,
 		&i.OnboardingCompleted,
-		&i.UserID,
+		&i.AccountabilityStyle,
+		&i.CoachTone,
+		&i.Difficulty,
+		&i.PrimaryMotivation,
+		&i.CommonBlockers,
+		&i.CoachingNotes,
+		&i.LastContextRefreshAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Version,
 	)
 	return i, err
 }
@@ -249,42 +151,23 @@ func (q *Queries) UpdateOnboardingSettings(ctx context.Context, arg UpdateOnboar
 const updateUserSettings = `-- name: UpdateUserSettings :one
 UPDATE user_settings
 SET theme = $2, language = $3, timezone = $4, email_notifications = $5,
-    push_notifications = $6, habit_reminders = $7, goal_reminders = $8, version = version + 1, updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1 AND version = $9
-RETURNING id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, accountability_style, check_in_time, onboarding_completed, user_id, created_at, updated_at, version
+    push_notifications = $6, habit_reminders = $7, goal_reminders = $8
+WHERE user_id = $1
+RETURNING user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
 `
 
 type UpdateUserSettingsParams struct {
 	UserID             uuid.UUID `db:"user_id" json:"user_id"`
-	Theme              ThemeType `db:"theme" json:"theme"`
+	Theme              string    `db:"theme" json:"theme"`
 	Language           string    `db:"language" json:"language"`
 	Timezone           string    `db:"timezone" json:"timezone"`
 	EmailNotifications bool      `db:"email_notifications" json:"email_notifications"`
 	PushNotifications  bool      `db:"push_notifications" json:"push_notifications"`
 	HabitReminders     bool      `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders      bool      `db:"goal_reminders" json:"goal_reminders"`
-	Version            int32     `db:"version" json:"version"`
 }
 
-type UpdateUserSettingsRow struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UpdateUserSettingsRow, error) {
+func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error) {
 	row := q.db.QueryRow(ctx, updateUserSettings,
 		arg.UserID,
 		arg.Theme,
@@ -294,11 +177,10 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		arg.PushNotifications,
 		arg.HabitReminders,
 		arg.GoalReminders,
-		arg.Version,
 	)
-	var i UpdateUserSettingsRow
+	var i UserSetting
 	err := row.Scan(
-		&i.ID,
+		&i.UserID,
 		&i.Theme,
 		&i.Language,
 		&i.Timezone,
@@ -306,13 +188,17 @@ func (q *Queries) UpdateUserSettings(ctx context.Context, arg UpdateUserSettings
 		&i.PushNotifications,
 		&i.HabitReminders,
 		&i.GoalReminders,
-		&i.AccountabilityStyle,
 		&i.CheckInTime,
 		&i.OnboardingCompleted,
-		&i.UserID,
+		&i.AccountabilityStyle,
+		&i.CoachTone,
+		&i.Difficulty,
+		&i.PrimaryMotivation,
+		&i.CommonBlockers,
+		&i.CoachingNotes,
+		&i.LastContextRefreshAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.Version,
 	)
 	return i, err
 }

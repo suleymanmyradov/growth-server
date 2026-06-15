@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
-// RemindersRepo wraps sqlc-generated queries for the reminder_queue table.
+// RemindersRepo wraps sqlc-generated queries for the reminders table.
 type RemindersRepo struct {
 	db *db.Queries
 }
@@ -31,15 +31,15 @@ func (r *RemindersRepo) WithTx(tx pgx.Tx) *RemindersRepo {
 // Enqueue inserts or updates a pending reminder for the given user, type, and
 // scheduled date. The partial unique index ensures at most one pending row per
 // (user_id, type, scheduled_at::date).
-func (r *RemindersRepo) Enqueue(ctx context.Context, userID uuid.UUID, reminderType string, scheduledAt time.Time, metadata any) (db.ReminderQueue, error) {
+func (r *RemindersRepo) Enqueue(ctx context.Context, userID uuid.UUID, reminderType string, scheduledAt time.Time, metadata any) (db.Reminder, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.Enqueue")
 	defer span.End()
 
 	raw, err := json.Marshal(metadata)
 	if err != nil {
-		return db.ReminderQueue{}, fmt.Errorf("marshal metadata: %w", err)
+		return db.Reminder{}, fmt.Errorf("marshal metadata: %w", err)
 	}
-	return r.db.EnqueueReminder(ctx, userID, db.ReminderType(reminderType), pgtype.Timestamptz{Time: scheduledAt, Valid: true}, raw)
+	return r.db.EnqueueReminder(ctx, userID, reminderType, pgtype.Timestamptz{Time: scheduledAt, Valid: true}, raw)
 }
 
 // CancelPendingForDate deletes the unsent reminder for (user, type, day).
@@ -52,18 +52,18 @@ func (r *RemindersRepo) CancelPendingForDate(ctx context.Context, userID uuid.UU
 	if err := pgDay.Scan(day); err != nil {
 		return fmt.Errorf("convert day to pgtype.Date: %w", err)
 	}
-	return r.db.CancelPendingReminderForDate(ctx, userID, db.ReminderType(reminderType), pgDay, timezone)
+	return r.db.CancelPendingReminderForDate(ctx, userID, reminderType, pgDay, timezone)
 }
 
 // ClaimDue selects up to limit unsent reminders that are due, marks them sent,
 // and returns them. Uses FOR UPDATE SKIP LOCKED so multiple instances don't
 // claim the same rows.
-func (r *RemindersRepo) ClaimDue(ctx context.Context, limit int32) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) ClaimDue(ctx context.Context, limit int32) ([]db.Reminder, error) {
 	return r.ClaimDueReminders(ctx, limit)
 }
 
 // ClaimDueReminders delegates to the sqlc-generated query.
-func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]db.Reminder, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.ClaimDue")
 	defer span.End()
 
@@ -71,7 +71,7 @@ func (r *RemindersRepo) ClaimDueReminders(ctx context.Context, limit int32) ([]d
 }
 
 // GetPendingByUser returns all unsent reminders for the given user.
-func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]db.ReminderQueue, error) {
+func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]db.Reminder, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.GetPendingByUser")
 	defer span.End()
 
@@ -88,7 +88,7 @@ func (r *RemindersRepo) GetContext(ctx context.Context, userID uuid.UUID) (db.Ge
 }
 
 // MarkSent marks a single reminder as sent by ID.
-func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (db.ReminderQueue, error) {
+func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (db.Reminder, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.MarkSent")
 	defer span.End()
 
@@ -98,7 +98,7 @@ func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (db.Reminder
 // IsDuplicateEvent returns true when the event has already been processed.
 // This is a read-only SELECT and does not mutate the processed_events table.
 func (r *RemindersRepo) IsDuplicateEvent(ctx context.Context, eventID uuid.UUID) bool {
-	processed, err := r.db.IsEventProcessed(ctx, eventID)
+	processed, err := r.db.IsEventProcessed(ctx, eventID.String())
 	if err != nil {
 		return false
 	}

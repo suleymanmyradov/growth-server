@@ -52,8 +52,8 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
 						UserID:               userID,
 						AccountabilityStyle:  "balanced",
-						PreferredTone:        "supportive",
-						DifficultyPreference: "adaptive",
+						CoachTone:            "supportive",
+						Difficulty:           "adaptive",
 						CommonBlockers:       []byte("[]"),
 						CoachingNotes:        []byte("{}"),
 					})
@@ -83,8 +83,8 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 			profile, err = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
 				UserID:               userID,
 				AccountabilityStyle:  "balanced",
-				PreferredTone:        "supportive",
-				DifficultyPreference: "adaptive",
+				CoachTone:            "supportive",
+				Difficulty:           "adaptive",
 				CommonBlockers:       []byte("[]"),
 				CoachingNotes:        []byte("{}"),
 			})
@@ -102,14 +102,14 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	goals, err := l.svcCtx.Repo.Goals.ListGoals(l.ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get goals: %v", err)
-		goals = []db.Goal{}
+		goals = []db.GetGoalRow{}
 	}
 
 	// Get active habits
 	habits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get habits: %v", err)
-		habits = []db.Habit{}
+		habits = []db.GetHabitRow{}
 	}
 
 	// Get recent check-ins (last 30 days)
@@ -124,14 +124,14 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	latestWeeklyReview, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(l.ctx, userID, 1, 0)
 	if err != nil || len(latestWeeklyReview) == 0 {
 		l.Infof("failed to get latest weekly review: %v", err)
-		latestWeeklyReview = []db.WeeklyReview{}
+		latestWeeklyReview = []db.GetWeeklyReviewRow{}
 	}
 
 	// Get pending plan adjustment suggestions
 	pendingSuggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(l.ctx, userID, 20, 0)
 	if err != nil {
 		l.Infof("failed to get pending suggestions: %v", err)
-		pendingSuggestions = []db.PlanAdjustmentSuggestion{}
+		pendingSuggestions = []db.PlanAdjustment{}
 	}
 
 	// Get user timezone for pattern detection
@@ -202,7 +202,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	}, nil
 }
 
-func dbGoalToProto(goal db.Goal) *client.Goal {
+func dbGoalToProto(goal db.GetGoalRow) *client.Goal {
 	description := ""
 	if goal.Description != nil {
 		description = *goal.Description
@@ -225,7 +225,7 @@ func dbGoalToProto(goal db.Goal) *client.Goal {
 	}
 }
 
-func dbHabitToProto(habit db.Habit) *client.Habit {
+func dbHabitToProto(habit db.GetHabitRow) *client.Habit {
 	description := ""
 	if habit.Description != nil {
 		description = *habit.Description
@@ -273,7 +273,7 @@ func dbCheckInToProto(checkIn db.CheckIn) *client.CheckIn {
 	}
 }
 
-func dbPlanAdjustmentSuggestionToProto(suggestion db.PlanAdjustmentSuggestion) *client.PlanAdjustmentSuggestion {
+func dbPlanAdjustmentSuggestionToProto(suggestion db.PlanAdjustment) *client.PlanAdjustmentSuggestion {
 	var goalID, habitID string
 	if suggestion.GoalID.Valid {
 		goalID = suggestion.GoalID.UUID.String()
@@ -303,7 +303,7 @@ func dbPlanAdjustmentSuggestionToProto(suggestion db.PlanAdjustmentSuggestion) *
 	}
 }
 
-func dbWeeklyReviewToProto(review db.WeeklyReview) *client.WeeklyReview {
+func dbWeeklyReviewToProto(review db.GetWeeklyReviewRow) *client.WeeklyReview {
 	// Parse completion rate from pgtype.Numeric to double
 	completionRate := 0.0
 	if review.CompletionRate.Valid {

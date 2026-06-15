@@ -13,15 +13,15 @@ import (
 )
 
 const applyPlanAdjustmentSuggestion = `-- name: ApplyPlanAdjustmentSuggestion :one
-UPDATE plan_adjustment_suggestions
-SET status = 'applied', updated_at = CURRENT_TIMESTAMP
+UPDATE plan_adjustments
+SET status = 'applied'
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
 `
 
-func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error) {
+func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error) {
 	row := q.db.QueryRow(ctx, applyPlanAdjustmentSuggestion, iD, userID)
-	var i PlanAdjustmentSuggestion
+	var i PlanAdjustment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -29,20 +29,19 @@ func (q *Queries) ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUI
 		&i.HabitID,
 		&i.Source,
 		&i.AdjustmentType,
+		&i.Status,
 		&i.Reason,
 		&i.Suggestion,
-		&i.Status,
 		&i.Metadata,
+		&i.WeekStart,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WeekStart,
-		&i.TargetID,
 	)
 	return i, err
 }
 
 const countPendingPlanAdjustmentSuggestions = `-- name: CountPendingPlanAdjustmentSuggestions :one
-SELECT COUNT(*) FROM plan_adjustment_suggestions
+SELECT COUNT(*) FROM plan_adjustments
 WHERE user_id = $1 AND status = 'pending'
 `
 
@@ -54,7 +53,7 @@ func (q *Queries) CountPendingPlanAdjustmentSuggestions(ctx context.Context, use
 }
 
 const createPlanAdjustmentSuggestion = `-- name: CreatePlanAdjustmentSuggestion :one
-INSERT INTO plan_adjustment_suggestions (
+INSERT INTO plan_adjustments (
     user_id,
     goal_id,
     habit_id,
@@ -66,28 +65,27 @@ INSERT INTO plan_adjustment_suggestions (
     week_start
 )
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-ON CONFLICT ON CONSTRAINT plan_adjustment_suggestions_unique_key
+ON CONFLICT (user_id, source, adjustment_type, COALESCE(goal_id, habit_id), week_start)
 DO UPDATE SET
     reason = EXCLUDED.reason,
     suggestion = EXCLUDED.suggestion,
-    metadata = EXCLUDED.metadata,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+    metadata = EXCLUDED.metadata
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
 `
 
 type CreatePlanAdjustmentSuggestionParams struct {
-	UserID         uuid.UUID                `db:"user_id" json:"user_id"`
-	GoalID         uuid.NullUUID            `db:"goal_id" json:"goal_id"`
-	HabitID        uuid.NullUUID            `db:"habit_id" json:"habit_id"`
-	Source         PlanAdjustmentSourceType `db:"source" json:"source"`
-	AdjustmentType PlanAdjustmentTypeType   `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string                   `db:"reason" json:"reason"`
-	Suggestion     string                   `db:"suggestion" json:"suggestion"`
-	Metadata       []byte                   `db:"metadata" json:"metadata"`
-	WeekStart      pgtype.Date              `db:"week_start" json:"week_start"`
+	UserID         uuid.UUID     `db:"user_id" json:"user_id"`
+	GoalID         uuid.NullUUID `db:"goal_id" json:"goal_id"`
+	HabitID        uuid.NullUUID `db:"habit_id" json:"habit_id"`
+	Source         string        `db:"source" json:"source"`
+	AdjustmentType string        `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string        `db:"reason" json:"reason"`
+	Suggestion     string        `db:"suggestion" json:"suggestion"`
+	Metadata       []byte        `db:"metadata" json:"metadata"`
+	WeekStart      pgtype.Date   `db:"week_start" json:"week_start"`
 }
 
-func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
+func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustment, error) {
 	row := q.db.QueryRow(ctx, createPlanAdjustmentSuggestion,
 		arg.UserID,
 		arg.GoalID,
@@ -99,7 +97,7 @@ func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg Create
 		arg.Metadata,
 		arg.WeekStart,
 	)
-	var i PlanAdjustmentSuggestion
+	var i PlanAdjustment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -107,20 +105,19 @@ func (q *Queries) CreatePlanAdjustmentSuggestion(ctx context.Context, arg Create
 		&i.HabitID,
 		&i.Source,
 		&i.AdjustmentType,
+		&i.Status,
 		&i.Reason,
 		&i.Suggestion,
-		&i.Status,
 		&i.Metadata,
+		&i.WeekStart,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WeekStart,
-		&i.TargetID,
 	)
 	return i, err
 }
 
 const deletePlanAdjustmentSuggestion = `-- name: DeletePlanAdjustmentSuggestion :exec
-DELETE FROM plan_adjustment_suggestions
+DELETE FROM plan_adjustments
 WHERE id = $1 AND user_id = $2
 `
 
@@ -130,11 +127,11 @@ func (q *Queries) DeletePlanAdjustmentSuggestion(ctx context.Context, iD uuid.UU
 }
 
 const dismissOldPendingSuggestions = `-- name: DismissOldPendingSuggestions :exec
-UPDATE plan_adjustment_suggestions
-SET status = 'dismissed', updated_at = CURRENT_TIMESTAMP
-WHERE user_id = $1 
-  AND status = 'pending' 
-  AND created_at < CURRENT_TIMESTAMP - INTERVAL '30 days'
+UPDATE plan_adjustments
+SET status = 'dismissed'
+WHERE user_id = $1
+  AND status = 'pending'
+  AND created_at < now() - INTERVAL '30 days'
 `
 
 func (q *Queries) DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error {
@@ -143,14 +140,13 @@ func (q *Queries) DismissOldPendingSuggestions(ctx context.Context, userID uuid.
 }
 
 const getPlanAdjustmentSuggestion = `-- name: GetPlanAdjustmentSuggestion :one
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
-FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at FROM plan_adjustments
 WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustmentSuggestion, error) {
+func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error) {
 	row := q.db.QueryRow(ctx, getPlanAdjustmentSuggestion, iD, userID)
-	var i PlanAdjustmentSuggestion
+	var i PlanAdjustment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -158,35 +154,33 @@ func (q *Queries) GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID,
 		&i.HabitID,
 		&i.Source,
 		&i.AdjustmentType,
+		&i.Status,
 		&i.Reason,
 		&i.Suggestion,
-		&i.Status,
 		&i.Metadata,
+		&i.WeekStart,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WeekStart,
-		&i.TargetID,
 	)
 	return i, err
 }
 
 const listAllPlanAdjustmentSuggestions = `-- name: ListAllPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
-FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at FROM plan_adjustments
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustment, error) {
 	rows, err := q.db.Query(ctx, listAllPlanAdjustmentSuggestions, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []PlanAdjustmentSuggestion{}
+	items := []PlanAdjustment{}
 	for rows.Next() {
-		var i PlanAdjustmentSuggestion
+		var i PlanAdjustment
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -194,14 +188,13 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID u
 			&i.HabitID,
 			&i.Source,
 			&i.AdjustmentType,
+			&i.Status,
 			&i.Reason,
 			&i.Suggestion,
-			&i.Status,
 			&i.Metadata,
+			&i.WeekStart,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.WeekStart,
-			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
@@ -214,22 +207,21 @@ func (q *Queries) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID u
 }
 
 const listPendingPlanAdjustmentSuggestions = `-- name: ListPendingPlanAdjustmentSuggestions :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
-FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at FROM plan_adjustments
 WHERE user_id = $1 AND status = 'pending'
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustment, error) {
 	rows, err := q.db.Query(ctx, listPendingPlanAdjustmentSuggestions, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []PlanAdjustmentSuggestion{}
+	items := []PlanAdjustment{}
 	for rows.Next() {
-		var i PlanAdjustmentSuggestion
+		var i PlanAdjustment
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -237,14 +229,13 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, user
 			&i.HabitID,
 			&i.Source,
 			&i.AdjustmentType,
+			&i.Status,
 			&i.Reason,
 			&i.Suggestion,
-			&i.Status,
 			&i.Metadata,
+			&i.WeekStart,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.WeekStart,
-			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
@@ -257,14 +248,13 @@ func (q *Queries) ListPendingPlanAdjustmentSuggestions(ctx context.Context, user
 }
 
 const listPlanAdjustmentSuggestionsByGoal = `-- name: ListPlanAdjustmentSuggestionsByGoal :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
-FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at FROM plan_adjustments
 WHERE user_id = $1 AND goal_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustment, error) {
 	rows, err := q.db.Query(ctx, listPlanAdjustmentSuggestionsByGoal,
 		userID,
 		goalID,
@@ -275,9 +265,9 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userI
 		return nil, err
 	}
 	defer rows.Close()
-	items := []PlanAdjustmentSuggestion{}
+	items := []PlanAdjustment{}
 	for rows.Next() {
-		var i PlanAdjustmentSuggestion
+		var i PlanAdjustment
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -285,14 +275,13 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userI
 			&i.HabitID,
 			&i.Source,
 			&i.AdjustmentType,
+			&i.Status,
 			&i.Reason,
 			&i.Suggestion,
-			&i.Status,
 			&i.Metadata,
+			&i.WeekStart,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.WeekStart,
-			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
@@ -305,14 +294,13 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userI
 }
 
 const listPlanAdjustmentSuggestionsByHabit = `-- name: ListPlanAdjustmentSuggestionsByHabit :many
-SELECT id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
-FROM plan_adjustment_suggestions
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at FROM plan_adjustments
 WHERE user_id = $1 AND habit_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
-func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustmentSuggestion, error) {
+func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustment, error) {
 	rows, err := q.db.Query(ctx, listPlanAdjustmentSuggestionsByHabit,
 		userID,
 		habitID,
@@ -323,9 +311,9 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, user
 		return nil, err
 	}
 	defer rows.Close()
-	items := []PlanAdjustmentSuggestion{}
+	items := []PlanAdjustment{}
 	for rows.Next() {
-		var i PlanAdjustmentSuggestion
+		var i PlanAdjustment
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -333,14 +321,13 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, user
 			&i.HabitID,
 			&i.Source,
 			&i.AdjustmentType,
+			&i.Status,
 			&i.Reason,
 			&i.Suggestion,
-			&i.Status,
 			&i.Metadata,
+			&i.WeekStart,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.WeekStart,
-			&i.TargetID,
 		); err != nil {
 			return nil, err
 		}
@@ -353,27 +340,25 @@ func (q *Queries) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, user
 }
 
 const updatePlanAdjustmentSuggestion = `-- name: UpdatePlanAdjustmentSuggestion :one
-UPDATE plan_adjustment_suggestions
-SET
-    adjustment_type = $3,
+UPDATE plan_adjustments
+SET adjustment_type = $3,
     reason = $4,
     suggestion = $5,
-    metadata = $6,
-    updated_at = CURRENT_TIMESTAMP
+    metadata = $6
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
 `
 
 type UpdatePlanAdjustmentSuggestionParams struct {
-	ID             uuid.UUID              `db:"id" json:"id"`
-	UserID         uuid.UUID              `db:"user_id" json:"user_id"`
-	AdjustmentType PlanAdjustmentTypeType `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string                 `db:"reason" json:"reason"`
-	Suggestion     string                 `db:"suggestion" json:"suggestion"`
-	Metadata       []byte                 `db:"metadata" json:"metadata"`
+	ID             uuid.UUID `db:"id" json:"id"`
+	UserID         uuid.UUID `db:"user_id" json:"user_id"`
+	AdjustmentType string    `db:"adjustment_type" json:"adjustment_type"`
+	Reason         string    `db:"reason" json:"reason"`
+	Suggestion     string    `db:"suggestion" json:"suggestion"`
+	Metadata       []byte    `db:"metadata" json:"metadata"`
 }
 
-func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustmentSuggestion, error) {
+func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustment, error) {
 	row := q.db.QueryRow(ctx, updatePlanAdjustmentSuggestion,
 		arg.ID,
 		arg.UserID,
@@ -382,7 +367,7 @@ func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg Update
 		arg.Suggestion,
 		arg.Metadata,
 	)
-	var i PlanAdjustmentSuggestion
+	var i PlanAdjustment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -390,28 +375,27 @@ func (q *Queries) UpdatePlanAdjustmentSuggestion(ctx context.Context, arg Update
 		&i.HabitID,
 		&i.Source,
 		&i.AdjustmentType,
+		&i.Status,
 		&i.Reason,
 		&i.Suggestion,
-		&i.Status,
 		&i.Metadata,
+		&i.WeekStart,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WeekStart,
-		&i.TargetID,
 	)
 	return i, err
 }
 
 const updatePlanAdjustmentSuggestionStatus = `-- name: UpdatePlanAdjustmentSuggestionStatus :one
-UPDATE plan_adjustment_suggestions
-SET status = $3, updated_at = CURRENT_TIMESTAMP
+UPDATE plan_adjustments
+SET status = $3
 WHERE id = $1 AND user_id = $2
-RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, reason, suggestion, status, metadata, created_at, updated_at, week_start, target_id
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
 `
 
-func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status PlanAdjustmentStatusType) (PlanAdjustmentSuggestion, error) {
+func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (PlanAdjustment, error) {
 	row := q.db.QueryRow(ctx, updatePlanAdjustmentSuggestionStatus, iD, userID, status)
-	var i PlanAdjustmentSuggestion
+	var i PlanAdjustment
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -419,14 +403,13 @@ func (q *Queries) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD u
 		&i.HabitID,
 		&i.Source,
 		&i.AdjustmentType,
+		&i.Status,
 		&i.Reason,
 		&i.Suggestion,
-		&i.Status,
 		&i.Metadata,
+		&i.WeekStart,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.WeekStart,
-		&i.TargetID,
 	)
 	return i, err
 }

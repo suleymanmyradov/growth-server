@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -45,7 +44,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 return nil, status.Error(codes.Internal, "invalid item id")
 	}
 
-	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, db.SavedItemType(in.ItemType), itemID, userID)
+	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, (in.ItemType), itemID, userID)
 	if err != nil {
 		l.Errorf("Failed to save item: %v", err)
 return nil, status.Error(codes.Internal, "failed to save item")

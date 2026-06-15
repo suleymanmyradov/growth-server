@@ -64,23 +64,23 @@ func (q *Queries) GetAccountabilityStyle(ctx context.Context, userID uuid.UUID) 
 	return s, nil
 }
 
-const markProcessed = `INSERT INTO ai_coach_processed_events (event_id, processed_at)
-VALUES ($1, NOW())
-ON CONFLICT (event_id) DO NOTHING`
+const markProcessed = `INSERT INTO processed_events (consumer, event_id)
+VALUES ('ai_coach', $1)
+ON CONFLICT DO NOTHING`
 
 func (q *Queries) MarkProcessed(ctx context.Context, eventID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, markProcessed, eventID)
+	_, err := q.db.Exec(ctx, markProcessed, eventID.String())
 	if err != nil {
 		return fmt.Errorf("mark processed: %w", err)
 	}
 	return nil
 }
 
-const isProcessed = `SELECT EXISTS(SELECT 1 FROM ai_coach_processed_events WHERE event_id = $1)`
+const isProcessed = `SELECT EXISTS(SELECT 1 FROM processed_events WHERE consumer = 'ai_coach' AND event_id = $1)`
 
 func (q *Queries) IsProcessed(ctx context.Context, eventID uuid.UUID) (bool, error) {
 	var exists bool
-	err := q.db.QueryRow(ctx, isProcessed, eventID).Scan(&exists)
+	err := q.db.QueryRow(ctx, isProcessed, eventID.String()).Scan(&exists)
 	if err != nil {
 		return false, fmt.Errorf("is processed: %w", err)
 	}

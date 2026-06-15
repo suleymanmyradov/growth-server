@@ -7,15 +7,13 @@ package db
 
 import (
 	"context"
-
-	"github.com/google/uuid"
 )
 
 const isEventProcessed = `-- name: IsEventProcessed :one
 SELECT EXISTS(SELECT 1 FROM processed_events WHERE event_id = $1)
 `
 
-func (q *Queries) IsEventProcessed(ctx context.Context, eventID uuid.UUID) (bool, error) {
+func (q *Queries) IsEventProcessed(ctx context.Context, eventID string) (bool, error) {
 	row := q.db.QueryRow(ctx, isEventProcessed, eventID)
 	var exists bool
 	err := row.Scan(&exists)
@@ -27,7 +25,7 @@ INSERT INTO processed_events (event_id) VALUES ($1)
 ON CONFLICT DO NOTHING
 `
 
-func (q *Queries) MarkEventProcessed(ctx context.Context, eventID uuid.UUID) error {
+func (q *Queries) MarkEventProcessed(ctx context.Context, eventID string) error {
 	_, err := q.db.Exec(ctx, markEventProcessed, eventID)
 	return err
 }

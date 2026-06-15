@@ -1,31 +1,35 @@
 -- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, full_name)
 VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at;
+RETURNING *;
 
 -- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE email = $1;
+SELECT * FROM users WHERE email = $1;
 
 -- name: GetUserByID :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE id = $1;
+SELECT * FROM users WHERE id = $1;
 
 -- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE username = $1;
+SELECT * FROM users WHERE username = $1;
 
 -- name: UpdateUserPassword :one
 UPDATE users
-SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
+SET password_hash = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at;
+RETURNING *;
 
 -- name: UpdateUserFullName :one
 UPDATE users
-SET full_name = $2, updated_at = CURRENT_TIMESTAMP
+SET full_name = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at;
+RETURNING *;
+
+-- name: UpdateUserProfile :one
+UPDATE users
+SET bio        = $2,
+    location   = $3,
+    website    = $4,
+    interests  = $5,
+    avatar_url = $6
+WHERE id = $1
+RETURNING *;

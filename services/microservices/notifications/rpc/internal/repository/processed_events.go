@@ -32,7 +32,7 @@ func (r *ProcessedEventsRepo) IsProcessed(ctx context.Context, eventID uuid.UUID
 	ctx, span := otel.Tracer("notifications").Start(ctx, "ProcessedEventsRepo.IsProcessed")
 	defer span.End()
 
-	processed, err := r.db.IsEventProcessed(ctx, eventID)
+	processed, err := r.db.IsEventProcessed(ctx, eventID.String())
 	if err != nil {
 		return false
 	}
@@ -43,5 +43,5 @@ func (r *ProcessedEventsRepo) IsProcessed(ctx context.Context, eventID uuid.UUID
 // safe to call more than once. Should only be called after the event has
 // been successfully handled.
 func (r *ProcessedEventsRepo) Mark(ctx context.Context, eventID uuid.UUID) error {
-	return r.db.MarkEventProcessed(ctx, eventID)
+	return r.db.MarkEventProcessed(ctx, eventID.String())
 }

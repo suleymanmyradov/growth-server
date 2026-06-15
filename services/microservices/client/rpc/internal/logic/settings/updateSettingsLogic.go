@@ -49,7 +49,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	// Fetch current settings to get version for optimistic locking
-	currentSettings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	_, err = l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to fetch user settings: %v", err)
 return nil, status.Error(codes.Internal, "failed to fetch user settings")
@@ -67,34 +67,20 @@ return nil, status.Error(codes.Internal, "failed to fetch user settings")
 				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
 			}
 		}
-		onboardingParams := db.UpdateOnboardingSettingsParams{
-			UserID:              userID,
-			AccountabilityStyle: db.AccountabilityStyleType(style),
-			CheckInTime:         checkInTime,
-			OnboardingCompleted: in.Settings.OnboardingCompleted,
-			Version:             currentSettings.Version,
-		}
-		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, onboardingParams)
+		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, userID, style, checkInTime, in.Settings.OnboardingCompleted)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
 return nil, status.Error(codes.Internal, "failed to update onboarding settings")
 		}
-		// Refresh current settings version after update
-		currentSettings, err = l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
-		if err != nil {
-			l.Errorf("Failed to refresh user settings after onboarding update: %v", err)
-return nil, status.Error(codes.Internal, "failed to refresh user settings after onboarding update")
-		}
 	}
 
 	params := db.UpdateUserSettingsParams{
-		UserID:  userID,
-		Version: currentSettings.Version,
+		UserID: userID,
 	}
 
 	if in.Settings != nil {
 		if in.Settings.Theme != "" {
-			params.Theme = db.ThemeType(in.Settings.Theme)
+			params.Theme = (in.Settings.Theme)
 		}
 		if in.Settings.Language != "" {
 			params.Language = in.Settings.Language

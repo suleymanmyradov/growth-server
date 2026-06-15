@@ -44,13 +44,7 @@ func (l *GetProfileLogic) GetProfile(in *auth.GetProfileRequest) (*auth.GetProfi
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	profile, err := l.svcCtx.Repo.Profiles.GetProfileByUserID(l.ctx, user.ID)
-	if err != nil {
-		l.Errorf("failed to get profile: %v", err)
-		return nil, status.Error(codes.Internal, "failed to get profile")
-	}
-
 	return &auth.GetProfileResponse{
-		User: toPbUser(user, profile),
+		User: toPbUser(user),
 	}, nil
 }

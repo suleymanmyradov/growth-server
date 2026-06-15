@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -36,24 +35,13 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 	}
 
 	// Fetch current habit to get version for optimistic locking.
-	preHabit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
-	if err != nil {
-		l.Errorf("Failed to get habit: %v", err)
-		return nil, status.Error(codes.Internal, "failed to get habit")
-	}
 
 	var desc *string
 	if in.Description != "" {
 		desc = &in.Description
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(l.ctx, db.UpdateHabitParams{
-		ID:          habitID,
-		Name:        in.Name,
-		Description: desc,
-		Category:    in.Category,
-		Version:     preHabit.Version,
-	})
+	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(l.ctx, habitID, in.Name, desc, in.Category)
 	if err != nil {
 		l.Errorf("Failed to update habit: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update habit")
