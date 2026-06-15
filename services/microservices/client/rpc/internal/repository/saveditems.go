@@ -10,9 +10,8 @@ import (
 	"github.com/zeromicro/go-zero/core/trace"
 )
 
-// SavedItemsRepo implements ISavedItems interface using the concrete
-// saved_articles / saved_goals / saved_habits tables.  The old polymorphic
-// saved_items table is no longer written or read.
+// SavedItemsRepo implements ISavedItems on top of the three concrete
+// saved_articles / saved_goals / saved_habits tables.
 type SavedItemsRepo struct {
 	db *db.Queries
 }
@@ -27,19 +26,7 @@ func (r *SavedItemsRepo) WithTx(tx pgx.Tx) *SavedItemsRepo {
 	return &SavedItemsRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *SavedItemsRepo) ListSavedItems(ctx context.Context, limit, offset int32) ([]db.SavedItem, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItems")
-	defer span.End()
-
-	// Use the new UNION ALL query across concrete tables.
-	rows, err := r.db.ListAllSavedItemsByUser(ctx, uuid.Nil, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	return mapListAllSavedItemsToSavedItems(rows), nil
-}
-
-func (r *SavedItemsRepo) ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.SavedItem, error) {
+func (r *SavedItemsRepo) ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItemsByUser")
 	defer span.End()
 
@@ -47,148 +34,92 @@ func (r *SavedItemsRepo) ListSavedItemsByUser(ctx context.Context, userID uuid.U
 	if err != nil {
 		return nil, err
 	}
-	return mapListAllSavedItemsToSavedItems(rows), nil
+	items := make([]SavedItem, len(rows))
+	for i, row := range rows {
+		items[i] = SavedItem{
+			ID:        row.ID,
+			ItemType:  row.ItemType,
+			ItemID:    row.ItemID,
+			UserID:    row.UserID,
+			CreatedAt: row.CreatedAt,
+		}
+	}
+	return items, nil
 }
 
-func (r *SavedItemsRepo) ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.SavedItem, error) {
+func (r *SavedItemsRepo) ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.ListSavedItemsByType")
 	defer span.End()
 
-	switch db.SavedItemType(itemType) {
+	switch itemType {
 	case "article":
 		rows, err := r.db.ListSavedArticlesByUser(ctx, userID, limit, offset)
 		if err != nil {
 			return nil, err
 		}
-		return mapListSavedArticlesToSavedItems(rows), nil
+		items := make([]SavedItem, len(rows))
+		for i, row := range rows {
+			items[i] = SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}
+		}
+		return items, nil
 	case "goal":
 		rows, err := r.db.ListSavedGoalsByUser(ctx, userID, limit, offset)
 		if err != nil {
 			return nil, err
 		}
-		return mapListSavedGoalsToSavedItems(rows), nil
+		items := make([]SavedItem, len(rows))
+		for i, row := range rows {
+			items[i] = SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}
+		}
+		return items, nil
 	case "habit":
 		rows, err := r.db.ListSavedHabitsByUser(ctx, userID, limit, offset)
 		if err != nil {
 			return nil, err
 		}
-		return mapListSavedHabitsToSavedItems(rows), nil
+		items := make([]SavedItem, len(rows))
+		for i, row := range rows {
+			items[i] = SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}
+		}
+		return items, nil
 	default:
 		return nil, fmt.Errorf("unsupported item type: %s", itemType)
 	}
 }
 
-func (r *SavedItemsRepo) GetSavedItemByID(ctx context.Context, id uuid.UUID) (db.SavedItem, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.GetSavedItemByID")
-	defer span.End()
-
-	// There is no single-table get-by-ID for the concrete tables.
-	// Fall back to listing all for the user and filtering.
-	// This is acceptable because GetSavedItem is rarely used directly.
-	// NOTE: this loses the user-id filter; callers should prefer
-	// GetSavedItemByUserAndItem.
-	item, err := r.db.GetSavedItem(ctx, id)
-	if err != nil {
-		return db.SavedItem{}, err
-	}
-	return item, nil
-}
-
-func (r *SavedItemsRepo) GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) (db.SavedItem, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.GetSavedItemByUserAndItem")
-	defer span.End()
-
-	// Use the concrete-table existence checks.
-	var exists bool
-	var err error
-	switch db.SavedItemType(itemType) {
-	case "article":
-		exists, err = r.db.IsArticleSaved(ctx, userID, itemID)
-	case "goal":
-		exists, err = r.db.IsGoalSaved(ctx, userID, itemID)
-	case "habit":
-		exists, err = r.db.IsHabitSaved(ctx, userID, itemID)
-	default:
-		return db.SavedItem{}, fmt.Errorf("unsupported item type: %s", itemType)
-	}
-	if err != nil {
-		return db.SavedItem{}, err
-	}
-	if !exists {
-		return db.SavedItem{}, pgx.ErrNoRows
-	}
-	// Construct a synthetic SavedItem with the ID derived from the concrete
-	// table row.  We don’t have the exact row id here; callers that need it
-	// should use ListSavedItemsByUser.
-	return db.SavedItem{
-		ItemType: db.SavedItemType(itemType),
-		ItemID:   itemID,
-		UserID:   userID,
-	}, nil
-}
-
-func (r *SavedItemsRepo) CreateSavedItem(ctx context.Context, itemType db.SavedItemType, itemID uuid.UUID, userID uuid.UUID) (db.SavedItem, error) {
+func (r *SavedItemsRepo) CreateSavedItem(ctx context.Context, itemType string, itemID uuid.UUID, userID uuid.UUID) (SavedItem, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.CreateSavedItem")
 	defer span.End()
 
-	// Write to the appropriate concrete table so that article is_saved
-	// queries (which read saved_articles) stay consistent.
 	switch itemType {
 	case "article":
 		row, err := r.db.CreateSavedArticle(ctx, itemID, userID)
 		if err != nil {
-			return db.SavedItem{}, err
+			return SavedItem{}, err
 		}
-		return db.SavedItem{
-			ID:        row.ID,
-			ItemType:  db.SavedItemType(row.ItemType),
-			ItemID:    row.ItemID,
-			UserID:    row.UserID,
-			CreatedAt: row.CreatedAt,
-		}, nil
+		return SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}, nil
 	case "goal":
 		row, err := r.db.CreateSavedGoal(ctx, itemID, userID)
 		if err != nil {
-			return db.SavedItem{}, err
+			return SavedItem{}, err
 		}
-		return db.SavedItem{
-			ID:        row.ID,
-			ItemType:  db.SavedItemType(row.ItemType),
-			ItemID:    row.ItemID,
-			UserID:    row.UserID,
-			CreatedAt: row.CreatedAt,
-		}, nil
+		return SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}, nil
 	case "habit":
 		row, err := r.db.CreateSavedHabit(ctx, itemID, userID)
 		if err != nil {
-			return db.SavedItem{}, err
+			return SavedItem{}, err
 		}
-		return db.SavedItem{
-			ID:        row.ID,
-			ItemType:  db.SavedItemType(row.ItemType),
-			ItemID:    row.ItemID,
-			UserID:    row.UserID,
-			CreatedAt: row.CreatedAt,
-		}, nil
+		return SavedItem{ID: row.ID, ItemType: row.ItemType, ItemID: row.ItemID, UserID: row.UserID, CreatedAt: row.CreatedAt}, nil
 	default:
-		return db.SavedItem{}, fmt.Errorf("unsupported item type: %s", itemType)
+		return SavedItem{}, fmt.Errorf("unsupported item type: %s", itemType)
 	}
-}
-
-func (r *SavedItemsRepo) DeleteSavedItem(ctx context.Context, id uuid.UUID) error {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.DeleteSavedItem")
-	defer span.End()
-
-	// The old polymorphic table is deprecated; callers should use
-	// DeleteSavedItemByUserAndItem which targets the concrete tables.
-	return r.db.DeleteSavedItem(ctx, id)
 }
 
 func (r *SavedItemsRepo) DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType string, itemID uuid.UUID) error {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.DeleteSavedItemByUserAndItem")
 	defer span.End()
 
-	switch db.SavedItemType(itemType) {
+	switch itemType {
 	case "article":
 		return r.db.DeleteSavedArticle(ctx, userID, itemID)
 	case "goal":
@@ -204,7 +135,7 @@ func (r *SavedItemsRepo) IsItemSaved(ctx context.Context, userID uuid.UUID, item
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.IsItemSaved")
 	defer span.End()
 
-	switch db.SavedItemType(itemType) {
+	switch itemType {
 	case "article":
 		return r.db.IsArticleSaved(ctx, userID, itemID)
 	case "goal":
@@ -231,7 +162,7 @@ func (r *SavedItemsRepo) CountSavedItemsByUserAndType(ctx context.Context, userI
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "SavedItemsRepo.CountSavedItemsByUserAndType")
 	defer span.End()
 
-	switch db.SavedItemType(itemType) {
+	switch itemType {
 	case "article":
 		return r.db.CountSavedArticlesByUser(ctx, userID)
 	case "goal":
@@ -241,65 +172,4 @@ func (r *SavedItemsRepo) CountSavedItemsByUserAndType(ctx context.Context, userI
 	default:
 		return 0, fmt.Errorf("unsupported item type: %s", itemType)
 	}
-}
-
-// ---------------------------------------------------------------------------
-// Helpers to map concrete table rows to the legacy SavedItem type used by
-// the service layer.
-// ---------------------------------------------------------------------------
-
-func mapListAllSavedItemsToSavedItems(rows []db.ListAllSavedItemsByUserRow) []db.SavedItem {
-	items := make([]db.SavedItem, len(rows))
-	for i, r := range rows {
-		items[i] = db.SavedItem{
-			ID:        r.ID,
-			ItemType:  db.SavedItemType(r.ItemType),
-			ItemID:    r.ItemID,
-			UserID:    r.UserID,
-			CreatedAt: r.CreatedAt,
-		}
-	}
-	return items
-}
-
-func mapListSavedArticlesToSavedItems(rows []db.ListSavedArticlesByUserRow) []db.SavedItem {
-	items := make([]db.SavedItem, len(rows))
-	for i, r := range rows {
-		items[i] = db.SavedItem{
-			ID:        r.ID,
-			ItemType:  db.SavedItemType(r.ItemType),
-			ItemID:    r.ItemID,
-			UserID:    r.UserID,
-			CreatedAt: r.CreatedAt,
-		}
-	}
-	return items
-}
-
-func mapListSavedGoalsToSavedItems(rows []db.ListSavedGoalsByUserRow) []db.SavedItem {
-	items := make([]db.SavedItem, len(rows))
-	for i, r := range rows {
-		items[i] = db.SavedItem{
-			ID:        r.ID,
-			ItemType:  db.SavedItemType(r.ItemType),
-			ItemID:    r.ItemID,
-			UserID:    r.UserID,
-			CreatedAt: r.CreatedAt,
-		}
-	}
-	return items
-}
-
-func mapListSavedHabitsToSavedItems(rows []db.ListSavedHabitsByUserRow) []db.SavedItem {
-	items := make([]db.SavedItem, len(rows))
-	for i, r := range rows {
-		items[i] = db.SavedItem{
-			ID:        r.ID,
-			ItemType:  db.SavedItemType(r.ItemType),
-			ItemID:    r.ItemID,
-			UserID:    r.UserID,
-			CreatedAt: r.CreatedAt,
-		}
-	}
-	return items
 }

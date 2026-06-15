@@ -48,12 +48,6 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
-	profile, err := l.svcCtx.Repo.Profiles.GetProfileByUserID(l.ctx, user.ID)
-	if err != nil {
-		l.Errorf("failed to get profile: %v", err)
-		return nil, status.Error(codes.Internal, "failed to get profile")
-	}
-
 	sessionID := uuid.New()
 
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(l.ctx, user.ID, user.Username, []string{"user"}, sessionID)
@@ -72,6 +66,6 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 		AccessToken:  accessToken.Token,
 		RefreshToken: refreshToken.Token,
 		ExpiresIn:    int64(l.svcCtx.Config.JWT.AccessExpiryDuration.Seconds()),
-		User:         toPbUser(user, profile),
+		User:         toPbUser(user),
 	}, nil
 }

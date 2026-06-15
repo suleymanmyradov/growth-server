@@ -40,7 +40,7 @@ func (r *NotificationsRepo) GetNotificationByID(ctx context.Context, id uuid.UUI
 	return r.db.GetNotification(ctx, id)
 }
 
-func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, message string, itemType db.NotificationType, userID uuid.UUID) (db.CreateNotificationRow, error) {
+func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, message string, itemType string, userID uuid.UUID) (db.CreateNotificationRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.CreateNotification")
 	defer span.End()
 	return r.db.CreateNotification(ctx, title, message, itemType, userID)

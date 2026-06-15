@@ -37,7 +37,7 @@ func (r *ActivitiesRepo) ListActivitiesByType(ctx context.Context, userID uuid.U
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.ListActivitiesByType")
 	defer span.End()
 
-	return r.db.ListActivitiesByType(ctx, userID, db.ActivityType(itemType), limit, offset)
+	return r.db.ListActivitiesByType(ctx, userID, itemType, limit, offset)
 }
 
 func (r *ActivitiesRepo) GetActivityByID(ctx context.Context, id uuid.UUID) (db.Activity, error) {
@@ -86,7 +86,7 @@ func (r *ActivitiesRepo) CountActivitiesByUserAndType(ctx context.Context, userI
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.CountActivitiesByUserAndType")
 	defer span.End()
 
-	return r.db.CountActivitiesByUserAndType(ctx, userID, db.ActivityType(itemType))
+	return r.db.CountActivitiesByUserAndType(ctx, userID, itemType)
 }
 
 func (r *ActivitiesRepo) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.Activity, error) {

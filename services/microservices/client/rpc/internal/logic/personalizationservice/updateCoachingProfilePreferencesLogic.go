@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -64,7 +63,7 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 	}
 
 	// Update coaching profile preferences
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(l.ctx, userID, db.AccountabilityStyleType(in.AccountabilityStyle), db.CoachToneType(in.PreferredTone), db.DifficultyLevelType(in.DifficultyPreference))
+	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(l.ctx, userID, (in.AccountabilityStyle), (in.PreferredTone), (in.DifficultyPreference))
 	if err != nil {
 		l.Errorf("failed to update coaching profile preferences: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update coaching profile preferences")

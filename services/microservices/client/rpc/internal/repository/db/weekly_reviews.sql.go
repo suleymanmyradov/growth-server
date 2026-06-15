@@ -25,50 +25,51 @@ func (q *Queries) CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int
 }
 
 const createWeeklyReview = `-- name: CreateWeeklyReview :one
-INSERT INTO weekly_reviews (
-    user_id,
-    week_start,
-    week_end,
-    total_habits,
-    completed_check_ins,
-    missed_check_ins,
-    completion_rate,
-    best_day,
-    hardest_day,
-    top_blocker,
-    mood_summary,
-    energy_summary,
-    habit_breakdown,
-    ai_summary,
-    suggested_adjustments,
-    next_week_plan
+
+WITH ins AS (
+    INSERT INTO weekly_reviews (
+        user_id,
+        week_start,
+        total_habits,
+        completed_check_ins,
+        missed_check_ins,
+        completion_rate,
+        best_day,
+        hardest_day,
+        top_blocker,
+        mood_summary,
+        energy_summary,
+        habit_breakdown,
+        ai_summary,
+        suggested_adjustments,
+        next_week_plan
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+    ON CONFLICT (user_id, week_start)
+    DO UPDATE SET
+        total_habits = EXCLUDED.total_habits,
+        completed_check_ins = EXCLUDED.completed_check_ins,
+        missed_check_ins = EXCLUDED.missed_check_ins,
+        completion_rate = EXCLUDED.completion_rate,
+        best_day = EXCLUDED.best_day,
+        hardest_day = EXCLUDED.hardest_day,
+        top_blocker = EXCLUDED.top_blocker,
+        mood_summary = EXCLUDED.mood_summary,
+        energy_summary = EXCLUDED.energy_summary,
+        habit_breakdown = EXCLUDED.habit_breakdown,
+        ai_summary = EXCLUDED.ai_summary,
+        suggested_adjustments = EXCLUDED.suggested_adjustments,
+        next_week_plan = EXCLUDED.next_week_plan,
+        updated_at = now()
+    RETURNING id, user_id, week_start, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, created_at, updated_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-ON CONFLICT (user_id, week_start)
-DO UPDATE SET
-    week_end = EXCLUDED.week_end,
-    total_habits = EXCLUDED.total_habits,
-    completed_check_ins = EXCLUDED.completed_check_ins,
-    missed_check_ins = EXCLUDED.missed_check_ins,
-    completion_rate = EXCLUDED.completion_rate,
-    best_day = EXCLUDED.best_day,
-    hardest_day = EXCLUDED.hardest_day,
-    top_blocker = EXCLUDED.top_blocker,
-    mood_summary = EXCLUDED.mood_summary,
-    energy_summary = EXCLUDED.energy_summary,
-    habit_breakdown = EXCLUDED.habit_breakdown,
-    ai_summary = EXCLUDED.ai_summary,
-    suggested_adjustments = EXCLUDED.suggested_adjustments,
-    next_week_plan = EXCLUDED.next_week_plan,
-    generated_at = CURRENT_TIMESTAMP,
-    updated_at = CURRENT_TIMESTAMP
-RETURNING id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
+SELECT ins.id, ins.user_id, ins.week_start, ins.total_habits, ins.completed_check_ins, ins.missed_check_ins, ins.completion_rate, ins.best_day, ins.hardest_day, ins.top_blocker, ins.mood_summary, ins.energy_summary, ins.habit_breakdown, ins.ai_summary, ins.suggested_adjustments, ins.next_week_plan, ins.created_at, ins.updated_at, (ins.week_start + 6)::date AS week_end, ins.updated_at AS generated_at
+FROM ins
 `
 
 type CreateWeeklyReviewParams struct {
 	UserID               uuid.UUID      `db:"user_id" json:"user_id"`
 	WeekStart            pgtype.Date    `db:"week_start" json:"week_start"`
-	WeekEnd              pgtype.Date    `db:"week_end" json:"week_end"`
 	TotalHabits          int32          `db:"total_habits" json:"total_habits"`
 	CompletedCheckIns    int32          `db:"completed_check_ins" json:"completed_check_ins"`
 	MissedCheckIns       int32          `db:"missed_check_ins" json:"missed_check_ins"`
@@ -84,11 +85,35 @@ type CreateWeeklyReviewParams struct {
 	NextWeekPlan         []byte         `db:"next_week_plan" json:"next_week_plan"`
 }
 
-func (q *Queries) CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (WeeklyReview, error) {
+type CreateWeeklyReviewRow struct {
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
+	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string            `db:"best_day" json:"best_day"`
+	HardestDay           *string            `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string            `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte             `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte             `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte             `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
+	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
+}
+
+// week_end is derived (week_start + 6) and generated_at is just updated_at;
+// both are exposed under their old names for callers.
+func (q *Queries) CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReviewParams) (CreateWeeklyReviewRow, error) {
 	row := q.db.QueryRow(ctx, createWeeklyReview,
 		arg.UserID,
 		arg.WeekStart,
-		arg.WeekEnd,
 		arg.TotalHabits,
 		arg.CompletedCheckIns,
 		arg.MissedCheckIns,
@@ -103,12 +128,11 @@ func (q *Queries) CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReview
 		arg.SuggestedAdjustments,
 		arg.NextWeekPlan,
 	)
-	var i WeeklyReview
+	var i CreateWeeklyReviewRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.WeekStart,
-		&i.WeekEnd,
 		&i.TotalHabits,
 		&i.CompletedCheckIns,
 		&i.MissedCheckIns,
@@ -122,9 +146,10 @@ func (q *Queries) CreateWeeklyReview(ctx context.Context, arg CreateWeeklyReview
 		&i.AiSummary,
 		&i.SuggestedAdjustments,
 		&i.NextWeekPlan,
-		&i.GeneratedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WeekEnd,
+		&i.GeneratedAt,
 	)
 	return i, err
 }
@@ -170,7 +195,7 @@ const getCheckInStatsForWeek = `-- name: GetCheckInStatsForWeek :many
 SELECT
     h.id AS habit_id,
     h.name AS habit_name,
-    h.category AS habit_category,
+    COALESCE(c.slug, '')::varchar AS habit_category,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
@@ -183,13 +208,14 @@ SELECT
     )::numeric AS completion_rate,
     MAX(ci.created_at) AS last_check_in_at
 FROM habits h
+LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
    AND ci.created_at >= $2
    AND ci.created_at < $3
 WHERE h.user_id = $1
-GROUP BY h.id, h.name, h.category
+GROUP BY h.id, h.name, c.slug, h.created_at
 ORDER BY h.created_at DESC
 `
 
@@ -234,21 +260,43 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, 
 }
 
 const getCurrentWeeklyReview = `-- name: GetCurrentWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1
-ORDER BY week_start DESC
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1
+ORDER BY wr.week_start DESC
 LIMIT 1
 `
 
-func (q *Queries) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (WeeklyReview, error) {
+type GetCurrentWeeklyReviewRow struct {
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
+	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string            `db:"best_day" json:"best_day"`
+	HardestDay           *string            `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string            `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte             `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte             `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte             `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
+	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
+}
+
+func (q *Queries) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (GetCurrentWeeklyReviewRow, error) {
 	row := q.db.QueryRow(ctx, getCurrentWeeklyReview, userID)
-	var i WeeklyReview
+	var i GetCurrentWeeklyReviewRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.WeekStart,
-		&i.WeekEnd,
 		&i.TotalHabits,
 		&i.CompletedCheckIns,
 		&i.MissedCheckIns,
@@ -262,9 +310,10 @@ func (q *Queries) GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) 
 		&i.AiSummary,
 		&i.SuggestedAdjustments,
 		&i.NextWeekPlan,
-		&i.GeneratedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WeekEnd,
+		&i.GeneratedAt,
 	)
 	return i, err
 }
@@ -290,7 +339,6 @@ type GetDailyCheckInStatsForWeekRow struct {
 	MissedCount    int64       `db:"missed_count" json:"missed_count"`
 }
 
-// Uses local_date for correct day bucketing regardless of user timezone.
 func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error) {
 	rows, err := q.db.Query(ctx, getDailyCheckInStatsForWeek, userID, createdAt, createdAt_2)
 	if err != nil {
@@ -389,19 +437,41 @@ func (q *Queries) GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, cre
 }
 
 const getWeeklyReview = `-- name: GetWeeklyReview :one
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1 AND week_start = $2
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1 AND wr.week_start = $2
 `
 
-func (q *Queries) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (WeeklyReview, error) {
+type GetWeeklyReviewRow struct {
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
+	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string            `db:"best_day" json:"best_day"`
+	HardestDay           *string            `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string            `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte             `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte             `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte             `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
+	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
+}
+
+func (q *Queries) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (GetWeeklyReviewRow, error) {
 	row := q.db.QueryRow(ctx, getWeeklyReview, userID, weekStart)
-	var i WeeklyReview
+	var i GetWeeklyReviewRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.WeekStart,
-		&i.WeekEnd,
 		&i.TotalHabits,
 		&i.CompletedCheckIns,
 		&i.MissedCheckIns,
@@ -415,35 +485,58 @@ func (q *Queries) GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekSta
 		&i.AiSummary,
 		&i.SuggestedAdjustments,
 		&i.NextWeekPlan,
-		&i.GeneratedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.WeekEnd,
+		&i.GeneratedAt,
 	)
 	return i, err
 }
 
 const listWeeklyReviews = `-- name: ListWeeklyReviews :many
-SELECT id, user_id, week_start, week_end, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, generated_at, created_at, updated_at
-FROM weekly_reviews
-WHERE user_id = $1
-ORDER BY week_start DESC
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+FROM weekly_reviews wr
+WHERE wr.user_id = $1
+ORDER BY wr.week_start DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]WeeklyReview, error) {
+type ListWeeklyReviewsRow struct {
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
+	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
+	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
+	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
+	CompletionRate       pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	BestDay              *string            `db:"best_day" json:"best_day"`
+	HardestDay           *string            `db:"hardest_day" json:"hardest_day"`
+	TopBlocker           *string            `db:"top_blocker" json:"top_blocker"`
+	MoodSummary          []byte             `db:"mood_summary" json:"mood_summary"`
+	EnergySummary        []byte             `db:"energy_summary" json:"energy_summary"`
+	HabitBreakdown       []byte             `db:"habit_breakdown" json:"habit_breakdown"`
+	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
+	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
+	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
+	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
+}
+
+func (q *Queries) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListWeeklyReviewsRow, error) {
 	rows, err := q.db.Query(ctx, listWeeklyReviews, userID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []WeeklyReview{}
+	items := []ListWeeklyReviewsRow{}
 	for rows.Next() {
-		var i WeeklyReview
+		var i ListWeeklyReviewsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.WeekStart,
-			&i.WeekEnd,
 			&i.TotalHabits,
 			&i.CompletedCheckIns,
 			&i.MissedCheckIns,
@@ -457,9 +550,10 @@ func (q *Queries) ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit
 			&i.AiSummary,
 			&i.SuggestedAdjustments,
 			&i.NextWeekPlan,
-			&i.GeneratedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.WeekEnd,
+			&i.GeneratedAt,
 		); err != nil {
 			return nil, err
 		}

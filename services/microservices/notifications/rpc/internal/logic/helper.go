@@ -9,7 +9,7 @@ func listUnreadNotificationToProto(n db.ListUnreadNotificationsRow) *notificatio
 	return &notifications.Notification{
 		Id:        n.ID.String(),
 		UserId:    n.UserID.String(),
-		Type:      string(n.ItemType),
+		Type:      n.Type,
 		Title:     n.Title,
 		Message:   n.Message,
 		Read:      n.IsRead,
@@ -21,7 +21,7 @@ func listNotificationToProto(n db.ListNotificationsForUserRow) *notifications.No
 	return &notifications.Notification{
 		Id:        n.ID.String(),
 		UserId:    n.UserID.String(),
-		Type:      string(n.ItemType),
+		Type:      n.Type,
 		Title:     n.Title,
 		Message:   n.Message,
 		Read:      n.IsRead,

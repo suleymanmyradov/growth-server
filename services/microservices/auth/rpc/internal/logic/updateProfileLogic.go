@@ -51,8 +51,8 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 		}
 	}
 
-	profile, err := l.svcCtx.Repo.Profiles.UpdateProfile(l.ctx, db.UpdateProfileParams{
-		UserID:    userID,
+	user, err = l.svcCtx.Repo.Users.UpdateUserProfile(l.ctx, db.UpdateUserProfileParams{
+		ID:        userID,
 		Bio:       toNullString(in.Bio),
 		Location:  toNullString(in.Location),
 		Website:   toNullString(in.Website),
@@ -65,6 +65,6 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 	}
 
 	return &auth.UpdateProfileResponse{
-		User: toPbUser(user, profile),
+		User: toPbUser(user),
 	}, nil
 }

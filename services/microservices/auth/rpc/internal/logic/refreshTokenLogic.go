@@ -42,12 +42,6 @@ func (l *RefreshTokenLogic) RefreshToken(in *auth.RefreshRequest) (*auth.AuthRes
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	profile, err := l.svcCtx.Repo.Profiles.GetProfileByUserID(l.ctx, user.ID)
-	if err != nil {
-		l.Errorf("failed to get profile: %v", err)
-		return nil, status.Error(codes.Internal, "failed to get profile")
-	}
-
 	sessionID := refreshClaims.SessionID
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(l.ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
@@ -65,6 +59,6 @@ func (l *RefreshTokenLogic) RefreshToken(in *auth.RefreshRequest) (*auth.AuthRes
 		AccessToken:  accessToken.Token,
 		RefreshToken: newRefreshToken.Token,
 		ExpiresIn:    int64(l.svcCtx.Config.JWT.AccessExpiryDuration.Seconds()),
-		User:         toPbUser(user, profile),
+		User:         toPbUser(user),
 	}, nil
 }

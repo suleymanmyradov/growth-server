@@ -53,9 +53,9 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 	if in.PlanCode != "" {
 		planCode = &in.PlanCode
 	}
-	var billingInterval *db.BillingIntervalType
+	var billingInterval *string
 	if in.BillingInterval != "" {
-		bi := db.BillingIntervalType(in.BillingInterval)
+		bi := (in.BillingInterval)
 		billingInterval = &bi
 	}
 	var feedbackReason *string
@@ -69,10 +69,10 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 
 	event, err := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
 		UserID:          userID,
-		EventType:       db.UpgradeEventType(in.EventType),
+		EventType:       (in.EventType),
 		Surface:         in.Surface,
-		Trigger:         trigger,
-		PlanCode:        planCode,
+		TriggerSource:         trigger,
+		Code:            planCodeValue(planCode),
 		BillingInterval: billingInterval,
 		FeedbackReason:  feedbackReason,
 		FeedbackNote:    feedbackNote,
@@ -86,4 +86,11 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 	return &client.TrackUpgradeEventResponse{
 		EventId: event.ID.String(),
 	}, nil
+}
+
+func planCodeValue(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
 }

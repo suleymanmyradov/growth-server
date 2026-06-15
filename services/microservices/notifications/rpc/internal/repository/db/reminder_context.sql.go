@@ -62,25 +62,23 @@ func (q *Queries) GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (G
 }
 
 const markReminderSent = `-- name: MarkReminderSent :one
-UPDATE reminder_queue
-SET sent = TRUE, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+UPDATE reminders
+SET sent_at = now()
 WHERE id = $1
-RETURNING id, user_id, type, scheduled_at, sent, sent_at, metadata, created_at, updated_at
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
 `
 
-func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQueue, error) {
+func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error) {
 	row := q.db.QueryRow(ctx, markReminderSent, id)
-	var i ReminderQueue
+	var i Reminder
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.Type,
 		&i.ScheduledAt,
-		&i.Sent,
 		&i.SentAt,
 		&i.Metadata,
 		&i.CreatedAt,
-		&i.UpdatedAt,
 	)
 	return i, err
 }

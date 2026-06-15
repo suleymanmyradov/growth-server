@@ -24,56 +24,56 @@ func (r *PlanAdjustmentSuggestionsRepo) WithTx(tx pgx.Tx) *PlanAdjustmentSuggest
 	return &PlanAdjustmentSuggestionsRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) CreatePlanAdjustmentSuggestion(ctx context.Context, params db.CreatePlanAdjustmentSuggestionParams) (db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.CreatePlanAdjustmentSuggestion")
 	defer span.End()
 
 	return r.db.CreatePlanAdjustmentSuggestion(ctx, params)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) GetPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) GetPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.GetPlanAdjustmentSuggestion")
 	defer span.End()
 
 	return r.db.GetPlanAdjustmentSuggestion(ctx, id, userID)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.ListPendingPlanAdjustmentSuggestions")
 	defer span.End()
 
 	return r.db.ListPendingPlanAdjustmentSuggestions(ctx, userID, limit, offset)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) ListAllPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.ListAllPlanAdjustmentSuggestions")
 	defer span.End()
 
 	return r.db.ListAllPlanAdjustmentSuggestions(ctx, userID, limit, offset)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.ListPlanAdjustmentSuggestionsByHabit")
 	defer span.End()
 
 	return r.db.ListPlanAdjustmentSuggestionsByHabit(ctx, userID, habitID, limit, offset)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.ListPlanAdjustmentSuggestionsByGoal")
 	defer span.End()
 
 	return r.db.ListPlanAdjustmentSuggestionsByGoal(ctx, userID, goalID, limit, offset)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, id uuid.UUID, userID uuid.UUID, status db.PlanAdjustmentStatusType) (db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, id uuid.UUID, userID uuid.UUID, status string) (db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.UpdatePlanAdjustmentSuggestionStatus")
 	defer span.End()
 
 	return r.db.UpdatePlanAdjustmentSuggestionStatus(ctx, id, userID, status)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) UpdatePlanAdjustmentSuggestion(ctx context.Context, params db.UpdatePlanAdjustmentSuggestionParams) (db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.UpdatePlanAdjustmentSuggestion")
 	defer span.End()
 
@@ -101,7 +101,7 @@ func (r *PlanAdjustmentSuggestionsRepo) DismissOldPendingSuggestions(ctx context
 	return r.db.DismissOldPendingSuggestions(ctx, userID)
 }
 
-func (r *PlanAdjustmentSuggestionsRepo) ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustmentSuggestion, error) {
+func (r *PlanAdjustmentSuggestionsRepo) ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustment, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "PlanAdjustmentSuggestionsRepo.ApplyPlanAdjustmentSuggestion")
 	defer span.End()
 

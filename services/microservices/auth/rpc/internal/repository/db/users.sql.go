@@ -14,7 +14,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (username, email, password_hash, full_name)
 VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
 `
 
 func (q *Queries) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (User, error) {
@@ -31,6 +31,11 @@ func (q *Queries) CreateUser(ctx context.Context, username string, email string,
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -38,9 +43,7 @@ func (q *Queries) CreateUser(ctx context.Context, username string, email string,
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE email = $1
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at FROM users WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -52,6 +55,11 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -59,9 +67,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE id = $1
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -73,6 +79,11 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -80,9 +91,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, full_name, created_at, updated_at
-FROM users
-WHERE username = $1
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at FROM users WHERE username = $1
 `
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User, error) {
@@ -94,6 +103,11 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -102,9 +116,9 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 
 const updateUserFullName = `-- name: UpdateUserFullName :one
 UPDATE users
-SET full_name = $2, updated_at = CURRENT_TIMESTAMP
+SET full_name = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
 `
 
 func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error) {
@@ -116,6 +130,11 @@ func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -124,9 +143,9 @@ func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName
 
 const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
-SET password_hash = $2, updated_at = CURRENT_TIMESTAMP
+SET password_hash = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
 `
 
 func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (User, error) {
@@ -138,6 +157,58 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, password
 		&i.Email,
 		&i.PasswordHash,
 		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :one
+UPDATE users
+SET bio        = $2,
+    location   = $3,
+    website    = $4,
+    interests  = $5,
+    avatar_url = $6
+WHERE id = $1
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+`
+
+type UpdateUserProfileParams struct {
+	ID        uuid.UUID `db:"id" json:"id"`
+	Bio       *string   `db:"bio" json:"bio"`
+	Location  *string   `db:"location" json:"location"`
+	Website   *string   `db:"website" json:"website"`
+	Interests []string  `db:"interests" json:"interests"`
+	AvatarUrl *string   `db:"avatar_url" json:"avatar_url"`
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error) {
+	row := q.db.QueryRow(ctx, updateUserProfile,
+		arg.ID,
+		arg.Bio,
+		arg.Location,
+		arg.Website,
+		arg.Interests,
+		arg.AvatarUrl,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

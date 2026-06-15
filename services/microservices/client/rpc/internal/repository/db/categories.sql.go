@@ -11,36 +11,30 @@ import (
 	"github.com/google/uuid"
 )
 
-const countCategoriesByType = `-- name: CountCategoriesByType :one
-SELECT COUNT(*) FROM categories WHERE entity_type = $1
+const countCategories = `-- name: CountCategories :one
+SELECT COUNT(*) FROM categories
 `
 
-func (q *Queries) CountCategoriesByType(ctx context.Context, entityType EntityType) (int64, error) {
-	row := q.db.QueryRow(ctx, countCategoriesByType, entityType)
+func (q *Queries) CountCategories(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, countCategories)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const createCategory = `-- name: CreateCategory :one
-INSERT INTO categories (name, slug, entity_type, sort_order)
-VALUES ($1, $2, $3, $4)
-RETURNING id, name, slug, entity_type, sort_order, created_at, updated_at
+INSERT INTO categories (name, slug, sort_order)
+VALUES ($1, $2, $3)
+RETURNING id, name, slug, sort_order, created_at, updated_at
 `
 
-func (q *Queries) CreateCategory(ctx context.Context, name string, slug string, entityType EntityType, sortOrder int32) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory,
-		name,
-		slug,
-		entityType,
-		sortOrder,
-	)
+func (q *Queries) CreateCategory(ctx context.Context, name string, slug string, sortOrder int32) (Category, error) {
+	row := q.db.QueryRow(ctx, createCategory, name, slug, sortOrder)
 	var i Category
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.EntityType,
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -58,7 +52,7 @@ func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM categories WHERE id = $1
+SELECT id, name, slug, sort_order, created_at, updated_at FROM categories WHERE id = $1
 `
 
 func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, error) {
@@ -68,7 +62,6 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, erro
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.EntityType,
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -77,17 +70,16 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, erro
 }
 
 const getCategoryBySlug = `-- name: GetCategoryBySlug :one
-SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM categories WHERE slug = $1 AND entity_type = $2
+SELECT id, name, slug, sort_order, created_at, updated_at FROM categories WHERE slug = $1
 `
 
-func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string, entityType EntityType) (Category, error) {
-	row := q.db.QueryRow(ctx, getCategoryBySlug, slug, entityType)
+func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string) (Category, error) {
+	row := q.db.QueryRow(ctx, getCategoryBySlug, slug)
 	var i Category
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.EntityType,
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -95,47 +87,12 @@ func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string, entityType
 	return i, err
 }
 
-const listAllCategories = `-- name: ListAllCategories :many
-SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM categories
-ORDER BY entity_type, sort_order ASC
-`
-
-func (q *Queries) ListAllCategories(ctx context.Context) ([]Category, error) {
-	rows, err := q.db.Query(ctx, listAllCategories)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Category{}
-	for rows.Next() {
-		var i Category
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Slug,
-			&i.EntityType,
-			&i.SortOrder,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, slug, entity_type, sort_order, created_at, updated_at FROM categories
-WHERE entity_type = $1
-ORDER BY sort_order ASC
+SELECT id, name, slug, sort_order, created_at, updated_at FROM categories ORDER BY sort_order ASC
 `
 
-func (q *Queries) ListCategories(ctx context.Context, entityType EntityType) ([]Category, error) {
-	rows, err := q.db.Query(ctx, listCategories, entityType)
+func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
+	rows, err := q.db.Query(ctx, listCategories)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +104,6 @@ func (q *Queries) ListCategories(ctx context.Context, entityType EntityType) ([]
 			&i.ID,
 			&i.Name,
 			&i.Slug,
-			&i.EntityType,
 			&i.SortOrder,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -164,9 +120,9 @@ func (q *Queries) ListCategories(ctx context.Context, entityType EntityType) ([]
 
 const updateCategory = `-- name: UpdateCategory :one
 UPDATE categories
-SET name = $2, slug = $3, sort_order = $4, updated_at = CURRENT_TIMESTAMP
+SET name = $2, slug = $3, sort_order = $4
 WHERE id = $1
-RETURNING id, name, slug, entity_type, sort_order, created_at, updated_at
+RETURNING id, name, slug, sort_order, created_at, updated_at
 `
 
 func (q *Queries) UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error) {
@@ -181,7 +137,6 @@ func (q *Queries) UpdateCategory(ctx context.Context, iD uuid.UUID, name string,
 		&i.ID,
 		&i.Name,
 		&i.Slug,
-		&i.EntityType,
 		&i.SortOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,

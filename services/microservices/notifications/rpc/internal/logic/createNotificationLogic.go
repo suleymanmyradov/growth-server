@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
@@ -63,7 +62,7 @@ func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNot
 		}
 	}
 
-	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(l.ctx, in.Title, in.Message, db.NotificationType(in.Type), userID)
+	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(l.ctx, in.Title, in.Message, in.Type, userID)
 	if err != nil {
 		l.Errorf("Failed to create notification: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create notification")

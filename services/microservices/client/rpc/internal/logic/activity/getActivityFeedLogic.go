@@ -58,7 +58,7 @@ return nil, status.Error(codes.Internal, "failed to list activities")
 		pbActivities[i] = &client.ActivityItem{
 			Id:          a.ID.String(),
 			UserId:      a.UserID.String(),
-			Type:        string(a.ItemType),
+			Type:        a.Type,
 			Description: a.Title,
 			Timestamp:   a.CreatedAt.Time.Unix(),
 		}

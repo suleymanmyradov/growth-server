@@ -12,24 +12,25 @@ import (
 )
 
 type Querier interface {
-	CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ ReminderType, column3 pgtype.Date, column4 string) error
-	ClaimDueReminders(ctx context.Context, limit int32) ([]ReminderQueue, error)
+	CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Date, column4 string) error
+	ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CreateNotification(ctx context.Context, title string, message string, itemType NotificationType, userID uuid.UUID) (CreateNotificationRow, error)
+	CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error)
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
-	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ ReminderType, scheduledAt pgtype.Timestamptz, metadata []byte) (ReminderQueue, error)
+	// Reminders: sent_at IS NULL means pending.
+	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (Reminder, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
-	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]ReminderQueue, error)
+	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Reminder, error)
 	// Optimized: single scan of habits + one lookup of user_settings.
 	// Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
 	GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
-	IsEventProcessed(ctx context.Context, eventID uuid.UUID) (bool, error)
+	IsEventProcessed(ctx context.Context, eventID string) (bool, error)
 	ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error)
-	ListNotificationsByType(ctx context.Context, userID uuid.UUID, itemType NotificationType, limit int32, offset int32) ([]ListNotificationsByTypeRow, error)
+	ListNotificationsByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]ListNotificationsByTypeRow, error)
 	// Keyset pagination for typed notification feeds.
-	ListNotificationsByTypeKeyset(ctx context.Context, userID uuid.UUID, itemType NotificationType, column3 pgtype.Timestamptz, limit int32) ([]ListNotificationsByTypeKeysetRow, error)
+	ListNotificationsByTypeKeyset(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Timestamptz, limit int32) ([]ListNotificationsByTypeKeysetRow, error)
 	ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListNotificationsForUserRow, error)
 	// Keyset pagination: more efficient than OFFSET for deep pages.
 	ListNotificationsForUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListNotificationsForUserKeysetRow, error)
@@ -37,9 +38,9 @@ type Querier interface {
 	// Keyset pagination for unread notifications feed.
 	ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
-	MarkEventProcessed(ctx context.Context, eventID uuid.UUID) error
+	MarkEventProcessed(ctx context.Context, eventID string) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
-	MarkReminderSent(ctx context.Context, id uuid.UUID) (ReminderQueue, error)
+	MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -74,28 +74,6 @@ func (q *Queries) CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) 
 	return count, err
 }
 
-const countSavedItemsByUser = `-- name: CountSavedItemsByUser :one
-SELECT COUNT(*) FROM saved_items WHERE user_id = $1
-`
-
-func (q *Queries) CountSavedItemsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countSavedItemsByUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countSavedItemsByUserAndType = `-- name: CountSavedItemsByUserAndType :one
-SELECT COUNT(*) FROM saved_items WHERE user_id = $1 AND item_type = $2
-`
-
-func (q *Queries) CountSavedItemsByUserAndType(ctx context.Context, userID uuid.UUID, itemType SavedItemType) (int64, error) {
-	row := q.db.QueryRow(ctx, countSavedItemsByUserAndType, userID, itemType)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createSavedArticle = `-- name: CreateSavedArticle :one
 INSERT INTO saved_articles (article_id, user_id) VALUES ($1, $2) RETURNING id, 'article'::text AS item_type, article_id AS item_id, user_id, created_at
 `
@@ -171,25 +149,6 @@ func (q *Queries) CreateSavedHabit(ctx context.Context, habitID uuid.UUID, userI
 	return i, err
 }
 
-const createSavedItem = `-- name: CreateSavedItem :one
-INSERT INTO saved_items (item_type, item_id, user_id)
-VALUES ($1, $2, $3)
-RETURNING id, item_type, item_id, user_id, created_at
-`
-
-func (q *Queries) CreateSavedItem(ctx context.Context, itemType SavedItemType, itemID uuid.UUID, userID uuid.UUID) (SavedItem, error) {
-	row := q.db.QueryRow(ctx, createSavedItem, itemType, itemID, userID)
-	var i SavedItem
-	err := row.Scan(
-		&i.ID,
-		&i.ItemType,
-		&i.ItemID,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const deleteSavedArticle = `-- name: DeleteSavedArticle :exec
 DELETE FROM saved_articles sa WHERE sa.user_id = $1 AND sa.article_id = $2
 `
@@ -215,58 +174,6 @@ DELETE FROM saved_habits sh WHERE sh.user_id = $1 AND sh.habit_id = $2
 func (q *Queries) DeleteSavedHabit(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteSavedHabit, userID, habitID)
 	return err
-}
-
-const deleteSavedItem = `-- name: DeleteSavedItem :exec
-DELETE FROM saved_items WHERE id = $1
-`
-
-func (q *Queries) DeleteSavedItem(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteSavedItem, id)
-	return err
-}
-
-const deleteSavedItemByUserAndItem = `-- name: DeleteSavedItemByUserAndItem :exec
-DELETE FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3
-`
-
-func (q *Queries) DeleteSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteSavedItemByUserAndItem, userID, itemType, itemID)
-	return err
-}
-
-const getSavedItem = `-- name: GetSavedItem :one
-SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE id = $1
-`
-
-func (q *Queries) GetSavedItem(ctx context.Context, id uuid.UUID) (SavedItem, error) {
-	row := q.db.QueryRow(ctx, getSavedItem, id)
-	var i SavedItem
-	err := row.Scan(
-		&i.ID,
-		&i.ItemType,
-		&i.ItemID,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const getSavedItemByUserAndItem = `-- name: GetSavedItemByUserAndItem :one
-SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3
-`
-
-func (q *Queries) GetSavedItemByUserAndItem(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (SavedItem, error) {
-	row := q.db.QueryRow(ctx, getSavedItemByUserAndItem, userID, itemType, itemID)
-	var i SavedItem
-	err := row.Scan(
-		&i.ID,
-		&i.ItemType,
-		&i.ItemID,
-		&i.UserID,
-		&i.CreatedAt,
-	)
-	return i, err
 }
 
 const isArticleSaved = `-- name: IsArticleSaved :one
@@ -302,17 +209,6 @@ func (q *Queries) IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uu
 	return exists, err
 }
 
-const isItemSaved = `-- name: IsItemSaved :one
-SELECT EXISTS(SELECT 1 FROM saved_items WHERE user_id = $1 AND item_type = $2 AND item_id = $3)
-`
-
-func (q *Queries) IsItemSaved(ctx context.Context, userID uuid.UUID, itemType SavedItemType, itemID uuid.UUID) (bool, error) {
-	row := q.db.QueryRow(ctx, isItemSaved, userID, itemType, itemID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
 const listAllSavedItemsByUser = `-- name: ListAllSavedItemsByUser :many
 
 SELECT id, item_type, item_id, user_id, created_at FROM (
@@ -334,9 +230,9 @@ type ListAllSavedItemsByUserRow struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-// ============================================================
-// NEW: Concrete table queries (use these in new code)
-// ============================================================
+// Saved items live in three concrete tables (saved_articles, saved_goals,
+// saved_habits); rows are exposed with a uniform (id, item_type, item_id,
+// user_id, created_at) shape.
 // Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
 // instead of all saved items. Any item in the top N overall must be in the top N of its table.
 func (q *Queries) ListAllSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListAllSavedItemsByUserRow, error) {
@@ -576,113 +472,6 @@ func (q *Queries) ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.U
 	items := []ListSavedHabitsByUserKeysetRow{}
 	for rows.Next() {
 		var i ListSavedHabitsByUserKeysetRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.ItemType,
-			&i.ItemID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSavedItems = `-- name: ListSavedItems :many
-
-SELECT id, item_type, item_id, user_id, created_at FROM saved_items
-ORDER BY created_at DESC
-LIMIT $1 OFFSET $2
-`
-
-// DEPRECATED: The saved_items polymorphic table is deprecated in favor of
-// saved_articles, saved_goals, and saved_habits. Old queries below are kept
-// for backward compatibility during transition; new code should use the
-// concrete table queries at the bottom of this file.
-// [DEPRECATED] Queries against the polymorphic saved_items table
-func (q *Queries) ListSavedItems(ctx context.Context, limit int32, offset int32) ([]SavedItem, error) {
-	rows, err := q.db.Query(ctx, listSavedItems, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []SavedItem{}
-	for rows.Next() {
-		var i SavedItem
-		if err := rows.Scan(
-			&i.ID,
-			&i.ItemType,
-			&i.ItemID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSavedItemsByType = `-- name: ListSavedItemsByType :many
-SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE user_id = $1 AND item_type = $2
-ORDER BY created_at DESC
-LIMIT $3 OFFSET $4
-`
-
-func (q *Queries) ListSavedItemsByType(ctx context.Context, userID uuid.UUID, itemType SavedItemType, limit int32, offset int32) ([]SavedItem, error) {
-	rows, err := q.db.Query(ctx, listSavedItemsByType,
-		userID,
-		itemType,
-		limit,
-		offset,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []SavedItem{}
-	for rows.Next() {
-		var i SavedItem
-		if err := rows.Scan(
-			&i.ID,
-			&i.ItemType,
-			&i.ItemID,
-			&i.UserID,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSavedItemsByUser = `-- name: ListSavedItemsByUser :many
-SELECT id, item_type, item_id, user_id, created_at FROM saved_items WHERE user_id = $1
-ORDER BY created_at DESC
-LIMIT $2 OFFSET $3
-`
-
-func (q *Queries) ListSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]SavedItem, error) {
-	rows, err := q.db.Query(ctx, listSavedItemsByUser, userID, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []SavedItem{}
-	for rows.Next() {
-		var i SavedItem
 		if err := rows.Scan(
 			&i.ID,
 			&i.ItemType,

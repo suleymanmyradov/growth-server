@@ -119,7 +119,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	weekHabits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get habits for pattern detection: %v", err)
-		weekHabits = []db.Habit{}
+		weekHabits = []db.GetHabitRow{}
 	}
 
 	// Analyze patterns using the pattern detection service
@@ -131,7 +131,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	commonBlockers := []string{}
 
 	coachingProfile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
-	if err == nil && coachingProfile.ID != uuid.Nil {
+	if err == nil && coachingProfile.UserID != uuid.Nil {
 		if coachingProfile.PreferredTone != "" {
 			preferredTone = string(coachingProfile.PreferredTone)
 		}
@@ -223,8 +223,8 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	aiResp, aiErr := l.svcCtx.AICoachRpc.GenerateWeeklyReview(l.ctx, &aicoachservice.WeeklyReviewRequest{
 		UserId:                in.UserId,
 		AccountabilityStyle:   accountabilityStyle,
-		PreferredTone:         preferredTone,
-		DifficultyPreference:  difficultyPreference,
+		PreferredTone:             preferredTone,
+		DifficultyPreference:            difficultyPreference,
 		CommonBlockers:        commonBlockers,
 		Goals:                 goalTitles,
 		TotalHabits:           int32(stats.totalHabits),
@@ -287,7 +287,6 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	}
 
 	weekStartDate := pgtype.Date{Time: weekStart, Valid: true}
-	weekEndDate := pgtype.Date{Time: weekEnd, Valid: true}
 
 	var completionRate pgtype.Numeric
 	if err := completionRate.Scan(fmt.Sprintf("%.2f", stats.completionRate)); err != nil {
@@ -314,7 +313,6 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	params := db.CreateWeeklyReviewParams{
 		UserID:               userID,
 		WeekStart:            weekStartDate,
-		WeekEnd:              weekEndDate,
 		TotalHabits:          int32(stats.totalHabits),
 		CompletedCheckIns:    int32(stats.completedCheckIns),
 		MissedCheckIns:       int32(stats.missedCheckIns),
@@ -366,8 +364,8 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 				UserID:         userID,
 				GoalID:         goalID,
 				HabitID:        habitID,
-				Source:         db.PlanAdjustmentSourceTypeWeeklyReview,
-				AdjustmentType: db.PlanAdjustmentTypeType(adjustment.AdjustmentType),
+				Source:         "weekly_review",
+				AdjustmentType: (adjustment.AdjustmentType),
 				Reason:         adjustment.Reason,
 				Suggestion:     adjustment.Suggestion,
 				Metadata:       metadataJSON,
@@ -557,7 +555,7 @@ func resolveWeekBounds(weekStartStr string, loc *time.Location) (time.Time, time
 	return weekStart, weekEnd, nil
 }
 
-func dbReviewToProto(r db.WeeklyReview) *client.WeeklyReview {
+func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 	var moodMap map[string]int32
 	_ = json.Unmarshal(r.MoodSummary, &moodMap)
 	if moodMap == nil {

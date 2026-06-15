@@ -56,7 +56,6 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 	}
 
 	var user db.User
-	var profile db.Profile
 	err = l.svcCtx.TxRunner.Run(l.ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
 		var err error
@@ -70,21 +69,10 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 			return status.Error(codes.Internal, "failed to create user")
 		}
 
-		profile, err = q.CreateProfile(l.ctx, db.CreateProfileParams{
-			UserID:    user.ID,
-			Bio:       toNullString(""),
-			Location:  toNullString(""),
-			Website:   toNullString(""),
-			Interests: []string{},
-			AvatarUrl: toNullString(""),
-		})
-		if err != nil {
-			return status.Error(codes.Internal, "failed to create profile")
-		}
 		return nil
 	})
 	if err != nil {
-		l.Errorf("failed to create user and profile: %v", err)
+		l.Errorf("failed to create user: %v", err)
 		return nil, err
 	}
 
@@ -106,6 +94,6 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 		AccessToken:  accessToken.Token,
 		RefreshToken: refreshToken.Token,
 		ExpiresIn:    int64(l.svcCtx.Config.JWT.AccessExpiryDuration.Seconds()),
-		User:         toPbUser(user, profile),
+		User:         toPbUser(user),
 	}, nil
 }

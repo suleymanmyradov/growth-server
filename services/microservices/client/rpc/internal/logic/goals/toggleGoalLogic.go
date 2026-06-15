@@ -33,14 +33,8 @@ func (l *ToggleGoalLogic) ToggleGoal(in *client.ToggleGoalRequest) (*client.Togg
 return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
-	// Fetch current goal to get version for optimistic locking
-	current, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID)
-	if err != nil {
-		l.Errorf("Failed to fetch goal for toggle: %v", err)
-return nil, status.Error(codes.Internal, "failed to fetch goal for toggle")
-	}
 
-	goal, err := l.svcCtx.Repo.Goals.ToggleGoal(l.ctx, goalID, current.Version)
+	goal, err := l.svcCtx.Repo.Goals.ToggleGoal(l.ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to toggle goal: %v", err)
 return nil, status.Error(codes.Internal, "failed to toggle goal")

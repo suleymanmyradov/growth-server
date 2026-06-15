@@ -5,1379 +5,18 @@
 package db
 
 import (
-	"database/sql/driver"
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type AccountabilityStyleType string
-
-const (
-	AccountabilityStyleTypeGentle   AccountabilityStyleType = "gentle"
-	AccountabilityStyleTypeBalanced AccountabilityStyleType = "balanced"
-	AccountabilityStyleTypeStrict   AccountabilityStyleType = "strict"
-)
-
-func (e *AccountabilityStyleType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = AccountabilityStyleType(s)
-	case string:
-		*e = AccountabilityStyleType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for AccountabilityStyleType: %T", src)
-	}
-	return nil
-}
-
-type NullAccountabilityStyleType struct {
-	AccountabilityStyleType AccountabilityStyleType `json:"accountability_style_type"`
-	Valid                   bool                    `json:"valid"` // Valid is true if AccountabilityStyleType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullAccountabilityStyleType) Scan(value interface{}) error {
-	if value == nil {
-		ns.AccountabilityStyleType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.AccountabilityStyleType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullAccountabilityStyleType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.AccountabilityStyleType), nil
-}
-
-func (e AccountabilityStyleType) Valid() bool {
-	switch e {
-	case AccountabilityStyleTypeGentle,
-		AccountabilityStyleTypeBalanced,
-		AccountabilityStyleTypeStrict:
-		return true
-	}
-	return false
-}
-
-func AllAccountabilityStyleTypeValues() []AccountabilityStyleType {
-	return []AccountabilityStyleType{
-		AccountabilityStyleTypeGentle,
-		AccountabilityStyleTypeBalanced,
-		AccountabilityStyleTypeStrict,
-	}
-}
-
-type ActivityType string
-
-const (
-	ActivityTypeHabitCompleted        ActivityType = "habit_completed"
-	ActivityTypeGoalCreated           ActivityType = "goal_created"
-	ActivityTypeGoalCompleted         ActivityType = "goal_completed"
-	ActivityTypeArticleSaved          ActivityType = "article_saved"
-	ActivityTypeCheckInCompleted      ActivityType = "check_in_completed"
-	ActivityTypeCheckInMissed         ActivityType = "check_in_missed"
-	ActivityTypeWeeklyReviewGenerated ActivityType = "weekly_review_generated"
-)
-
-func (e *ActivityType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ActivityType(s)
-	case string:
-		*e = ActivityType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ActivityType: %T", src)
-	}
-	return nil
-}
-
-type NullActivityType struct {
-	ActivityType ActivityType `json:"activity_type"`
-	Valid        bool         `json:"valid"` // Valid is true if ActivityType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullActivityType) Scan(value interface{}) error {
-	if value == nil {
-		ns.ActivityType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ActivityType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullActivityType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ActivityType), nil
-}
-
-func (e ActivityType) Valid() bool {
-	switch e {
-	case ActivityTypeHabitCompleted,
-		ActivityTypeGoalCreated,
-		ActivityTypeGoalCompleted,
-		ActivityTypeArticleSaved,
-		ActivityTypeCheckInCompleted,
-		ActivityTypeCheckInMissed,
-		ActivityTypeWeeklyReviewGenerated:
-		return true
-	}
-	return false
-}
-
-func AllActivityTypeValues() []ActivityType {
-	return []ActivityType{
-		ActivityTypeHabitCompleted,
-		ActivityTypeGoalCreated,
-		ActivityTypeGoalCompleted,
-		ActivityTypeArticleSaved,
-		ActivityTypeCheckInCompleted,
-		ActivityTypeCheckInMissed,
-		ActivityTypeWeeklyReviewGenerated,
-	}
-}
-
-type BillingIntervalType string
-
-const (
-	BillingIntervalTypeMonthly BillingIntervalType = "monthly"
-	BillingIntervalTypeAnnual  BillingIntervalType = "annual"
-)
-
-func (e *BillingIntervalType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = BillingIntervalType(s)
-	case string:
-		*e = BillingIntervalType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for BillingIntervalType: %T", src)
-	}
-	return nil
-}
-
-type NullBillingIntervalType struct {
-	BillingIntervalType BillingIntervalType `json:"billing_interval_type"`
-	Valid               bool                `json:"valid"` // Valid is true if BillingIntervalType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullBillingIntervalType) Scan(value interface{}) error {
-	if value == nil {
-		ns.BillingIntervalType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.BillingIntervalType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullBillingIntervalType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.BillingIntervalType), nil
-}
-
-func (e BillingIntervalType) Valid() bool {
-	switch e {
-	case BillingIntervalTypeMonthly,
-		BillingIntervalTypeAnnual:
-		return true
-	}
-	return false
-}
-
-func AllBillingIntervalTypeValues() []BillingIntervalType {
-	return []BillingIntervalType{
-		BillingIntervalTypeMonthly,
-		BillingIntervalTypeAnnual,
-	}
-}
-
-type BlockerType string
-
-const (
-	BlockerTypeLackOfTime    BlockerType = "lack_of_time"
-	BlockerTypeLowMotivation BlockerType = "low_motivation"
-	BlockerTypeTooDistracted BlockerType = "too_distracted"
-	BlockerTypeUnclearPlan   BlockerType = "unclear_plan"
-	BlockerTypeOther         BlockerType = "other"
-)
-
-func (e *BlockerType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = BlockerType(s)
-	case string:
-		*e = BlockerType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for BlockerType: %T", src)
-	}
-	return nil
-}
-
-type NullBlockerType struct {
-	BlockerType BlockerType `json:"blocker_type"`
-	Valid       bool        `json:"valid"` // Valid is true if BlockerType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullBlockerType) Scan(value interface{}) error {
-	if value == nil {
-		ns.BlockerType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.BlockerType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullBlockerType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.BlockerType), nil
-}
-
-func (e BlockerType) Valid() bool {
-	switch e {
-	case BlockerTypeLackOfTime,
-		BlockerTypeLowMotivation,
-		BlockerTypeTooDistracted,
-		BlockerTypeUnclearPlan,
-		BlockerTypeOther:
-		return true
-	}
-	return false
-}
-
-func AllBlockerTypeValues() []BlockerType {
-	return []BlockerType{
-		BlockerTypeLackOfTime,
-		BlockerTypeLowMotivation,
-		BlockerTypeTooDistracted,
-		BlockerTypeUnclearPlan,
-		BlockerTypeOther,
-	}
-}
-
-type CheckInStatus string
-
-const (
-	CheckInStatusCompleted CheckInStatus = "completed"
-	CheckInStatusMissed    CheckInStatus = "missed"
-)
-
-func (e *CheckInStatus) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = CheckInStatus(s)
-	case string:
-		*e = CheckInStatus(s)
-	default:
-		return fmt.Errorf("unsupported scan type for CheckInStatus: %T", src)
-	}
-	return nil
-}
-
-type NullCheckInStatus struct {
-	CheckInStatus CheckInStatus `json:"check_in_status"`
-	Valid         bool          `json:"valid"` // Valid is true if CheckInStatus is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullCheckInStatus) Scan(value interface{}) error {
-	if value == nil {
-		ns.CheckInStatus, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.CheckInStatus.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullCheckInStatus) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.CheckInStatus), nil
-}
-
-func (e CheckInStatus) Valid() bool {
-	switch e {
-	case CheckInStatusCompleted,
-		CheckInStatusMissed:
-		return true
-	}
-	return false
-}
-
-func AllCheckInStatusValues() []CheckInStatus {
-	return []CheckInStatus{
-		CheckInStatusCompleted,
-		CheckInStatusMissed,
-	}
-}
-
-type CoachToneType string
-
-const (
-	CoachToneTypeSupportive  CoachToneType = "supportive"
-	CoachToneTypeDirect      CoachToneType = "direct"
-	CoachToneTypeWarm        CoachToneType = "warm"
-	CoachToneTypePractical   CoachToneType = "practical"
-	CoachToneTypeChallenging CoachToneType = "challenging"
-)
-
-func (e *CoachToneType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = CoachToneType(s)
-	case string:
-		*e = CoachToneType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for CoachToneType: %T", src)
-	}
-	return nil
-}
-
-type NullCoachToneType struct {
-	CoachToneType CoachToneType `json:"coach_tone_type"`
-	Valid         bool          `json:"valid"` // Valid is true if CoachToneType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullCoachToneType) Scan(value interface{}) error {
-	if value == nil {
-		ns.CoachToneType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.CoachToneType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullCoachToneType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.CoachToneType), nil
-}
-
-func (e CoachToneType) Valid() bool {
-	switch e {
-	case CoachToneTypeSupportive,
-		CoachToneTypeDirect,
-		CoachToneTypeWarm,
-		CoachToneTypePractical,
-		CoachToneTypeChallenging:
-		return true
-	}
-	return false
-}
-
-func AllCoachToneTypeValues() []CoachToneType {
-	return []CoachToneType{
-		CoachToneTypeSupportive,
-		CoachToneTypeDirect,
-		CoachToneTypeWarm,
-		CoachToneTypePractical,
-		CoachToneTypeChallenging,
-	}
-}
-
-type DifficultyLevelType string
-
-const (
-	DifficultyLevelTypeEasy      DifficultyLevelType = "easy"
-	DifficultyLevelTypeAdaptive  DifficultyLevelType = "adaptive"
-	DifficultyLevelTypeAmbitious DifficultyLevelType = "ambitious"
-)
-
-func (e *DifficultyLevelType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = DifficultyLevelType(s)
-	case string:
-		*e = DifficultyLevelType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for DifficultyLevelType: %T", src)
-	}
-	return nil
-}
-
-type NullDifficultyLevelType struct {
-	DifficultyLevelType DifficultyLevelType `json:"difficulty_level_type"`
-	Valid               bool                `json:"valid"` // Valid is true if DifficultyLevelType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullDifficultyLevelType) Scan(value interface{}) error {
-	if value == nil {
-		ns.DifficultyLevelType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.DifficultyLevelType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullDifficultyLevelType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.DifficultyLevelType), nil
-}
-
-func (e DifficultyLevelType) Valid() bool {
-	switch e {
-	case DifficultyLevelTypeEasy,
-		DifficultyLevelTypeAdaptive,
-		DifficultyLevelTypeAmbitious:
-		return true
-	}
-	return false
-}
-
-func AllDifficultyLevelTypeValues() []DifficultyLevelType {
-	return []DifficultyLevelType{
-		DifficultyLevelTypeEasy,
-		DifficultyLevelTypeAdaptive,
-		DifficultyLevelTypeAmbitious,
-	}
-}
-
-type EnergyLevel string
-
-const (
-	EnergyLevelHigh   EnergyLevel = "high"
-	EnergyLevelMedium EnergyLevel = "medium"
-	EnergyLevelLow    EnergyLevel = "low"
-)
-
-func (e *EnergyLevel) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EnergyLevel(s)
-	case string:
-		*e = EnergyLevel(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EnergyLevel: %T", src)
-	}
-	return nil
-}
-
-type NullEnergyLevel struct {
-	EnergyLevel EnergyLevel `json:"energy_level"`
-	Valid       bool        `json:"valid"` // Valid is true if EnergyLevel is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEnergyLevel) Scan(value interface{}) error {
-	if value == nil {
-		ns.EnergyLevel, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EnergyLevel.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEnergyLevel) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EnergyLevel), nil
-}
-
-func (e EnergyLevel) Valid() bool {
-	switch e {
-	case EnergyLevelHigh,
-		EnergyLevelMedium,
-		EnergyLevelLow:
-		return true
-	}
-	return false
-}
-
-func AllEnergyLevelValues() []EnergyLevel {
-	return []EnergyLevel{
-		EnergyLevelHigh,
-		EnergyLevelMedium,
-		EnergyLevelLow,
-	}
-}
-
-type EntityType string
-
-const (
-	EntityTypeArticle EntityType = "article"
-	EntityTypeHabit   EntityType = "habit"
-	EntityTypeGoal    EntityType = "goal"
-)
-
-func (e *EntityType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = EntityType(s)
-	case string:
-		*e = EntityType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for EntityType: %T", src)
-	}
-	return nil
-}
-
-type NullEntityType struct {
-	EntityType EntityType `json:"entity_type"`
-	Valid      bool       `json:"valid"` // Valid is true if EntityType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullEntityType) Scan(value interface{}) error {
-	if value == nil {
-		ns.EntityType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.EntityType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullEntityType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.EntityType), nil
-}
-
-func (e EntityType) Valid() bool {
-	switch e {
-	case EntityTypeArticle,
-		EntityTypeHabit,
-		EntityTypeGoal:
-		return true
-	}
-	return false
-}
-
-func AllEntityTypeValues() []EntityType {
-	return []EntityType{
-		EntityTypeArticle,
-		EntityTypeHabit,
-		EntityTypeGoal,
-	}
-}
-
-type GoalStatusType string
-
-const (
-	GoalStatusTypeActive    GoalStatusType = "active"
-	GoalStatusTypeCompleted GoalStatusType = "completed"
-	GoalStatusTypeArchived  GoalStatusType = "archived"
-)
-
-func (e *GoalStatusType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = GoalStatusType(s)
-	case string:
-		*e = GoalStatusType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for GoalStatusType: %T", src)
-	}
-	return nil
-}
-
-type NullGoalStatusType struct {
-	GoalStatusType GoalStatusType `json:"goal_status_type"`
-	Valid          bool           `json:"valid"` // Valid is true if GoalStatusType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullGoalStatusType) Scan(value interface{}) error {
-	if value == nil {
-		ns.GoalStatusType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.GoalStatusType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullGoalStatusType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.GoalStatusType), nil
-}
-
-func (e GoalStatusType) Valid() bool {
-	switch e {
-	case GoalStatusTypeActive,
-		GoalStatusTypeCompleted,
-		GoalStatusTypeArchived:
-		return true
-	}
-	return false
-}
-
-func AllGoalStatusTypeValues() []GoalStatusType {
-	return []GoalStatusType{
-		GoalStatusTypeActive,
-		GoalStatusTypeCompleted,
-		GoalStatusTypeArchived,
-	}
-}
-
-type MoodType string
-
-const (
-	MoodTypeGreat    MoodType = "great"
-	MoodTypeOkay     MoodType = "okay"
-	MoodTypeLow      MoodType = "low"
-	MoodTypeStressed MoodType = "stressed"
-)
-
-func (e *MoodType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = MoodType(s)
-	case string:
-		*e = MoodType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for MoodType: %T", src)
-	}
-	return nil
-}
-
-type NullMoodType struct {
-	MoodType MoodType `json:"mood_type"`
-	Valid    bool     `json:"valid"` // Valid is true if MoodType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullMoodType) Scan(value interface{}) error {
-	if value == nil {
-		ns.MoodType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.MoodType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullMoodType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.MoodType), nil
-}
-
-func (e MoodType) Valid() bool {
-	switch e {
-	case MoodTypeGreat,
-		MoodTypeOkay,
-		MoodTypeLow,
-		MoodTypeStressed:
-		return true
-	}
-	return false
-}
-
-func AllMoodTypeValues() []MoodType {
-	return []MoodType{
-		MoodTypeGreat,
-		MoodTypeOkay,
-		MoodTypeLow,
-		MoodTypeStressed,
-	}
-}
-
-type NotificationType string
-
-const (
-	NotificationTypeHabitReminder NotificationType = "habit_reminder"
-	NotificationTypeMissedCheckIn NotificationType = "missed_check_in"
-	NotificationTypeGoalDeadline  NotificationType = "goal_deadline"
-	NotificationTypeAchievement   NotificationType = "achievement"
-	NotificationTypeWeeklyReview  NotificationType = "weekly_review"
-	NotificationTypeEncouragement NotificationType = "encouragement"
-	NotificationTypeSystem        NotificationType = "system"
-)
-
-func (e *NotificationType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = NotificationType(s)
-	case string:
-		*e = NotificationType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for NotificationType: %T", src)
-	}
-	return nil
-}
-
-type NullNotificationType struct {
-	NotificationType NotificationType `json:"notification_type"`
-	Valid            bool             `json:"valid"` // Valid is true if NotificationType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullNotificationType) Scan(value interface{}) error {
-	if value == nil {
-		ns.NotificationType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.NotificationType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullNotificationType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.NotificationType), nil
-}
-
-func (e NotificationType) Valid() bool {
-	switch e {
-	case NotificationTypeHabitReminder,
-		NotificationTypeMissedCheckIn,
-		NotificationTypeGoalDeadline,
-		NotificationTypeAchievement,
-		NotificationTypeWeeklyReview,
-		NotificationTypeEncouragement,
-		NotificationTypeSystem:
-		return true
-	}
-	return false
-}
-
-func AllNotificationTypeValues() []NotificationType {
-	return []NotificationType{
-		NotificationTypeHabitReminder,
-		NotificationTypeMissedCheckIn,
-		NotificationTypeGoalDeadline,
-		NotificationTypeAchievement,
-		NotificationTypeWeeklyReview,
-		NotificationTypeEncouragement,
-		NotificationTypeSystem,
-	}
-}
-
-type PlanAdjustmentSourceType string
-
-const (
-	PlanAdjustmentSourceTypeCheckIn         PlanAdjustmentSourceType = "check_in"
-	PlanAdjustmentSourceTypeWeeklyReview    PlanAdjustmentSourceType = "weekly_review"
-	PlanAdjustmentSourceTypeAssistant       PlanAdjustmentSourceType = "assistant"
-	PlanAdjustmentSourceTypePatternAnalysis PlanAdjustmentSourceType = "pattern_analysis"
-)
-
-func (e *PlanAdjustmentSourceType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = PlanAdjustmentSourceType(s)
-	case string:
-		*e = PlanAdjustmentSourceType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for PlanAdjustmentSourceType: %T", src)
-	}
-	return nil
-}
-
-type NullPlanAdjustmentSourceType struct {
-	PlanAdjustmentSourceType PlanAdjustmentSourceType `json:"plan_adjustment_source_type"`
-	Valid                    bool                     `json:"valid"` // Valid is true if PlanAdjustmentSourceType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullPlanAdjustmentSourceType) Scan(value interface{}) error {
-	if value == nil {
-		ns.PlanAdjustmentSourceType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.PlanAdjustmentSourceType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullPlanAdjustmentSourceType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.PlanAdjustmentSourceType), nil
-}
-
-func (e PlanAdjustmentSourceType) Valid() bool {
-	switch e {
-	case PlanAdjustmentSourceTypeCheckIn,
-		PlanAdjustmentSourceTypeWeeklyReview,
-		PlanAdjustmentSourceTypeAssistant,
-		PlanAdjustmentSourceTypePatternAnalysis:
-		return true
-	}
-	return false
-}
-
-func AllPlanAdjustmentSourceTypeValues() []PlanAdjustmentSourceType {
-	return []PlanAdjustmentSourceType{
-		PlanAdjustmentSourceTypeCheckIn,
-		PlanAdjustmentSourceTypeWeeklyReview,
-		PlanAdjustmentSourceTypeAssistant,
-		PlanAdjustmentSourceTypePatternAnalysis,
-	}
-}
-
-type PlanAdjustmentStatusType string
-
-const (
-	PlanAdjustmentStatusTypePending   PlanAdjustmentStatusType = "pending"
-	PlanAdjustmentStatusTypeAccepted  PlanAdjustmentStatusType = "accepted"
-	PlanAdjustmentStatusTypeDismissed PlanAdjustmentStatusType = "dismissed"
-	PlanAdjustmentStatusTypeApplied   PlanAdjustmentStatusType = "applied"
-)
-
-func (e *PlanAdjustmentStatusType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = PlanAdjustmentStatusType(s)
-	case string:
-		*e = PlanAdjustmentStatusType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for PlanAdjustmentStatusType: %T", src)
-	}
-	return nil
-}
-
-type NullPlanAdjustmentStatusType struct {
-	PlanAdjustmentStatusType PlanAdjustmentStatusType `json:"plan_adjustment_status_type"`
-	Valid                    bool                     `json:"valid"` // Valid is true if PlanAdjustmentStatusType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullPlanAdjustmentStatusType) Scan(value interface{}) error {
-	if value == nil {
-		ns.PlanAdjustmentStatusType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.PlanAdjustmentStatusType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullPlanAdjustmentStatusType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.PlanAdjustmentStatusType), nil
-}
-
-func (e PlanAdjustmentStatusType) Valid() bool {
-	switch e {
-	case PlanAdjustmentStatusTypePending,
-		PlanAdjustmentStatusTypeAccepted,
-		PlanAdjustmentStatusTypeDismissed,
-		PlanAdjustmentStatusTypeApplied:
-		return true
-	}
-	return false
-}
-
-func AllPlanAdjustmentStatusTypeValues() []PlanAdjustmentStatusType {
-	return []PlanAdjustmentStatusType{
-		PlanAdjustmentStatusTypePending,
-		PlanAdjustmentStatusTypeAccepted,
-		PlanAdjustmentStatusTypeDismissed,
-		PlanAdjustmentStatusTypeApplied,
-	}
-}
-
-type PlanAdjustmentTypeType string
-
-const (
-	PlanAdjustmentTypeTypeReduceDifficulty   PlanAdjustmentTypeType = "reduce_difficulty"
-	PlanAdjustmentTypeTypeIncreaseDifficulty PlanAdjustmentTypeType = "increase_difficulty"
-	PlanAdjustmentTypeTypeChangeTime         PlanAdjustmentTypeType = "change_time"
-	PlanAdjustmentTypeTypeClarifyPlan        PlanAdjustmentTypeType = "clarify_plan"
-	PlanAdjustmentTypeTypePause              PlanAdjustmentTypeType = "pause"
-	PlanAdjustmentTypeTypeKeepSame           PlanAdjustmentTypeType = "keep_same"
-)
-
-func (e *PlanAdjustmentTypeType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = PlanAdjustmentTypeType(s)
-	case string:
-		*e = PlanAdjustmentTypeType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for PlanAdjustmentTypeType: %T", src)
-	}
-	return nil
-}
-
-type NullPlanAdjustmentTypeType struct {
-	PlanAdjustmentTypeType PlanAdjustmentTypeType `json:"plan_adjustment_type_type"`
-	Valid                  bool                   `json:"valid"` // Valid is true if PlanAdjustmentTypeType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullPlanAdjustmentTypeType) Scan(value interface{}) error {
-	if value == nil {
-		ns.PlanAdjustmentTypeType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.PlanAdjustmentTypeType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullPlanAdjustmentTypeType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.PlanAdjustmentTypeType), nil
-}
-
-func (e PlanAdjustmentTypeType) Valid() bool {
-	switch e {
-	case PlanAdjustmentTypeTypeReduceDifficulty,
-		PlanAdjustmentTypeTypeIncreaseDifficulty,
-		PlanAdjustmentTypeTypeChangeTime,
-		PlanAdjustmentTypeTypeClarifyPlan,
-		PlanAdjustmentTypeTypePause,
-		PlanAdjustmentTypeTypeKeepSame:
-		return true
-	}
-	return false
-}
-
-func AllPlanAdjustmentTypeTypeValues() []PlanAdjustmentTypeType {
-	return []PlanAdjustmentTypeType{
-		PlanAdjustmentTypeTypeReduceDifficulty,
-		PlanAdjustmentTypeTypeIncreaseDifficulty,
-		PlanAdjustmentTypeTypeChangeTime,
-		PlanAdjustmentTypeTypeClarifyPlan,
-		PlanAdjustmentTypeTypePause,
-		PlanAdjustmentTypeTypeKeepSame,
-	}
-}
-
-type ReminderType string
-
-const (
-	ReminderTypeHabitReminder ReminderType = "habit_reminder"
-	ReminderTypeMissedCheckIn ReminderType = "missed_check_in"
-	ReminderTypeWeeklyReview  ReminderType = "weekly_review"
-	ReminderTypeEncouragement ReminderType = "encouragement"
-)
-
-func (e *ReminderType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ReminderType(s)
-	case string:
-		*e = ReminderType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ReminderType: %T", src)
-	}
-	return nil
-}
-
-type NullReminderType struct {
-	ReminderType ReminderType `json:"reminder_type"`
-	Valid        bool         `json:"valid"` // Valid is true if ReminderType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullReminderType) Scan(value interface{}) error {
-	if value == nil {
-		ns.ReminderType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ReminderType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullReminderType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ReminderType), nil
-}
-
-func (e ReminderType) Valid() bool {
-	switch e {
-	case ReminderTypeHabitReminder,
-		ReminderTypeMissedCheckIn,
-		ReminderTypeWeeklyReview,
-		ReminderTypeEncouragement:
-		return true
-	}
-	return false
-}
-
-func AllReminderTypeValues() []ReminderType {
-	return []ReminderType{
-		ReminderTypeHabitReminder,
-		ReminderTypeMissedCheckIn,
-		ReminderTypeWeeklyReview,
-		ReminderTypeEncouragement,
-	}
-}
-
-type SavedItemType string
-
-const (
-	SavedItemTypeArticle SavedItemType = "article"
-	SavedItemTypeGoal    SavedItemType = "goal"
-	SavedItemTypeHabit   SavedItemType = "habit"
-)
-
-func (e *SavedItemType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SavedItemType(s)
-	case string:
-		*e = SavedItemType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SavedItemType: %T", src)
-	}
-	return nil
-}
-
-type NullSavedItemType struct {
-	SavedItemType SavedItemType `json:"saved_item_type"`
-	Valid         bool          `json:"valid"` // Valid is true if SavedItemType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSavedItemType) Scan(value interface{}) error {
-	if value == nil {
-		ns.SavedItemType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SavedItemType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSavedItemType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SavedItemType), nil
-}
-
-func (e SavedItemType) Valid() bool {
-	switch e {
-	case SavedItemTypeArticle,
-		SavedItemTypeGoal,
-		SavedItemTypeHabit:
-		return true
-	}
-	return false
-}
-
-func AllSavedItemTypeValues() []SavedItemType {
-	return []SavedItemType{
-		SavedItemTypeArticle,
-		SavedItemTypeGoal,
-		SavedItemTypeHabit,
-	}
-}
-
-type SearchEventOperation string
-
-const (
-	SearchEventOperationUpsert SearchEventOperation = "upsert"
-	SearchEventOperationDelete SearchEventOperation = "delete"
-)
-
-func (e *SearchEventOperation) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SearchEventOperation(s)
-	case string:
-		*e = SearchEventOperation(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SearchEventOperation: %T", src)
-	}
-	return nil
-}
-
-type NullSearchEventOperation struct {
-	SearchEventOperation SearchEventOperation `json:"search_event_operation"`
-	Valid                bool                 `json:"valid"` // Valid is true if SearchEventOperation is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSearchEventOperation) Scan(value interface{}) error {
-	if value == nil {
-		ns.SearchEventOperation, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SearchEventOperation.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSearchEventOperation) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SearchEventOperation), nil
-}
-
-func (e SearchEventOperation) Valid() bool {
-	switch e {
-	case SearchEventOperationUpsert,
-		SearchEventOperationDelete:
-		return true
-	}
-	return false
-}
-
-func AllSearchEventOperationValues() []SearchEventOperation {
-	return []SearchEventOperation{
-		SearchEventOperationUpsert,
-		SearchEventOperationDelete,
-	}
-}
-
-type SubscriptionStatusType string
-
-const (
-	SubscriptionStatusTypeFree     SubscriptionStatusType = "free"
-	SubscriptionStatusTypeTrialing SubscriptionStatusType = "trialing"
-	SubscriptionStatusTypeActive   SubscriptionStatusType = "active"
-	SubscriptionStatusTypePastDue  SubscriptionStatusType = "past_due"
-	SubscriptionStatusTypeCanceled SubscriptionStatusType = "canceled"
-	SubscriptionStatusTypeExpired  SubscriptionStatusType = "expired"
-)
-
-func (e *SubscriptionStatusType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = SubscriptionStatusType(s)
-	case string:
-		*e = SubscriptionStatusType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for SubscriptionStatusType: %T", src)
-	}
-	return nil
-}
-
-type NullSubscriptionStatusType struct {
-	SubscriptionStatusType SubscriptionStatusType `json:"subscription_status_type"`
-	Valid                  bool                   `json:"valid"` // Valid is true if SubscriptionStatusType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullSubscriptionStatusType) Scan(value interface{}) error {
-	if value == nil {
-		ns.SubscriptionStatusType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.SubscriptionStatusType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullSubscriptionStatusType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.SubscriptionStatusType), nil
-}
-
-func (e SubscriptionStatusType) Valid() bool {
-	switch e {
-	case SubscriptionStatusTypeFree,
-		SubscriptionStatusTypeTrialing,
-		SubscriptionStatusTypeActive,
-		SubscriptionStatusTypePastDue,
-		SubscriptionStatusTypeCanceled,
-		SubscriptionStatusTypeExpired:
-		return true
-	}
-	return false
-}
-
-func AllSubscriptionStatusTypeValues() []SubscriptionStatusType {
-	return []SubscriptionStatusType{
-		SubscriptionStatusTypeFree,
-		SubscriptionStatusTypeTrialing,
-		SubscriptionStatusTypeActive,
-		SubscriptionStatusTypePastDue,
-		SubscriptionStatusTypeCanceled,
-		SubscriptionStatusTypeExpired,
-	}
-}
-
-type ThemeType string
-
-const (
-	ThemeTypeLight  ThemeType = "light"
-	ThemeTypeDark   ThemeType = "dark"
-	ThemeTypeSystem ThemeType = "system"
-)
-
-func (e *ThemeType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = ThemeType(s)
-	case string:
-		*e = ThemeType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for ThemeType: %T", src)
-	}
-	return nil
-}
-
-type NullThemeType struct {
-	ThemeType ThemeType `json:"theme_type"`
-	Valid     bool      `json:"valid"` // Valid is true if ThemeType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullThemeType) Scan(value interface{}) error {
-	if value == nil {
-		ns.ThemeType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.ThemeType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullThemeType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.ThemeType), nil
-}
-
-func (e ThemeType) Valid() bool {
-	switch e {
-	case ThemeTypeLight,
-		ThemeTypeDark,
-		ThemeTypeSystem:
-		return true
-	}
-	return false
-}
-
-func AllThemeTypeValues() []ThemeType {
-	return []ThemeType{
-		ThemeTypeLight,
-		ThemeTypeDark,
-		ThemeTypeSystem,
-	}
-}
-
-type UpgradeEventType string
-
-const (
-	UpgradeEventTypePromptViewed         UpgradeEventType = "prompt_viewed"
-	UpgradeEventTypePromptClicked        UpgradeEventType = "prompt_clicked"
-	UpgradeEventTypePromptDismissed      UpgradeEventType = "prompt_dismissed"
-	UpgradeEventTypeCheckoutStarted      UpgradeEventType = "checkout_started"
-	UpgradeEventTypeCheckoutCompleted    UpgradeEventType = "checkout_completed"
-	UpgradeEventTypeCheckoutCanceled     UpgradeEventType = "checkout_canceled"
-	UpgradeEventTypeSubscriptionStarted  UpgradeEventType = "subscription_started"
-	UpgradeEventTypeSubscriptionCanceled UpgradeEventType = "subscription_canceled"
-)
-
-func (e *UpgradeEventType) Scan(src interface{}) error {
-	switch s := src.(type) {
-	case []byte:
-		*e = UpgradeEventType(s)
-	case string:
-		*e = UpgradeEventType(s)
-	default:
-		return fmt.Errorf("unsupported scan type for UpgradeEventType: %T", src)
-	}
-	return nil
-}
-
-type NullUpgradeEventType struct {
-	UpgradeEventType UpgradeEventType `json:"upgrade_event_type"`
-	Valid            bool             `json:"valid"` // Valid is true if UpgradeEventType is not NULL
-}
-
-// Scan implements the Scanner interface.
-func (ns *NullUpgradeEventType) Scan(value interface{}) error {
-	if value == nil {
-		ns.UpgradeEventType, ns.Valid = "", false
-		return nil
-	}
-	ns.Valid = true
-	return ns.UpgradeEventType.Scan(value)
-}
-
-// Value implements the driver Valuer interface.
-func (ns NullUpgradeEventType) Value() (driver.Value, error) {
-	if !ns.Valid {
-		return nil, nil
-	}
-	return string(ns.UpgradeEventType), nil
-}
-
-func (e UpgradeEventType) Valid() bool {
-	switch e {
-	case UpgradeEventTypePromptViewed,
-		UpgradeEventTypePromptClicked,
-		UpgradeEventTypePromptDismissed,
-		UpgradeEventTypeCheckoutStarted,
-		UpgradeEventTypeCheckoutCompleted,
-		UpgradeEventTypeCheckoutCanceled,
-		UpgradeEventTypeSubscriptionStarted,
-		UpgradeEventTypeSubscriptionCanceled:
-		return true
-	}
-	return false
-}
-
-func AllUpgradeEventTypeValues() []UpgradeEventType {
-	return []UpgradeEventType{
-		UpgradeEventTypePromptViewed,
-		UpgradeEventTypePromptClicked,
-		UpgradeEventTypePromptDismissed,
-		UpgradeEventTypeCheckoutStarted,
-		UpgradeEventTypeCheckoutCompleted,
-		UpgradeEventTypeCheckoutCanceled,
-		UpgradeEventTypeSubscriptionStarted,
-		UpgradeEventTypeSubscriptionCanceled,
-	}
-}
-
 type Activity struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
-	ItemType    ActivityType       `db:"item_type" json:"item_type"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
 	Title       string             `db:"title" json:"title"`
 	Description *string            `db:"description" json:"description"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-}
-
-type AiCoachProcessedEvent struct {
-	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
-	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type AiFeedback struct {
@@ -1391,19 +30,19 @@ type AiFeedback struct {
 }
 
 type Article struct {
-	ID           uuid.UUID          `db:"id" json:"id"`
-	Title        string             `db:"title" json:"title"`
-	Excerpt      *string            `db:"excerpt" json:"excerpt"`
-	Content      string             `db:"content" json:"content"`
-	ReadTime     int32              `db:"read_time" json:"read_time"`
-	ImageUrl     *string            `db:"image_url" json:"image_url"`
-	Author       string             `db:"author" json:"author"`
-	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	SearchVector string             `db:"search_vector" json:"search_vector"`
-	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
-	AiMetadata   []byte             `db:"ai_metadata" json:"ai_metadata"`
+	ID              uuid.UUID          `db:"id" json:"id"`
+	CategoryID      uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title           string             `db:"title" json:"title"`
+	Excerpt         *string            `db:"excerpt" json:"excerpt"`
+	Content         string             `db:"content" json:"content"`
+	Author          string             `db:"author" json:"author"`
+	ReadTimeMinutes int32              `db:"read_time_minutes" json:"read_time_minutes"`
+	ImageUrl        *string            `db:"image_url" json:"image_url"`
+	AiMetadata      []byte             `db:"ai_metadata" json:"ai_metadata"`
+	PublishedAt     pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	SearchVector    string             `db:"search_vector" json:"search_vector"`
 }
 
 type ArticleLike struct {
@@ -1422,44 +61,41 @@ type ArticleShare struct {
 }
 
 type Category struct {
-	ID         uuid.UUID          `db:"id" json:"id"`
-	Name       string             `db:"name" json:"name"`
-	Slug       string             `db:"slug" json:"slug"`
-	EntityType EntityType         `db:"entity_type" json:"entity_type"`
-	SortOrder  int32              `db:"sort_order" json:"sort_order"`
-	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt  pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Name      string             `db:"name" json:"name"`
+	Slug      string             `db:"slug" json:"slug"`
+	SortOrder int32              `db:"sort_order" json:"sort_order"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type CheckIn struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
-	Status    CheckInStatus      `db:"status" json:"status"`
-	Mood      *MoodType          `db:"mood" json:"mood"`
-	Energy    *EnergyLevel       `db:"energy" json:"energy"`
-	Blocker   *BlockerType       `db:"blocker" json:"blocker"`
+	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
+	Status    string             `db:"status" json:"status"`
+	Mood      *string            `db:"mood" json:"mood"`
+	Energy    *string            `db:"energy" json:"energy"`
+	Blocker   *string            `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
 }
 
 type Goal struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Title       string             `db:"title" json:"title"`
 	Description *string            `db:"description" json:"description"`
-	Category    string             `db:"category" json:"category"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	Status      string             `db:"status" json:"status"`
 	Progress    int32              `db:"progress" json:"progress"`
-	Completed   bool               `db:"completed" json:"completed"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Status      GoalStatusType     `db:"status" json:"status"`
-	Version     int32              `db:"version" json:"version"`
 }
 
-type GoalHabitRelation struct {
+type GoalHabit struct {
 	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
 	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
@@ -1467,26 +103,23 @@ type GoalHabitRelation struct {
 
 type Habit struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Name        string             `db:"name" json:"name"`
 	Description *string            `db:"description" json:"description"`
 	Streak      int32              `db:"streak" json:"streak"`
-	Completed   bool               `db:"completed" json:"completed"`
-	Category    string             `db:"category" json:"category"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Version     int32              `db:"version" json:"version"`
 }
 
 type Notification struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Type      string             `db:"type" json:"type"`
 	Title     string             `db:"title" json:"title"`
 	Message   string             `db:"message" json:"message"`
-	ItemType  NotificationType   `db:"item_type" json:"item_type"`
 	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Plan struct {
@@ -1496,6 +129,7 @@ type Plan struct {
 	Description              *string            `db:"description" json:"description"`
 	PriceMonthlyCents        int32              `db:"price_monthly_cents" json:"price_monthly_cents"`
 	PriceAnnualCents         int32              `db:"price_annual_cents" json:"price_annual_cents"`
+	Currency                 string             `db:"currency" json:"currency"`
 	ActiveGoalLimit          int32              `db:"active_goal_limit" json:"active_goal_limit"`
 	ActiveHabitLimit         int32              `db:"active_habit_limit" json:"active_habit_limit"`
 	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
@@ -1506,59 +140,38 @@ type Plan struct {
 	IsActive                 bool               `db:"is_active" json:"is_active"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Currency                 string             `db:"currency" json:"currency"`
 }
 
-type PlanAdjustmentSuggestion struct {
-	ID             uuid.UUID                `db:"id" json:"id"`
-	UserID         uuid.UUID                `db:"user_id" json:"user_id"`
-	GoalID         uuid.NullUUID            `db:"goal_id" json:"goal_id"`
-	HabitID        uuid.NullUUID            `db:"habit_id" json:"habit_id"`
-	Source         PlanAdjustmentSourceType `db:"source" json:"source"`
-	AdjustmentType PlanAdjustmentTypeType   `db:"adjustment_type" json:"adjustment_type"`
-	Reason         string                   `db:"reason" json:"reason"`
-	Suggestion     string                   `db:"suggestion" json:"suggestion"`
-	Status         PlanAdjustmentStatusType `db:"status" json:"status"`
-	Metadata       []byte                   `db:"metadata" json:"metadata"`
-	CreatedAt      pgtype.Timestamptz       `db:"created_at" json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz       `db:"updated_at" json:"updated_at"`
-	WeekStart      pgtype.Date              `db:"week_start" json:"week_start"`
-	TargetID       uuid.NullUUID            `db:"target_id" json:"target_id"`
+type PlanAdjustment struct {
+	ID             uuid.UUID          `db:"id" json:"id"`
+	UserID         uuid.UUID          `db:"user_id" json:"user_id"`
+	GoalID         uuid.NullUUID      `db:"goal_id" json:"goal_id"`
+	HabitID        uuid.NullUUID      `db:"habit_id" json:"habit_id"`
+	Source         string             `db:"source" json:"source"`
+	AdjustmentType string             `db:"adjustment_type" json:"adjustment_type"`
+	Status         string             `db:"status" json:"status"`
+	Reason         string             `db:"reason" json:"reason"`
+	Suggestion     string             `db:"suggestion" json:"suggestion"`
+	Metadata       []byte             `db:"metadata" json:"metadata"`
+	WeekStart      pgtype.Date        `db:"week_start" json:"week_start"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type ProcessedEvent struct {
-	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
 	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
-type ProcessedStripeEvent struct {
-	StripeEventID string             `db:"stripe_event_id" json:"stripe_event_id"`
-	EventType     string             `db:"event_type" json:"event_type"`
-	ProcessedAt   pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
-}
-
-type Profile struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	Bio       *string            `db:"bio" json:"bio"`
-	Location  *string            `db:"location" json:"location"`
-	Website   *string            `db:"website" json:"website"`
-	Interests []string           `db:"interests" json:"interests"`
-	AvatarUrl *string            `db:"avatar_url" json:"avatar_url"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-}
-
-type ReminderQueue struct {
+type Reminder struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	Type        ReminderType       `db:"type" json:"type"`
+	Type        string             `db:"type" json:"type"`
 	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
-	Sent        bool               `db:"sent" json:"sent"`
 	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type SavedArticle struct {
@@ -1582,43 +195,44 @@ type SavedHabit struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-type SavedItem struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	ItemType  SavedItemType      `db:"item_type" json:"item_type"`
-	ItemID    uuid.UUID          `db:"item_id" json:"item_id"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+type SearchOutbox struct {
+	ID         int64              `db:"id" json:"id"`
+	EntityType string             `db:"entity_type" json:"entity_type"`
+	EntityID   uuid.UUID          `db:"entity_id" json:"entity_id"`
+	Operation  string             `db:"operation" json:"operation"`
+	Attempts   int32              `db:"attempts" json:"attempts"`
+	LastError  *string            `db:"last_error" json:"last_error"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-type SearchOutbox struct {
-	ID          uuid.UUID            `db:"id" json:"id"`
-	EntityType  string               `db:"entity_type" json:"entity_type"`
-	EntityID    uuid.UUID            `db:"entity_id" json:"entity_id"`
-	Operation   SearchEventOperation `db:"operation" json:"operation"`
-	Payload     []byte               `db:"payload" json:"payload"`
-	Status      string               `db:"status" json:"status"`
-	Attempts    int32                `db:"attempts" json:"attempts"`
-	AvailableAt pgtype.Timestamptz   `db:"available_at" json:"available_at"`
-	LockedAt    pgtype.Timestamptz   `db:"locked_at" json:"locked_at"`
-	LockedBy    *string              `db:"locked_by" json:"locked_by"`
-	ProcessedAt pgtype.Timestamptz   `db:"processed_at" json:"processed_at"`
-	Error       *string              `db:"error" json:"error"`
-	CreatedAt   pgtype.Timestamptz   `db:"created_at" json:"created_at"`
+type Subscription struct {
+	ID                   uuid.UUID          `db:"id" json:"id"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status               string             `db:"status" json:"status"`
+	BillingInterval      *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID     *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type UpgradeEvent struct {
-	ID              uuid.UUID            `db:"id" json:"id"`
-	UserID          uuid.UUID            `db:"user_id" json:"user_id"`
-	EventType       UpgradeEventType     `db:"event_type" json:"event_type"`
-	Surface         string               `db:"surface" json:"surface"`
-	Trigger         *string              `db:"trigger" json:"trigger"`
-	PlanCode        *string              `db:"plan_code" json:"plan_code"`
-	BillingInterval *BillingIntervalType `db:"billing_interval" json:"billing_interval"`
-	FeedbackReason  *string              `db:"feedback_reason" json:"feedback_reason"`
-	FeedbackNote    *string              `db:"feedback_note" json:"feedback_note"`
-	Metadata        []byte               `db:"metadata" json:"metadata"`
-	CreatedAt       pgtype.Timestamptz   `db:"created_at" json:"created_at"`
-	PlanID          uuid.NullUUID        `db:"plan_id" json:"plan_id"`
+	ID              uuid.UUID          `db:"id" json:"id"`
+	UserID          uuid.UUID          `db:"user_id" json:"user_id"`
+	PlanID          uuid.NullUUID      `db:"plan_id" json:"plan_id"`
+	EventType       string             `db:"event_type" json:"event_type"`
+	Surface         string             `db:"surface" json:"surface"`
+	TriggerSource   *string            `db:"trigger_source" json:"trigger_source"`
+	BillingInterval *string            `db:"billing_interval" json:"billing_interval"`
+	FeedbackReason  *string            `db:"feedback_reason" json:"feedback_reason"`
+	FeedbackNote    *string            `db:"feedback_note" json:"feedback_note"`
+	Metadata        []byte             `db:"metadata" json:"metadata"`
+	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type User struct {
@@ -1627,63 +241,41 @@ type User struct {
 	Email        string             `db:"email" json:"email"`
 	PasswordHash string             `db:"password_hash" json:"password_hash"`
 	FullName     string             `db:"full_name" json:"full_name"`
+	Bio          *string            `db:"bio" json:"bio"`
+	Location     *string            `db:"location" json:"location"`
+	Website      *string            `db:"website" json:"website"`
+	Interests    []string           `db:"interests" json:"interests"`
+	AvatarUrl    *string            `db:"avatar_url" json:"avatar_url"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
-type UserCoachingProfile struct {
-	ID                   uuid.UUID               `db:"id" json:"id"`
-	UserID               uuid.UUID               `db:"user_id" json:"user_id"`
-	AccountabilityStyle  AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	PreferredTone        CoachToneType           `db:"preferred_tone" json:"preferred_tone"`
-	DifficultyPreference DifficultyLevelType     `db:"difficulty_preference" json:"difficulty_preference"`
-	PrimaryMotivation    *string                 `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       []byte                  `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        []byte                  `db:"coaching_notes" json:"coaching_notes"`
-	LastContextRefreshAt pgtype.Timestamptz      `db:"last_context_refresh_at" json:"last_context_refresh_at"`
-	CreatedAt            pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-}
-
 type UserSetting struct {
-	ID                  uuid.UUID               `db:"id" json:"id"`
-	Theme               ThemeType               `db:"theme" json:"theme"`
-	Language            string                  `db:"language" json:"language"`
-	Timezone            string                  `db:"timezone" json:"timezone"`
-	EmailNotifications  bool                    `db:"email_notifications" json:"email_notifications"`
-	PushNotifications   bool                    `db:"push_notifications" json:"push_notifications"`
-	HabitReminders      bool                    `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders       bool                    `db:"goal_reminders" json:"goal_reminders"`
-	UserID              uuid.UUID               `db:"user_id" json:"user_id"`
-	CreatedAt           pgtype.Timestamptz      `db:"created_at" json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz      `db:"updated_at" json:"updated_at"`
-	AccountabilityStyle AccountabilityStyleType `db:"accountability_style" json:"accountability_style"`
-	CheckInTime         pgtype.Time             `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted bool                    `db:"onboarding_completed" json:"onboarding_completed"`
-	Version             int32                   `db:"version" json:"version"`
-}
-
-type UserSubscription struct {
-	ID                   uuid.UUID              `db:"id" json:"id"`
-	UserID               uuid.UUID              `db:"user_id" json:"user_id"`
-	PlanID               uuid.UUID              `db:"plan_id" json:"plan_id"`
-	Status               SubscriptionStatusType `db:"status" json:"status"`
-	BillingInterval      *BillingIntervalType   `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart   pgtype.Timestamptz     `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd     pgtype.Timestamptz     `db:"current_period_end" json:"current_period_end"`
-	TrialEnd             pgtype.Timestamptz     `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd    bool                   `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID     *string                `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID *string                `db:"stripe_subscription_id" json:"stripe_subscription_id"`
-	CreatedAt            pgtype.Timestamptz     `db:"created_at" json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz     `db:"updated_at" json:"updated_at"`
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	Theme                string             `db:"theme" json:"theme"`
+	Language             string             `db:"language" json:"language"`
+	Timezone             string             `db:"timezone" json:"timezone"`
+	EmailNotifications   bool               `db:"email_notifications" json:"email_notifications"`
+	PushNotifications    bool               `db:"push_notifications" json:"push_notifications"`
+	HabitReminders       bool               `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders        bool               `db:"goal_reminders" json:"goal_reminders"`
+	CheckInTime          pgtype.Time        `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted  bool               `db:"onboarding_completed" json:"onboarding_completed"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	CoachTone            string             `db:"coach_tone" json:"coach_tone"`
+	Difficulty           string             `db:"difficulty" json:"difficulty"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type WeeklyReview struct {
 	ID                   uuid.UUID          `db:"id" json:"id"`
 	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
 	WeekStart            pgtype.Date        `db:"week_start" json:"week_start"`
-	WeekEnd              pgtype.Date        `db:"week_end" json:"week_end"`
 	TotalHabits          int32              `db:"total_habits" json:"total_habits"`
 	CompletedCheckIns    int32              `db:"completed_check_ins" json:"completed_check_ins"`
 	MissedCheckIns       int32              `db:"missed_check_ins" json:"missed_check_ins"`
@@ -1697,7 +289,6 @@ type WeeklyReview struct {
 	AiSummary            *string            `db:"ai_summary" json:"ai_summary"`
 	SuggestedAdjustments []byte             `db:"suggested_adjustments" json:"suggested_adjustments"`
 	NextWeekPlan         []byte             `db:"next_week_plan" json:"next_week_plan"`
-	GeneratedAt          pgtype.Timestamptz `db:"generated_at" json:"generated_at"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }

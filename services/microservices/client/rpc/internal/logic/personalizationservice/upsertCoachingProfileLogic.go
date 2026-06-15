@@ -56,9 +56,9 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 
 	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
 		UserID:               userID,
-		AccountabilityStyle:  db.AccountabilityStyleType(in.AccountabilityStyle),
-		PreferredTone:        db.CoachToneType(in.PreferredTone),
-		DifficultyPreference: db.DifficultyLevelType(in.DifficultyPreference),
+		AccountabilityStyle:  (in.AccountabilityStyle),
+		CoachTone:            (in.PreferredTone),
+		Difficulty:           (in.DifficultyPreference),
 		PrimaryMotivation:    primaryMotivation,
 		CommonBlockers:       commonBlockersJSON,
 		CoachingNotes:        coachingNotesJSON,

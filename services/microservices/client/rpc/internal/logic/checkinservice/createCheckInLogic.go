@@ -87,7 +87,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 
 	// Wrap all state-mutating operations in a transaction with RLS context.
 	var checkIn db.CheckIn
-	var habit db.Habit
+	var habit db.GetHabitRow
 	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
@@ -114,16 +114,18 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		}
 
 		// If completed, toggle habit to mark as completed and bump streak
+		// The habit's completed flag derives from the check-in just written;
+		// only the streak counter needs updating here.
 		switch in.Status {
 		case "completed":
-			updatedHabit, err := txRepo.Habits.ToggleHabit(l.ctx, habitID, habit.Version)
+			updatedHabit, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, habit.Streak+1)
 			if err != nil {
-				return fmt.Errorf("toggle habit: %w", err)
+				return fmt.Errorf("bump habit streak: %w", err)
 			}
 			habit = updatedHabit
 		case "missed":
 			// Reset streak on missed check-in
-			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0, habit.Version)
+			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
 			if err != nil {
 				return fmt.Errorf("reset habit streak: %w", err)
 			}
@@ -139,7 +141,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 
 		description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
 		_, err = txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
-			ItemType:    db.ActivityType(activityType),
+			Type:    (activityType),
 			Title:       activityTitle,
 			Description: &description,
 			Metadata:    json.RawMessage("{}"),
@@ -195,7 +197,7 @@ return nil, status.Error(codes.Internal, "failed check-in workflow")
 	}, nil
 }
 
-func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.Habit) string {
+func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.GetHabitRow) string {
 	// Fetch user settings for accountability style
 	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID)
 	accountabilityStyle := "balanced"

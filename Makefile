@@ -156,7 +156,7 @@ migrate-up:
 		echo "Example: export DATABASE_URL=postgres://user:password@localhost:5434/dbname?sslmode=disable"; \
 		exit 1; \
 	fi
-	migrate -path sql/migrations -database "$(DATABASE_URL)" up
+	migrate -path sql/migrations_v2 -database "$(DATABASE_URL)" up
 
 # Run database migrations down
 migrate-down:
@@ -170,7 +170,7 @@ migrate-down:
 		echo "Example: export DATABASE_URL=postgres://user:password@localhost:5434/dbname?sslmode=disable"; \
 		exit 1; \
 	fi
-	migrate -path sql/migrations -database "$(DATABASE_URL)" down
+	migrate -path sql/migrations_v2 -database "$(DATABASE_URL)" down
 
 generate-api:
 	@echo "Generating API gateway..."

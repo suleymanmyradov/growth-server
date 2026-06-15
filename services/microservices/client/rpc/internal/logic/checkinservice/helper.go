@@ -40,18 +40,18 @@ func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, block
 	params := db.CreateCheckInParams{
 		UserID:  userID,
 		HabitID: habitID,
-		Status:  db.CheckInStatus(status),
+		Status:  (status),
 	}
 	if mood != "" {
-		m := db.MoodType(mood)
+		m := (mood)
 		params.Mood = &m
 	}
 	if energy != "" {
-		e := db.EnergyLevel(energy)
+		e := (energy)
 		params.Energy = &e
 	}
 	if blocker != "" {
-		b := db.BlockerType(blocker)
+		b := (blocker)
 		params.Blocker = &b
 	}
 	if note != "" {
@@ -60,7 +60,7 @@ func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, block
 	return params
 }
 
-func habitToProto(h db.Habit) *client.Habit {
+func habitToProto(h db.GetHabitRow) *client.Habit {
 	description := ""
 	if h.Description != nil {
 		description = *h.Description

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -81,12 +81,12 @@ return nil, status.Error(codes.Internal, "failed to list saved items")
 	}, nil
 }
 
-func convertDbSavedItemToPb(item db.SavedItem) *client.SavedItem {
+func convertDbSavedItemToPb(item repository.SavedItem) *client.SavedItem {
 	return &client.SavedItem{
 		Id:       item.ID.String(),
 		UserId:   item.UserID.String(),
 		ItemId:   item.ItemID.String(),
-		ItemType: string(item.ItemType),
+		ItemType: item.ItemType,
 		SavedAt:  item.CreatedAt.Time.Unix(),
 	}
 }

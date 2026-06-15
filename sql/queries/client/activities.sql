@@ -1,22 +1,22 @@
 -- name: ListActivities :many
 -- NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities
+SELECT * FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListActivitiesByType :many
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE user_id = $1 AND item_type = $2
+SELECT * FROM activities WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: GetActivity :one
-SELECT id, item_type, title, description, metadata, user_id, created_at FROM activities WHERE id = $1;
+SELECT * FROM activities WHERE id = $1;
 
 -- name: CreateActivity :one
-INSERT INTO activities (item_type, title, description, metadata, user_id)
+INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, item_type, title, description, metadata, user_id, created_at;
+RETURNING *;
 
 -- name: DeleteActivity :exec
 DELETE FROM activities WHERE id = $1;
@@ -28,29 +28,29 @@ DELETE FROM activities WHERE user_id = $1;
 SELECT COUNT(*) FROM activities WHERE user_id = $1;
 
 -- name: CountActivitiesByUserAndType :one
-SELECT COUNT(*) FROM activities WHERE user_id = $1 AND item_type = $2;
+SELECT COUNT(*) FROM activities WHERE user_id = $1 AND type = $2;
 
 -- name: GetActivityFeed :many
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT *
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: LogActivity :one
-INSERT INTO activities (item_type, title, description, metadata, user_id)
+INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, item_type, title, description, metadata, user_id, created_at;
+RETURNING *;
 
 -- name: GetActivityStats :one
 SELECT
     COUNT(*) AS total_activities,
-    COUNT(*) FILTER (WHERE item_type = 'habit_completed') AS habit_completed,
-    COUNT(*) FILTER (WHERE item_type = 'goal_created') AS goal_created,
-    COUNT(*) FILTER (WHERE item_type = 'goal_completed') AS goal_completed,
-    COUNT(*) FILTER (WHERE item_type = 'article_saved') AS article_saved,
-    COUNT(*) FILTER (WHERE item_type = 'check_in_completed') AS check_in_completed,
-    COUNT(*) FILTER (WHERE item_type = 'check_in_missed') AS check_in_missed
+    COUNT(*) FILTER (WHERE type = 'habit_completed') AS habit_completed,
+    COUNT(*) FILTER (WHERE type = 'goal_created') AS goal_created,
+    COUNT(*) FILTER (WHERE type = 'goal_completed') AS goal_completed,
+    COUNT(*) FILTER (WHERE type = 'article_saved') AS article_saved,
+    COUNT(*) FILTER (WHERE type = 'check_in_completed') AS check_in_completed,
+    COUNT(*) FILTER (WHERE type = 'check_in_missed') AS check_in_missed
 FROM activities
 WHERE user_id = $1;
 
@@ -85,10 +85,10 @@ SELECT
 WITH s AS (
   SELECT
     MIN(created_at)                                              AS first_at,
-    COUNT(*) FILTER (WHERE item_type = 'habit_completed')          AS habit_done,
-    MAX(created_at) FILTER (WHERE item_type = 'habit_completed')   AS last_habit_at,
-    COUNT(*) FILTER (WHERE item_type = 'goal_completed')           AS goal_done,
-    MAX(created_at) FILTER (WHERE item_type = 'goal_completed')    AS last_goal_at
+    COUNT(*) FILTER (WHERE type = 'habit_completed')          AS habit_done,
+    MAX(created_at) FILTER (WHERE type = 'habit_completed')   AS last_habit_at,
+    COUNT(*) FILTER (WHERE type = 'goal_completed')           AS goal_done,
+    MAX(created_at) FILTER (WHERE type = 'goal_completed')    AS last_goal_at
   FROM activities WHERE user_id = $1
 )
 SELECT 'first_activity'::text AS id,
@@ -109,10 +109,10 @@ ORDER BY unlocked_at NULLS LAST;
 
 -- name: ListActivitiesByTypes :many
 -- Filter activities by multiple types in a single round-trip.
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT *
 FROM activities
 WHERE user_id = $1
-  AND item_type = ANY($2::activity_type[])
+  AND type = ANY($2::text[])
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
@@ -129,7 +129,7 @@ ORDER BY day;
 -- name: ListActivitiesKeyset :many
 -- Keyset pagination: more efficient than OFFSET for deep pages.
 -- Pass last_created_at from previous page (or NULL for first page).
-SELECT id, item_type, title, description, metadata, user_id, created_at
+SELECT *
 FROM activities
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)

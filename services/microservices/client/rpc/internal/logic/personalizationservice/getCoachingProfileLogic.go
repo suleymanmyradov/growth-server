@@ -44,8 +44,8 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile(in *client.GetCoachingProfi
 				Profile: &client.CoachingProfile{
 					UserId:               in.UserId,
 					AccountabilityStyle:  "balanced",
-					PreferredTone:        "supportive",
-					DifficultyPreference: "adaptive",
+					PreferredTone:            "supportive",
+					DifficultyPreference:           "adaptive",
 					CommonBlockers:       []string{},
 					CoachingNotesJson:    "{}",
 				},
@@ -60,7 +60,7 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile(in *client.GetCoachingProfi
 	}, nil
 }
 
-func dbCoachingProfileToProto(profile db.UserCoachingProfile) *client.CoachingProfile {
+func dbCoachingProfileToProto(profile db.GetCoachingProfileRow) *client.CoachingProfile {
 	var commonBlockers []string
 	if profile.CommonBlockers != nil {
 		if err := json.Unmarshal(profile.CommonBlockers, &commonBlockers); err != nil {
@@ -84,11 +84,11 @@ func dbCoachingProfileToProto(profile db.UserCoachingProfile) *client.CoachingPr
 	}
 
 	return &client.CoachingProfile{
-		Id:                   profile.ID.String(),
+		Id:                   profile.UserID.String(),
 		UserId:               profile.UserID.String(),
 		AccountabilityStyle:  string(profile.AccountabilityStyle),
-		PreferredTone:        string(profile.PreferredTone),
-		DifficultyPreference: string(profile.DifficultyPreference),
+		PreferredTone:            string(profile.PreferredTone),
+		DifficultyPreference:           string(profile.DifficultyPreference),
 		PrimaryMotivation:    primaryMotivation,
 		CommonBlockers:       commonBlockers,
 		CoachingNotesJson:    coachingNotesJson,

@@ -19,22 +19,22 @@ func formatTime(t pgtype.Timestamptz) string {
 	return t.Time.Format("2006-01-02T15:04:05Z07:00")
 }
 
-func toPbUser(u db.User, p db.Profile) *auth.User {
+func toPbUser(u db.User) *auth.User {
 	bio := ""
-	if p.Bio != nil {
-		bio = *p.Bio
+	if u.Bio != nil {
+		bio = *u.Bio
 	}
 	location := ""
-	if p.Location != nil {
-		location = *p.Location
+	if u.Location != nil {
+		location = *u.Location
 	}
 	website := ""
-	if p.Website != nil {
-		website = *p.Website
+	if u.Website != nil {
+		website = *u.Website
 	}
 	avatarUrl := ""
-	if p.AvatarUrl != nil {
-		avatarUrl = *p.AvatarUrl
+	if u.AvatarUrl != nil {
+		avatarUrl = *u.AvatarUrl
 	}
 
 	return &auth.User{
@@ -45,7 +45,7 @@ func toPbUser(u db.User, p db.Profile) *auth.User {
 		Bio:       bio,
 		Location:  location,
 		Website:   website,
-		Interests: p.Interests,
+		Interests: u.Interests,
 		AvatarUrl: avatarUrl,
 		CreatedAt: formatTime(u.CreatedAt),
 		UpdatedAt: formatTime(u.UpdatedAt),

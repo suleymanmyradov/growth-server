@@ -65,3 +65,10 @@ func (r *UsersRepo) UpdateUserFullName(ctx context.Context, id uuid.UUID, fullNa
 
 	return r.db.UpdateUserFullName(ctx, id, fullName)
 }
+
+func (r *UsersRepo) UpdateUserProfile(ctx context.Context, params db.UpdateUserProfileParams) (db.User, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserProfile")
+	defer span.End()
+
+	return r.db.UpdateUserProfile(ctx, params)
+}

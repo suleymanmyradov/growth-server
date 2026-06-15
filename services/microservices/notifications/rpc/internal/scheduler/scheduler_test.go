@@ -15,11 +15,11 @@ import (
 // ---- fakes ----
 
 type fakeRepo struct {
-	claimed []db.ReminderQueue
+	claimed []db.Reminder
 	err     error
 }
 
-func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]db.ReminderQueue, error) {
+func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]db.Reminder, error) {
 	return f.claimed, f.err
 }
 
@@ -56,7 +56,7 @@ func TestScheduler_Tick_ClaimAndPublish(t *testing.T) {
 	uid := uuid.New()
 	rid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
+		claimed: []db.Reminder{
 			{ID: rid, UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},
 	}
@@ -83,7 +83,7 @@ func TestScheduler_Tick_ClaimAndPublish(t *testing.T) {
 func TestScheduler_Tick_PublishError(t *testing.T) {
 	uid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
+		claimed: []db.Reminder{
 			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},
 	}
@@ -109,7 +109,7 @@ func TestScheduler_Tick_ClaimError(t *testing.T) {
 func TestScheduler_MultipleReminders(t *testing.T) {
 	uid := uuid.New()
 	repo := &fakeRepo{
-		claimed: []db.ReminderQueue{
+		claimed: []db.Reminder{
 			{ID: uuid.New(), UserID: uid, Type: "habit_reminder", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 			{ID: uuid.New(), UserID: uid, Type: "weekly_review", ScheduledAt: pgtype.Timestamptz{Time: time.Now(), Valid: true}},
 		},

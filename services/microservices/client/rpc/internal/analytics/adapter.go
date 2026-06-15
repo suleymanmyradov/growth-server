@@ -18,12 +18,12 @@ func NewPatternDetection() *PatternDetection {
 }
 
 // AnalyzeLite maps db types to domain types and returns flat insights.
-func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.Habit, userLoc *time.Location) map[string]string {
+func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.GetHabitRow, userLoc *time.Location) map[string]string {
 	return p.inner.AnalyzeLite(mapCheckIns(checkIns), mapHabits(habits), userLoc)
 }
 
 // AnalyzeFullFromData maps db types to domain types and returns rich insights.
-func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.Habit, userLoc *time.Location) *analytics.PatternInsights {
+func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.GetHabitRow, userLoc *time.Location) *analytics.PatternInsights {
 	return p.inner.AnalyzeFullFromData(mapCheckIns(checkIns), mapHabits(habits), userLoc)
 }
 
@@ -48,7 +48,7 @@ func mapCheckIns(checkIns []db.CheckIn) []analytics.CheckInData {
 	return result
 }
 
-func mapHabits(habits []db.Habit) []analytics.HabitData {
+func mapHabits(habits []db.GetHabitRow) []analytics.HabitData {
 	result := make([]analytics.HabitData, len(habits))
 	for i, h := range habits {
 		streak := h.Streak

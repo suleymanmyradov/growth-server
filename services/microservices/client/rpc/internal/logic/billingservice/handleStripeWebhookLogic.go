@@ -138,7 +138,7 @@ func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWe
 
 	// Mark as processed only on success to allow retries on transient failures.
 	if handleErr == nil && in.StripeEventId != "" {
-		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(l.ctx, in.StripeEventId, in.EventType); markErr != nil {
+		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(l.ctx, in.StripeEventId); markErr != nil {
 			l.Errorf("failed to mark stripe event processed: %v", markErr)
 			// Non-fatal: the business logic succeeded.
 		}
@@ -168,7 +168,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 		UserID:    existingSub.UserID,
 		EventType: "checkout_completed",
 		Surface:   "stripe_webhook",
-		PlanCode:  &planCode,
+		Code:      planCode,
 	})
 	if eventErr != nil {
 		l.Errorf("Failed to record checkout completion event: %v", eventErr)
@@ -182,7 +182,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 			_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 				UserID:               existingSub.UserID,
 				PlanID:               proPlan.ID,
-				Status:               db.SubscriptionStatusTypeActive,
+				Status:               "active",
 				StripeCustomerID:     &checkout.Object.Customer,
 				StripeSubscriptionID: &checkout.Object.Subscription,
 			})
@@ -256,16 +256,16 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 		}
 	}
 
-	var billingIntervalPtr *db.BillingIntervalType
+	var billingIntervalPtr *string
 	if billingInterval != "" {
-		bi := db.BillingIntervalType(billingInterval)
+		bi := (billingInterval)
 		billingIntervalPtr = &bi
 	}
 
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               plan.ID,
-		Status:               db.SubscriptionStatusType(localStatus),
+		Status:               (localStatus),
 		BillingInterval:      billingIntervalPtr,
 		CurrentPeriodStart:   periodStart,
 		CurrentPeriodEnd:     periodEnd,
@@ -314,7 +314,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               freePlan.ID,
-		Status:               db.SubscriptionStatusTypeCanceled,
+		Status:               "canceled",
 		CancelAtPeriodEnd:    false,
 		StripeCustomerID:     &subData.Object.Customer,
 		StripeSubscriptionID: &subData.Object.ID,
@@ -346,7 +346,7 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               existingSub.PlanID,
-		Status:               db.SubscriptionStatusTypePastDue,
+		Status:               "past_due",
 		StripeCustomerID:     &invoice.Customer,
 		StripeSubscriptionID: &invoice.Subscription,
 	})
