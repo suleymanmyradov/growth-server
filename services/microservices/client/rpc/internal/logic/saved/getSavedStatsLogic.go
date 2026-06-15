@@ -38,13 +38,13 @@ func (l *GetSavedStatsLogic) GetSavedStats(in *client.GetSavedStatsRequest) (*cl
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	totalSaved, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUser(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count saved items: %v", err)
-return nil, status.Error(codes.Internal, "failed to count saved items")
+		return nil, status.Error(codes.Internal, "failed to count saved items")
 	}
 
 	typeCounts := map[string]int32{}
@@ -52,7 +52,7 @@ return nil, status.Error(codes.Internal, "failed to count saved items")
 		count, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUserAndType(ctx, userID, itemType)
 		if err != nil {
 			l.Errorf("Failed to count saved items for type %s: %v", itemType, err)
-return nil, status.Error(codes.Internal, "failed to count saved items for type %s")
+			return nil, status.Error(codes.Internal, "failed to count saved items for type %s")
 		}
 		typeCounts[itemType] = int32(count)
 	}

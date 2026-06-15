@@ -11,16 +11,16 @@ import (
 type Config struct {
 	zrpc.RpcServerConf
 	Postgres struct {
-		Datasource      string        `json:",optional" secret:"true"`
+		Datasource      string `json:",optional" secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int
 		ConnMaxLifetime time.Duration
 	}
 	Kafka struct {
-		Brokers           []string
-		EventsTopic       string
-		ReminderDueTopic  string
-		ConsumerGroup     string
+		Brokers          []string
+		EventsTopic      string
+		ReminderDueTopic string
+		ConsumerGroup    string
 	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`

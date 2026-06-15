@@ -39,13 +39,13 @@ func (l *GetAchievementsLogic) GetAchievements(in *client.GetAchievementsRequest
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	rows, err := l.svcCtx.Repo.Activities.GetAchievements(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get achievements: %v", err)
-return nil, status.Error(codes.Internal, "failed to get achievements")
+		return nil, status.Error(codes.Internal, "failed to get achievements")
 	}
 
 	achievements := make([]*client.Achievement, 0, len(rows))

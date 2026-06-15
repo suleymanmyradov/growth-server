@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetSearchFiltersLogic struct {
@@ -24,6 +25,9 @@ func NewGetSearchFiltersLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *GetSearchFiltersLogic) GetSearchFilters(_ *search.GetSearchFiltersRequest) (*search.GetSearchFiltersResponse, error) {
+	_, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetSearchFiltersLogic.GetSearchFilters")
+	defer span.End()
+
 	// todo: add your logic here and delete this line
 
 	return &search.GetSearchFiltersResponse{}, nil

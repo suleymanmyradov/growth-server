@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type MarkNotificationReadLogic struct {
@@ -30,24 +31,27 @@ func NewMarkNotificationReadLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *MarkNotificationReadLogic) MarkNotificationRead(in *notifications.MarkNotificationReadRequest) (*notifications.MarkNotificationReadResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "MarkNotificationReadLogic.MarkNotificationRead")
+	defer span.End()
+
 	if in == nil || in.NotificationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "notification ID is required")
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	notificationID, err := uuid.Parse(in.NotificationId)
 	if err != nil {
-		l.Errorf("Invalid notification ID: %v", err)
+		logx.WithContext(ctx).Errorf("Invalid notification ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid notification ID")
 	}
 
-	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(l.ctx, notificationID)
+	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(ctx, notificationID)
 	if err != nil {
-		l.Errorf("Failed to get notification: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to get notification: %v", err)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "notification not found")
 		}
@@ -58,9 +62,9 @@ func (l *MarkNotificationReadLogic) MarkNotificationRead(in *notifications.MarkN
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	_, err = l.svcCtx.Repo.Notifications.MarkNotificationRead(l.ctx, notificationID)
+	_, err = l.svcCtx.Repo.Notifications.MarkNotificationRead(ctx, notificationID)
 	if err != nil {
-		l.Errorf("Failed to mark notification as read: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to mark notification as read: %v", err)
 		return nil, status.Error(codes.Internal, "failed to mark notification as read")
 	}
 

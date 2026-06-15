@@ -59,13 +59,13 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 	}
 
 	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
-		UserID:               userID,
-		AccountabilityStyle:  (in.AccountabilityStyle),
-		CoachTone:            (in.PreferredTone),
-		Difficulty:           (in.DifficultyPreference),
-		PrimaryMotivation:    primaryMotivation,
-		CommonBlockers:       commonBlockersJSON,
-		CoachingNotes:        coachingNotesJSON,
+		UserID:              userID,
+		AccountabilityStyle: (in.AccountabilityStyle),
+		CoachTone:           (in.PreferredTone),
+		Difficulty:          (in.DifficultyPreference),
+		PrimaryMotivation:   primaryMotivation,
+		CommonBlockers:      commonBlockersJSON,
+		CoachingNotes:       coachingNotesJSON,
 	})
 	if err != nil {
 		l.Errorf("failed to upsert coaching profile: %v", err)

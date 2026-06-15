@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,24 +31,27 @@ func NewGetNotificationLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetNotificationLogic) GetNotification(in *notifications.GetNotificationRequest) (*notifications.GetNotificationResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetNotificationLogic.GetNotification")
+	defer span.End()
+
 	if in == nil || in.NotificationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "notification ID is required")
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
 	notificationID, err := uuid.Parse(in.NotificationId)
 	if err != nil {
-		l.Errorf("failed to parse notification ID: %v", err)
+		logx.WithContext(ctx).Errorf("failed to parse notification ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid notification ID")
 	}
 
-	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(l.ctx, notificationID)
+	notification, err := l.svcCtx.Repo.Notifications.GetNotificationByID(ctx, notificationID)
 	if err != nil {
-		l.Errorf("failed to get notification: %v", err)
+		logx.WithContext(ctx).Errorf("failed to get notification: %v", err)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "notification not found")
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type SearchLogic struct {
@@ -26,6 +27,9 @@ func NewSearchLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SearchLogi
 }
 
 func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse, error) {
+	_, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "SearchLogic.Search")
+	defer span.End()
+
 	query := strings.TrimSpace(req.Query)
 	if query == "" {
 		return &search.SearchResponse{}, nil

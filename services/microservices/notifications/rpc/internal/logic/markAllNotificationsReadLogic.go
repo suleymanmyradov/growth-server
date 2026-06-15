@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,19 +29,22 @@ func NewMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead(in *notifications.MarkAllNotificationsReadRequest) (*notifications.MarkAllNotificationsReadResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "MarkAllNotificationsReadLogic.MarkAllNotificationsRead")
+	defer span.End()
+
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
-		l.Errorf("Invalid user ID: %v", err)
+		logx.WithContext(ctx).Errorf("Invalid user ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	err = l.svcCtx.Repo.Notifications.MarkAllNotificationsRead(l.ctx, userID)
+	err = l.svcCtx.Repo.Notifications.MarkAllNotificationsRead(ctx, userID)
 	if err != nil {
-		l.Errorf("Failed to mark all notifications as read: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to mark all notifications as read: %v", err)
 		return nil, status.Error(codes.Internal, "failed to mark all notifications as read")
 	}
 

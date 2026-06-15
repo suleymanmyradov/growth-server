@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type DeleteSearchHistoryItemLogic struct {
@@ -24,6 +25,9 @@ func NewDeleteSearchHistoryItemLogic(ctx context.Context, svcCtx *svc.ServiceCon
 }
 
 func (l *DeleteSearchHistoryItemLogic) DeleteSearchHistoryItem(_ *search.DeleteSearchHistoryItemRequest) (*search.DeleteSearchHistoryItemResponse, error) {
+	_, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "DeleteSearchHistoryItemLogic.DeleteSearchHistoryItem")
+	defer span.End()
+
 	// todo: add your logic here and delete this line
 
 	return &search.DeleteSearchHistoryItemResponse{}, nil

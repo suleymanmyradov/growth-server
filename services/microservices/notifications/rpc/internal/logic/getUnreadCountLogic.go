@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,19 +29,22 @@ func NewGetUnreadCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Ge
 }
 
 func (l *GetUnreadCountLogic) GetUnreadCount(in *notifications.GetUnreadCountRequest) (*notifications.GetUnreadCountResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetUnreadCountLogic.GetUnreadCount")
+	defer span.End()
+
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
-		l.Errorf("Invalid user ID: %v", err)
+		logx.WithContext(ctx).Errorf("Invalid user ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	count, err := l.svcCtx.Repo.Notifications.GetUnreadCount(l.ctx, userID)
+	count, err := l.svcCtx.Repo.Notifications.GetUnreadCount(ctx, userID)
 	if err != nil {
-		l.Errorf("Failed to count unread notifications: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to count unread notifications: %v", err)
 		return nil, status.Error(codes.Internal, "failed to count unread notifications")
 	}
 

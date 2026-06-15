@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,9 @@ func NewListNotificationsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *ListNotificationsLogic) ListNotifications(in *notifications.ListNotificationsRequest) (*notifications.ListNotificationsResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListNotificationsLogic.ListNotifications")
+	defer span.End()
+
 	limit := int32(20)
 	offset := int32(0)
 	if in.Limit > 0 {
@@ -40,13 +44,13 @@ func (l *ListNotificationsLogic) ListNotifications(in *notifications.ListNotific
 		offset = in.Offset
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
-		l.Errorf("Invalid user ID: %v", err)
+		logx.WithContext(ctx).Errorf("Invalid user ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
@@ -54,37 +58,37 @@ func (l *ListNotificationsLogic) ListNotifications(in *notifications.ListNotific
 	var totalCount, unreadCount int64
 
 	if in.OnlyUnread {
-		dbNotifications, err := l.svcCtx.Repo.Notifications.ListUnreadNotifications(l.ctx, userID, limit, offset)
+		dbNotifications, err := l.svcCtx.Repo.Notifications.ListUnreadNotifications(ctx, userID, limit, offset)
 		if err != nil {
-			l.Errorf("Failed to list unread notifications: %v", err)
+			logx.WithContext(ctx).Errorf("Failed to list unread notifications: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list unread notifications")
 		}
 		for _, n := range dbNotifications {
 			result = append(result, listUnreadNotificationToProto(n))
 		}
-		totalCount, err = l.svcCtx.Repo.Notifications.GetUnreadCount(l.ctx, userID)
+		totalCount, err = l.svcCtx.Repo.Notifications.GetUnreadCount(ctx, userID)
 		if err != nil {
-			l.Errorf("Failed to count unread notifications: %v", err)
+			logx.WithContext(ctx).Errorf("Failed to count unread notifications: %v", err)
 			return nil, status.Error(codes.Internal, "failed to count unread notifications")
 		}
 	} else {
-		dbNotifications, err := l.svcCtx.Repo.Notifications.ListNotificationsForUser(l.ctx, userID, limit, offset)
+		dbNotifications, err := l.svcCtx.Repo.Notifications.ListNotificationsForUser(ctx, userID, limit, offset)
 		if err != nil {
-			l.Errorf("Failed to list notifications: %v", err)
+			logx.WithContext(ctx).Errorf("Failed to list notifications: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list notifications")
 		}
 		for _, n := range dbNotifications {
 			result = append(result, listNotificationToProto(n))
 		}
-		totalCount, err = l.svcCtx.Repo.Notifications.CountNotificationsByUser(l.ctx, userID)
+		totalCount, err = l.svcCtx.Repo.Notifications.CountNotificationsByUser(ctx, userID)
 		if err != nil {
-			l.Errorf("Failed to count notifications: %v", err)
+			logx.WithContext(ctx).Errorf("Failed to count notifications: %v", err)
 			return nil, status.Error(codes.Internal, "failed to count notifications")
 		}
 	}
-	unreadCount, err = l.svcCtx.Repo.Notifications.GetUnreadCount(l.ctx, userID)
+	unreadCount, err = l.svcCtx.Repo.Notifications.GetUnreadCount(ctx, userID)
 	if err != nil {
-		l.Errorf("Failed to get unread count: %v", err)
+		logx.WithContext(ctx).Errorf("Failed to get unread count: %v", err)
 		return nil, status.Error(codes.Internal, "failed to get unread count")
 	}
 

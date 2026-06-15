@@ -20,15 +20,15 @@ import (
 )
 
 type ServiceContext struct {
-	Config      config.Config
-	Repo        *repository.Repository
-	AI          ai.Client
-	TxRunner    *postgres.PgxTxRunner
-	EventsQ     queue.MessageQueue
-	EventsPub   *events.Publisher
-	DLQPub      *events.DLQPublisher
-	pool        *pgxpool.Pool
-	consumerWg  sync.WaitGroup
+	Config     config.Config
+	Repo       *repository.Repository
+	AI         ai.Client
+	TxRunner   *postgres.PgxTxRunner
+	EventsQ    queue.MessageQueue
+	EventsPub  *events.Publisher
+	DLQPub     *events.DLQPublisher
+	pool       *pgxpool.Pool
+	consumerWg sync.WaitGroup
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {

@@ -40,7 +40,7 @@ func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.L
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid user id")
+		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	var metadata json.RawMessage
@@ -57,14 +57,14 @@ return nil, status.Error(codes.Internal, "invalid user id")
 
 	activity, err := l.svcCtx.Repo.Activities.LogActivity(ctx, db.LogActivityParams{
 		UserID:      userID,
-		Type:    (in.Type),
+		Type:        (in.Type),
 		Title:       in.Description,
 		Description: description,
 		Metadata:    metadata,
 	})
 	if err != nil {
 		l.Errorf("Failed to create activity: %v", err)
-return nil, status.Error(codes.Internal, "failed to create activity")
+		return nil, status.Error(codes.Internal, "failed to create activity")
 	}
 
 	return &client.LogActivityResponse{

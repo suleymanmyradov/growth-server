@@ -1,9 +1,9 @@
 package goalslogic
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -33,13 +33,13 @@ func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.Dele
 	goalID, err := uuid.Parse(in.GoalId)
 	if err != nil {
 		l.Errorf("Invalid goal ID: %v", err)
-return nil, status.Error(codes.Internal, "invalid goal id")
+		return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
 	err = l.svcCtx.Repo.Goals.DeleteGoal(ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to delete goal: %v", err)
-return nil, status.Error(codes.Internal, "failed to delete goal")
+		return nil, status.Error(codes.Internal, "failed to delete goal")
 	}
 
 	return &client.DeleteGoalResponse{
