@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,9 @@ func NewGeneratePersonalizedCoachingLogic(ctx context.Context, svcCtx *svc.Servi
 }
 
 func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *client.GeneratePersonalizedCoachingRequest) (*client.GeneratePersonalizedCoachingResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GeneratePersonalizedCoachingLogic.GeneratePersonalizedCoaching")
+	defer span.End()
+
 	if in.UserId == "" {
 		return nil, status.Error(codes.InvalidArgument, "userId is required")
 	}
@@ -37,7 +41,7 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 		UserId:       in.UserId,
 		ForceRefresh: false,
 	}
-	contextLogic := NewGetPersonalizationContextLogic(l.ctx, l.svcCtx)
+	contextLogic := NewGetPersonalizationContextLogic(ctx, l.svcCtx)
 	contextResp, err := contextLogic.GetPersonalizationContext(contextReq)
 	if err != nil {
 		l.Errorf("failed to get personalization context: %v", err)
@@ -76,7 +80,7 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 		patternInsights[k] = v
 	}
 
-	aiResp, aiErr := l.svcCtx.AICoachRpc.GeneratePersonalizedCoaching(l.ctx, &aicoachservice.PersonalizedCoachingRequest{
+	aiResp, aiErr := l.svcCtx.AICoachRpc.GeneratePersonalizedCoaching(ctx, &aicoachservice.PersonalizedCoachingRequest{
 		UserId:                in.UserId,
 		UserMessage:           in.UserMessage,
 		AccountabilityStyle:   profile.AccountabilityStyle,

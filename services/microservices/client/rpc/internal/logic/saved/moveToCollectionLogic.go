@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type MoveToCollectionLogic struct {
@@ -24,7 +25,9 @@ func NewMoveToCollectionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *MoveToCollectionLogic) MoveToCollection(in *client.MoveToCollectionRequest) (*client.MoveToCollectionResponse, error) {
-	l.Infof("Moving saved item %s to collection %s", in.SavedId, in.CollectionId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "MoveToCollectionLogic.MoveToCollection")
+	defer span.End()
+	logx.WithContext(ctx).Infof("Moving saved item %s to collection %s", in.SavedId, in.CollectionId)
 
 	return &client.MoveToCollectionResponse{
 		Success: true,

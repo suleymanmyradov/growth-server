@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,7 +31,10 @@ func NewCreatePlanAdjustmentSuggestionLogic(ctx context.Context, svcCtx *svc.Ser
 }
 
 func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in *client.CreatePlanAdjustmentSuggestionRequest) (*client.CreatePlanAdjustmentSuggestionResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreatePlanAdjustmentSuggestionLogic.CreatePlanAdjustmentSuggestion")
+	defer span.End()
+
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -40,9 +44,9 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 	}
 
 	// Check plan limit enforcement (auto-create free subscription if missing)
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanCreatePlanAdjustment {
 			return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:plan_adjustments:plan_adjustments")
 		}
@@ -77,7 +81,7 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 
 	// Validate goal ownership if goal ID is provided
 	if goalID.Valid {
-		goal, err := l.svcCtx.Repo.Goals.GetGoalByID(l.ctx, goalID.UUID)
+		goal, err := l.svcCtx.Repo.Goals.GetGoalByID(ctx, goalID.UUID)
 		if err != nil {
 			return nil, status.Error(codes.NotFound, "goal not found")
 		}
@@ -88,7 +92,7 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 
 	// Validate habit ownership if habit ID is provided
 	if habitID.Valid {
-		habit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID.UUID)
+		habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID.UUID)
 		if err != nil {
 			return nil, status.Error(codes.NotFound, "habit not found")
 		}
@@ -97,7 +101,7 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 		}
 	}
 
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.CreatePlanAdjustmentSuggestion(l.ctx, db.CreatePlanAdjustmentSuggestionParams{
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.CreatePlanAdjustmentSuggestion(ctx, db.CreatePlanAdjustmentSuggestionParams{
 		UserID:         userID,
 		GoalID:         goalID,
 		HabitID:        habitID,

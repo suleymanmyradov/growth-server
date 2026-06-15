@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type ListCollectionsLogic struct {
@@ -25,7 +26,9 @@ func NewListCollectionsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *L
 }
 
 func (l *ListCollectionsLogic) ListCollections(in *client.ListCollectionsRequest) (*client.ListCollectionsResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListCollectionsLogic.ListCollections")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if ok {
 		l.Infof("Listing collections for user %s", p.UserID)
 	}

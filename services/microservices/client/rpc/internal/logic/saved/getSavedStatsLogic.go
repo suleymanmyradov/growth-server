@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewGetSavedStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Get
 }
 
 func (l *GetSavedStatsLogic) GetSavedStats(in *client.GetSavedStatsRequest) (*client.GetSavedStatsResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetSavedStatsLogic.GetSavedStats")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -38,7 +41,7 @@ func (l *GetSavedStatsLogic) GetSavedStats(in *client.GetSavedStatsRequest) (*cl
 return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	totalSaved, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUser(l.ctx, userID)
+	totalSaved, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUser(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count saved items: %v", err)
 return nil, status.Error(codes.Internal, "failed to count saved items")
@@ -46,7 +49,7 @@ return nil, status.Error(codes.Internal, "failed to count saved items")
 
 	typeCounts := map[string]int32{}
 	for _, itemType := range []string{"article", "goal", "habit"} {
-		count, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUserAndType(l.ctx, userID, itemType)
+		count, err := l.svcCtx.Repo.SavedItems.CountSavedItemsByUserAndType(ctx, userID, itemType)
 		if err != nil {
 			l.Errorf("Failed to count saved items for type %s: %v", itemType, err)
 return nil, status.Error(codes.Internal, "failed to count saved items for type %s")

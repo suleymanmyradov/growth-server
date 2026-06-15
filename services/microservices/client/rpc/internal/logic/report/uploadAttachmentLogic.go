@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,6 +30,9 @@ func NewUploadAttachmentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *UploadAttachmentLogic) UploadAttachment(in *client.UploadAttachmentRequest) (*client.UploadAttachmentResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UploadAttachmentLogic.UploadAttachment")
+	defer span.End()
+
 	l.Infof("Uploading attachment for report %s", in.ReportId)
 
 	ext := filepath.Ext(in.Filename)
@@ -37,7 +41,7 @@ func (l *UploadAttachmentLogic) UploadAttachment(in *client.UploadAttachmentRequ
 		contentType = "application/octet-stream"
 	}
 
-	uploadResp, err := l.svcCtx.FileManagerRpc.UploadFile(l.ctx, &fileManagerClient.UploadFileRequest{
+	uploadResp, err := l.svcCtx.FileManagerRpc.UploadFile(ctx, &fileManagerClient.UploadFileRequest{
 		Data:        in.Data,
 		Filename:    in.Filename,
 		ContentType: contentType,

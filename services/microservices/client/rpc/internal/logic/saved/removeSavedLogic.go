@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewRemoveSavedLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Remov
 }
 
 func (l *RemoveSavedLogic) RemoveSaved(in *client.RemoveSavedRequest) (*client.RemoveSavedResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "RemoveSavedLogic.RemoveSaved")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -48,7 +51,7 @@ func (l *RemoveSavedLogic) RemoveSaved(in *client.RemoveSavedRequest) (*client.R
 	// Try deleting from each table until we get a hit.
 	var deleted bool
 	for _, table := range []string{"saved_articles", "saved_goals", "saved_habits"} {
-		tag, err := pool.Exec(l.ctx,
+		tag, err := pool.Exec(ctx,
 			"DELETE FROM "+table+" WHERE id = $1 AND user_id = $2",
 			savedID, userID,
 		)

@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,11 +29,13 @@ func NewGetHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetHabit
 }
 
 func (l *GetHabitLogic) GetHabit(in *client.GetHabitRequest) (*client.GetHabitResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetHabitLogic.GetHabit")
+	defer span.End()
 	if in == nil || in.HabitId == "" {
 		return nil, status.Error(codes.InvalidArgument, "habit ID is required")
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -43,7 +46,7 @@ func (l *GetHabitLogic) GetHabit(in *client.GetHabitRequest) (*client.GetHabitRe
 		return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.GetHabitByID(l.ctx, habitID)
+	habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID)
 	if err != nil {
 		l.Errorf("failed to get habit: %v", err)
 		return nil, status.Error(codes.NotFound, "habit not found")

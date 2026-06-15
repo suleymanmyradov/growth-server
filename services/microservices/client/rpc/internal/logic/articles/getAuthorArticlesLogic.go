@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetAuthorArticlesLogic struct {
@@ -27,6 +28,8 @@ func NewGetAuthorArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesRequest) (*client.GetAuthorArticlesResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetAuthorArticlesLogic.GetAuthorArticles")
+	defer span.End()
 	limit := int32(20)
 	offset := int32(0)
 	if in.Limit > 0 {
@@ -41,7 +44,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 
 	var pbArticles []*client.Article
 	if hasUser {
-		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthorWithSaved(l.ctx, in.AuthorId, limit, offset, userID)
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthorWithSaved(ctx, in.AuthorId, limit, offset, userID)
 		if err != nil {
 			l.Errorf("Failed to list author articles with saved: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list author articles")
@@ -51,7 +54,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 			pbArticles[i] = convertAuthorWithSavedRowToPbArticle(a)
 		}
 	} else {
-		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(l.ctx, in.AuthorId, limit, offset)
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(ctx, in.AuthorId, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list author articles: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list author articles")

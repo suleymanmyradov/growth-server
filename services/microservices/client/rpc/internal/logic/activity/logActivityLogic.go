@@ -11,6 +11,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,7 +31,9 @@ func NewLogActivityLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogAc
 }
 
 func (l *LogActivityLogic) LogActivity(in *client.LogActivityRequest) (*client.LogActivityResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "LogActivityLogic.LogActivity")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -52,7 +55,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 		description = &in.Description
 	}
 
-	activity, err := l.svcCtx.Repo.Activities.LogActivity(l.ctx, db.LogActivityParams{
+	activity, err := l.svcCtx.Repo.Activities.LogActivity(ctx, db.LogActivityParams{
 		UserID:      userID,
 		Type:    (in.Type),
 		Title:       in.Description,

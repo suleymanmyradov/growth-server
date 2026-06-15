@@ -12,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -31,12 +32,15 @@ func NewGetCoachingProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *GetCoachingProfileLogic) GetCoachingProfile(in *client.GetCoachingProfileRequest) (*client.GetCoachingProfileResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetCoachingProfileLogic.GetCoachingProfile")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
+	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 	if err != nil {
 		// If profile doesn't exist, return a default profile
 		if errors.Is(err, pgx.ErrNoRows) {

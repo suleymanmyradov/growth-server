@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,9 @@ func NewUpdateCoachingProfilePreferencesLogic(ctx context.Context, svcCtx *svc.S
 }
 
 func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences(in *client.UpdateCoachingProfilePreferencesRequest) (*client.UpdateCoachingProfilePreferencesResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateCoachingProfilePreferencesLogic.UpdateCoachingProfilePreferences")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
@@ -63,7 +67,7 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 	}
 
 	// Update coaching profile preferences
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(l.ctx, userID, (in.AccountabilityStyle), (in.PreferredTone), (in.DifficultyPreference))
+	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(ctx, userID, (in.AccountabilityStyle), (in.PreferredTone), (in.DifficultyPreference))
 	if err != nil {
 		l.Errorf("failed to update coaching profile preferences: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update coaching profile preferences")

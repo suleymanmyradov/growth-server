@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type AddReportCommentLogic struct {
@@ -24,7 +25,10 @@ func NewAddReportCommentLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *AddReportCommentLogic) AddReportComment(in *client.AddReportCommentRequest) (*client.AddReportCommentResponse, error) {
-	l.Infof("Adding comment to report %s", in.ReportId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "AddReportCommentLogic.AddReportComment")
+	defer span.End()
+
+	logx.WithContext(ctx).Infof("Adding comment to report %s", in.ReportId)
 
 	return &client.AddReportCommentResponse{
 		CommentId: "",

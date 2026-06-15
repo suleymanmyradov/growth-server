@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewGetActivityStatsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *GetActivityStatsLogic) GetActivityStats(in *client.GetActivityStatsRequest) (*client.GetActivityStatsResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetActivityStatsLogic.GetActivityStats")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -38,7 +41,7 @@ func (l *GetActivityStatsLogic) GetActivityStats(in *client.GetActivityStatsRequ
 return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	stats, err := l.svcCtx.Repo.Activities.GetActivityStats(l.ctx, userID)
+	stats, err := l.svcCtx.Repo.Activities.GetActivityStats(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get activity stats: %v", err)
 return nil, status.Error(codes.Internal, "failed to get activity stats")

@@ -16,6 +16,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -51,6 +52,8 @@ func NewCreateCheckInLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 }
 
 func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*client.CreateCheckInResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreateCheckInLogic.CreateCheckIn")
+	defer span.End()
 	// Validate input
 	if in.HabitId == "" || in.Status == "" {
 		return nil, status.Error(codes.InvalidArgument, "habitId and status are required")
@@ -88,11 +91,11 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	// Wrap all state-mutating operations in a transaction with RLS context.
 	var checkIn db.CheckIn
 	var habit db.GetHabitRow
-	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
+	err = l.svcCtx.TxRunner.Run(ctx, in.UserId, func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
 		// Check for duplicate check-in
-		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(l.ctx, userID, habitID)
+		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(ctx, userID, habitID)
 		if err != nil {
 			return fmt.Errorf("check existing check-in: %w", err)
 		}
@@ -102,13 +105,13 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 
 		// Create check-in record
 		params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
-		checkIn, err = txRepo.CheckIns.CreateCheckIn(l.ctx, params)
+		checkIn, err = txRepo.CheckIns.CreateCheckIn(ctx, params)
 		if err != nil {
 			return fmt.Errorf("create check-in: %w", err)
 		}
 
 		// Get habit to return in response
-		habit, err = txRepo.Habits.GetHabitByID(l.ctx, habitID)
+		habit, err = txRepo.Habits.GetHabitByID(ctx, habitID)
 		if err != nil {
 			return fmt.Errorf("get habit: %w", err)
 		}
@@ -118,14 +121,14 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		// only the streak counter needs updating here.
 		switch in.Status {
 		case "completed":
-			updatedHabit, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, habit.Streak+1)
+			updatedHabit, err := txRepo.Habits.UpdateHabitStreak(ctx, habitID, habit.Streak+1)
 			if err != nil {
 				return fmt.Errorf("bump habit streak: %w", err)
 			}
 			habit = updatedHabit
 		case "missed":
 			// Reset streak on missed check-in
-			_, err := txRepo.Habits.UpdateHabitStreak(l.ctx, habitID, 0)
+			_, err := txRepo.Habits.UpdateHabitStreak(ctx, habitID, 0)
 			if err != nil {
 				return fmt.Errorf("reset habit streak: %w", err)
 			}
@@ -140,7 +143,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		}
 
 		description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
-		_, err = txRepo.Activities.CreateActivity(l.ctx, db.CreateActivityParams{
+		_, err = txRepo.Activities.CreateActivity(ctx, db.CreateActivityParams{
 			Type:    (activityType),
 			Title:       activityTitle,
 			Description: &description,

@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type ListCategoriesLogic struct {
@@ -24,7 +25,9 @@ func NewListCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Li
 }
 
 func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (*client.ListCategoriesResponse, error) {
-	categories, err := l.svcCtx.Repo.Categories.ListCategories(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListCategoriesLogic.ListCategories")
+	defer span.End()
+	categories, err := l.svcCtx.Repo.Categories.ListCategories(ctx)
 	if err != nil {
 		return nil, err
 	}

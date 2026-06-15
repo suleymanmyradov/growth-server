@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type UpdateReportLogic struct {
@@ -24,7 +25,10 @@ func NewUpdateReportLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Upda
 }
 
 func (l *UpdateReportLogic) UpdateReport(in *client.UpdateReportRequest) (*client.UpdateReportResponse, error) {
-	l.Infof("Updating report %s", in.ReportId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateReportLogic.UpdateReport")
+	defer span.End()
+
+	logx.WithContext(ctx).Infof("Updating report %s", in.ReportId)
 
 	return &client.UpdateReportResponse{
 		Success: true,

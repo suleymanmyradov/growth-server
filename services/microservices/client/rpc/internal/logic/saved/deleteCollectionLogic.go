@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type DeleteCollectionLogic struct {
@@ -24,7 +25,9 @@ func NewDeleteCollectionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *DeleteCollectionLogic) DeleteCollection(in *client.DeleteCollectionRequest) (*client.DeleteCollectionResponse, error) {
-	l.Infof("Deleting collection %s", in.CollectionId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "DeleteCollectionLogic.DeleteCollection")
+	defer span.End()
+	logx.WithContext(ctx).Infof("Deleting collection %s", in.CollectionId)
 
 	return &client.DeleteCollectionResponse{
 		Success: true,

@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type DeleteGoalLogic struct {
@@ -27,13 +28,15 @@ func NewDeleteGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 }
 
 func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.DeleteGoalResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "DeleteGoalLogic.DeleteGoal")
+	defer span.End()
 	goalID, err := uuid.Parse(in.GoalId)
 	if err != nil {
 		l.Errorf("Invalid goal ID: %v", err)
 return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
-	err = l.svcCtx.Repo.Goals.DeleteGoal(l.ctx, goalID)
+	err = l.svcCtx.Repo.Goals.DeleteGoal(ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to delete goal: %v", err)
 return nil, status.Error(codes.Internal, "failed to delete goal")

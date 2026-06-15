@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type UpdateCollectionLogic struct {
@@ -24,7 +25,9 @@ func NewUpdateCollectionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *UpdateCollectionLogic) UpdateCollection(in *client.UpdateCollectionRequest) (*client.UpdateCollectionResponse, error) {
-	l.Infof("Updating collection %s", in.CollectionId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateCollectionLogic.UpdateCollection")
+	defer span.End()
+	logx.WithContext(ctx).Infof("Updating collection %s", in.CollectionId)
 
 	return &client.UpdateCollectionResponse{
 		Success: true,

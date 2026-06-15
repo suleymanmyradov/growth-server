@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,6 +30,9 @@ func NewGetWeeklyReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetWeeklyReviewLogic) GetWeeklyReview(in *client.GetWeeklyReviewRequest) (*client.GetWeeklyReviewResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetWeeklyReviewLogic.GetWeeklyReview")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Infof("invalid user ID: %v", err)
@@ -42,9 +46,9 @@ func (l *GetWeeklyReviewLogic) GetWeeklyReview(in *client.GetWeeklyReviewRequest
 	}
 
 	// Enforce weekly review history limit server-side
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
 			// Compute current week start to determine if requested week is historical
 			now := time.Now().UTC()
@@ -59,7 +63,7 @@ func (l *GetWeeklyReviewLogic) GetWeeklyReview(in *client.GetWeeklyReviewRequest
 		}
 	}
 
-	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
+	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			l.Infof("weekly review not found for user %s and week %s", userID, weekStart.Format("2006-01-02"))

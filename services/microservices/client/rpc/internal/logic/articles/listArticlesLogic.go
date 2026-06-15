@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type ListArticlesLogic struct {
@@ -28,6 +29,8 @@ func NewListArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *List
 }
 
 func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*client.ListArticlesResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListArticlesLogic.ListArticles")
+	defer span.End()
 	limit := int32(20)
 	offset := int32(0)
 	if in.Limit > 0 {
@@ -47,7 +50,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 	// Filter by category slug if provided
 	if in.CategorySlug != "" {
 		if hasUser {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlugWithSaved(l.ctx, in.CategorySlug, limit, offset, userID)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlugWithSaved(ctx, in.CategorySlug, limit, offset, userID)
 			if err != nil {
 				l.Errorf("Failed to list articles by category with saved: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles by category")
@@ -57,7 +60,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertCategorySlugWithSavedRowToPbArticle(a)
 			}
 		} else {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(l.ctx, in.CategorySlug, limit, offset)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(ctx, in.CategorySlug, limit, offset)
 			if err != nil {
 				l.Errorf("Failed to list articles by category: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles by category")
@@ -67,10 +70,10 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertCategorySlugRowToPbArticle(a)
 			}
 		}
-		totalCount, _ = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(l.ctx, in.CategorySlug)
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(ctx, in.CategorySlug)
 	} else {
 		if hasUser {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesWithSaved(l.ctx, limit, offset, userID)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesWithSaved(ctx, limit, offset, userID)
 			if err != nil {
 				l.Errorf("Failed to list articles with saved: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles")
@@ -80,7 +83,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertListWithSavedRowToPbArticle(a)
 			}
 		} else {
-			articles, err := l.svcCtx.Repo.Articles.ListArticles(l.ctx, limit, offset)
+			articles, err := l.svcCtx.Repo.Articles.ListArticles(ctx, limit, offset)
 			if err != nil {
 				l.Errorf("Failed to list articles: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles")
@@ -90,7 +93,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertListRowToPbArticle(a)
 			}
 		}
-		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(l.ctx)
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(ctx)
 	}
 
 	return &client.ListArticlesResponse{
