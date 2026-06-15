@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type UpdateHabitLogic struct {
@@ -28,6 +29,8 @@ func NewUpdateHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Updat
 }
 
 func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.UpdateHabitResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateHabitLogic.UpdateHabit")
+	defer span.End()
 	habitID, err := uuid.Parse(in.HabitId)
 	if err != nil {
 		l.Errorf("Invalid habit ID: %v", err)
@@ -41,7 +44,7 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		desc = &in.Description
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(l.ctx, habitID, in.Name, desc, in.Category)
+	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(ctx, habitID, in.Name, desc, in.Category)
 	if err != nil {
 		l.Errorf("Failed to update habit: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update habit")

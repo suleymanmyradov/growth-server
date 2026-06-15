@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,13 +30,16 @@ func NewGetCurrentWeeklyReviewLogic(ctx context.Context, svcCtx *svc.ServiceCont
 }
 
 func (l *GetCurrentWeeklyReviewLogic) GetCurrentWeeklyReview(in *client.GetCurrentWeeklyReviewRequest) (*client.GetCurrentWeeklyReviewResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetCurrentWeeklyReviewLogic.GetCurrentWeeklyReview")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
 	// Get user timezone
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
 	if err != nil {
 		l.Infof("failed to get user settings, using UTC: %v", err)
 	}
@@ -57,7 +61,7 @@ func (l *GetCurrentWeeklyReviewLogic) GetCurrentWeeklyReview(in *client.GetCurre
 	}
 
 	// Get the review for the current week
-	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
+	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, status.Error(codes.NotFound, "weekly review not found")

@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetCollectionLogic struct {
@@ -24,7 +25,9 @@ func NewGetCollectionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Get
 }
 
 func (l *GetCollectionLogic) GetCollection(in *client.GetCollectionRequest) (*client.GetCollectionResponse, error) {
-	l.Infof("Getting collection %s", in.CollectionId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetCollectionLogic.GetCollection")
+	defer span.End()
+	logx.WithContext(ctx).Infof("Getting collection %s", in.CollectionId)
 
 	return &client.GetCollectionResponse{
 		Collection: &client.Collection{},

@@ -13,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type UpdateGoalLogic struct {
@@ -30,6 +31,8 @@ func NewUpdateGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 }
 
 func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.UpdateGoalResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateGoalLogic.UpdateGoal")
+	defer span.End()
 	goalID, err := uuid.Parse(in.GoalId)
 	if err != nil {
 		l.Errorf("Invalid goal ID: %v", err)
@@ -54,7 +57,7 @@ return nil, status.Error(codes.Internal, "invalid goal id")
 		DueDate:     dueTime,
 	}
 
-	goal, err := l.svcCtx.Repo.Goals.UpdateGoal(l.ctx, params)
+	goal, err := l.svcCtx.Repo.Goals.UpdateGoal(ctx, params)
 	if err != nil {
 		l.Errorf("Failed to update goal: %v", err)
 return nil, status.Error(codes.Internal, "failed to update goal")

@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewSaveItemLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SaveItem
 }
 
 func (l *SaveItemLogic) SaveItem(in *client.SaveItemRequest) (*client.SaveItemResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "SaveItemLogic.SaveItem")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -44,7 +47,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 return nil, status.Error(codes.Internal, "invalid item id")
 	}
 
-	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(l.ctx, (in.ItemType), itemID, userID)
+	savedItem, err := l.svcCtx.Repo.SavedItems.CreateSavedItem(ctx, (in.ItemType), itemID, userID)
 	if err != nil {
 		l.Errorf("Failed to save item: %v", err)
 return nil, status.Error(codes.Internal, "failed to save item")

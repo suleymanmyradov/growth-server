@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,13 +28,15 @@ func NewShareArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Shar
 }
 
 func (l *ShareArticleLogic) ShareArticle(in *client.ShareArticleRequest) (*client.ShareArticleResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ShareArticleLogic.ShareArticle")
+	defer span.End()
 	articleID, err := uuid.Parse(in.ArticleId)
 	if err != nil {
 		l.Errorf("Invalid article ID: %v", err)
 return nil, status.Error(codes.Internal, "invalid article id")
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -43,7 +46,7 @@ return nil, status.Error(codes.Internal, "invalid article id")
 return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	_, err = l.svcCtx.Repo.Articles.CreateArticleShare(l.ctx, articleID, userID, in.Platform)
+	_, err = l.svcCtx.Repo.Articles.CreateArticleShare(ctx, articleID, userID, in.Platform)
 	if err != nil {
 		l.Errorf("Failed to create article share: %v", err)
 return nil, status.Error(codes.Internal, "failed to create article share")

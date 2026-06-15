@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewListHabitsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListHa
 }
 
 func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.ListHabitsResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListHabitsLogic.ListHabits")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -47,13 +50,13 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 		offset = 0
 	}
 
-	habits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, limit, offset)
+	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list habits: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list habits")
 	}
 
-	total, err := l.svcCtx.Repo.Habits.CountHabitsByUser(l.ctx, userID)
+	total, err := l.svcCtx.Repo.Habits.CountHabitsByUser(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to count habits: %v", err)
 		return nil, status.Error(codes.Internal, "failed to count habits")

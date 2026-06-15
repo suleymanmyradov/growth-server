@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,8 @@ func NewHasCheckedInTodayLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *HasCheckedInTodayLogic) HasCheckedInToday(in *client.HasCheckedInTodayRequest) (*client.HasCheckedInTodayResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "HasCheckedInTodayLogic.HasCheckedInToday")
+	defer span.End()
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
@@ -39,7 +42,7 @@ func (l *HasCheckedInTodayLogic) HasCheckedInToday(in *client.HasCheckedInTodayR
 		return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
 	}
 
-	hasCheckedIn, err := l.svcCtx.Repo.CheckIns.HasCheckedInToday(l.ctx, userID, habitID)
+	hasCheckedIn, err := l.svcCtx.Repo.CheckIns.HasCheckedInToday(ctx, userID, habitID)
 	if err != nil {
 		l.Errorf("Failed to check if user has checked in today: %v", err)
 		return nil, status.Error(codes.Internal, "failed to check check-in status")

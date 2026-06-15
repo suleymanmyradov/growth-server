@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,8 @@ func NewGetCheckInHistoryLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *GetCheckInHistoryLogic) GetCheckInHistory(in *client.GetCheckInHistoryRequest) (*client.GetCheckInHistoryResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetCheckInHistoryLogic.GetCheckInHistory")
+	defer span.End()
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Errorf("Invalid user ID: %v", err)
@@ -51,9 +54,9 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(in *client.GetCheckInHistoryR
 			l.Errorf("Invalid habit ID: %v", err)
 			return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
 		}
-		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByHabit(l.ctx, habitID, userID, limit, offset)
+		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByHabit(ctx, habitID, userID, limit, offset)
 	} else {
-		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByUser(l.ctx, userID, limit, offset)
+		checkIns, err = l.svcCtx.Repo.CheckIns.GetCheckInsByUser(ctx, userID, limit, offset)
 	}
 
 	if err != nil {
@@ -69,13 +72,13 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(in *client.GetCheckInHistoryR
 	// Get total count
 	var total int64
 	if in.HabitId != "" {
-		total, err = l.svcCtx.Repo.CheckIns.CountCheckInsByHabit(l.ctx, habitID)
+		total, err = l.svcCtx.Repo.CheckIns.CountCheckInsByHabit(ctx, habitID)
 		if err != nil {
 			l.Errorf("Failed to count check-ins by habit: %v", err)
 			total = 0
 		}
 	} else {
-		total, err = l.svcCtx.Repo.CheckIns.CountCheckInsByUser(l.ctx, userID)
+		total, err = l.svcCtx.Repo.CheckIns.CountCheckInsByUser(ctx, userID)
 		if err != nil {
 			l.Errorf("Failed to count check-ins by user: %v", err)
 			total = 0

@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type CreateCollectionLogic struct {
@@ -25,7 +26,9 @@ func NewCreateCollectionLogic(ctx context.Context, svcCtx *svc.ServiceContext) *
 }
 
 func (l *CreateCollectionLogic) CreateCollection(in *client.CreateCollectionRequest) (*client.CreateCollectionResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreateCollectionLogic.CreateCollection")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if ok {
 		l.Infof("Creating collection %s for user %s", in.Name, p.UserID)
 	}

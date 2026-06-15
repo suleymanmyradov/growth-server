@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,8 @@ func NewGetArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetArt
 }
 
 func (l *GetArticleLogic) GetArticle(in *client.GetArticleRequest) (*client.GetArticleResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetArticleLogic.GetArticle")
+	defer span.End()
 	if in == nil || in.ArticleId == "" {
 		return nil, status.Error(codes.InvalidArgument, "article ID is required")
 	}
@@ -43,14 +46,14 @@ func (l *GetArticleLogic) GetArticle(in *client.GetArticleRequest) (*client.GetA
 
 	var pbArticle *client.Article
 	if hasUser {
-		article, err := l.svcCtx.Repo.Articles.GetArticleByIDWithSaved(l.ctx, articleID, userID)
+		article, err := l.svcCtx.Repo.Articles.GetArticleByIDWithSaved(ctx, articleID, userID)
 		if err != nil {
 			l.Errorf("failed to get article with saved: %v", err)
 			return nil, status.Error(codes.NotFound, "article not found")
 		}
 		pbArticle = convertGetWithSavedRowToPbArticle(article)
 	} else {
-		article, err := l.svcCtx.Repo.Articles.GetArticleByID(l.ctx, articleID)
+		article, err := l.svcCtx.Repo.Articles.GetArticleByID(ctx, articleID)
 		if err != nil {
 			l.Errorf("failed to get article: %v", err)
 			return nil, status.Error(codes.NotFound, "article not found")

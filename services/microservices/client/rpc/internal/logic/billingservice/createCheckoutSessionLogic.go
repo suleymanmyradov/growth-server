@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,7 +30,9 @@ func NewCreateCheckoutSessionLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *CreateCheckoutSessionLogic) CreateCheckoutSession(in *client.CreateCheckoutSessionRequest) (*client.CreateCheckoutSessionResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreateCheckoutSessionLogic.CreateCheckoutSession")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -40,7 +43,7 @@ func (l *CreateCheckoutSessionLogic) CreateCheckoutSession(in *client.CreateChec
 	}
 
 	if l.svcCtx.Authz != nil {
-		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(ctx); err != nil {
 			return nil, err
 		}
 	}

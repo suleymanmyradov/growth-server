@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,9 @@ func NewApplyPlanAdjustmentSuggestionLogic(ctx context.Context, svcCtx *svc.Serv
 }
 
 func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *client.ApplyPlanAdjustmentSuggestionRequest) (*client.ApplyPlanAdjustmentSuggestionResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ApplyPlanAdjustmentSuggestionLogic.ApplyPlanAdjustmentSuggestion")
+	defer span.End()
+
 	suggestionID, err := uuid.Parse(in.SuggestionId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid suggestion ID")
@@ -38,7 +42,7 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *c
 	}
 
 	// Get the suggestion
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.GetPlanAdjustmentSuggestion(l.ctx, suggestionID, userID)
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.GetPlanAdjustmentSuggestion(ctx, suggestionID, userID)
 	if err != nil {
 		l.Errorf("failed to get plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.NotFound, "suggestion not found")
@@ -76,7 +80,7 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *c
 	}
 
 	// Update suggestion status to 'applied'
-	appliedSuggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ApplyPlanAdjustmentSuggestion(l.ctx, suggestionID, userID)
+	appliedSuggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ApplyPlanAdjustmentSuggestion(ctx, suggestionID, userID)
 	if err != nil {
 		l.Errorf("failed to apply plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.Internal, "failed to apply suggestion")

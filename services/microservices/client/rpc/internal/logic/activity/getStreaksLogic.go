@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewGetStreaksLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetStr
 }
 
 func (l *GetStreaksLogic) GetStreaks(in *client.GetStreaksRequest) (*client.GetStreaksResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetStreaksLogic.GetStreaks")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -38,7 +41,7 @@ func (l *GetStreaksLogic) GetStreaks(in *client.GetStreaksRequest) (*client.GetS
 return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	streaks, err := l.svcCtx.Repo.Activities.GetStreaks(l.ctx, userID)
+	streaks, err := l.svcCtx.Repo.Activities.GetStreaks(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get streaks: %v", err)
 return nil, status.Error(codes.Internal, "failed to get streaks")

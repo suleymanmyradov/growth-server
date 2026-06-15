@@ -16,6 +16,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -35,21 +36,24 @@ func NewGetPersonalizationContextLogic(ctx context.Context, svcCtx *svc.ServiceC
 }
 
 func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.GetPersonalizationContextRequest) (*client.GetPersonalizationContextResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetPersonalizationContextLogic.GetPersonalizationContext")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
 	// Check personalized AI entitlement
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanUsePersonalizedAi {
 			// Return reduced/basic context for Free users
-			profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
+			profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
-					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
+					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
 						UserID:               userID,
 						AccountabilityStyle:  "balanced",
 						CoachTone:            "supportive",
@@ -76,11 +80,11 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	}
 
 	// Get or create coaching profile
-	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
+	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 	if err != nil {
 		// Create default profile if it doesn't exist
 		if errors.Is(err, sql.ErrNoRows) {
-			profile, err = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
+			profile, err = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
 				UserID:               userID,
 				AccountabilityStyle:  "balanced",
 				CoachTone:            "supportive",
@@ -99,14 +103,14 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	}
 
 	// Get active goals
-	goals, err := l.svcCtx.Repo.Goals.ListGoals(l.ctx, userID, 50, 0)
+	goals, err := l.svcCtx.Repo.Goals.ListGoals(ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get goals: %v", err)
 		goals = []db.GetGoalRow{}
 	}
 
 	// Get active habits
-	habits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, 50, 0)
+	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get habits: %v", err)
 		habits = []db.GetHabitRow{}
@@ -114,21 +118,21 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 
 	// Get recent check-ins (last 30 days)
 	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
-	recentCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(l.ctx, userID, thirtyDaysAgo, time.Now(), 100, 0)
+	recentCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(ctx, userID, thirtyDaysAgo, time.Now(), 100, 0)
 	if err != nil {
 		l.Infof("failed to get recent check-ins: %v", err)
 		recentCheckIns = []db.CheckIn{}
 	}
 
 	// Get latest weekly review
-	latestWeeklyReview, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(l.ctx, userID, 1, 0)
+	latestWeeklyReview, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(ctx, userID, 1, 0)
 	if err != nil || len(latestWeeklyReview) == 0 {
 		l.Infof("failed to get latest weekly review: %v", err)
 		latestWeeklyReview = []db.GetWeeklyReviewRow{}
 	}
 
 	// Get pending plan adjustment suggestions
-	pendingSuggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(l.ctx, userID, 20, 0)
+	pendingSuggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(ctx, userID, 20, 0)
 	if err != nil {
 		l.Infof("failed to get pending suggestions: %v", err)
 		pendingSuggestions = []db.PlanAdjustment{}
@@ -136,7 +140,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 
 	// Get user timezone for pattern detection
 	userLoc := time.UTC
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
 	if err == nil && settings.Timezone != "" {
 		loc, err := time.LoadLocation(settings.Timezone)
 		if err != nil {
@@ -156,7 +160,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 
 	// Update context refresh timestamp if forced
 	if in.ForceRefresh {
-		_, err = l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfileContextRefresh(l.ctx, userID)
+		_, err = l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfileContextRefresh(ctx, userID)
 		if err != nil {
 			l.Infof("failed to update context refresh timestamp: %v", err)
 		}

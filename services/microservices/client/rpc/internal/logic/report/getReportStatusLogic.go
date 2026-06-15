@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetReportStatusLogic struct {
@@ -24,7 +25,10 @@ func NewGetReportStatusLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetReportStatusLogic) GetReportStatus(in *client.GetReportStatusRequest) (*client.GetReportStatusResponse, error) {
-	l.Infof("Getting status for report %s", in.ReportId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetReportStatusLogic.GetReportStatus")
+	defer span.End()
+
+	logx.WithContext(ctx).Infof("Getting status for report %s", in.ReportId)
 
 	return &client.GetReportStatusResponse{
 		Status: "",

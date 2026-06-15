@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,10 @@ func NewDeleteAccountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Del
 }
 
 func (l *DeleteAccountLogic) DeleteAccount(in *client.DeleteAccountRequest) (*client.DeleteAccountResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "DeleteAccountLogic.DeleteAccount")
+	defer span.End()
+
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -39,7 +43,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	if l.svcCtx.Authz != nil {
-		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(ctx); err != nil {
 			return nil, err
 		}
 	}

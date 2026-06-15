@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,9 @@ func NewListPendingPlanAdjustmentSuggestionsLogic(ctx context.Context, svcCtx *s
 }
 
 func (l *ListPendingPlanAdjustmentSuggestionsLogic) ListPendingPlanAdjustmentSuggestions(in *client.ListPendingPlanAdjustmentSuggestionsRequest) (*client.ListPendingPlanAdjustmentSuggestionsResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListPendingPlanAdjustmentSuggestionsLogic.ListPendingPlanAdjustmentSuggestions")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
@@ -39,14 +43,14 @@ func (l *ListPendingPlanAdjustmentSuggestionsLogic) ListPendingPlanAdjustmentSug
 	}
 	offset := in.Offset
 
-	suggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(l.ctx, userID, limit, offset)
+	suggestions, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.ListPendingPlanAdjustmentSuggestions(ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("failed to list pending plan adjustment suggestions: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list pending plan adjustment suggestions")
 	}
 
 	// Get total count
-	total, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.CountPendingPlanAdjustmentSuggestions(l.ctx, userID)
+	total, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.CountPendingPlanAdjustmentSuggestions(ctx, userID)
 	if err != nil {
 		l.Infof("failed to get total count: %v", err)
 		total = int64(len(suggestions))

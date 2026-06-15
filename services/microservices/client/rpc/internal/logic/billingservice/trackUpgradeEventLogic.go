@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -30,7 +31,9 @@ func NewTrackUpgradeEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventRequest) (*client.TrackUpgradeEventResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "TrackUpgradeEventLogic.TrackUpgradeEvent")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -67,7 +70,7 @@ func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(in *client.TrackUpgradeEventR
 		feedbackNote = &in.FeedbackNote
 	}
 
-	event, err := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
+	event, err := l.svcCtx.Repo.Billing.CreateUpgradeEvent(ctx, db.CreateUpgradeEventParams{
 		UserID:          userID,
 		EventType:       (in.EventType),
 		Surface:         in.Surface,

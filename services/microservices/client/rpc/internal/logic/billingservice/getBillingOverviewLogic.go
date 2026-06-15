@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,7 +29,9 @@ func NewGetBillingOverviewLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *GetBillingOverviewLogic) GetBillingOverview(in *client.GetBillingOverviewRequest) (*client.GetBillingOverviewResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetBillingOverviewLogic.GetBillingOverview")
+	defer span.End()
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -39,23 +42,23 @@ func (l *GetBillingOverviewLogic) GetBillingOverview(in *client.GetBillingOvervi
 	}
 
 	// List active plans
-	plans, err := l.svcCtx.Repo.Billing.ListActivePlans(l.ctx)
+	plans, err := l.svcCtx.Repo.Billing.ListActivePlans(ctx)
 	if err != nil {
 		l.Errorf("Failed to list plans: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list plans")
 	}
 
 	// Get or create user subscription (lazy creation)
-	sub, err := l.svcCtx.Repo.Billing.GetUserSubscription(l.ctx, userID)
+	sub, err := l.svcCtx.Repo.Billing.GetUserSubscription(ctx, userID)
 	if err != nil {
 		// If no subscription exists, create a free one automatically
-		_, createErr := l.svcCtx.Repo.Billing.CreateDefaultFreeSubscription(l.ctx, userID)
+		_, createErr := l.svcCtx.Repo.Billing.CreateDefaultFreeSubscription(ctx, userID)
 		if createErr != nil {
 			l.Errorf("Failed to create default free subscription: %v", createErr)
 			return nil, status.Error(codes.Internal, "failed to create subscription")
 		}
 		// Fetch the newly created subscription
-		sub, err = l.svcCtx.Repo.Billing.GetUserSubscription(l.ctx, userID)
+		sub, err = l.svcCtx.Repo.Billing.GetUserSubscription(ctx, userID)
 		if err != nil {
 			l.Errorf("Failed to get subscription after creation: %v", err)
 			return nil, status.Error(codes.Internal, "failed to get subscription")
@@ -63,7 +66,7 @@ func (l *GetBillingOverviewLogic) GetBillingOverview(in *client.GetBillingOvervi
 	}
 
 	// Compute entitlements
-	entitlements, err := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+	entitlements, err := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 	if err != nil {
 		l.Errorf("Failed to compute entitlements: %v", err)
 		return nil, status.Error(codes.Internal, "failed to compute entitlements")

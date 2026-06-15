@@ -16,6 +16,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -61,13 +62,16 @@ func NewGenerateWeeklyReviewLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeeklyReviewRequest) (*client.GenerateWeeklyReviewResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GenerateWeeklyReviewLogic.GenerateWeeklyReview")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
 	// Get user timezone
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
 	if err != nil {
 		l.Infof("failed to get user settings, using UTC: %v", err)
 	}
@@ -88,13 +92,13 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	}
 
 	if !in.ForceRegenerate {
-		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
+		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 		if err == nil && existing.ID != uuid.Nil {
 			return &client.GenerateWeeklyReviewResponse{Review: dbReviewToProto(existing)}, nil
 		}
 	} else {
 		// Add cooldown for forced regeneration (1 hour minimum)
-		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(l.ctx, userID, weekStart)
+		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 		if err == nil && existing.ID != uuid.Nil {
 			timeSinceGeneration := time.Since(existing.GeneratedAt.Time)
 			if timeSinceGeneration < time.Hour {
@@ -110,13 +114,13 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	}
 
 	// Get raw check-ins and habits for pattern detection
-	weekCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(l.ctx, userID, weekStart, weekEnd, 1000, 0)
+	weekCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(ctx, userID, weekStart, weekEnd, 1000, 0)
 	if err != nil {
 		l.Infof("failed to get week check-ins for pattern detection: %v", err)
 		weekCheckIns = []db.CheckIn{}
 	}
 
-	weekHabits, err := l.svcCtx.Repo.Habits.ListHabits(l.ctx, userID, 50, 0)
+	weekHabits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, 50, 0)
 	if err != nil {
 		l.Infof("failed to get habits for pattern detection: %v", err)
 		weekHabits = []db.GetHabitRow{}
@@ -130,7 +134,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 	difficultyPreference := "adaptive"
 	commonBlockers := []string{}
 
-	coachingProfile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(l.ctx, userID)
+	coachingProfile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 	if err == nil && coachingProfile.UserID != uuid.Nil {
 		if coachingProfile.PreferredTone != "" {
 			preferredTone = string(coachingProfile.PreferredTone)
@@ -151,7 +155,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		accountabilityStyle = string(settings.AccountabilityStyle)
 	}
 
-	goals, err := l.svcCtx.Repo.Goals.ListGoals(l.ctx, userID, 10, 0)
+	goals, err := l.svcCtx.Repo.Goals.ListGoals(ctx, userID, 10, 0)
 	if err != nil {
 		l.Infof("failed to get goals: %v", err)
 	}
@@ -220,7 +224,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		}
 	}
 
-	aiResp, aiErr := l.svcCtx.AICoachRpc.GenerateWeeklyReview(l.ctx, &aicoachservice.WeeklyReviewRequest{
+	aiResp, aiErr := l.svcCtx.AICoachRpc.GenerateWeeklyReview(ctx, &aicoachservice.WeeklyReviewRequest{
 		UserId:                in.UserId,
 		AccountabilityStyle:   accountabilityStyle,
 		PreferredTone:             preferredTone,
@@ -328,7 +332,7 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		NextWeekPlan:         nextWeekPlanJSON,
 	}
 
-	review, err := l.svcCtx.Repo.WeeklyReviews.CreateWeeklyReview(l.ctx, params)
+	review, err := l.svcCtx.Repo.WeeklyReviews.CreateWeeklyReview(ctx, params)
 	if err != nil {
 		l.Errorf("failed to save weekly review: %v", err)
 		return nil, status.Error(codes.Internal, "failed to save weekly review")

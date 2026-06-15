@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,6 +30,9 @@ func NewUpsertCoachingProfileLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoachingProfileRequest) (*client.UpsertCoachingProfileResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpsertCoachingProfileLogic.UpsertCoachingProfile")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
@@ -54,7 +58,7 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 		primaryMotivation = &in.PrimaryMotivation
 	}
 
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(l.ctx, db.UpsertCoachingProfileParams{
+	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
 		UserID:               userID,
 		AccountabilityStyle:  (in.AccountabilityStyle),
 		CoachTone:            (in.PreferredTone),

@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,9 @@ func NewListWeeklyReviewsLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsRequest) (*client.ListWeeklyReviewsResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListWeeklyReviewsLogic.ListWeeklyReviews")
+	defer span.End()
+
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
@@ -47,9 +51,9 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 	// Enforce weekly review history limit server-side
 	var historyLimit int32
 	var isRestricted bool
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(l.ctx, userID)
+	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(l.ctx, sub, userID)
+		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
 			isRestricted = true
 			if sub.WeeklyReviewHistoryLimit > 0 {
@@ -70,12 +74,12 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 		offset = 0
 	}
 
-	reviews, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(l.ctx, userID, limit, offset)
+	reviews, err := l.svcCtx.Repo.WeeklyReviews.ListWeeklyReviews(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to list weekly reviews")
 	}
 
-	total, err := l.svcCtx.Repo.WeeklyReviews.CountWeeklyReviews(l.ctx, userID)
+	total, err := l.svcCtx.Repo.WeeklyReviews.CountWeeklyReviews(ctx, userID)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "failed to count weekly reviews")
 	}

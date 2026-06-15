@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type SubmitReportLogic struct {
@@ -25,7 +26,10 @@ func NewSubmitReportLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Subm
 }
 
 func (l *SubmitReportLogic) SubmitReport(in *client.SubmitReportRequest) (*client.SubmitReportResponse, error) {
-	l.Infof("Submitting report from user %s for target %s", in.ReporterId, in.TargetId)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "SubmitReportLogic.SubmitReport")
+	defer span.End()
+
+	logx.WithContext(ctx).Infof("Submitting report from user %s for target %s", in.ReporterId, in.TargetId)
 
 	return &client.SubmitReportResponse{
 		ReportId: uuid.New().String(),

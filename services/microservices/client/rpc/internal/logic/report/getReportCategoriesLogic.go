@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 )
 
 type GetReportCategoriesLogic struct {
@@ -24,7 +25,10 @@ func NewGetReportCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *GetReportCategoriesLogic) GetReportCategories(in *client.GetReportCategoriesRequest) (*client.GetReportCategoriesResponse, error) {
-	l.Infof("Getting report categories")
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetReportCategoriesLogic.GetReportCategories")
+	defer span.End()
+
+	logx.WithContext(ctx).Infof("Getting report categories")
 
 	return &client.GetReportCategoriesResponse{
 		Categories: []*client.ReportCategory{},

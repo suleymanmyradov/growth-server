@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -27,6 +28,9 @@ func NewUpdatePlanAdjustmentSuggestionStatusLogic(ctx context.Context, svcCtx *s
 }
 
 func (l *UpdatePlanAdjustmentSuggestionStatusLogic) UpdatePlanAdjustmentSuggestionStatus(in *client.UpdatePlanAdjustmentSuggestionStatusRequest) (*client.UpdatePlanAdjustmentSuggestionStatusResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdatePlanAdjustmentSuggestionStatusLogic.UpdatePlanAdjustmentSuggestionStatus")
+	defer span.End()
+
 	suggestionID, err := uuid.Parse(in.SuggestionId)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid suggestion ID")
@@ -49,7 +53,7 @@ func (l *UpdatePlanAdjustmentSuggestionStatusLogic) UpdatePlanAdjustmentSuggesti
 	}
 
 	// Update suggestion status
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(l.ctx, suggestionID, userID, (in.Status))
+	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.UpdatePlanAdjustmentSuggestionStatus(ctx, suggestionID, userID, (in.Status))
 	if err != nil {
 		l.Errorf("failed to update plan adjustment suggestion status: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update plan adjustment suggestion status")

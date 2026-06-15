@@ -13,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -32,7 +33,10 @@ func NewUpdateSettingsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Up
 }
 
 func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (*client.UpdateSettingsResponse, error) {
-	p, ok := principal.PrincipalFrom(l.ctx)
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateSettingsLogic.UpdateSettings")
+	defer span.End()
+
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -43,13 +47,13 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
 	if l.svcCtx.Authz != nil {
-		if err := l.svcCtx.Authz.CheckPrincipal(l.ctx); err != nil {
+		if err := l.svcCtx.Authz.CheckPrincipal(ctx); err != nil {
 			return nil, err
 		}
 	}
 
 	// Fetch current settings to get version for optimistic locking
-	_, err = l.svcCtx.Repo.UserSettings.GetUserSettings(l.ctx, userID)
+	_, err = l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to fetch user settings: %v", err)
 return nil, status.Error(codes.Internal, "failed to fetch user settings")
@@ -67,7 +71,7 @@ return nil, status.Error(codes.Internal, "failed to fetch user settings")
 				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
 			}
 		}
-		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(l.ctx, userID, style, checkInTime, in.Settings.OnboardingCompleted)
+		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(ctx, userID, style, checkInTime, in.Settings.OnboardingCompleted)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
 return nil, status.Error(codes.Internal, "failed to update onboarding settings")
@@ -96,7 +100,7 @@ return nil, status.Error(codes.Internal, "failed to update onboarding settings")
 
 	// Only run general settings update if there are non-onboarding fields to update
 	if in.Settings != nil && (in.Settings.Theme != "" || in.Settings.Language != "" || in.Settings.Timezone != "") {
-		_, err = l.svcCtx.Repo.UserSettings.UpdateUserSettings(l.ctx, params)
+		_, err = l.svcCtx.Repo.UserSettings.UpdateUserSettings(ctx, params)
 		if err != nil {
 			l.Errorf("Failed to update user settings: %v", err)
 return nil, status.Error(codes.Internal, "failed to update user settings")

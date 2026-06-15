@@ -10,6 +10,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -29,6 +30,8 @@ func NewListSavedLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListSav
 }
 
 func (l *ListSavedLogic) ListSaved(in *client.ListSavedRequest) (*client.ListSavedResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ListSavedLogic.ListSaved")
+	defer span.End()
 	limit := int32(20)
 	offset := int32(0)
 	if in.Limit > 0 {
@@ -38,7 +41,7 @@ func (l *ListSavedLogic) ListSaved(in *client.ListSavedRequest) (*client.ListSav
 		offset = in.Offset
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -52,7 +55,7 @@ return nil, status.Error(codes.Internal, "invalid user id")
 	var totalCount int64
 
 	if in.ItemType != "" {
-		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByType(l.ctx, userID, in.ItemType, limit, offset)
+		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByType(ctx, userID, in.ItemType, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list saved items by type: %v", err)
 return nil, status.Error(codes.Internal, "failed to list saved items by type")
@@ -62,7 +65,7 @@ return nil, status.Error(codes.Internal, "failed to list saved items by type")
 			items[i] = convertDbSavedItemToPb(item)
 		}
 	} else {
-		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByUser(l.ctx, userID, limit, offset)
+		dbItems, err := l.svcCtx.Repo.SavedItems.ListSavedItemsByUser(ctx, userID, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list saved items: %v", err)
 return nil, status.Error(codes.Internal, "failed to list saved items")
@@ -73,7 +76,7 @@ return nil, status.Error(codes.Internal, "failed to list saved items")
 		}
 	}
 
-	totalCount, _ = l.svcCtx.Repo.SavedItems.CountSavedItemsByUser(l.ctx, userID)
+	totalCount, _ = l.svcCtx.Repo.SavedItems.CountSavedItemsByUser(ctx, userID)
 
 	return &client.ListSavedResponse{
 		Items:      items,

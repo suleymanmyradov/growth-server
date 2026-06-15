@@ -9,6 +9,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -28,6 +29,8 @@ func NewGetActivityFeedLogic(ctx context.Context, svcCtx *svc.ServiceContext) *G
 }
 
 func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest) (*client.GetActivityFeedResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetActivityFeedLogic.GetActivityFeed")
+	defer span.End()
 	limit := int32(20)
 	offset := int32(0)
 	if in.Limit > 0 {
@@ -37,7 +40,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 		offset = in.Offset
 	}
 
-	p, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
@@ -47,7 +50,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	activities, err := l.svcCtx.Repo.Activities.GetActivityFeed(l.ctx, userID, limit, offset)
+	activities, err := l.svcCtx.Repo.Activities.GetActivityFeed(ctx, userID, limit, offset)
 	if err != nil {
 		l.Errorf("Failed to list activities: %v", err)
 return nil, status.Error(codes.Internal, "failed to list activities")

@@ -11,6 +11,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -104,9 +105,11 @@ func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext
 }
 
 func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWebhookRequest) (*client.HandleStripeWebhookResponse, error) {
+	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "HandleStripeWebhookLogic.HandleStripeWebhook")
+	defer span.End()
 	// Idempotency: skip duplicate events using the Stripe event ID.
 	if in.StripeEventId != "" {
-		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(l.ctx, in.StripeEventId)
+		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(ctx, in.StripeEventId)
 		if err != nil {
 			l.Errorf("idempotency check failed: %v", err)
 			return nil, status.Error(codes.Internal, "idempotency check failed")
@@ -138,7 +141,7 @@ func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWe
 
 	// Mark as processed only on success to allow retries on transient failures.
 	if handleErr == nil && in.StripeEventId != "" {
-		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(l.ctx, in.StripeEventId); markErr != nil {
+		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(ctx, in.StripeEventId); markErr != nil {
 			l.Errorf("failed to mark stripe event processed: %v", markErr)
 			// Non-fatal: the business logic succeeded.
 		}
