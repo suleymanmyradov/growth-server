@@ -1,10 +1,35 @@
 package articleslogic
 
 import (
+	"strings"
+	"unicode"
+
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
+
+// slugify converts a tag name to a URL-friendly slug.
+func slugify(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			b.WriteRune(unicode.ToLower(r))
+		} else if b.Len() > 0 && b.String()[b.Len()-1] != '-' {
+			b.WriteRune('-')
+		}
+	}
+	return strings.TrimSuffix(b.String(), "-")
+}
+
+// slugifyTags generates slugs for a slice of tag names.
+func slugifyTags(names []string) []string {
+	slugs := make([]string, len(names))
+	for i, n := range names {
+		slugs[i] = slugify(n)
+	}
+	return slugs
+}
 
 func convertGetRowToPbArticle(a db.GetArticleRow) *client.Article {
 	pb := &client.Article{

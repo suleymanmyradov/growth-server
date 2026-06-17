@@ -1,0 +1,61 @@
+syntax = "v1"
+
+info (
+	title:    "Admin API"
+	desc:     "Admin panel API for managing articles, users, and content"
+	author:   "suleymanmyradov"
+	version:  "v1.0"
+	schemes:  "http"
+	host:     "localhost"
+	basePath: "/api/v1"
+)
+
+import "types.api"
+
+@server (
+	prefix:     /api/v1/admin
+	group:      articles
+	middleware: Auth,AdminAuth
+	tags:       "Admin Articles"
+)
+service adminapi {
+	@handler AdminListArticles
+	get /articles (ListArticlesRequest) returns (ArticlesResponse)
+
+	@handler AdminGetArticle
+	get /articles/:id (ArticleRequest) returns (ArticleResponse)
+
+	@handler AdminCreateArticle
+	post /articles (CreateArticleRequest) returns (ArticleResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      articles
+	middleware: Auth,AdminAuth
+	tags:       "Admin Articles"
+)
+service adminapi {
+	@handler AdminUpdateArticle
+	put /articles/:id (UpdateArticleRequest) returns (ArticleResponse)
+
+	@handler AdminDeleteArticle
+	delete /articles/:id (ArticleRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix: /api/v1/admin
+	group:  auth
+	tags:   "Admin Auth"
+)
+service adminapi {
+	@handler AuthLogin
+	post /auth/login (LoginRequest) returns (AuthResponse)
+
+	@handler AuthRegister
+	post /auth/register (RegisterRequest) returns (AuthResponse)
+
+	@handler AuthRefresh
+	post /auth/refresh (RefreshTokenRequest) returns (AuthResponse)
+}
+

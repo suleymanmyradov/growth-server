@@ -155,3 +155,24 @@ FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = ANY($1::uuid[]);
 
+-- name: UpsertTags :many
+INSERT INTO tags (name, slug)
+SELECT unnest($1::text[]), unnest($2::text[])
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+RETURNING id, name, slug;
+
+-- name: DeleteArticleTags :exec
+DELETE FROM article_tags WHERE article_id = $1;
+
+-- name: LinkArticleTags :exec
+INSERT INTO article_tags (article_id, tag_id)
+SELECT $1, id FROM tags WHERE name = ANY($2::varchar[])
+ON CONFLICT DO NOTHING;
+
+-- name: GetTagsByArticleIDs :many
+SELECT at.article_id, t.name, t.slug
+FROM article_tags at
+JOIN tags t ON at.tag_id = t.id
+WHERE at.article_id = ANY($1::uuid[])
+ORDER BY at.article_id, t.name;
+

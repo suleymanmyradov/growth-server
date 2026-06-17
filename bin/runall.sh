@@ -36,4 +36,7 @@ start_service search-sync "${BINDIR}/search-sync" "${ROOT}/services/microservice
 # Start gateway
 start_service gateway "${BINDIR}/gateway" "${CONFIGDIR}/growthapi.yaml"
 
+# Start adminway
+start_service adminway "${BINDIR}/adminway" "${ROOT}/services/adminway/adminapi/etc/adminapi.yaml"
+
 echo "All services started."

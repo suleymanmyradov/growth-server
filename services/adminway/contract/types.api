@@ -1,0 +1,122 @@
+syntax = "v1"
+
+type (
+	EmptyResponse  {}
+
+	PageResponse {
+		total      int64 `json:"total,example=100"`
+		page       int   `json:"page,example=1"`
+		limit      int   `json:"limit,example=20"`
+		totalPages int   `json:"totalPages,example=5"`
+	}
+)
+
+type (
+	ArticleCategory {
+		id   string `json:"id,example=cat-123"`
+		name string `json:"name,example=Personal Development"`
+		slug string `json:"slug,example=personal-development"`
+	}
+
+	Article {
+		id          string           `json:"id,example=article-123"`
+		title       string           `json:"title,example=10 Habits for Personal Growth"`
+		excerpt     string           `json:"excerpt,example=Discover the top habits that can transform your life..."`
+		content     string           `json:"content,example=Full article content here..."`
+		category    *ArticleCategory `json:"category,optional"`
+		readTime    int              `json:"readTime,example=5"`
+		imageUrl    string           `json:"imageUrl,example=https://example.com/article.jpg"`
+		author      string           `json:"author,example=John Smith"`
+		publishedAt string           `json:"publishedAt,example=2024-01-01T00:00:00Z"`
+		createdAt   string           `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt   string           `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+		isSaved     bool             `json:"isSaved"`
+		likeCount   int              `json:"likeCount"`
+		isLiked     bool             `json:"isLiked"`
+		tags        []string          `json:"tags,optional"`
+	}
+
+	Tag {
+		id   string `json:"id,example=tag-123"`
+		name string `json:"name,example=productivity"`
+	}
+
+	TagsResponse {
+		data []Tag `json:"data"`
+	}
+
+	ArticleResponse {
+		data Article `json:"data"`
+	}
+
+	ArticlesResponse {
+		data []Article    `json:"data"`
+		page PageResponse `json:"page"`
+	}
+
+	ArticleRequest {
+		id string `path:"id"`
+	}
+
+	ListArticlesRequest {
+		categorySlug string `form:"category,optional"`
+		page         int    `form:"page,default=1"`
+		limit        int    `form:"limit,default=20"`
+	}
+
+	CreateArticleRequest {
+		title      string   `json:"title,example=10 Habits for Personal Growth"`
+		content    string   `json:"content,example=Full article content here..."`
+		summary    string   `json:"summary,optional"`
+		authorId   string   `json:"authorId,example=user-123"`
+		coverImage string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
+		tags       []string `json:"tags,optional"`
+		readTime   int      `json:"readTime,example=5"`
+		categoryId string   `json:"categoryId,optional,example=cat-123"`
+	}
+
+	UpdateArticleRequest {
+		id         string   `path:"id"`
+		title      string   `json:"title,optional"`
+		content    string   `json:"content,optional"`
+		summary    string   `json:"summary,optional"`
+		authorId   string   `json:"authorId,optional"`
+		coverImage string   `json:"coverImage,optional"`
+		tags       []string `json:"tags,optional"`
+		readTime   int      `json:"readTime,optional"`
+		categoryId string   `json:"categoryId,optional"`
+	}
+)
+
+type (
+	LoginRequest {
+		email    string `json:"email"`
+		password string `json:"password"`
+	}
+
+	RegisterRequest {
+		email    string `json:"email"`
+		password string `json:"password"`
+		fullName string `json:"fullName"`
+		role     string `json:"role,optional"`
+	}
+
+	RefreshTokenRequest {
+		refreshToken string `json:"refreshToken"`
+	}
+
+	UserInfo {
+		id       string `json:"id"`
+		email    string `json:"email"`
+		fullName string `json:"fullName"`
+		role     string `json:"role"`
+	}
+
+	AuthResponse {
+		accessToken  string   `json:"accessToken"`
+		refreshToken string   `json:"refreshToken"`
+		user         UserInfo `json:"user"`
+	}
+)
+
+

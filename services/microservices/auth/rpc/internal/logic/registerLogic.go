@@ -94,7 +94,7 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 		return nil, status.Error(codes.Internal, "failed to generate access token")
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, sessionID)
+	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("Register failed to create refresh token for user %s: %v", user.ID, err)
 		return nil, status.Error(codes.Internal, "failed to generate refresh token")

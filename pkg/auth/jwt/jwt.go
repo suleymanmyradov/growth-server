@@ -139,7 +139,7 @@ func (tm *TokenMaker) CreateAccessToken(_ context.Context, userID uuid.UUID, use
 	}, nil
 }
 
-func (tm *TokenMaker) CreateRefreshToken(_ context.Context, userID uuid.UUID, username string, sessionID uuid.UUID) (*TokenResponse, error) {
+func (tm *TokenMaker) CreateRefreshToken(_ context.Context, userID uuid.UUID, username string, roles []string, sessionID uuid.UUID) (*TokenResponse, error) {
 	now := time.Now()
 	expiresAt := now.Add(tm.refreshExpiry)
 
@@ -148,6 +148,7 @@ func (tm *TokenMaker) CreateRefreshToken(_ context.Context, userID uuid.UUID, us
 		Subject:   userID,
 		SessionID: sessionID,
 		Username:  username,
+		Roles:     roles,
 		Issuer:    tm.issuer,
 		Audience:  []string{tm.audience},
 		IssuedAt:  jwt.NewNumericDate(now),
@@ -300,7 +301,7 @@ func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (
 		}
 	}
 
-	return tm.CreateRefreshToken(ctx, oldClaims.Subject, oldClaims.Username, oldClaims.SessionID)
+	return tm.CreateRefreshToken(ctx, oldClaims.Subject, oldClaims.Username, oldClaims.Roles, oldClaims.SessionID)
 }
 
 // Note: This JWT package does not spawn any background goroutines.

@@ -5,7 +5,7 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${DIR}/.." && pwd)"
 BINDIR="${DIR}"
 
-services=(auth client search notifications ai-coach search-sync gateway)
+services=(auth client search notifications ai-coach search-sync gateway adminway)
 
 status_service() {
   local name="$1"
@@ -38,6 +38,7 @@ main() {
   status_service "ai-coach-consumer" "ai-coach.yaml" || overall=1
   status_service "search-sync" "search-sync.yaml" || overall=1
   status_service "gateway" "growthapi.yaml" || overall=1
+  status_service "adminway" "adminapi.yaml" || overall=1
 
   exit "$overall"
 }

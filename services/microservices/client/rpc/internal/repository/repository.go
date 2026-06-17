@@ -30,6 +30,10 @@ type IArticles interface {
 	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
 	CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error)
 	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
+	UpsertTags(ctx context.Context, names []string, slugs []string) ([]db.UpsertTagsRow, error)
+	DeleteArticleTags(ctx context.Context, articleID uuid.UUID) error
+	LinkArticleTags(ctx context.Context, articleID uuid.UUID, tagNames []string) error
+	GetTagsByArticleIDs(ctx context.Context, articleIDs []uuid.UUID) ([]db.GetTagsByArticleIDsRow, error)
 }
 
 // SavedItem is the uniform view over the three concrete saved tables.
