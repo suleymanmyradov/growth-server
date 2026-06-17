@@ -217,6 +217,7 @@ type (
 		isSaved     bool             `json:"isSaved"`
 		likeCount   int              `json:"likeCount"`
 		isLiked     bool             `json:"isLiked"`
+		tags        []string         `json:"tags,optional"`
 	}
 	ArticleResponse {
 		data Article `json:"data"`

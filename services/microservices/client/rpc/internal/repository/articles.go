@@ -163,3 +163,31 @@ func (r *ArticlesRepo) IsArticleLikedByUser(ctx context.Context, articleID uuid.
 
 	return r.db.IsArticleLikedByUser(ctx, articleID, userID)
 }
+
+func (r *ArticlesRepo) UpsertTags(ctx context.Context, names []string, slugs []string) ([]db.UpsertTagsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.UpsertTags")
+	defer span.End()
+
+	return r.db.UpsertTags(ctx, names, slugs)
+}
+
+func (r *ArticlesRepo) DeleteArticleTags(ctx context.Context, articleID uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.DeleteArticleTags")
+	defer span.End()
+
+	return r.db.DeleteArticleTags(ctx, articleID)
+}
+
+func (r *ArticlesRepo) LinkArticleTags(ctx context.Context, articleID uuid.UUID, tagNames []string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.LinkArticleTags")
+	defer span.End()
+
+	return r.db.LinkArticleTags(ctx, articleID, tagNames)
+}
+
+func (r *ArticlesRepo) GetTagsByArticleIDs(ctx context.Context, articleIDs []uuid.UUID) ([]db.GetTagsByArticleIDsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.GetTagsByArticleIDs")
+	defer span.End()
+
+	return r.db.GetTagsByArticleIDs(ctx, articleIDs)
+}

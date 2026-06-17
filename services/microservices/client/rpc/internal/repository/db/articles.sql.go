@@ -100,6 +100,15 @@ func (q *Queries) DeleteArticle(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteArticleTags = `-- name: DeleteArticleTags :exec
+DELETE FROM article_tags WHERE article_id = $1
+`
+
+func (q *Queries) DeleteArticleTags(ctx context.Context, articleID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteArticleTags, articleID)
+	return err
+}
+
 const getArticle = `-- name: GetArticle :one
 SELECT 
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
@@ -319,6 +328,51 @@ func (q *Queries) GetArticlesByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const getTagsByArticleIDs = `-- name: GetTagsByArticleIDs :many
+SELECT at.article_id, t.name, t.slug
+FROM article_tags at
+JOIN tags t ON at.tag_id = t.id
+WHERE at.article_id = ANY($1::uuid[])
+ORDER BY at.article_id, t.name
+`
+
+type GetTagsByArticleIDsRow struct {
+	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
+	Name      string    `db:"name" json:"name"`
+	Slug      string    `db:"slug" json:"slug"`
+}
+
+func (q *Queries) GetTagsByArticleIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetTagsByArticleIDsRow, error) {
+	rows, err := q.db.Query(ctx, getTagsByArticleIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetTagsByArticleIDsRow{}
+	for rows.Next() {
+		var i GetTagsByArticleIDsRow
+		if err := rows.Scan(&i.ArticleID, &i.Name, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const linkArticleTags = `-- name: LinkArticleTags :exec
+INSERT INTO article_tags (article_id, tag_id)
+SELECT $1, id FROM tags WHERE name = ANY($2::varchar[])
+ON CONFLICT DO NOTHING
+`
+
+func (q *Queries) LinkArticleTags(ctx context.Context, articleID uuid.UUID, column2 []string) error {
+	_, err := q.db.Exec(ctx, linkArticleTags, articleID, column2)
+	return err
 }
 
 const listArticles = `-- name: ListArticles :many
@@ -860,4 +914,37 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (U
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const upsertTags = `-- name: UpsertTags :many
+INSERT INTO tags (name, slug)
+SELECT unnest($1::text[]), unnest($2::text[])
+ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name
+RETURNING id, name, slug
+`
+
+type UpsertTagsRow struct {
+	ID   uuid.UUID `db:"id" json:"id"`
+	Name string    `db:"name" json:"name"`
+	Slug string    `db:"slug" json:"slug"`
+}
+
+func (q *Queries) UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error) {
+	rows, err := q.db.Query(ctx, upsertTags, column1, column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UpsertTagsRow{}
+	for rows.Next() {
+		var i UpsertTagsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

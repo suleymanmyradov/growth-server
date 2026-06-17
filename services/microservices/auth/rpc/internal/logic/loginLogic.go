@@ -64,7 +64,7 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 		return nil, status.Error(codes.Internal, "failed to generate access token")
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, sessionID)
+	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("Login failed to create refresh token for user %s: %v", user.ID, err)
 		return nil, status.Error(codes.Internal, "failed to generate refresh token")

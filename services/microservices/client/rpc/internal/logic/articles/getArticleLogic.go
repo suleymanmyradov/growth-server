@@ -61,6 +61,15 @@ func (l *GetArticleLogic) GetArticle(in *client.GetArticleRequest) (*client.GetA
 		pbArticle = convertGetRowToPbArticle(article)
 	}
 
+	tagRows, err := l.svcCtx.Repo.Articles.GetTagsByArticleIDs(ctx, []uuid.UUID{articleID})
+	if err != nil {
+		l.Errorf("failed to get article tags: %v", err)
+	} else {
+		for _, t := range tagRows {
+			pbArticle.Tags = append(pbArticle.Tags, t.Name)
+		}
+	}
+
 	return &client.GetArticleResponse{
 		Article: pbArticle,
 	}, nil

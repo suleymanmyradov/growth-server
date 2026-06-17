@@ -96,6 +96,27 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(ctx)
 	}
 
+	if len(pbArticles) > 0 {
+		articleIDs := make([]uuid.UUID, 0, len(pbArticles))
+		for _, a := range pbArticles {
+			if id, err := uuid.Parse(a.Id); err == nil {
+				articleIDs = append(articleIDs, id)
+			}
+		}
+		tagRows, err := l.svcCtx.Repo.Articles.GetTagsByArticleIDs(ctx, articleIDs)
+		if err != nil {
+			l.Errorf("failed to get article tags: %v", err)
+		} else {
+			tagMap := make(map[string][]string)
+			for _, t := range tagRows {
+				tagMap[t.ArticleID.String()] = append(tagMap[t.ArticleID.String()], t.Name)
+			}
+			for _, a := range pbArticles {
+				a.Tags = tagMap[a.Id]
+			}
+		}
+	}
+
 	return &client.ListArticlesResponse{
 		Articles:   pbArticles,
 		TotalCount: int32(totalCount),

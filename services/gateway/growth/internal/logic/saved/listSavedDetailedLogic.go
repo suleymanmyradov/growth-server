@@ -127,6 +127,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 					PublishedAt: formatUnix(a.PublishedAt),
 					CreatedAt:   formatUnix(a.CreatedAt),
 					UpdatedAt:   formatUnix(a.UpdatedAt),
+					Tags:        a.Tags,
 				}
 				if a.Category != nil {
 					detailed.Article.Category = &types.ArticleCategory{

@@ -15,6 +15,7 @@ SERVICES=(
   "ai-coach-consumer:ai-coach.yaml"
   "search-sync:search-sync.yaml"
   "gateway:growthapi.yaml"
+  "adminway:adminapi.yaml"
 )
 
 echo "Stopping services..."

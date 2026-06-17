@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate-api format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-all tmux-start tmux-stop tmux-attach
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all tmux-start tmux-stop tmux-attach
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -15,13 +15,17 @@ help:
 	@echo "  run-ai-coach-consumer - Run ai-coach consumer locally"
 	@echo "  run-search-sync     - Run search-sync worker locally"
 	@echo "  run-gateway         - Run API gateway locally"
+	@echo "  run-adminway        - Run admin API locally"
 	@echo "  run-all             - Run all services locally"
 	@echo "  tmux-start          - Start all services in a tmux session (no binaries)"
 	@echo "  tmux-stop           - Stop the tmux session"
 	@echo "  tmux-attach         - Attach to the running tmux session"
 	@echo "  migrate-up          - Run database migrations"
 	@echo "  migrate-down        - Rollback database migrations"
+	@echo "  generate             - Generate all APIs, repos, and protos"
 	@echo "  generate-api        - Generate API gateway from contract"
+	@echo "  generate-admin-api  - Generate admin API from contract"
+	@echo "  generate-adminway-repo - Generate adminway repository layer (sqlc)"
 	@echo "  swagger-api         - Generate Swagger spec for the gateway"
 	@echo "  open-swagger        - Open Swagger UI in browser"
 	@echo "  generate-client-repo       - Generate client service repository layer"
@@ -116,6 +120,12 @@ run-gateway: build-gateway
 	@mkdir -p logs
 	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml
 
+# Run adminway locally (connects to docker dependencies)
+run-adminway: build-adminway
+	@echo "Running adminway service..."
+	@mkdir -p logs
+	./bin/adminway -f services/adminway/adminapi/etc/adminapi.yaml
+
 # Run all services locally
 run-all: build
 	@echo "Running all services..."
@@ -126,6 +136,7 @@ run-all: build
 	./bin/ai-coach -f services/microservices/ai-coach/rpc/etc/aicoach.yaml > logs/ai-coach.log 2>&1 &
 	./bin/filemanager -f services/microservices/filemanager/rpc/etc/filemanager.yaml > logs/filemanager.log 2>&1 &
 	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml > logs/gateway.log 2>&1 &
+	./bin/adminway -f services/adminway/adminapi/etc/adminapi.yaml > logs/adminway.log 2>&1 &
 	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml > logs/ai-coach-consumer.log 2>&1 &
 	./bin/notifications -f services/microservices/notifications/rpc/etc/notifications.yaml > logs/notifications.log 2>&1 &
 	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml > logs/search-sync.log 2>&1 &
@@ -175,6 +186,19 @@ migrate-down:
 generate-api:
 	@echo "Generating API gateway..."
 	goctl api go -api ./services/gateway/contract/main.api -dir ./services/gateway/growth -style goZero
+
+generate-adminway-repo:
+	@echo "Generating adminway repository layer..."
+	mkdir -p services/adminway/adminapi/internal/repository/db
+	sqlc generate -f sql/conf/sqlc.adminway.yaml
+
+generate-admin-api:
+	@echo "Generating admin API..."
+	goctl api go -api ./services/adminway/contract/main.api -dir ./services/adminway/adminapi -style goZero
+
+generate: generate-api generate-admin-api sqlc generate-adminway-repo generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto
+	@echo "All generation complete!"
+
 format-api:
 	@echo "Formatting API gateway..."
 	goctl api format --dir ./services/gateway/contract
@@ -206,6 +230,7 @@ sqlc:
 			echo "skip: no queries in sql/queries/$$svc"; \
 		fi; \
 	done
+	$(MAKE) generate-adminway-repo
 generate-client-proto:
 	@echo "Generating client proto..."
 	goctl rpc protoc ./services/microservices/client/api/v1/client.proto --go_out=./services/microservices/client/rpc/pb --go-grpc_out=./services/microservices/client/rpc/pb --zrpc_out=./services/microservices/client/rpc -m --style goZero
@@ -234,7 +259,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-billing-reconciler
+build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler
 	@echo "All services built successfully!"
 
 build-auth:
@@ -277,6 +302,11 @@ build-gateway:
 	@echo "Building gateway service..."
 	@mkdir -p bin
 	go build -o bin/gateway ./services/gateway/growth
+
+build-adminway:
+	@echo "Building adminway service..."
+	@mkdir -p bin
+	go build -o bin/adminway ./services/adminway/adminapi
 
 build-billing-reconciler:
 	@echo "Building billing-reconciler..."

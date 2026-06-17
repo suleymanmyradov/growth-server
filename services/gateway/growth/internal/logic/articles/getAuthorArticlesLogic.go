@@ -70,6 +70,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesR
 			CreatedAt:   formatTime(a.CreatedAt),
 			UpdatedAt:   formatTime(a.UpdatedAt),
 			IsSaved:     a.IsSaved,
+			Tags:        a.Tags,
 		})
 	}
 

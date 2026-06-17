@@ -37,6 +37,7 @@ type Article struct {
 	IsSaved     bool             `json:"isSaved"`
 	LikeCount   int              `json:"likeCount"`
 	IsLiked     bool             `json:"isLiked"`
+	Tags        []string         `json:"tags,optional"`
 }
 
 type ArticleCategory struct {

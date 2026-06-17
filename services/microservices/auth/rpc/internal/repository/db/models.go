@@ -60,6 +60,11 @@ type ArticleShare struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type ArticleTag struct {
+	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
+	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
+}
+
 type Category struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Name      string             `db:"name" json:"name"`
@@ -110,6 +115,16 @@ type Habit struct {
 	Streak      int32              `db:"streak" json:"streak"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type InternalUser struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Email        string             `db:"email" json:"email"`
+	PasswordHash string             `db:"password_hash" json:"password_hash"`
+	FullName     string             `db:"full_name" json:"full_name"`
+	Role         string             `db:"role" json:"role"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Notification struct {
@@ -196,13 +211,14 @@ type SavedHabit struct {
 }
 
 type SearchOutbox struct {
-	ID         int64              `db:"id" json:"id"`
-	EntityType string             `db:"entity_type" json:"entity_type"`
-	EntityID   uuid.UUID          `db:"entity_id" json:"entity_id"`
-	Operation  string             `db:"operation" json:"operation"`
-	Attempts   int32              `db:"attempts" json:"attempts"`
-	LastError  *string            `db:"last_error" json:"last_error"`
-	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          int64              `db:"id" json:"id"`
+	EntityType  string             `db:"entity_type" json:"entity_type"`
+	EntityID    uuid.UUID          `db:"entity_id" json:"entity_id"`
+	Operation   string             `db:"operation" json:"operation"`
+	Attempts    int32              `db:"attempts" json:"attempts"`
+	LastError   *string            `db:"last_error" json:"last_error"`
+	AvailableAt pgtype.Timestamptz `db:"available_at" json:"available_at"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Subscription struct {
@@ -219,6 +235,13 @@ type Subscription struct {
 	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type Tag struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Name      string             `db:"name" json:"name"`
+	Slug      string             `db:"slug" json:"slug"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type UpgradeEvent struct {

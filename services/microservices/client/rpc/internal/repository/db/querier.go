@@ -62,6 +62,7 @@ type Querier interface {
 	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
 	DeleteArticleShare(ctx context.Context, id uuid.UUID) error
 	DeleteArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
+	DeleteArticleTags(ctx context.Context, articleID uuid.UUID) error
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	// Reset coaching fields to their defaults (settings row itself stays).
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
@@ -113,6 +114,7 @@ type Querier interface {
 	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
+	GetTagsByArticleIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetTagsByArticleIDsRow, error)
 	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error)
@@ -126,6 +128,7 @@ type Querier interface {
 	IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error)
 	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
 	IsStripeEventProcessed(ctx context.Context, eventID string) (bool, error)
+	LinkArticleTags(ctx context.Context, articleID uuid.UUID, column2 []string) error
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 	ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
@@ -200,6 +203,7 @@ type Querier interface {
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (PlanAdjustment, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error)
+	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)
 	UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (Subscription, error)
 }
 
