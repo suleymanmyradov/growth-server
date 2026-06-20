@@ -24,8 +24,9 @@ type Querier interface {
 	CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByArticle(ctx context.Context, articleID uuid.UUID) (int64, error)
 	CountArticleSharesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountArticles(ctx context.Context) (int64, error)
-	CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error)
+	CountArticles(ctx context.Context, status string) (int64, error)
+	CountArticlesByCategory(ctx context.Context, categoryID uuid.NullUUID) (int64, error)
+	CountArticlesByCategorySlug(ctx context.Context, slug string, status string) (int64, error)
 	CountCategories(ctx context.Context) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -36,6 +37,8 @@ type Querier interface {
 	CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountSearchArticles(ctx context.Context, plaintoTsquery string, status string) (int64, error)
+	CountTagUsage(ctx context.Context, tagID uuid.UUID) (int64, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
@@ -51,6 +54,7 @@ type Querier interface {
 	CreateSavedArticle(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (CreateSavedArticleRow, error)
 	CreateSavedGoal(ctx context.Context, goalID uuid.UUID, userID uuid.UUID) (CreateSavedGoalRow, error)
 	CreateSavedHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (CreateSavedHabitRow, error)
+	CreateTag(ctx context.Context, name string, slug string) (Tag, error)
 	CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEventParams) (CreateUpgradeEventRow, error)
 	CreateUserSettings(ctx context.Context, arg CreateUserSettingsParams) (UserSetting, error)
 	// week_end is derived (week_start + 6) and generated_at is just updated_at;
@@ -72,6 +76,7 @@ type Querier interface {
 	DeleteSavedArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
 	DeleteSavedGoal(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) error
 	DeleteSavedHabit(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error
+	DeleteTag(ctx context.Context, id uuid.UUID) error
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
 	// Single aggregate pass over activities instead of repeated subqueries.
@@ -80,19 +85,19 @@ type Querier interface {
 	GetActivityCalendar(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetActivityCalendarRow, error)
 	GetActivityFeed(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
 	GetActivityStats(ctx context.Context, userID uuid.UUID) (GetActivityStatsRow, error)
-	GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, error)
+	GetArticle(ctx context.Context, iD uuid.UUID, status string) (GetArticleRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (GetArticleByTitleRow, error)
 	GetArticleShare(ctx context.Context, id uuid.UUID) (ArticleShare, error)
 	GetArticleShareByUserAndArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (ArticleShare, error)
-	GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (GetArticleWithSavedRow, error)
+	GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (GetArticleWithSavedRow, error)
 	// Bulk lookup for article list views (e.g. resolving saved articles).
 	// Uses ANY with a uuid array to avoid N+1 queries.
 	GetArticlesByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetArticlesByIDsRow, error)
-	GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetBlockerStatsForWeekRow, error)
+	GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetBlockerStatsForWeekRow, error)
 	GetCategory(ctx context.Context, id uuid.UUID) (Category, error)
 	GetCategoryBySlug(ctx context.Context, slug string) (Category, error)
 	GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryParams) ([]CheckIn, error)
-	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetCheckInStatsForWeekRow, error)
+	GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetCheckInStatsForWeekRow, error)
 	GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]CheckIn, error)
 	// Keyset pagination: more efficient than OFFSET for deep pages.
@@ -102,18 +107,29 @@ type Querier interface {
 	// These queries keep the coaching-profile shape the AI coach expects.
 	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (GetCoachingProfileRow, error)
 	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (GetCurrentWeeklyReviewRow, error)
-	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error)
-	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetEnergyStatsForWeekRow, error)
+	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetDailyCheckInStatsForWeekRow, error)
+	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetEnergyStatsForWeekRow, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error)
 	GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGoalsByIDsRow, error)
 	GetHabit(ctx context.Context, id uuid.UUID) (GetHabitRow, error)
+	// Computes the current streak for a single habit (see GetHabitStreaks).
+	GetHabitStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (int32, error)
+	// Computes the current streak for every habit owned by a user. The streak is
+	// the number of consecutive completed days ending today OR yesterday (in the
+	// owner's timezone). If the most recent completed day is older than yesterday
+	// (or there are no completions), the streak is 0. The streak is derived from
+	// check_ins history rather than stored on the habit, so it is always truthful
+	// and never needs to be mutated by completion/reset flows.
+	GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]GetHabitStreaksRow, error)
 	GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetHabitsByIDsRow, error)
-	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetMoodStatsForWeekRow, error)
+	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetMoodStatsForWeekRow, error)
 	GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error)
 	GetPlanByCode(ctx context.Context, code string) (Plan, error)
 	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
+	GetTag(ctx context.Context, id uuid.UUID) (Tag, error)
+	GetTagBySlug(ctx context.Context, slug string) (Tag, error)
 	GetTagsByArticleIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetTagsByArticleIDsRow, error)
 	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
@@ -148,12 +164,12 @@ type Querier interface {
 	ListArticleShares(ctx context.Context, limit int32, offset int32) ([]ArticleShare, error)
 	ListArticleSharesByArticle(ctx context.Context, articleID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
 	ListArticleSharesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
-	ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error)
-	ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error)
-	ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByAuthorWithSavedRow, error)
-	ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error)
-	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByCategorySlugWithSavedRow, error)
-	ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesWithSavedRow, error)
+	ListArticles(ctx context.Context, limit int32, offset int32, status string) ([]ListArticlesRow, error)
+	ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32, status string) ([]ListArticlesByAuthorRow, error)
+	ListArticlesByAuthorWithSaved(ctx context.Context, arg ListArticlesByAuthorWithSavedParams) ([]ListArticlesByAuthorWithSavedRow, error)
+	ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32, status string) ([]ListArticlesByCategorySlugRow, error)
+	ListArticlesByCategorySlugWithSaved(ctx context.Context, arg ListArticlesByCategorySlugWithSavedParams) ([]ListArticlesByCategorySlugWithSavedRow, error)
+	ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID, status string) ([]ListArticlesWithSavedRow, error)
 	ListCategories(ctx context.Context) ([]Category, error)
 	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]ListExpiredActiveSubscriptionsRow, error)
 	// Goal rows are returned with a resolved category slug and a derived
@@ -161,9 +177,15 @@ type Querier interface {
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error)
 	// Keyset pagination: pass last_created_at from the previous page (or NULL).
 	ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListGoalsKeysetRow, error)
+	// Returns completed check-ins for a user's habits within the last 28 days
+	// (in the owner's timezone). Used to render the per-habit 28-day contribution
+	// graph on the habit card.
+	ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]ListHabitHistoryRow, error)
 	// Habit rows carry a resolved category slug and a derived `completed` flag:
 	// completed = a 'completed' check-in exists for the habit today (in the
-	// owner's timezone). There is no stored boolean to keep in sync.
+	// owner's timezone). There is no stored boolean to keep in sync. The streak
+	// is also derived (see GetHabitStreak/GetHabitStreaks); there is no stored
+	// streak column.
 	ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListHabitsRow, error)
 	// Keyset pagination: pass last_created_at from the previous page (or NULL).
 	ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListHabitsKeysetRow, error)
@@ -176,18 +198,18 @@ type Querier interface {
 	ListSavedGoalsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedGoalsByUserKeysetRow, error)
 	ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error)
 	ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedHabitsByUserKeysetRow, error)
+	ListTags(ctx context.Context) ([]ListTagsRow, error)
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListWeeklyReviewsRow, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
-	// Idempotent: completing an already-completed habit changes nothing.
-	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (MarkHabitCompletedRow, error)
 	MarkStripeEventProcessed(ctx context.Context, eventID string) error
+	ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error
 	// "Uncompletes" all of today's habits by deleting today's completed check-ins.
+	// The streak is derived from check_ins history, so it recomputes automatically
+	// once today's completed check-in is gone; no streak mutation is needed here.
+	// Returns the number of completed check-ins removed.
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
-	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error)
+	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32, status string) ([]SearchArticlesRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error)
-	// Toggles today's completion by inserting or deleting a completed check-in
-	// for today (owner's timezone) and adjusting the streak accordingly.
-	ToggleHabit(ctx context.Context, id uuid.UUID) (ToggleHabitRow, error)
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
 	UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error)
 	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UpdateCoachingProfileBlockersRow, error)
@@ -197,10 +219,10 @@ type Querier interface {
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error)
 	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error)
 	UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, slug string) (UpdateHabitRow, error)
-	UpdateHabitStreak(ctx context.Context, iD uuid.UUID, streak int32) (UpdateHabitStreakRow, error)
 	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle string, checkInTime pgtype.Time, onboardingCompleted bool) (UserSetting, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustment, error)
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (PlanAdjustment, error)
+	UpdateTag(ctx context.Context, iD uuid.UUID, name string, slug string) (Tag, error)
 	UpdateUserSettings(ctx context.Context, arg UpdateUserSettingsParams) (UserSetting, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error)
 	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)

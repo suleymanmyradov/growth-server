@@ -287,11 +287,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 				{
 					Method:  http.MethodPost,
-					Path:    "/habits/:id/toggle",
-					Handler: habits.ToggleHabitHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
 					Path:    "/habits/reset-today",
 					Handler: habits.ResetTodayHabitsHandler(serverCtx),
 				},

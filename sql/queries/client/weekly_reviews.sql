@@ -86,8 +86,8 @@ LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
-   AND ci.created_at >= $2
-   AND ci.created_at < $3
+   AND ci.local_date >= $2
+   AND ci.local_date < $3
 WHERE h.user_id = $1
 GROUP BY h.id, h.name, c.slug, h.created_at
 ORDER BY h.created_at DESC;
@@ -100,8 +100,8 @@ SELECT
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count
 FROM check_ins ci
 WHERE ci.user_id = $1
-  AND ci.created_at >= $2
-  AND ci.created_at < $3
+  AND ci.local_date >= $2
+  AND ci.local_date < $3
 GROUP BY ci.local_date
 ORDER BY day ASC;
 
@@ -109,8 +109,8 @@ ORDER BY day ASC;
 SELECT blocker::text AS blocker, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND status = 'missed'
   AND blocker IS NOT NULL
 GROUP BY blocker
@@ -120,8 +120,8 @@ ORDER BY count DESC;
 SELECT mood::text AS mood, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND mood IS NOT NULL
 GROUP BY mood
 ORDER BY count DESC;
@@ -130,8 +130,8 @@ ORDER BY count DESC;
 SELECT energy::text AS energy, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND energy IS NOT NULL
 GROUP BY energy
 ORDER BY count DESC;

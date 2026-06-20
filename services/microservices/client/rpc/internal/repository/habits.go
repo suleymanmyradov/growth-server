@@ -67,28 +67,18 @@ func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {
 	return r.db.DeleteHabit(ctx, id)
 }
 
-func (r *habitsRepo) ToggleHabit(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ToggleHabit")
+func (r *habitsRepo) GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID) (int32, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitStreak")
 	defer span.End()
 
-	row, err := r.db.ToggleHabit(ctx, id)
-	return db.GetHabitRow(row), err
+	return r.db.GetHabitStreak(ctx, habitID, userID)
 }
 
-func (r *habitsRepo) UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.GetHabitRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitStreak")
+func (r *habitsRepo) GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]db.GetHabitStreaksRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitStreaks")
 	defer span.End()
 
-	row, err := r.db.UpdateHabitStreak(ctx, id, streak)
-	return db.GetHabitRow(row), err
-}
-
-func (r *habitsRepo) MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.MarkHabitCompleted")
-	defer span.End()
-
-	row, err := r.db.MarkHabitCompleted(ctx, id)
-	return db.GetHabitRow(row), err
+	return r.db.GetHabitStreaks(ctx, userID)
 }
 
 func (r *habitsRepo) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -103,4 +93,11 @@ func (r *habitsRepo) CountHabitsByUser(ctx context.Context, userID uuid.UUID) (i
 	defer span.End()
 
 	return r.db.CountHabitsByUser(ctx, userID)
+}
+
+func (r *habitsRepo) ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]db.ListHabitHistoryRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ListHabitHistory")
+	defer span.End()
+
+	return r.db.ListHabitHistory(ctx, userID)
 }

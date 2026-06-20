@@ -1689,6 +1689,8 @@ const (
 	Articles_LikeArticle_FullMethodName       = "/client.Articles/LikeArticle"
 	Articles_ShareArticle_FullMethodName      = "/client.Articles/ShareArticle"
 	Articles_GetAuthorArticles_FullMethodName = "/client.Articles/GetAuthorArticles"
+	Articles_ListTags_FullMethodName          = "/client.Articles/ListTags"
+	Articles_SearchArticles_FullMethodName    = "/client.Articles/SearchArticles"
 )
 
 // ArticlesClient is the client API for Articles service.
@@ -1703,6 +1705,8 @@ type ArticlesClient interface {
 	LikeArticle(ctx context.Context, in *LikeArticleRequest, opts ...grpc.CallOption) (*LikeArticleResponse, error)
 	ShareArticle(ctx context.Context, in *ShareArticleRequest, opts ...grpc.CallOption) (*ShareArticleResponse, error)
 	GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error)
+	ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error)
+	SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error)
 }
 
 type articlesClient struct {
@@ -1793,6 +1797,26 @@ func (c *articlesClient) GetAuthorArticles(ctx context.Context, in *GetAuthorArt
 	return out, nil
 }
 
+func (c *articlesClient) ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTagsResponse)
+	err := c.cc.Invoke(ctx, Articles_ListTags_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articlesClient) SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchArticlesResponse)
+	err := c.cc.Invoke(ctx, Articles_SearchArticles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ArticlesServer is the server API for Articles service.
 // All implementations must embed UnimplementedArticlesServer
 // for forward compatibility.
@@ -1805,6 +1829,8 @@ type ArticlesServer interface {
 	LikeArticle(context.Context, *LikeArticleRequest) (*LikeArticleResponse, error)
 	ShareArticle(context.Context, *ShareArticleRequest) (*ShareArticleResponse, error)
 	GetAuthorArticles(context.Context, *GetAuthorArticlesRequest) (*GetAuthorArticlesResponse, error)
+	ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error)
+	SearchArticles(context.Context, *SearchArticlesRequest) (*SearchArticlesResponse, error)
 	mustEmbedUnimplementedArticlesServer()
 }
 
@@ -1838,6 +1864,12 @@ func (UnimplementedArticlesServer) ShareArticle(context.Context, *ShareArticleRe
 }
 func (UnimplementedArticlesServer) GetAuthorArticles(context.Context, *GetAuthorArticlesRequest) (*GetAuthorArticlesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAuthorArticles not implemented")
+}
+func (UnimplementedArticlesServer) ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTags not implemented")
+}
+func (UnimplementedArticlesServer) SearchArticles(context.Context, *SearchArticlesRequest) (*SearchArticlesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchArticles not implemented")
 }
 func (UnimplementedArticlesServer) mustEmbedUnimplementedArticlesServer() {}
 func (UnimplementedArticlesServer) testEmbeddedByValue()                  {}
@@ -2004,6 +2036,42 @@ func _Articles_GetAuthorArticles_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Articles_ListTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTagsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticlesServer).ListTags(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Articles_ListTags_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticlesServer).ListTags(ctx, req.(*ListTagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Articles_SearchArticles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchArticlesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticlesServer).SearchArticles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Articles_SearchArticles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticlesServer).SearchArticles(ctx, req.(*SearchArticlesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Articles_ServiceDesc is the grpc.ServiceDesc for Articles service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2043,6 +2111,230 @@ var Articles_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetAuthorArticles",
 			Handler:    _Articles_GetAuthorArticles_Handler,
 		},
+		{
+			MethodName: "ListTags",
+			Handler:    _Articles_ListTags_Handler,
+		},
+		{
+			MethodName: "SearchArticles",
+			Handler:    _Articles_SearchArticles_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}
+
+const (
+	Tags_ListTags_FullMethodName  = "/client.Tags/ListTags"
+	Tags_CreateTag_FullMethodName = "/client.Tags/CreateTag"
+	Tags_UpdateTag_FullMethodName = "/client.Tags/UpdateTag"
+	Tags_DeleteTag_FullMethodName = "/client.Tags/DeleteTag"
+)
+
+// TagsClient is the client API for Tags service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type TagsClient interface {
+	ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error)
+	CreateTag(ctx context.Context, in *CreateTagRequest, opts ...grpc.CallOption) (*CreateTagResponse, error)
+	UpdateTag(ctx context.Context, in *UpdateTagRequest, opts ...grpc.CallOption) (*UpdateTagResponse, error)
+	DeleteTag(ctx context.Context, in *DeleteTagRequest, opts ...grpc.CallOption) (*DeleteTagResponse, error)
+}
+
+type tagsClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewTagsClient(cc grpc.ClientConnInterface) TagsClient {
+	return &tagsClient{cc}
+}
+
+func (c *tagsClient) ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTagsResponse)
+	err := c.cc.Invoke(ctx, Tags_ListTags_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tagsClient) CreateTag(ctx context.Context, in *CreateTagRequest, opts ...grpc.CallOption) (*CreateTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateTagResponse)
+	err := c.cc.Invoke(ctx, Tags_CreateTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tagsClient) UpdateTag(ctx context.Context, in *UpdateTagRequest, opts ...grpc.CallOption) (*UpdateTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateTagResponse)
+	err := c.cc.Invoke(ctx, Tags_UpdateTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *tagsClient) DeleteTag(ctx context.Context, in *DeleteTagRequest, opts ...grpc.CallOption) (*DeleteTagResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteTagResponse)
+	err := c.cc.Invoke(ctx, Tags_DeleteTag_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// TagsServer is the server API for Tags service.
+// All implementations must embed UnimplementedTagsServer
+// for forward compatibility.
+type TagsServer interface {
+	ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error)
+	CreateTag(context.Context, *CreateTagRequest) (*CreateTagResponse, error)
+	UpdateTag(context.Context, *UpdateTagRequest) (*UpdateTagResponse, error)
+	DeleteTag(context.Context, *DeleteTagRequest) (*DeleteTagResponse, error)
+	mustEmbedUnimplementedTagsServer()
+}
+
+// UnimplementedTagsServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedTagsServer struct{}
+
+func (UnimplementedTagsServer) ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTags not implemented")
+}
+func (UnimplementedTagsServer) CreateTag(context.Context, *CreateTagRequest) (*CreateTagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateTag not implemented")
+}
+func (UnimplementedTagsServer) UpdateTag(context.Context, *UpdateTagRequest) (*UpdateTagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateTag not implemented")
+}
+func (UnimplementedTagsServer) DeleteTag(context.Context, *DeleteTagRequest) (*DeleteTagResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteTag not implemented")
+}
+func (UnimplementedTagsServer) mustEmbedUnimplementedTagsServer() {}
+func (UnimplementedTagsServer) testEmbeddedByValue()              {}
+
+// UnsafeTagsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to TagsServer will
+// result in compilation errors.
+type UnsafeTagsServer interface {
+	mustEmbedUnimplementedTagsServer()
+}
+
+func RegisterTagsServer(s grpc.ServiceRegistrar, srv TagsServer) {
+	// If the following call panics, it indicates UnimplementedTagsServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&Tags_ServiceDesc, srv)
+}
+
+func _Tags_ListTags_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTagsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TagsServer).ListTags(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Tags_ListTags_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TagsServer).ListTags(ctx, req.(*ListTagsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Tags_CreateTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TagsServer).CreateTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Tags_CreateTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TagsServer).CreateTag(ctx, req.(*CreateTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Tags_UpdateTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TagsServer).UpdateTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Tags_UpdateTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TagsServer).UpdateTag(ctx, req.(*UpdateTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Tags_DeleteTag_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TagsServer).DeleteTag(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Tags_DeleteTag_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TagsServer).DeleteTag(ctx, req.(*DeleteTagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// Tags_ServiceDesc is the grpc.ServiceDesc for Tags service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Tags_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.Tags",
+	HandlerType: (*TagsServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListTags",
+			Handler:    _Tags_ListTags_Handler,
+		},
+		{
+			MethodName: "CreateTag",
+			Handler:    _Tags_CreateTag_Handler,
+		},
+		{
+			MethodName: "UpdateTag",
+			Handler:    _Tags_UpdateTag_Handler,
+		},
+		{
+			MethodName: "DeleteTag",
+			Handler:    _Tags_DeleteTag_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
@@ -2054,7 +2346,6 @@ const (
 	Habits_CreateHabit_FullMethodName      = "/client.Habits/CreateHabit"
 	Habits_UpdateHabit_FullMethodName      = "/client.Habits/UpdateHabit"
 	Habits_DeleteHabit_FullMethodName      = "/client.Habits/DeleteHabit"
-	Habits_ToggleHabit_FullMethodName      = "/client.Habits/ToggleHabit"
 	Habits_ResetTodayHabits_FullMethodName = "/client.Habits/ResetTodayHabits"
 )
 
@@ -2067,7 +2358,6 @@ type HabitsClient interface {
 	CreateHabit(ctx context.Context, in *CreateHabitRequest, opts ...grpc.CallOption) (*CreateHabitResponse, error)
 	UpdateHabit(ctx context.Context, in *UpdateHabitRequest, opts ...grpc.CallOption) (*UpdateHabitResponse, error)
 	DeleteHabit(ctx context.Context, in *DeleteHabitRequest, opts ...grpc.CallOption) (*DeleteHabitResponse, error)
-	ToggleHabit(ctx context.Context, in *ToggleHabitRequest, opts ...grpc.CallOption) (*ToggleHabitResponse, error)
 	ResetTodayHabits(ctx context.Context, in *ResetTodayHabitsRequest, opts ...grpc.CallOption) (*ResetTodayHabitsResponse, error)
 }
 
@@ -2129,16 +2419,6 @@ func (c *habitsClient) DeleteHabit(ctx context.Context, in *DeleteHabitRequest, 
 	return out, nil
 }
 
-func (c *habitsClient) ToggleHabit(ctx context.Context, in *ToggleHabitRequest, opts ...grpc.CallOption) (*ToggleHabitResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ToggleHabitResponse)
-	err := c.cc.Invoke(ctx, Habits_ToggleHabit_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *habitsClient) ResetTodayHabits(ctx context.Context, in *ResetTodayHabitsRequest, opts ...grpc.CallOption) (*ResetTodayHabitsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ResetTodayHabitsResponse)
@@ -2158,7 +2438,6 @@ type HabitsServer interface {
 	CreateHabit(context.Context, *CreateHabitRequest) (*CreateHabitResponse, error)
 	UpdateHabit(context.Context, *UpdateHabitRequest) (*UpdateHabitResponse, error)
 	DeleteHabit(context.Context, *DeleteHabitRequest) (*DeleteHabitResponse, error)
-	ToggleHabit(context.Context, *ToggleHabitRequest) (*ToggleHabitResponse, error)
 	ResetTodayHabits(context.Context, *ResetTodayHabitsRequest) (*ResetTodayHabitsResponse, error)
 	mustEmbedUnimplementedHabitsServer()
 }
@@ -2184,9 +2463,6 @@ func (UnimplementedHabitsServer) UpdateHabit(context.Context, *UpdateHabitReques
 }
 func (UnimplementedHabitsServer) DeleteHabit(context.Context, *DeleteHabitRequest) (*DeleteHabitResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteHabit not implemented")
-}
-func (UnimplementedHabitsServer) ToggleHabit(context.Context, *ToggleHabitRequest) (*ToggleHabitResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ToggleHabit not implemented")
 }
 func (UnimplementedHabitsServer) ResetTodayHabits(context.Context, *ResetTodayHabitsRequest) (*ResetTodayHabitsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResetTodayHabits not implemented")
@@ -2302,24 +2578,6 @@ func _Habits_DeleteHabit_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Habits_ToggleHabit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ToggleHabitRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(HabitsServer).ToggleHabit(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Habits_ToggleHabit_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HabitsServer).ToggleHabit(ctx, req.(*ToggleHabitRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Habits_ResetTodayHabits_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ResetTodayHabitsRequest)
 	if err := dec(in); err != nil {
@@ -2364,10 +2622,6 @@ var Habits_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteHabit",
 			Handler:    _Habits_DeleteHabit_Handler,
-		},
-		{
-			MethodName: "ToggleHabit",
-			Handler:    _Habits_ToggleHabit_Handler,
 		},
 		{
 			MethodName: "ResetTodayHabits",
@@ -2709,7 +2963,11 @@ var Goals_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Categories_ListCategories_FullMethodName = "/client.Categories/ListCategories"
+	Categories_ListCategories_FullMethodName    = "/client.Categories/ListCategories"
+	Categories_CreateCategory_FullMethodName    = "/client.Categories/CreateCategory"
+	Categories_UpdateCategory_FullMethodName    = "/client.Categories/UpdateCategory"
+	Categories_DeleteCategory_FullMethodName    = "/client.Categories/DeleteCategory"
+	Categories_ReorderCategories_FullMethodName = "/client.Categories/ReorderCategories"
 )
 
 // CategoriesClient is the client API for Categories service.
@@ -2717,6 +2975,10 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CategoriesClient interface {
 	ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
+	CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
+	UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error)
+	DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error)
+	ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error)
 }
 
 type categoriesClient struct {
@@ -2737,11 +2999,55 @@ func (c *categoriesClient) ListCategories(ctx context.Context, in *ListCategorie
 	return out, nil
 }
 
+func (c *categoriesClient) CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateCategoryResponse)
+	err := c.cc.Invoke(ctx, Categories_CreateCategory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *categoriesClient) UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateCategoryResponse)
+	err := c.cc.Invoke(ctx, Categories_UpdateCategory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *categoriesClient) DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteCategoryResponse)
+	err := c.cc.Invoke(ctx, Categories_DeleteCategory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *categoriesClient) ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReorderCategoriesResponse)
+	err := c.cc.Invoke(ctx, Categories_ReorderCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CategoriesServer is the server API for Categories service.
 // All implementations must embed UnimplementedCategoriesServer
 // for forward compatibility.
 type CategoriesServer interface {
 	ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error)
+	CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error)
+	UpdateCategory(context.Context, *UpdateCategoryRequest) (*UpdateCategoryResponse, error)
+	DeleteCategory(context.Context, *DeleteCategoryRequest) (*DeleteCategoryResponse, error)
+	ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error)
 	mustEmbedUnimplementedCategoriesServer()
 }
 
@@ -2754,6 +3060,18 @@ type UnimplementedCategoriesServer struct{}
 
 func (UnimplementedCategoriesServer) ListCategories(context.Context, *ListCategoriesRequest) (*ListCategoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCategories not implemented")
+}
+func (UnimplementedCategoriesServer) CreateCategory(context.Context, *CreateCategoryRequest) (*CreateCategoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateCategory not implemented")
+}
+func (UnimplementedCategoriesServer) UpdateCategory(context.Context, *UpdateCategoryRequest) (*UpdateCategoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateCategory not implemented")
+}
+func (UnimplementedCategoriesServer) DeleteCategory(context.Context, *DeleteCategoryRequest) (*DeleteCategoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteCategory not implemented")
+}
+func (UnimplementedCategoriesServer) ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReorderCategories not implemented")
 }
 func (UnimplementedCategoriesServer) mustEmbedUnimplementedCategoriesServer() {}
 func (UnimplementedCategoriesServer) testEmbeddedByValue()                    {}
@@ -2794,6 +3112,78 @@ func _Categories_ListCategories_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Categories_CreateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoriesServer).CreateCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Categories_CreateCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoriesServer).CreateCategory(ctx, req.(*CreateCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Categories_UpdateCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoriesServer).UpdateCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Categories_UpdateCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoriesServer).UpdateCategory(ctx, req.(*UpdateCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Categories_DeleteCategory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteCategoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoriesServer).DeleteCategory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Categories_DeleteCategory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoriesServer).DeleteCategory(ctx, req.(*DeleteCategoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Categories_ReorderCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReorderCategoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoriesServer).ReorderCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Categories_ReorderCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoriesServer).ReorderCategories(ctx, req.(*ReorderCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Categories_ServiceDesc is the grpc.ServiceDesc for Categories service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2804,6 +3194,22 @@ var Categories_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListCategories",
 			Handler:    _Categories_ListCategories_Handler,
+		},
+		{
+			MethodName: "CreateCategory",
+			Handler:    _Categories_CreateCategory_Handler,
+		},
+		{
+			MethodName: "UpdateCategory",
+			Handler:    _Categories_UpdateCategory_Handler,
+		},
+		{
+			MethodName: "DeleteCategory",
+			Handler:    _Categories_DeleteCategory_Handler,
+		},
+		{
+			MethodName: "ReorderCategories",
+			Handler:    _Categories_ReorderCategories_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

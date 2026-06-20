@@ -36,13 +36,13 @@ func (l *ListCategoriesLogic) ListCategories(req *types.ListCategoriesRequest) (
 		return nil, err
 	}
 
-	var categories []types.Category
+	categories := make([]types.Category, 0, len(rpcResp.Categories))
 	for _, c := range rpcResp.Categories {
 		categories = append(categories, types.Category{
 			Id:         c.Id,
 			Name:       c.Name,
 			Slug:       c.Slug,
-			EntityType: c.EntityType,
+			EntityType: req.EntityType,
 			SortOrder:  int(c.SortOrder),
 			CreatedAt:  formatTime(c.CreatedAt),
 			UpdatedAt:  formatTime(c.UpdatedAt),

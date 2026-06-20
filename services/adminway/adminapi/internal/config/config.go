@@ -18,9 +18,11 @@ type Config struct {
 	ClientRpc      zrpc.RpcClientConf
 	FileManagerRpc zrpc.RpcClientConf
 	Auth           struct {
-		Secret   string `json:",optional" secret:"true"`
-		Issuer   string `json:",optional"`
-		Audience string `json:",optional"`
+		Secret                string        `json:",optional" secret:"true"`
+		Issuer                string        `json:",optional"`
+		Audience              string        `json:",optional"`
+		AccessExpiryDuration  time.Duration `json:",optional"`
+		RefreshExpiryDuration time.Duration `json:",optional"`
 	}
 	ServiceAuth struct {
 		Secret string `json:",optional" secret:"true"`

@@ -24,8 +24,6 @@ type (
 	ListHabitsResponse       = client.ListHabitsResponse
 	ResetTodayHabitsRequest  = client.ResetTodayHabitsRequest
 	ResetTodayHabitsResponse = client.ResetTodayHabitsResponse
-	ToggleHabitRequest       = client.ToggleHabitRequest
-	ToggleHabitResponse      = client.ToggleHabitResponse
 	UpdateHabitRequest       = client.UpdateHabitRequest
 	UpdateHabitResponse      = client.UpdateHabitResponse
 
@@ -35,7 +33,6 @@ type (
 		CreateHabit(ctx context.Context, in *CreateHabitRequest, opts ...grpc.CallOption) (*CreateHabitResponse, error)
 		UpdateHabit(ctx context.Context, in *UpdateHabitRequest, opts ...grpc.CallOption) (*UpdateHabitResponse, error)
 		DeleteHabit(ctx context.Context, in *DeleteHabitRequest, opts ...grpc.CallOption) (*DeleteHabitResponse, error)
-		ToggleHabit(ctx context.Context, in *ToggleHabitRequest, opts ...grpc.CallOption) (*ToggleHabitResponse, error)
 		ResetTodayHabits(ctx context.Context, in *ResetTodayHabitsRequest, opts ...grpc.CallOption) (*ResetTodayHabitsResponse, error)
 	}
 
@@ -73,11 +70,6 @@ func (m *defaultHabits) UpdateHabit(ctx context.Context, in *UpdateHabitRequest,
 func (m *defaultHabits) DeleteHabit(ctx context.Context, in *DeleteHabitRequest, opts ...grpc.CallOption) (*DeleteHabitResponse, error) {
 	client := client.NewHabitsClient(m.cli.Conn())
 	return client.DeleteHabit(ctx, in, opts...)
-}
-
-func (m *defaultHabits) ToggleHabit(ctx context.Context, in *ToggleHabitRequest, opts ...grpc.CallOption) (*ToggleHabitResponse, error) {
-	client := client.NewHabitsClient(m.cli.Conn())
-	return client.ToggleHabit(ctx, in, opts...)
 }
 
 func (m *defaultHabits) ResetTodayHabits(ctx context.Context, in *ResetTodayHabitsRequest, opts ...grpc.CallOption) (*ResetTodayHabitsResponse, error) {

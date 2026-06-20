@@ -27,3 +27,23 @@ func (s *CategoriesServer) ListCategories(ctx context.Context, in *client.ListCa
 	l := categorieslogic.NewListCategoriesLogic(ctx, s.svcCtx)
 	return l.ListCategories(in)
 }
+
+func (s *CategoriesServer) CreateCategory(ctx context.Context, in *client.CreateCategoryRequest) (*client.CreateCategoryResponse, error) {
+	l := categorieslogic.NewCreateCategoryLogic(ctx, s.svcCtx)
+	return l.CreateCategory(in)
+}
+
+func (s *CategoriesServer) UpdateCategory(ctx context.Context, in *client.UpdateCategoryRequest) (*client.UpdateCategoryResponse, error) {
+	l := categorieslogic.NewUpdateCategoryLogic(ctx, s.svcCtx)
+	return l.UpdateCategory(in)
+}
+
+func (s *CategoriesServer) DeleteCategory(ctx context.Context, in *client.DeleteCategoryRequest) (*client.DeleteCategoryResponse, error) {
+	l := categorieslogic.NewDeleteCategoryLogic(ctx, s.svcCtx)
+	return l.DeleteCategory(in)
+}
+
+func (s *CategoriesServer) ReorderCategories(ctx context.Context, in *client.ReorderCategoriesRequest) (*client.ReorderCategoriesResponse, error) {
+	l := categorieslogic.NewReorderCategoriesLogic(ctx, s.svcCtx)
+	return l.ReorderCategories(in)
+}

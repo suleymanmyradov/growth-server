@@ -26,6 +26,10 @@ type (
 	LikeArticleResponse       = client.LikeArticleResponse
 	ListArticlesRequest       = client.ListArticlesRequest
 	ListArticlesResponse      = client.ListArticlesResponse
+	ListTagsRequest           = client.ListTagsRequest
+	ListTagsResponse          = client.ListTagsResponse
+	SearchArticlesRequest     = client.SearchArticlesRequest
+	SearchArticlesResponse    = client.SearchArticlesResponse
 	ShareArticleRequest       = client.ShareArticleRequest
 	ShareArticleResponse      = client.ShareArticleResponse
 	UpdateArticleRequest      = client.UpdateArticleRequest
@@ -40,6 +44,8 @@ type (
 		LikeArticle(ctx context.Context, in *LikeArticleRequest, opts ...grpc.CallOption) (*LikeArticleResponse, error)
 		ShareArticle(ctx context.Context, in *ShareArticleRequest, opts ...grpc.CallOption) (*ShareArticleResponse, error)
 		GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error)
+		ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error)
+		SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error)
 	}
 
 	defaultArticles struct {
@@ -91,4 +97,14 @@ func (m *defaultArticles) ShareArticle(ctx context.Context, in *ShareArticleRequ
 func (m *defaultArticles) GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error) {
 	client := client.NewArticlesClient(m.cli.Conn())
 	return client.GetAuthorArticles(ctx, in, opts...)
+}
+
+func (m *defaultArticles) ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.ListTags(ctx, in, opts...)
+}
+
+func (m *defaultArticles) SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.SearchArticles(ctx, in, opts...)
 }

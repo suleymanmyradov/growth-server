@@ -43,8 +43,10 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 	hasUser := in.UserId != "" && userErr == nil
 
 	var pbArticles []*client.Article
+	// Author pages are public — only published articles are visible.
+	const publishedStatus = "published"
 	if hasUser {
-		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthorWithSaved(ctx, in.AuthorId, limit, offset, userID)
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthorWithSaved(ctx, in.AuthorId, publishedStatus, limit, offset, userID)
 		if err != nil {
 			l.Errorf("Failed to list author articles with saved: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list author articles")
@@ -54,7 +56,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 			pbArticles[i] = convertAuthorWithSavedRowToPbArticle(a)
 		}
 	} else {
-		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(ctx, in.AuthorId, limit, offset)
+		articles, err := l.svcCtx.Repo.Articles.ListArticlesByAuthor(ctx, in.AuthorId, publishedStatus, limit, offset)
 		if err != nil {
 			l.Errorf("Failed to list author articles: %v", err)
 			return nil, status.Error(codes.Internal, "failed to list author articles")

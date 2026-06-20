@@ -75,9 +75,6 @@ service growthapi {
 	@handler DeleteHabit
 	delete /habits/:id (HabitRequest) returns (EmptyResponse)
 
-	@handler ToggleHabit
-	post /habits/:id/toggle (HabitRequest) returns (HabitResponse)
-
 	@handler ResetTodayHabits
 	post /habits/reset-today returns (EmptyResponse)
 }

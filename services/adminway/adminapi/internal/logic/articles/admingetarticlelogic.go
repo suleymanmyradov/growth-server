@@ -64,6 +64,8 @@ func (l *AdminGetArticleLogic) AdminGetArticle(req *types.ArticleRequest) (resp 
 		IsSaved:     rpcArticle.IsSaved,
 		LikeCount:   int(rpcArticle.Likes),
 		IsLiked:     rpcArticle.IsLiked,
+		Tags:        rpcArticle.Tags,
+		Status:      rpcArticle.Status,
 	}
 
 	return &types.ArticleResponse{

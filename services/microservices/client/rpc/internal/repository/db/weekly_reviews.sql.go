@@ -158,8 +158,8 @@ const getBlockerStatsForWeek = `-- name: GetBlockerStatsForWeek :many
 SELECT blocker::text AS blocker, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND status = 'missed'
   AND blocker IS NOT NULL
 GROUP BY blocker
@@ -171,8 +171,8 @@ type GetBlockerStatsForWeekRow struct {
 	Count   int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetBlockerStatsForWeekRow, error) {
-	rows, err := q.db.Query(ctx, getBlockerStatsForWeek, userID, createdAt, createdAt_2)
+func (q *Queries) GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetBlockerStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getBlockerStatsForWeek, userID, localDate, localDate_2)
 	if err != nil {
 		return nil, err
 	}
@@ -212,8 +212,8 @@ LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
-   AND ci.created_at >= $2
-   AND ci.created_at < $3
+   AND ci.local_date >= $2
+   AND ci.local_date < $3
 WHERE h.user_id = $1
 GROUP BY h.id, h.name, c.slug, h.created_at
 ORDER BY h.created_at DESC
@@ -230,8 +230,8 @@ type GetCheckInStatsForWeekRow struct {
 	LastCheckInAt  interface{}    `db:"last_check_in_at" json:"last_check_in_at"`
 }
 
-func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetCheckInStatsForWeekRow, error) {
-	rows, err := q.db.Query(ctx, getCheckInStatsForWeek, userID, createdAt, createdAt_2)
+func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetCheckInStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getCheckInStatsForWeek, userID, localDate, localDate_2)
 	if err != nil {
 		return nil, err
 	}
@@ -326,8 +326,8 @@ SELECT
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count
 FROM check_ins ci
 WHERE ci.user_id = $1
-  AND ci.created_at >= $2
-  AND ci.created_at < $3
+  AND ci.local_date >= $2
+  AND ci.local_date < $3
 GROUP BY ci.local_date
 ORDER BY day ASC
 `
@@ -339,8 +339,8 @@ type GetDailyCheckInStatsForWeekRow struct {
 	MissedCount    int64       `db:"missed_count" json:"missed_count"`
 }
 
-func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetDailyCheckInStatsForWeekRow, error) {
-	rows, err := q.db.Query(ctx, getDailyCheckInStatsForWeek, userID, createdAt, createdAt_2)
+func (q *Queries) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetDailyCheckInStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getDailyCheckInStatsForWeek, userID, localDate, localDate_2)
 	if err != nil {
 		return nil, err
 	}
@@ -368,8 +368,8 @@ const getEnergyStatsForWeek = `-- name: GetEnergyStatsForWeek :many
 SELECT energy::text AS energy, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND energy IS NOT NULL
 GROUP BY energy
 ORDER BY count DESC
@@ -380,8 +380,8 @@ type GetEnergyStatsForWeekRow struct {
 	Count  int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetEnergyStatsForWeekRow, error) {
-	rows, err := q.db.Query(ctx, getEnergyStatsForWeek, userID, createdAt, createdAt_2)
+func (q *Queries) GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetEnergyStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getEnergyStatsForWeek, userID, localDate, localDate_2)
 	if err != nil {
 		return nil, err
 	}
@@ -404,8 +404,8 @@ const getMoodStatsForWeek = `-- name: GetMoodStatsForWeek :many
 SELECT mood::text AS mood, COUNT(*) AS count
 FROM check_ins
 WHERE user_id = $1
-  AND created_at >= $2
-  AND created_at < $3
+  AND local_date >= $2
+  AND local_date < $3
   AND mood IS NOT NULL
 GROUP BY mood
 ORDER BY count DESC
@@ -416,8 +416,8 @@ type GetMoodStatsForWeekRow struct {
 	Count int64  `db:"count" json:"count"`
 }
 
-func (q *Queries) GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, createdAt pgtype.Timestamptz, createdAt_2 pgtype.Timestamptz) ([]GetMoodStatsForWeekRow, error) {
-	rows, err := q.db.Query(ctx, getMoodStatsForWeek, userID, createdAt, createdAt_2)
+func (q *Queries) GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetMoodStatsForWeekRow, error) {
+	rows, err := q.db.Query(ctx, getMoodStatsForWeek, userID, localDate, localDate_2)
 	if err != nil {
 		return nil, err
 	}

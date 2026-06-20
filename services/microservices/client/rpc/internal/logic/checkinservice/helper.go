@@ -60,7 +60,10 @@ func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, block
 	return params
 }
 
-func habitToProto(h db.GetHabitRow) *client.Habit {
+// habitToProto builds the proto Habit from a DB row. The streak is derived
+// from check_ins history (not stored on the habit), so the caller must pass
+// it in.
+func habitToProto(h db.GetHabitRow, streak int32) *client.Habit {
 	description := ""
 	if h.Description != nil {
 		description = *h.Description
@@ -71,7 +74,7 @@ func habitToProto(h db.GetHabitRow) *client.Habit {
 		Name:           h.Name,
 		Description:    description,
 		Category:       h.Category,
-		Streak:         h.Streak,
+		Streak:         streak,
 		Completed:      h.Completed,
 		CompletedToday: h.Completed,
 		CreatedAt:      h.CreatedAt.Time.Unix(),

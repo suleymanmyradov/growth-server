@@ -63,6 +63,6 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 	}
 
 	return &client.CreateHabitResponse{
-		Habit: habitToProto(habit),
+		Habit: habitToProto(habit, 0, nil), // new habit has no check-ins → streak 0
 	}, nil
 }

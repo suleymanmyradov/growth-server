@@ -48,11 +48,6 @@ func (s *HabitsServer) DeleteHabit(ctx context.Context, in *client.DeleteHabitRe
 	return l.DeleteHabit(in)
 }
 
-func (s *HabitsServer) ToggleHabit(ctx context.Context, in *client.ToggleHabitRequest) (*client.ToggleHabitResponse, error) {
-	l := habitslogic.NewToggleHabitLogic(ctx, s.svcCtx)
-	return l.ToggleHabit(in)
-}
-
 func (s *HabitsServer) ResetTodayHabits(ctx context.Context, in *client.ResetTodayHabitsRequest) (*client.ResetTodayHabitsResponse, error) {
 	l := habitslogic.NewResetTodayHabitsLogic(ctx, s.svcCtx)
 	return l.ResetTodayHabits(in)

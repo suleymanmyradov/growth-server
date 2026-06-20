@@ -43,6 +43,7 @@ func convertGetRowToPbArticle(a db.GetArticleRow) *client.Article {
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		Likes:       int32(a.LikeCount),
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -80,6 +81,7 @@ func convertAuthorRowToPbArticle(a db.ListArticlesByAuthorRow) *client.Article {
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		Likes:       int32(a.LikeCount),
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -119,6 +121,7 @@ func convertAuthorWithSavedRowToPbArticle(a db.ListArticlesByAuthorWithSavedRow)
 		Likes:       int32(a.LikeCount),
 		IsLiked:     a.IsLiked,
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -155,6 +158,7 @@ func convertListRowToPbArticle(a db.ListArticlesRow) *client.Article {
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		Likes:       int32(a.LikeCount),
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -192,6 +196,7 @@ func convertCategorySlugRowToPbArticle(a db.ListArticlesByCategorySlugRow) *clie
 		UpdatedAt:   a.UpdatedAt.Time.Unix(),
 		Likes:       int32(a.LikeCount),
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -223,6 +228,7 @@ func convertListWithSavedRowToPbArticle(a db.ListArticlesWithSavedRow) *client.A
 		Likes:       int32(a.LikeCount),
 		IsLiked:     a.IsLiked,
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -261,6 +267,7 @@ func convertCategorySlugWithSavedRowToPbArticle(a db.ListArticlesByCategorySlugW
 		Likes:       int32(a.LikeCount),
 		IsLiked:     a.IsLiked,
 	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}
@@ -291,6 +298,44 @@ func convertGetWithSavedRowToPbArticle(a db.GetArticleWithSavedRow) *client.Arti
 		Likes:       int32(a.LikeCount),
 		IsLiked:     a.IsLiked,
 	}
+	pb.Status = a.Status
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.UUID.String(),
+			Name: categoryName,
+			Slug: categorySlug,
+		}
+	}
+	return pb
+}
+
+func convertSearchRowToPbArticle(a db.SearchArticlesRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
+	}
+	pb.Status = a.Status
 	if a.Excerpt != nil {
 		pb.Summary = *a.Excerpt
 	}

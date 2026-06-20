@@ -41,13 +41,14 @@ func (l *AuthRefreshLogic) AuthRefresh(req *types.RefreshTokenRequest) (*types.A
 
 	sessionID := claims.SessionID
 
-	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, claims.Roles, sessionID)
+	roles := []string{user.Role}
+	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, roles, sessionID)
 	if err != nil {
 		l.Errorf("refresh failed to create access token: %v", err)
 		return nil, err
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, sessionID)
+	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, roles, sessionID)
 	if err != nil {
 		l.Errorf("refresh failed to create refresh token: %v", err)
 		return nil, err

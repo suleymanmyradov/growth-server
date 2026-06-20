@@ -1,8 +1,6 @@
 package habits
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -27,14 +25,8 @@ func NewUpdateHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Updat
 }
 
 func (l *UpdateHabitLogic) UpdateHabit(req *types.UpdateHabitRequest) (resp *types.HabitResponse, err error) {
-	habitID, ok := l.ctx.Value("habitId").(string)
-	if !ok {
-		l.Error("habitId not found in context")
-		return nil, status.Error(codes.Internal, "habitId not found in context")
-	}
-
 	rpcResp, err := l.svcCtx.HabitsRpc.UpdateHabit(l.ctx, &clienthabits.UpdateHabitRequest{
-		HabitId:     habitID,
+		HabitId:     req.Id,
 		Name:        req.Name,
 		Description: req.Description,
 		Category:    req.Category,

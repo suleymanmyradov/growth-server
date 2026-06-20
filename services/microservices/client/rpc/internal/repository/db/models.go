@@ -43,6 +43,7 @@ type Article struct {
 	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	SearchVector    string             `db:"search_vector" json:"search_vector"`
+	Status          string             `db:"status" json:"status"`
 }
 
 type ArticleLike struct {
@@ -112,7 +113,6 @@ type Habit struct {
 	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Name        string             `db:"name" json:"name"`
 	Description *string            `db:"description" json:"description"`
-	Streak      int32              `db:"streak" json:"streak"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }

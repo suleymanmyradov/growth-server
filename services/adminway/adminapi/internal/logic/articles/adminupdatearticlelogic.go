@@ -43,6 +43,7 @@ func (l *AdminUpdateArticleLogic) AdminUpdateArticle(req *types.UpdateArticleReq
 		Tags:       req.Tags,
 		ReadTime:   int32(req.ReadTime),
 		CategoryId: req.CategoryId,
+		Status:     req.Status,
 	}
 
 	rpcResp, err := l.svcCtx.ArticlesRpc.UpdateArticle(l.ctx, rpcReq)
@@ -70,6 +71,8 @@ func (l *AdminUpdateArticleLogic) AdminUpdateArticle(req *types.UpdateArticleReq
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
 		IsSaved:     rpcArticle.IsSaved,
+		Tags:        rpcArticle.Tags,
+		Status:      rpcArticle.Status,
 	}
 
 	return &types.ArticleResponse{

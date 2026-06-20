@@ -10,21 +10,22 @@ import (
 )
 
 type IArticles interface {
-	ListArticles(ctx context.Context, limit, offset int32) ([]db.ListArticlesRow, error)
-	ListArticlesWithSaved(ctx context.Context, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesWithSavedRow, error)
-	ListArticlesByCategorySlug(ctx context.Context, slug string, limit, offset int32) ([]db.ListArticlesByCategorySlugRow, error)
-	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByCategorySlugWithSavedRow, error)
-	ListArticlesByAuthor(ctx context.Context, author string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error)
-	ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByAuthorWithSavedRow, error)
-	SearchArticles(ctx context.Context, query string, limit, offset int32) ([]db.SearchArticlesRow, error)
-	GetArticleByID(ctx context.Context, id uuid.UUID) (db.GetArticleRow, error)
-	GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.GetArticleWithSavedRow, error)
+	ListArticles(ctx context.Context, status string, limit, offset int32) ([]db.ListArticlesRow, error)
+	ListArticlesWithSaved(ctx context.Context, status string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesWithSavedRow, error)
+	ListArticlesByCategorySlug(ctx context.Context, slug string, status string, limit, offset int32) ([]db.ListArticlesByCategorySlugRow, error)
+	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, status string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByCategorySlugWithSavedRow, error)
+	ListArticlesByAuthor(ctx context.Context, author string, status string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error)
+	ListArticlesByAuthorWithSaved(ctx context.Context, author string, status string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByAuthorWithSavedRow, error)
+	SearchArticles(ctx context.Context, query string, status string, limit, offset int32) ([]db.SearchArticlesRow, error)
+	GetArticleByID(ctx context.Context, id uuid.UUID, status string) (db.GetArticleRow, error)
+	GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID, status string) (db.GetArticleWithSavedRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (db.GetArticleByTitleRow, error)
 	CreateArticle(ctx context.Context, params db.CreateArticleParams) (db.CreateArticleRow, error)
 	UpdateArticle(ctx context.Context, params db.UpdateArticleParams) (db.UpdateArticleRow, error)
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
-	CountArticles(ctx context.Context) (int64, error)
-	CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error)
+	CountArticles(ctx context.Context, status string) (int64, error)
+	CountArticlesByCategorySlug(ctx context.Context, slug string, status string) (int64, error)
+	CountSearchArticles(ctx context.Context, query string, status string) (int64, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
 	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error)
 	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
@@ -34,6 +35,16 @@ type IArticles interface {
 	DeleteArticleTags(ctx context.Context, articleID uuid.UUID) error
 	LinkArticleTags(ctx context.Context, articleID uuid.UUID, tagNames []string) error
 	GetTagsByArticleIDs(ctx context.Context, articleIDs []uuid.UUID) ([]db.GetTagsByArticleIDsRow, error)
+	ListTags(ctx context.Context) ([]db.ListTagsRow, error)
+}
+
+type ITags interface {
+	CreateTag(ctx context.Context, name string, slug string) (db.Tag, error)
+	GetTag(ctx context.Context, id uuid.UUID) (db.Tag, error)
+	GetTagBySlug(ctx context.Context, slug string) (db.Tag, error)
+	UpdateTag(ctx context.Context, id uuid.UUID, name string, slug string) (db.Tag, error)
+	DeleteTag(ctx context.Context, id uuid.UUID) error
+	CountTagUsage(ctx context.Context, id uuid.UUID) (int64, error)
 }
 
 // SavedItem is the uniform view over the three concrete saved tables.
@@ -86,11 +97,11 @@ type IHabits interface {
 	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error)
 	UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.GetHabitRow, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	ToggleHabit(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
-	UpdateHabitStreak(ctx context.Context, id uuid.UUID, streak int32) (db.GetHabitRow, error)
-	MarkHabitCompleted(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
+	GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID) (int32, error)
+	GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]db.GetHabitStreaksRow, error)
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]db.ListHabitHistoryRow, error)
 }
 
 type IGoals interface {
@@ -112,6 +123,8 @@ type ICategories interface {
 	UpdateCategory(ctx context.Context, id uuid.UUID, name string, slug string, sortOrder int32) (db.Category, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	CountCategories(ctx context.Context) (int64, error)
+	CountArticlesByCategory(ctx context.Context, id uuid.UUID) (int64, error)
+	ReorderCategories(ctx context.Context, ids []uuid.UUID, sortOrders []int32) error
 }
 
 type ICheckIns interface {
@@ -184,6 +197,7 @@ type IPlanAdjustmentSuggestions interface {
 
 type Repository struct {
 	Articles                  IArticles
+	Tags                      ITags
 	SavedItems                ISavedItems
 	Activities                IActivities
 	UserSettings              IUserSettings
@@ -201,6 +215,7 @@ func NewRepository(db *db.Queries) *Repository {
 
 	return &Repository{
 		Articles:                  NewArticlesRepo(db),
+		Tags:                      NewTagsRepo(db),
 		SavedItems:                NewSavedItemsRepo(db),
 		Activities:                NewActivitiesRepo(db),
 		UserSettings:              NewUserSettingsRepo(db),

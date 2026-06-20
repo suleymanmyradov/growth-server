@@ -62,3 +62,13 @@ func (s *ArticlesServer) GetAuthorArticles(ctx context.Context, in *client.GetAu
 	l := articleslogic.NewGetAuthorArticlesLogic(ctx, s.svcCtx)
 	return l.GetAuthorArticles(in)
 }
+
+func (s *ArticlesServer) ListTags(ctx context.Context, in *client.ListTagsRequest) (*client.ListTagsResponse, error) {
+	l := articleslogic.NewListTagsLogic(ctx, s.svcCtx)
+	return l.ListTags(in)
+}
+
+func (s *ArticlesServer) SearchArticles(ctx context.Context, in *client.SearchArticlesRequest) (*client.SearchArticlesResponse, error) {
+	l := articleslogic.NewSearchArticlesLogic(ctx, s.svcCtx)
+	return l.SearchArticles(in)
+}

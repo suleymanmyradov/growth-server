@@ -47,7 +47,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(req *types.PageRequest) (resp *ty
 		return nil, err
 	}
 
-	var activities []types.Activity
+	activities := make([]types.Activity, 0, len(rpcResp.Activities))
 	for _, a := range rpcResp.Activities {
 		createdAt := ""
 		if a.Timestamp > 0 {

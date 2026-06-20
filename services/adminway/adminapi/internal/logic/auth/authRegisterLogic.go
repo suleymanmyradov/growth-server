@@ -54,7 +54,7 @@ func (l *AuthRegisterLogic) AuthRegister(req *types.RegisterRequest) (*types.Aut
 		return nil, err
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, sessionID)
+	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("register failed to create refresh token for user %s: %v", user.ID, err)
 		return nil, err

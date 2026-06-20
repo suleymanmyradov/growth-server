@@ -46,14 +46,14 @@ func (l *GetArticleLogic) GetArticle(in *client.GetArticleRequest) (*client.GetA
 
 	var pbArticle *client.Article
 	if hasUser {
-		article, err := l.svcCtx.Repo.Articles.GetArticleByIDWithSaved(ctx, articleID, userID)
+		article, err := l.svcCtx.Repo.Articles.GetArticleByIDWithSaved(ctx, articleID, userID, in.Status)
 		if err != nil {
 			l.Errorf("failed to get article with saved: %v", err)
 			return nil, status.Error(codes.NotFound, "article not found")
 		}
 		pbArticle = convertGetWithSavedRowToPbArticle(article)
 	} else {
-		article, err := l.svcCtx.Repo.Articles.GetArticleByID(ctx, articleID)
+		article, err := l.svcCtx.Repo.Articles.GetArticleByID(ctx, articleID, in.Status)
 		if err != nil {
 			l.Errorf("failed to get article: %v", err)
 			return nil, status.Error(codes.NotFound, "article not found")

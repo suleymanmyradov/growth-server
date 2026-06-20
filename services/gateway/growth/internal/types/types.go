@@ -281,15 +281,16 @@ type GoalsResponse struct {
 }
 
 type Habit struct {
-	Id          string `json:"id,example=habit-123"`
-	Name        string `json:"name,example=Morning Exercise"`
-	Description string `json:"description,example=30 minutes of cardio every morning"`
-	Streak      int    `json:"streak,example=7"`
-	Completed   bool   `json:"completed,example=false"`
-	Category    string `json:"category,example=fitness"`
-	UserId      string `json:"userId,example=user-123"`
-	CreatedAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-	UpdatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	Id            string `json:"id,example=habit-123"`
+	Name          string `json:"name,example=Morning Exercise"`
+	Description   string `json:"description,example=30 minutes of cardio every morning"`
+	Streak        int    `json:"streak,example=7"`
+	Completed     bool   `json:"completed,example=false"`
+	Category      string `json:"category,example=fitness"`
+	UserId        string `json:"userId,example=user-123"`
+	RecentHistory []bool `json:"recentHistory,optional"`
+	CreatedAt     string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	UpdatedAt     string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
 }
 
 type HabitRequest struct {
@@ -603,6 +604,7 @@ type UpdateGoalRequest struct {
 }
 
 type UpdateHabitRequest struct {
+	Id          string `path:"id"`
 	Name        string `json:"name,optional"`
 	Description string `json:"description,optional"`
 	Category    string `json:"category,optional"`

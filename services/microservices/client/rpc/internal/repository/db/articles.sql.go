@@ -14,10 +14,11 @@ import (
 
 const countArticles = `-- name: CountArticles :one
 SELECT COUNT(*) FROM articles
+WHERE ($1::text = '' OR status = $1::text)
 `
 
-func (q *Queries) CountArticles(ctx context.Context) (int64, error) {
-	row := q.db.QueryRow(ctx, countArticles)
+func (q *Queries) CountArticles(ctx context.Context, status string) (int64, error) {
+	row := q.db.QueryRow(ctx, countArticles, status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -27,19 +28,33 @@ const countArticlesByCategorySlug = `-- name: CountArticlesByCategorySlug :one
 SELECT COUNT(*) FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
+  AND ($2::text = '' OR a.status = $2::text)
 `
 
-func (q *Queries) CountArticlesByCategorySlug(ctx context.Context, slug string) (int64, error) {
-	row := q.db.QueryRow(ctx, countArticlesByCategorySlug, slug)
+func (q *Queries) CountArticlesByCategorySlug(ctx context.Context, slug string, status string) (int64, error) {
+	row := q.db.QueryRow(ctx, countArticlesByCategorySlug, slug, status)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countSearchArticles = `-- name: CountSearchArticles :one
+SELECT COUNT(*) FROM articles a
+WHERE a.search_vector @@ plainto_tsquery('english', $1)
+  AND ($2::text = '' OR a.status = $2::text)
+`
+
+func (q *Queries) CountSearchArticles(ctx context.Context, plaintoTsquery string, status string) (int64, error) {
+	row := q.db.QueryRow(ctx, countSearchArticles, plaintoTsquery, status)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
 }
 
 const createArticle = `-- name: CreateArticle :one
-INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, published_at, created_at, updated_at
+INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at
 `
 
 type CreateArticleParams struct {
@@ -50,6 +65,7 @@ type CreateArticleParams struct {
 	ReadTimeMinutes int32         `db:"read_time_minutes" json:"read_time_minutes"`
 	ImageUrl        *string       `db:"image_url" json:"image_url"`
 	Author          string        `db:"author" json:"author"`
+	Status          string        `db:"status" json:"status"`
 }
 
 type CreateArticleRow struct {
@@ -60,6 +76,7 @@ type CreateArticleRow struct {
 	ReadTime    int32              `db:"read_time" json:"read_time"`
 	ImageUrl    *string            `db:"image_url" json:"image_url"`
 	Author      string             `db:"author" json:"author"`
+	Status      string             `db:"status" json:"status"`
 	PublishedAt pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
@@ -74,6 +91,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (C
 		arg.ReadTimeMinutes,
 		arg.ImageUrl,
 		arg.Author,
+		arg.Status,
 	)
 	var i CreateArticleRow
 	err := row.Scan(
@@ -84,6 +102,7 @@ func (q *Queries) CreateArticle(ctx context.Context, arg CreateArticleParams) (C
 		&i.ReadTime,
 		&i.ImageUrl,
 		&i.Author,
+		&i.Status,
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -110,14 +129,15 @@ func (q *Queries) DeleteArticleTags(ctx context.Context, articleID uuid.UUID) er
 }
 
 const getArticle = `-- name: GetArticle :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1
+  AND ($2::text = '' OR a.status = $2::text)
 `
 
 type GetArticleRow struct {
@@ -131,14 +151,15 @@ type GetArticleRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
-func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, error) {
-	row := q.db.QueryRow(ctx, getArticle, id)
+func (q *Queries) GetArticle(ctx context.Context, iD uuid.UUID, status string) (GetArticleRow, error) {
+	row := q.db.QueryRow(ctx, getArticle, iD, status)
 	var i GetArticleRow
 	err := row.Scan(
 		&i.ID,
@@ -151,6 +172,7 @@ func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, 
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
 		&i.CategoryID,
 		&i.CategoryName,
 		&i.CategorySlug,
@@ -160,9 +182,9 @@ func (q *Queries) GetArticle(ctx context.Context, id uuid.UUID) (GetArticleRow, 
 }
 
 const getArticleByTitle = `-- name: GetArticleByTitle :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
@@ -181,6 +203,7 @@ type GetArticleByTitleRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
@@ -201,6 +224,7 @@ func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArtic
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
 		&i.CategoryID,
 		&i.CategoryName,
 		&i.CategorySlug,
@@ -210,9 +234,9 @@ func (q *Queries) GetArticleByTitle(ctx context.Context, title string) (GetArtic
 }
 
 const getArticleWithSaved = `-- name: GetArticleWithSaved :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
@@ -220,6 +244,7 @@ SELECT
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.id = $1
+  AND ($3::text = '' OR a.status = $3::text)
 `
 
 type GetArticleWithSavedRow struct {
@@ -233,6 +258,7 @@ type GetArticleWithSavedRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
@@ -241,8 +267,8 @@ type GetArticleWithSavedRow struct {
 	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
-func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (GetArticleWithSavedRow, error) {
-	row := q.db.QueryRow(ctx, getArticleWithSaved, iD, userID)
+func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (GetArticleWithSavedRow, error) {
+	row := q.db.QueryRow(ctx, getArticleWithSaved, iD, userID, status)
 	var i GetArticleWithSavedRow
 	err := row.Scan(
 		&i.ID,
@@ -255,6 +281,7 @@ func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID 
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
 		&i.CategoryID,
 		&i.CategoryName,
 		&i.CategorySlug,
@@ -268,7 +295,7 @@ func (q *Queries) GetArticleWithSaved(ctx context.Context, iD uuid.UUID, userID 
 const getArticlesByIDs = `-- name: GetArticlesByIDs :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
@@ -287,6 +314,7 @@ type GetArticlesByIDsRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
@@ -315,6 +343,7 @@ func (q *Queries) GetArticlesByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -378,11 +407,12 @@ func (q *Queries) LinkArticleTags(ctx context.Context, articleID uuid.UUID, colu
 const listArticles = `-- name: ListArticles :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
+WHERE ($3::text = '' OR a.status = $3::text)
 ORDER BY a.published_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -398,14 +428,15 @@ type ListArticlesRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
-func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) ([]ListArticlesRow, error) {
-	rows, err := q.db.Query(ctx, listArticles, limit, offset)
+func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32, status string) ([]ListArticlesRow, error) {
+	rows, err := q.db.Query(ctx, listArticles, limit, offset, status)
 	if err != nil {
 		return nil, err
 	}
@@ -424,6 +455,7 @@ func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) (
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -440,14 +472,15 @@ func (q *Queries) ListArticles(ctx context.Context, limit int32, offset int32) (
 }
 
 const listArticlesByAuthor = `-- name: ListArticlesByAuthor :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
+  AND ($4::text = '' OR a.status = $4::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -463,14 +496,20 @@ type ListArticlesByAuthorRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
-func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32) ([]ListArticlesByAuthorRow, error) {
-	rows, err := q.db.Query(ctx, listArticlesByAuthor, author, limit, offset)
+func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit int32, offset int32, status string) ([]ListArticlesByAuthorRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByAuthor,
+		author,
+		limit,
+		offset,
+		status,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -489,6 +528,7 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -505,9 +545,9 @@ func (q *Queries) ListArticlesByAuthor(ctx context.Context, author string, limit
 }
 
 const listArticlesByAuthorWithSaved = `-- name: ListArticlesByAuthorWithSaved :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
@@ -515,9 +555,18 @@ SELECT
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
+  AND ($5::text = '' OR a.status = $5::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
+
+type ListArticlesByAuthorWithSavedParams struct {
+	Author string    `db:"author" json:"author"`
+	Limit  int32     `db:"limit" json:"limit"`
+	Offset int32     `db:"offset" json:"offset"`
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+	Status string    `db:"status" json:"status"`
+}
 
 type ListArticlesByAuthorWithSavedRow struct {
 	ID           uuid.UUID          `db:"id" json:"id"`
@@ -530,6 +579,7 @@ type ListArticlesByAuthorWithSavedRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
@@ -538,12 +588,13 @@ type ListArticlesByAuthorWithSavedRow struct {
 	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
-func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByAuthorWithSavedRow, error) {
+func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, arg ListArticlesByAuthorWithSavedParams) ([]ListArticlesByAuthorWithSavedRow, error) {
 	rows, err := q.db.Query(ctx, listArticlesByAuthorWithSaved,
-		author,
-		limit,
-		offset,
-		userID,
+		arg.Author,
+		arg.Limit,
+		arg.Offset,
+		arg.UserID,
+		arg.Status,
 	)
 	if err != nil {
 		return nil, err
@@ -563,6 +614,7 @@ func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author stri
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -581,14 +633,15 @@ func (q *Queries) ListArticlesByAuthorWithSaved(ctx context.Context, author stri
 }
 
 const listArticlesByCategorySlug = `-- name: ListArticlesByCategorySlug :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
+  AND ($4::text = '' OR a.status = $4::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -604,14 +657,20 @@ type ListArticlesByCategorySlugRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.UUID          `db:"category_id" json:"category_id"`
 	CategoryName string             `db:"category_name" json:"category_name"`
 	CategorySlug string             `db:"category_slug" json:"category_slug"`
 	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
-func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32) ([]ListArticlesByCategorySlugRow, error) {
-	rows, err := q.db.Query(ctx, listArticlesByCategorySlug, slug, limit, offset)
+func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, limit int32, offset int32, status string) ([]ListArticlesByCategorySlugRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesByCategorySlug,
+		slug,
+		limit,
+		offset,
+		status,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -630,6 +689,7 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, l
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -646,9 +706,9 @@ func (q *Queries) ListArticlesByCategorySlug(ctx context.Context, slug string, l
 }
 
 const listArticlesByCategorySlugWithSaved = `-- name: ListArticlesByCategorySlugWithSaved :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
@@ -657,9 +717,18 @@ FROM articles a
 JOIN categories c ON a.category_id = c.id
 LEFT JOIN saved_articles sa ON sa.article_id = a.id AND sa.user_id = $4
 WHERE c.slug = $1
+  AND ($5::text = '' OR a.status = $5::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
+
+type ListArticlesByCategorySlugWithSavedParams struct {
+	Slug   string    `db:"slug" json:"slug"`
+	Limit  int32     `db:"limit" json:"limit"`
+	Offset int32     `db:"offset" json:"offset"`
+	UserID uuid.UUID `db:"user_id" json:"user_id"`
+	Status string    `db:"status" json:"status"`
+}
 
 type ListArticlesByCategorySlugWithSavedRow struct {
 	ID           uuid.UUID          `db:"id" json:"id"`
@@ -672,6 +741,7 @@ type ListArticlesByCategorySlugWithSavedRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.UUID          `db:"category_id" json:"category_id"`
 	CategoryName string             `db:"category_name" json:"category_name"`
 	CategorySlug string             `db:"category_slug" json:"category_slug"`
@@ -680,12 +750,13 @@ type ListArticlesByCategorySlugWithSavedRow struct {
 	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
-func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesByCategorySlugWithSavedRow, error) {
+func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, arg ListArticlesByCategorySlugWithSavedParams) ([]ListArticlesByCategorySlugWithSavedRow, error) {
 	rows, err := q.db.Query(ctx, listArticlesByCategorySlugWithSaved,
-		slug,
-		limit,
-		offset,
-		userID,
+		arg.Slug,
+		arg.Limit,
+		arg.Offset,
+		arg.UserID,
+		arg.Status,
 	)
 	if err != nil {
 		return nil, err
@@ -705,6 +776,7 @@ func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug 
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -725,13 +797,14 @@ func (q *Queries) ListArticlesByCategorySlugWithSaved(ctx context.Context, slug 
 const listArticlesWithSaved = `-- name: ListArticlesWithSaved :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
     EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $3 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
+WHERE ($4::text = '' OR a.status = $4::text)
 ORDER BY a.published_at DESC
 LIMIT $1 OFFSET $2
 `
@@ -747,6 +820,7 @@ type ListArticlesWithSavedRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
@@ -755,8 +829,13 @@ type ListArticlesWithSavedRow struct {
 	IsLiked      bool               `db:"is_liked" json:"is_liked"`
 }
 
-func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID) ([]ListArticlesWithSavedRow, error) {
-	rows, err := q.db.Query(ctx, listArticlesWithSaved, limit, offset, userID)
+func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID, status string) ([]ListArticlesWithSavedRow, error) {
+	rows, err := q.db.Query(ctx, listArticlesWithSaved,
+		limit,
+		offset,
+		userID,
+		status,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -775,6 +854,7 @@ func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -792,15 +872,48 @@ func (q *Queries) ListArticlesWithSaved(ctx context.Context, limit int32, offset
 	return items, nil
 }
 
+const listTags = `-- name: ListTags :many
+SELECT id, name, slug
+FROM tags
+ORDER BY name
+`
+
+type ListTagsRow struct {
+	ID   uuid.UUID `db:"id" json:"id"`
+	Name string    `db:"name" json:"name"`
+	Slug string    `db:"slug" json:"slug"`
+}
+
+func (q *Queries) ListTags(ctx context.Context) ([]ListTagsRow, error) {
+	rows, err := q.db.Query(ctx, listTags)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTagsRow{}
+	for rows.Next() {
+		var i ListTagsRow
+		if err := rows.Scan(&i.ID, &i.Name, &i.Slug); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const searchArticles = `-- name: SearchArticles :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.search_vector @@ plainto_tsquery('english', $1)
+  AND ($4::text = '' OR a.status = $4::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3
 `
@@ -816,14 +929,20 @@ type SearchArticlesRow struct {
 	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
 	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
 	CategoryName *string            `db:"category_name" json:"category_name"`
 	CategorySlug *string            `db:"category_slug" json:"category_slug"`
 	LikeCount    int64              `db:"like_count" json:"like_count"`
 }
 
-func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32) ([]SearchArticlesRow, error) {
-	rows, err := q.db.Query(ctx, searchArticles, plaintoTsquery, limit, offset)
+func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32, status string) ([]SearchArticlesRow, error) {
+	rows, err := q.db.Query(ctx, searchArticles,
+		plaintoTsquery,
+		limit,
+		offset,
+		status,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -842,6 +961,7 @@ func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, lim
 			&i.PublishedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
 			&i.CategoryID,
 			&i.CategoryName,
 			&i.CategorySlug,
@@ -860,9 +980,9 @@ func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, lim
 const updateArticle = `-- name: UpdateArticle :one
 UPDATE articles
 SET title = $2, excerpt = $3, content = $4, category_id = $5,
-    read_time_minutes = $6, image_url = $7, author = $8
+    read_time_minutes = $6, image_url = $7, author = $8, status = $9
 WHERE id = $1
-RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, published_at, created_at, updated_at
+RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at
 `
 
 type UpdateArticleParams struct {
@@ -874,6 +994,7 @@ type UpdateArticleParams struct {
 	ReadTimeMinutes int32         `db:"read_time_minutes" json:"read_time_minutes"`
 	ImageUrl        *string       `db:"image_url" json:"image_url"`
 	Author          string        `db:"author" json:"author"`
+	Status          string        `db:"status" json:"status"`
 }
 
 type UpdateArticleRow struct {
@@ -884,6 +1005,7 @@ type UpdateArticleRow struct {
 	ReadTime    int32              `db:"read_time" json:"read_time"`
 	ImageUrl    *string            `db:"image_url" json:"image_url"`
 	Author      string             `db:"author" json:"author"`
+	Status      string             `db:"status" json:"status"`
 	PublishedAt pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
@@ -899,6 +1021,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (U
 		arg.ReadTimeMinutes,
 		arg.ImageUrl,
 		arg.Author,
+		arg.Status,
 	)
 	var i UpdateArticleRow
 	err := row.Scan(
@@ -909,6 +1032,7 @@ func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (U
 		&i.ReadTime,
 		&i.ImageUrl,
 		&i.Author,
+		&i.Status,
 		&i.PublishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,

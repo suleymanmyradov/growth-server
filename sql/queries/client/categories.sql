@@ -23,3 +23,12 @@ DELETE FROM categories WHERE id = $1;
 
 -- name: CountCategories :one
 SELECT COUNT(*) FROM categories;
+
+-- name: CountArticlesByCategory :one
+SELECT COUNT(*) FROM articles WHERE category_id = $1;
+
+-- name: ReorderCategories :exec
+UPDATE categories
+SET sort_order = new_sort.sort_order
+FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::int[]) AS sort_order) AS new_sort
+WHERE categories.id = new_sort.id;

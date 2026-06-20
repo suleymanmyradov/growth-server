@@ -19,6 +19,7 @@ type Article struct {
 	LikeCount   int              `json:"likeCount"`
 	IsLiked     bool             `json:"isLiked"`
 	Tags        []string         `json:"tags,optional"`
+	Status      string           `json:"status,example=published"`
 }
 
 type ArticleCategory struct {
@@ -46,6 +47,23 @@ type AuthResponse struct {
 	User         UserInfo `json:"user"`
 }
 
+type CategoriesResponse struct {
+	Data []Category `json:"data"`
+}
+
+type Category struct {
+	Id        string `json:"id,example=cat-123"`
+	Name      string `json:"name,example=Personal Development"`
+	Slug      string `json:"slug,example=personal-development"`
+	SortOrder int    `json:"sortOrder,example=1"`
+	CreatedAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	UpdatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type CategoryResponse struct {
+	Data Category `json:"data"`
+}
+
 type CreateArticleRequest struct {
 	Title      string   `json:"title,example=10 Habits for Personal Growth"`
 	Content    string   `json:"content,example=Full article content here..."`
@@ -55,6 +73,18 @@ type CreateArticleRequest struct {
 	Tags       []string `json:"tags,optional"`
 	ReadTime   int      `json:"readTime,example=5"`
 	CategoryId string   `json:"categoryId,optional,example=cat-123"`
+	Status     string   `json:"status,optional,example=published"`
+}
+
+type CreateCategoryRequest struct {
+	Name      string `json:"name,example=Personal Development"`
+	Slug      string `json:"slug,optional,example=personal-development"`
+	SortOrder int    `json:"sortOrder,optional"`
+}
+
+type CreateTagRequest struct {
+	Name string `json:"name,example=productivity"`
+	Slug string `json:"slug,optional,example=productivity"`
 }
 
 type EmptyResponse struct {
@@ -62,8 +92,14 @@ type EmptyResponse struct {
 
 type ListArticlesRequest struct {
 	CategorySlug string `form:"category,optional"`
+	Search       string `form:"search,optional"`
+	Status       string `form:"status,optional"`
 	Page         int    `form:"page,default=1"`
 	Limit        int    `form:"limit,default=20"`
+}
+
+type ListCategoriesRequest struct {
+	EntityType string `form:"entityType,optional"`
 }
 
 type LoginRequest struct {
@@ -89,9 +125,19 @@ type RegisterRequest struct {
 	Role     string `json:"role,optional"`
 }
 
+type ReorderCategoriesRequest struct {
+	Ids        []string `json:"ids"`
+	SortOrders []int    `json:"sortOrders"`
+}
+
 type Tag struct {
 	Id   string `json:"id,example=tag-123"`
 	Name string `json:"name,example=productivity"`
+	Slug string `json:"slug,example=productivity"`
+}
+
+type TagResponse struct {
+	Data Tag `json:"data"`
 }
 
 type TagsResponse struct {
@@ -108,6 +154,28 @@ type UpdateArticleRequest struct {
 	Tags       []string `json:"tags,optional"`
 	ReadTime   int      `json:"readTime,optional"`
 	CategoryId string   `json:"categoryId,optional"`
+	Status     string   `json:"status,optional,example=published"`
+}
+
+type UpdateCategoryRequest struct {
+	Id        string `path:"id"`
+	Name      string `json:"name,example=Personal Development"`
+	Slug      string `json:"slug,optional,example=personal-development"`
+	SortOrder int    `json:"sortOrder,optional"`
+}
+
+type UpdateTagRequest struct {
+	Id   string `path:"id"`
+	Name string `json:"name,example=productivity"`
+	Slug string `json:"slug,optional,example=productivity"`
+}
+
+type UploadImageRequest struct {
+}
+
+type UploadImageResponse struct {
+	Url string `json:"url"`
+	Key string `json:"key"`
 }
 
 type UserInfo struct {

@@ -27,6 +27,9 @@ service adminapi {
 
 	@handler AdminCreateArticle
 	post /articles (CreateArticleRequest) returns (ArticleResponse)
+
+	@handler AdminUploadArticleImage
+	post /files/upload-image (UploadImageRequest) returns (UploadImageResponse)
 }
 
 @server (
@@ -41,6 +44,57 @@ service adminapi {
 
 	@handler AdminDeleteArticle
 	delete /articles/:id (ArticleRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      articles
+	middleware: Auth,AdminAuth
+	tags:       "Admin Articles"
+)
+service adminapi {
+	@handler AdminListTags
+	get /tags returns (TagsResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      tags
+	middleware: Auth,AdminAuth
+	tags:       "Admin Tags"
+)
+service adminapi {
+	@handler AdminCreateTag
+	post /tags (CreateTagRequest) returns (TagResponse)
+
+	@handler AdminUpdateTag
+	put /tags/:id (UpdateTagRequest) returns (TagResponse)
+
+	@handler AdminDeleteTag
+	delete /tags/:id (ArticleRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      categories
+	middleware: Auth,AdminAuth
+	tags:       "Admin Categories"
+)
+service adminapi {
+	@handler AdminListCategories
+	get /categories (ListCategoriesRequest) returns (CategoriesResponse)
+
+	@handler AdminCreateCategory
+	post /categories (CreateCategoryRequest) returns (CategoryResponse)
+
+	@handler AdminUpdateCategory
+	put /categories/:id (UpdateCategoryRequest) returns (CategoryResponse)
+
+	@handler AdminDeleteCategory
+	delete /categories/:id (ArticleRequest) returns (EmptyResponse)
+
+	@handler AdminReorderCategories
+	post /categories/reorder (ReorderCategoriesRequest) returns (EmptyResponse)
 }
 
 @server (
