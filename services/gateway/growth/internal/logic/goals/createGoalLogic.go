@@ -42,9 +42,10 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 	}
 
 	rpcResp, err := l.svcCtx.GoalsRpc.CreateGoal(l.ctx, &clientgoals.CreateGoalRequest{
-		Title:       req.Title,
-		Description: req.Description,
-		Category:    req.Category,
+		Title:           req.Title,
+		Description:     req.Description,
+		Category:        req.Category,
+		RelatedHabitIds: req.RelatedHabitIds,
 	})
 	if err != nil {
 		return nil, err
@@ -59,7 +60,7 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 			DueDate:         formatTime(rpcResp.Goal.DueDate),
 			Progress:        int(rpcResp.Goal.Progress),
 			Completed:       rpcResp.Goal.Completed,
-			RelatedHabitIds: req.RelatedHabitIds,
+			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
 			UserId:          rpcResp.Goal.UserId,
 			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
 			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),

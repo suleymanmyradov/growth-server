@@ -268,14 +268,10 @@ func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]G
 }
 
 const listHabitHistory = `-- name: ListHabitHistory :many
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-), bounds AS (
+WITH bounds AS (
     SELECT
-        (now() AT TIME ZONE (SELECT tz FROM user_tz))::date AS today,
-        (now() AT TIME ZONE (SELECT tz FROM user_tz))::date - 27 AS start_date
+        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date AS today,
+        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date - 27 AS start_date
 )
 SELECT ci.habit_id, ci.local_date
 FROM check_ins ci, bounds b

@@ -62,7 +62,16 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		return nil, status.Error(codes.Internal, "failed to create goal")
 	}
 
+	// Link habits to the new goal if any were provided.
+	habitIDs := parseHabitIDs(in.RelatedHabitIds)
+	if len(habitIDs) > 0 {
+		if err := l.svcCtx.Repo.Goals.LinkGoalHabitsBatch(ctx, goal.ID, habitIDs); err != nil {
+			l.Errorf("Failed to link habits to goal: %v", err)
+			// Non-fatal: goal was created, just without habit links.
+		}
+	}
+
 	return &client.CreateGoalResponse{
-		Goal: goalToProto(goal),
+		Goal: goalToProto(goal, in.RelatedHabitIds),
 	}, nil
 }

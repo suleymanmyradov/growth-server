@@ -99,3 +99,28 @@ WHERE g.user_id = $1
   AND ($2::timestamptz IS NULL OR g.created_at < $2)
 ORDER BY g.created_at DESC
 LIMIT $3;
+
+-- ─── Goal-habit links ───────────────────────────────────────────────────────
+
+-- name: ListGoalHabitIDs :many
+-- Batch-fetch all (goal_id, habit_id) pairs for a user's goals so the logic
+-- layer can group them per-goal without N+1 queries.
+SELECT gh.goal_id, gh.habit_id
+FROM goal_habits gh
+JOIN goals g ON g.id = gh.goal_id
+WHERE g.user_id = $1;
+
+-- name: ListGoalHabitIDsByGoal :many
+-- Fetch habit IDs linked to a single goal.
+SELECT habit_id FROM goal_habits WHERE goal_id = $1;
+
+-- name: UnlinkAllGoalHabits :exec
+-- Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
+DELETE FROM goal_habits WHERE goal_id = $1;
+
+-- name: LinkGoalHabitsBatch :exec
+-- Link multiple habits to a goal at once.
+-- $1 = goal_id, $2 = array of habit_ids to link.
+INSERT INTO goal_habits (goal_id, habit_id)
+SELECT $1, unnest($2::uuid[])
+ON CONFLICT DO NOTHING;

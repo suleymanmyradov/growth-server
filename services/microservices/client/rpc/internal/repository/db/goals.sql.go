@@ -195,6 +195,80 @@ func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Ge
 	return items, nil
 }
 
+const linkGoalHabitsBatch = `-- name: LinkGoalHabitsBatch :exec
+INSERT INTO goal_habits (goal_id, habit_id)
+SELECT $1, unnest($2::uuid[])
+ON CONFLICT DO NOTHING
+`
+
+// Link multiple habits to a goal at once.
+// $1 = goal_id, $2 = array of habit_ids to link.
+func (q *Queries) LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, column2 []uuid.UUID) error {
+	_, err := q.db.Exec(ctx, linkGoalHabitsBatch, goalID, column2)
+	return err
+}
+
+const listGoalHabitIDs = `-- name: ListGoalHabitIDs :many
+
+SELECT gh.goal_id, gh.habit_id
+FROM goal_habits gh
+JOIN goals g ON g.id = gh.goal_id
+WHERE g.user_id = $1
+`
+
+type ListGoalHabitIDsRow struct {
+	GoalID  uuid.UUID `db:"goal_id" json:"goal_id"`
+	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
+}
+
+// ─── Goal-habit links ───────────────────────────────────────────────────────
+// Batch-fetch all (goal_id, habit_id) pairs for a user's goals so the logic
+// layer can group them per-goal without N+1 queries.
+func (q *Queries) ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]ListGoalHabitIDsRow, error) {
+	rows, err := q.db.Query(ctx, listGoalHabitIDs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListGoalHabitIDsRow{}
+	for rows.Next() {
+		var i ListGoalHabitIDsRow
+		if err := rows.Scan(&i.GoalID, &i.HabitID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGoalHabitIDsByGoal = `-- name: ListGoalHabitIDsByGoal :many
+SELECT habit_id FROM goal_habits WHERE goal_id = $1
+`
+
+// Fetch habit IDs linked to a single goal.
+func (q *Queries) ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listGoalHabitIDsByGoal, goalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var habit_id uuid.UUID
+		if err := rows.Scan(&habit_id); err != nil {
+			return nil, err
+		}
+		items = append(items, habit_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGoals = `-- name: ListGoals :many
 
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
@@ -366,6 +440,16 @@ func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, 
 		&i.Completed,
 	)
 	return i, err
+}
+
+const unlinkAllGoalHabits = `-- name: UnlinkAllGoalHabits :exec
+DELETE FROM goal_habits WHERE goal_id = $1
+`
+
+// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
+func (q *Queries) UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, unlinkAllGoalHabits, goalID)
+	return err
 }
 
 const updateGoal = `-- name: UpdateGoal :one

@@ -34,16 +34,17 @@ func (l *GetGoalLogic) GetGoal(req *types.GoalRequest) (resp *types.GoalResponse
 
 	return &types.GoalResponse{
 		Data: types.Goal{
-			Id:          rpcResp.Goal.Id,
-			Title:       rpcResp.Goal.Title,
-			Description: rpcResp.Goal.Description,
-			Category:    rpcResp.Goal.Category,
-			DueDate:     formatTime(rpcResp.Goal.DueDate),
-			Progress:    int(rpcResp.Goal.Progress),
-			Completed:   rpcResp.Goal.Completed,
-			UserId:      rpcResp.Goal.UserId,
-			CreatedAt:   formatTime(rpcResp.Goal.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Goal.UpdatedAt),
+			Id:              rpcResp.Goal.Id,
+			Title:           rpcResp.Goal.Title,
+			Description:     rpcResp.Goal.Description,
+			Category:        rpcResp.Goal.Category,
+			DueDate:         formatTime(rpcResp.Goal.DueDate),
+			Progress:        int(rpcResp.Goal.Progress),
+			Completed:       rpcResp.Goal.Completed,
+			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
+			UserId:          rpcResp.Goal.UserId,
+			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
+			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),
 		},
 	}, nil
 }

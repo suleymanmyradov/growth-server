@@ -56,7 +56,13 @@ func (l *GetGoalLogic) GetGoal(in *client.GetGoalRequest) (*client.GetGoalRespon
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
+	habitIDs, err := l.svcCtx.Repo.Goals.ListGoalHabitIDsByGoal(ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to list goal-habit links: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
+	}
+
 	return &client.GetGoalResponse{
-		Goal: goalToProto(goal),
+		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
 	}, nil
 }

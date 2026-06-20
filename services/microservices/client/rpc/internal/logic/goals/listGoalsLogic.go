@@ -62,9 +62,21 @@ func (l *ListGoalsLogic) ListGoals(in *client.ListGoalsRequest) (*client.ListGoa
 		return nil, status.Error(codes.Internal, "failed to count goals")
 	}
 
+	// Batch-fetch all goal-habit links for this user's goals and group by
+	// goal ID so we can populate RelatedHabitIds without N+1 queries.
+	linkRows, err := l.svcCtx.Repo.Goals.ListGoalHabitIDs(ctx, userID)
+	if err != nil {
+		l.Errorf("Failed to list goal-habit links: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
+	}
+	habitsByGoal := make(map[uuid.UUID][]string, len(goals))
+	for _, r := range linkRows {
+		habitsByGoal[r.GoalID] = append(habitsByGoal[r.GoalID], r.HabitID.String())
+	}
+
 	pbGoals := make([]*client.Goal, len(goals))
 	for i, g := range goals {
-		pbGoals[i] = goalToProto(g)
+		pbGoals[i] = goalToProto(g, habitsByGoal[g.ID])
 	}
 
 	return &client.ListGoalsResponse{

@@ -2,6 +2,7 @@ package goalslogic
 
 import (
 	"context"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -42,7 +43,13 @@ func (l *ToggleGoalLogic) ToggleGoal(in *client.ToggleGoalRequest) (*client.Togg
 		return nil, status.Error(codes.Internal, "failed to toggle goal")
 	}
 
+	habitIDs, err := l.svcCtx.Repo.Goals.ListGoalHabitIDsByGoal(ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to list goal-habit links: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
+	}
+
 	return &client.ToggleGoalResponse{
-		Goal: goalToProto(goal),
+		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
 	}, nil
 }

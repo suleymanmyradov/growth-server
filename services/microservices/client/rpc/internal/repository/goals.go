@@ -89,3 +89,31 @@ func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int
 
 	return r.db.CountGoalsByUser(ctx, userID)
 }
+
+func (r *goalsRepo) ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalHabitIDs")
+	defer span.End()
+
+	return r.db.ListGoalHabitIDs(ctx, userID)
+}
+
+func (r *goalsRepo) ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalHabitIDsByGoal")
+	defer span.End()
+
+	return r.db.ListGoalHabitIDsByGoal(ctx, goalID)
+}
+
+func (r *goalsRepo) UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.UnlinkAllGoalHabits")
+	defer span.End()
+
+	return r.db.UnlinkAllGoalHabits(ctx, goalID)
+}
+
+func (r *goalsRepo) LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, habitIDs []uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.LinkGoalHabitsBatch")
+	defer span.End()
+
+	return r.db.LinkGoalHabitsBatch(ctx, goalID, habitIDs)
+}

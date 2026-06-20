@@ -152,14 +152,10 @@ WHERE h.id = ANY($1::uuid[]);
 -- Returns completed check-ins for a user's habits within the last 28 days
 -- (in the owner's timezone). Used to render the per-habit 28-day contribution
 -- graph on the habit card.
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-), bounds AS (
+WITH bounds AS (
     SELECT
-        (now() AT TIME ZONE (SELECT tz FROM user_tz))::date AS today,
-        (now() AT TIME ZONE (SELECT tz FROM user_tz))::date - 27 AS start_date
+        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date AS today,
+        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date - 27 AS start_date
 )
 SELECT ci.habit_id, ci.local_date
 FROM check_ins ci, bounds b
