@@ -63,7 +63,21 @@ func (l *GetHabitLogic) GetHabit(in *client.GetHabitRequest) (*client.GetHabitRe
 		streak = 0
 	}
 
+	// Build the 28-day recent history the same way ListHabits does so the
+	// single-habit view has the same contribution-graph data.
+	historyRows, hErr := l.svcCtx.Repo.Habits.ListHabitHistory(ctx, habit.UserID)
+	if hErr != nil {
+		l.Errorf("failed to list habit history: %v", hErr)
+	}
+	historyByHabit := bucketHabitHistory(historyRows)
+	tz := ""
+	if settings, sErr := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID); sErr == nil {
+		tz = settings.Timezone
+	}
+	today := userToday(tz)
+	recentHistory := buildRecentHistory(habitID, today, historyByHabit[habitID])
+
 	return &client.GetHabitResponse{
-		Habit: habitToProto(habit, streak, nil),
+		Habit: habitToProto(habit, streak, recentHistory),
 	}, nil
 }
