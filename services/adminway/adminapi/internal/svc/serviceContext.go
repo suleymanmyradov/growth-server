@@ -3,6 +3,7 @@ package svc
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
@@ -14,6 +15,8 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository/db"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
+	clientcategories "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/categories"
+	clienttags "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/tags"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
@@ -26,6 +29,8 @@ type ServiceContext struct {
 	AdminAuth      rest.Middleware
 	TokenMaker     *jwt.TokenMaker
 	ArticlesRpc    clientarticles.Articles
+	CategoriesRpc  clientcategories.Categories
+	TagsRpc        clienttags.Tags
 	FileManagerRpc fileManagerClient.FileManager
 	Repo           *repository.Repository
 	TxRunner       *postgres.PgxTxRunner
@@ -49,13 +54,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	baseOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
-		zrpc.WithTimeout(3),
+		zrpc.WithTimeout(time.Second * 3),
 	}
 
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:   c.Auth.Secret,
-		Issuer:   c.Auth.Issuer,
-		Audience: c.Auth.Audience,
+		Secret:                c.Auth.Secret,
+		Issuer:                c.Auth.Issuer,
+		Audience:              c.Auth.Audience,
+		AccessExpiryDuration:  c.Auth.AccessExpiryDuration,
+		RefreshExpiryDuration: c.Auth.RefreshExpiryDuration,
 	}, nil)
 	if err != nil {
 		logx.Must(fmt.Errorf("init token maker: %w", err))
@@ -78,6 +85,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		AdminAuth:      middleware.AdminAuth(),
 		TokenMaker:     tokenMaker,
 		ArticlesRpc:    clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		CategoriesRpc:  clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		TagsRpc:        clienttags.NewTags(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		FileManagerRpc: fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
 		Repo:           repo,
 		TxRunner:       txRunner,

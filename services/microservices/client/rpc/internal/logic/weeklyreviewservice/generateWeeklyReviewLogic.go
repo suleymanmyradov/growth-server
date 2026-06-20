@@ -126,8 +126,19 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		weekHabits = []db.GetHabitRow{}
 	}
 
+	// Streaks are derived from check_ins history (not stored on the habit).
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	if err != nil {
+		l.Infof("failed to get habit streaks: %v", err)
+		streakRows = []db.GetHabitStreaksRow{}
+	}
+	streakByHabit := make(map[uuid.UUID]int32, len(streakRows))
+	for _, s := range streakRows {
+		streakByHabit[s.HabitID] = s.Streak
+	}
+
 	// Analyze patterns using the pattern detection service
-	patternInsights := l.svcCtx.PatternDetection.AnalyzeFullFromData(weekCheckIns, weekHabits, loc)
+	patternInsights := l.svcCtx.PatternDetection.AnalyzeFullFromData(weekCheckIns, weekHabits, streakByHabit, loc)
 
 	// Get personalization context for enhanced AI coaching
 	preferredTone := "supportive"

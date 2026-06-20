@@ -3,6 +3,7 @@ package analytics
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 )
@@ -18,13 +19,15 @@ func NewPatternDetection() *PatternDetection {
 }
 
 // AnalyzeLite maps db types to domain types and returns flat insights.
-func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.GetHabitRow, userLoc *time.Location) map[string]string {
-	return p.inner.AnalyzeLite(mapCheckIns(checkIns), mapHabits(habits), userLoc)
+// streakByHabit supplies the derived (history-based) streak for each habit,
+// since the streak is no longer stored on the habit row.
+func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32, userLoc *time.Location) map[string]string {
+	return p.inner.AnalyzeLite(mapCheckIns(checkIns), mapHabits(habits, streakByHabit), userLoc)
 }
 
 // AnalyzeFullFromData maps db types to domain types and returns rich insights.
-func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.GetHabitRow, userLoc *time.Location) *analytics.PatternInsights {
-	return p.inner.AnalyzeFullFromData(mapCheckIns(checkIns), mapHabits(habits), userLoc)
+func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32, userLoc *time.Location) *analytics.PatternInsights {
+	return p.inner.AnalyzeFullFromData(mapCheckIns(checkIns), mapHabits(habits, streakByHabit), userLoc)
 }
 
 func mapCheckIns(checkIns []db.CheckIn) []analytics.CheckInData {
@@ -48,10 +51,10 @@ func mapCheckIns(checkIns []db.CheckIn) []analytics.CheckInData {
 	return result
 }
 
-func mapHabits(habits []db.GetHabitRow) []analytics.HabitData {
+func mapHabits(habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32) []analytics.HabitData {
 	result := make([]analytics.HabitData, len(habits))
 	for i, h := range habits {
-		streak := h.Streak
+		streak := streakByHabit[h.ID]
 		result[i] = analytics.HabitData{
 			ID:     h.ID.String(),
 			Name:   h.Name,

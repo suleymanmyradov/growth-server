@@ -62,9 +62,41 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 		return nil, status.Error(codes.Internal, "failed to count habits")
 	}
 
+	// Streaks are derived from check_ins history (consecutive completed days),
+	// not the stored habit.streak counter. Fetch them in one set-based query.
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	if err != nil {
+		l.Errorf("Failed to compute habit streaks: %v", err)
+		return nil, status.Error(codes.Internal, "failed to compute habit streaks")
+	}
+	streakByHabit := make(map[uuid.UUID]int32, len(streakRows))
+	for _, s := range streakRows {
+		streakByHabit[s.HabitID] = s.Streak
+	}
+
+	// Fetch the last 28 days of completed check-ins (any habit) for the user
+	// and build a per-habit boolean history array for the contribution graph.
+	historyRows, err := l.svcCtx.Repo.Habits.ListHabitHistory(ctx, userID)
+	if err != nil {
+		l.Errorf("Failed to list habit history: %v", err)
+		return nil, status.Error(codes.Internal, "failed to list habit history")
+	}
+	// Bucket history rows by habit id once (O(n)) so buildRecentHistory is
+	// linear per habit instead of rescanning the full history each time.
+	historyByHabit := bucketHabitHistory(historyRows)
+	// Use the user's configured timezone so "today" matches the SQL window.
+	tz := ""
+	if settings, sErr := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID); sErr == nil {
+		tz = settings.Timezone
+	}
+	today := userToday(tz)
+
+	l.Infof("ListHabits debug: historyRows=%d, buckets=%d, tz=%q, today=%v",
+		len(historyRows), len(historyByHabit), tz, today)
+
 	pbHabits := make([]*client.Habit, len(habits))
 	for i, h := range habits {
-		pbHabits[i] = habitToProto(h)
+		pbHabits[i] = habitToProto(h, streakByHabit[h.ID], buildRecentHistory(h.ID, today, historyByHabit[h.ID]))
 	}
 
 	return &client.ListHabitsResponse{

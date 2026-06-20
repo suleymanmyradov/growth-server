@@ -72,3 +72,17 @@ func (r *CategoriesRepo) CountCategories(ctx context.Context) (int64, error) {
 
 	return r.db.CountCategories(ctx)
 }
+
+func (r *CategoriesRepo) CountArticlesByCategory(ctx context.Context, id uuid.UUID) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.CountArticlesByCategory")
+	defer span.End()
+
+	return r.db.CountArticlesByCategory(ctx, uuid.NullUUID{UUID: id, Valid: true})
+}
+
+func (r *CategoriesRepo) ReorderCategories(ctx context.Context, ids []uuid.UUID, sortOrders []int32) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.ReorderCategories")
+	defer span.End()
+
+	return r.db.ReorderCategories(ctx, ids, sortOrders)
+}

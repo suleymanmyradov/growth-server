@@ -43,18 +43,19 @@ func (l *ListHabitsLogic) ListHabits(req *types.PageRequest) (resp *types.Habits
 		return nil, err
 	}
 
-	var habits []types.Habit
+	habits := make([]types.Habit, 0, len(rpcResp.Habits))
 	for _, h := range rpcResp.Habits {
 		habits = append(habits, types.Habit{
-			Id:          h.Id,
-			Name:        h.Name,
-			Description: h.Description,
-			Streak:      int(h.Streak),
-			Completed:   h.Completed,
-			Category:    h.Category,
-			UserId:      h.UserId,
-			CreatedAt:   formatTime(h.CreatedAt),
-			UpdatedAt:   formatTime(h.UpdatedAt),
+			Id:            h.Id,
+			Name:          h.Name,
+			Description:   h.Description,
+			Streak:        int(h.Streak),
+			Completed:     h.Completed,
+			Category:      h.Category,
+			UserId:        h.UserId,
+			RecentHistory: h.RecentHistory,
+			CreatedAt:     formatTime(h.CreatedAt),
+			UpdatedAt:     formatTime(h.UpdatedAt),
 		})
 	}
 

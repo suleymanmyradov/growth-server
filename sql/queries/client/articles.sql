@@ -1,43 +1,46 @@
 -- name: ListArticles :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
+WHERE (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: ListArticlesWithSaved :many
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $3 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
     EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $3 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
+WHERE (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: ListArticlesByCategorySlug :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListArticlesByCategorySlugWithSaved :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
@@ -46,25 +49,27 @@ FROM articles a
 JOIN categories c ON a.category_id = c.id
 LEFT JOIN saved_articles sa ON sa.article_id = a.id AND sa.user_id = $4
 WHERE c.slug = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListArticlesByAuthor :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListArticlesByAuthorWithSaved :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $4 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
@@ -72,47 +77,51 @@ SELECT
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.author = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: SearchArticles :many
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.search_vector @@ plainto_tsquery('english', $1)
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: GetArticle :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
-WHERE a.id = $1;
+WHERE a.id = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
 
 -- name: GetArticleWithSaved :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     EXISTS(SELECT 1 FROM saved_articles sa WHERE sa.user_id = $2 AND sa.article_id = a.id) AS is_saved,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count,
     EXISTS(SELECT 1 FROM article_likes al2 WHERE al2.user_id = $2 AND al2.article_id = a.id) AS is_liked
 FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
-WHERE a.id = $1;
+WHERE a.id = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
 
 -- name: GetArticleByTitle :one
-SELECT 
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author, 
-    a.published_at, a.created_at, a.updated_at,
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
@@ -120,27 +129,34 @@ LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.title = $1;
 
 -- name: CreateArticle :one
-INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, published_at, created_at, updated_at;
+INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author, status)
+VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.arg(status))
+RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
 
 -- name: UpdateArticle :one
 UPDATE articles
 SET title = $2, excerpt = $3, content = $4, category_id = $5,
-    read_time_minutes = $6, image_url = $7, author = $8
+    read_time_minutes = $6, image_url = $7, author = $8, status = sqlc.arg(status)
 WHERE id = $1
-RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, published_at, created_at, updated_at;
+RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
 
 -- name: DeleteArticle :exec
 DELETE FROM articles WHERE id = $1;
 
 -- name: CountArticles :one
-SELECT COUNT(*) FROM articles;
+SELECT COUNT(*) FROM articles
+WHERE (sqlc.arg(status)::text = '' OR status = sqlc.arg(status)::text);
 
 -- name: CountArticlesByCategorySlug :one
 SELECT COUNT(*) FROM articles a
 JOIN categories c ON a.category_id = c.id
-WHERE c.slug = $1;
+WHERE c.slug = $1
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
+
+-- name: CountSearchArticles :one
+SELECT COUNT(*) FROM articles a
+WHERE a.search_vector @@ plainto_tsquery('english', $1)
+  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
 
 
 -- name: GetArticlesByIDs :many
@@ -148,7 +164,7 @@ WHERE c.slug = $1;
 -- Uses ANY with a uuid array to avoid N+1 queries.
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at,
+    a.published_at, a.created_at, a.updated_at, a.status,
     c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
     (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
 FROM articles a
@@ -176,3 +192,7 @@ JOIN tags t ON at.tag_id = t.id
 WHERE at.article_id = ANY($1::uuid[])
 ORDER BY at.article_id, t.name;
 
+-- name: ListTags :many
+SELECT id, name, slug
+FROM tags
+ORDER BY name;

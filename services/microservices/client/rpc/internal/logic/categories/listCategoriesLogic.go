@@ -34,14 +34,7 @@ func (l *ListCategoriesLogic) ListCategories(in *client.ListCategoriesRequest) (
 
 	pbCategories := make([]*client.Category, len(categories))
 	for i, c := range categories {
-		pbCategories[i] = &client.Category{
-			Id:        c.ID.String(),
-			Name:      c.Name,
-			Slug:      c.Slug,
-			SortOrder: c.SortOrder,
-			CreatedAt: c.CreatedAt.Time.Unix(),
-			UpdatedAt: c.UpdatedAt.Time.Unix(),
-		}
+		pbCategories[i] = convertCategory(c)
 	}
 
 	return &client.ListCategoriesResponse{

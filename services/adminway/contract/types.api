@@ -34,15 +34,71 @@ type (
 		likeCount   int              `json:"likeCount"`
 		isLiked     bool             `json:"isLiked"`
 		tags        []string          `json:"tags,optional"`
+		status      string           `json:"status,example=published"`
 	}
 
 	Tag {
 		id   string `json:"id,example=tag-123"`
 		name string `json:"name,example=productivity"`
+		slug string `json:"slug,example=productivity"`
 	}
 
 	TagsResponse {
 		data []Tag `json:"data"`
+	}
+
+	TagResponse {
+		data Tag `json:"data"`
+	}
+
+	CreateTagRequest {
+		name string `json:"name,example=productivity"`
+		slug string `json:"slug,optional,example=productivity"`
+	}
+
+	UpdateTagRequest {
+		id   string `path:"id"`
+		name string `json:"name,example=productivity"`
+		slug string `json:"slug,optional,example=productivity"`
+	}
+
+	Category {
+		id        string `json:"id,example=cat-123"`
+		name      string `json:"name,example=Personal Development"`
+		slug      string `json:"slug,example=personal-development"`
+		sortOrder int    `json:"sortOrder,example=1"`
+		createdAt string `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+
+	CategoriesResponse {
+		data []Category `json:"data"`
+	}
+
+	CategoryResponse {
+		data Category `json:"data"`
+	}
+
+	ListCategoriesRequest {
+		entityType string `form:"entityType,optional"`
+	}
+
+	CreateCategoryRequest {
+		name      string `json:"name,example=Personal Development"`
+		slug      string `json:"slug,optional,example=personal-development"`
+		sortOrder int    `json:"sortOrder,optional"`
+	}
+
+	UpdateCategoryRequest {
+		id        string `path:"id"`
+		name      string `json:"name,example=Personal Development"`
+		slug      string `json:"slug,optional,example=personal-development"`
+		sortOrder int    `json:"sortOrder,optional"`
+	}
+
+	ReorderCategoriesRequest {
+		ids        []string `json:"ids"`
+		sortOrders []int    `json:"sortOrders"`
 	}
 
 	ArticleResponse {
@@ -60,6 +116,8 @@ type (
 
 	ListArticlesRequest {
 		categorySlug string `form:"category,optional"`
+		search       string `form:"search,optional"`
+		status       string `form:"status,optional"`
 		page         int    `form:"page,default=1"`
 		limit        int    `form:"limit,default=20"`
 	}
@@ -73,6 +131,7 @@ type (
 		tags       []string `json:"tags,optional"`
 		readTime   int      `json:"readTime,example=5"`
 		categoryId string   `json:"categoryId,optional,example=cat-123"`
+		status     string   `json:"status,optional,example=published"`
 	}
 
 	UpdateArticleRequest {
@@ -85,6 +144,7 @@ type (
 		tags       []string `json:"tags,optional"`
 		readTime   int      `json:"readTime,optional"`
 		categoryId string   `json:"categoryId,optional"`
+		status     string   `json:"status,optional,example=published"`
 	}
 )
 
@@ -116,6 +176,13 @@ type (
 		accessToken  string   `json:"accessToken"`
 		refreshToken string   `json:"refreshToken"`
 		user         UserInfo `json:"user"`
+	}
+
+	UploadImageRequest  {}
+
+	UploadImageResponse {
+		url string `json:"url"`
+		key string `json:"key"`
 	}
 )
 

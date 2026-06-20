@@ -41,7 +41,7 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(req *types.GetTodayCheckInsRequ
 		return nil, err
 	}
 
-	var checkIns []types.CheckIn
+	checkIns := make([]types.CheckIn, 0, len(rpcResp.CheckIns))
 	for _, ci := range rpcResp.CheckIns {
 		checkIns = append(checkIns, types.CheckIn{
 			Id:        ci.Id,

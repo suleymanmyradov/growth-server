@@ -56,7 +56,14 @@ func (l *GetHabitLogic) GetHabit(in *client.GetHabitRequest) (*client.GetHabitRe
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
+	// Streak is derived from check_ins history, not the stored counter.
+	streak, sErr := l.svcCtx.Repo.Habits.GetHabitStreak(ctx, habitID, habit.UserID)
+	if sErr != nil {
+		l.Errorf("failed to compute habit streak: %v", sErr)
+		streak = 0
+	}
+
 	return &client.GetHabitResponse{
-		Habit: habitToProto(habit),
+		Habit: habitToProto(habit, streak, nil),
 	}, nil
 }

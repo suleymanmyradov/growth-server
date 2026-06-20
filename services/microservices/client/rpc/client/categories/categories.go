@@ -14,11 +14,23 @@ import (
 )
 
 type (
-	ListCategoriesRequest  = client.ListCategoriesRequest
-	ListCategoriesResponse = client.ListCategoriesResponse
+	CreateCategoryRequest     = client.CreateCategoryRequest
+	CreateCategoryResponse    = client.CreateCategoryResponse
+	DeleteCategoryRequest     = client.DeleteCategoryRequest
+	DeleteCategoryResponse    = client.DeleteCategoryResponse
+	ListCategoriesRequest     = client.ListCategoriesRequest
+	ListCategoriesResponse    = client.ListCategoriesResponse
+	ReorderCategoriesRequest  = client.ReorderCategoriesRequest
+	ReorderCategoriesResponse = client.ReorderCategoriesResponse
+	UpdateCategoryRequest     = client.UpdateCategoryRequest
+	UpdateCategoryResponse    = client.UpdateCategoryResponse
 
 	Categories interface {
 		ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
+		CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error)
+		UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error)
+		DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error)
+		ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error)
 	}
 
 	defaultCategories struct {
@@ -35,4 +47,24 @@ func NewCategories(cli zrpc.Client) Categories {
 func (m *defaultCategories) ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error) {
 	client := client.NewCategoriesClient(m.cli.Conn())
 	return client.ListCategories(ctx, in, opts...)
+}
+
+func (m *defaultCategories) CreateCategory(ctx context.Context, in *CreateCategoryRequest, opts ...grpc.CallOption) (*CreateCategoryResponse, error) {
+	client := client.NewCategoriesClient(m.cli.Conn())
+	return client.CreateCategory(ctx, in, opts...)
+}
+
+func (m *defaultCategories) UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error) {
+	client := client.NewCategoriesClient(m.cli.Conn())
+	return client.UpdateCategory(ctx, in, opts...)
+}
+
+func (m *defaultCategories) DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error) {
+	client := client.NewCategoriesClient(m.cli.Conn())
+	return client.DeleteCategory(ctx, in, opts...)
+}
+
+func (m *defaultCategories) ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error) {
+	client := client.NewCategoriesClient(m.cli.Conn())
+	return client.ReorderCategories(ctx, in, opts...)
 }

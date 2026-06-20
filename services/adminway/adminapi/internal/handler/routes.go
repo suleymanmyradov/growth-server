@@ -8,6 +8,8 @@ import (
 
 	articles "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/articles"
 	auth "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/auth"
+	categories "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/categories"
+	tags "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/tags"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -32,6 +34,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodGet,
 					Path:    "/articles/:id",
 					Handler: articles.AdminGetArticleHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/files/upload-image",
+					Handler: articles.AdminUploadArticleImageHandler(serverCtx),
 				},
 			}...,
 		),
@@ -58,6 +65,20 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/tags",
+					Handler: articles.AdminListTagsHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
@@ -75,6 +96,64 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Handler: auth.AuthRegisterHandler(serverCtx),
 			},
 		},
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/categories",
+					Handler: categories.AdminListCategoriesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/categories",
+					Handler: categories.AdminCreateCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/categories/:id",
+					Handler: categories.AdminUpdateCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/categories/:id",
+					Handler: categories.AdminDeleteCategoryHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/categories/reorder",
+					Handler: categories.AdminReorderCategoriesHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/tags",
+					Handler: tags.AdminCreateTagHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/tags/:id",
+					Handler: tags.AdminUpdateTagHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/tags/:id",
+					Handler: tags.AdminDeleteTagHandler(serverCtx),
+				},
+			}...,
+		),
 		rest.WithPrefix("/api/v1/admin"),
 	)
 }

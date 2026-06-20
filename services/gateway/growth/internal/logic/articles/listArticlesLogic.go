@@ -32,6 +32,7 @@ func (l *ListArticlesLogic) ListArticles(req *types.ListArticlesRequest) (resp *
 		CategorySlug: req.CategorySlug,
 		Offset:       int32(offset),
 		Limit:        int32(req.Limit),
+		Status:       "published",
 	}
 
 	// Pass user ID if authenticated so backend can compute isSaved
@@ -44,7 +45,7 @@ func (l *ListArticlesLogic) ListArticles(req *types.ListArticlesRequest) (resp *
 		return nil, err
 	}
 
-	var articles []types.Article
+	articles := make([]types.Article, 0, len(rpcResp.Articles))
 	for _, a := range rpcResp.Articles {
 		var category *types.ArticleCategory
 		if a.Category != nil {

@@ -71,15 +71,16 @@ type (
 // Habit types
 type (
 	Habit {
-		id          string `json:"id,example=habit-123"`
-		name        string `json:"name,example=Morning Exercise"`
-		description string `json:"description,example=30 minutes of cardio every morning"`
-		streak      int    `json:"streak,example=7"`
-		completed   bool   `json:"completed,example=false"`
-		category    string `json:"category,example=fitness"`
-		userId      string `json:"userId,example=user-123"`
-		createdAt   string `json:"createdAt,example=2024-01-01T00:00:00Z"`
-		updatedAt   string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+		id            string   `json:"id,example=habit-123"`
+		name          string   `json:"name,example=Morning Exercise"`
+		description   string   `json:"description,example=30 minutes of cardio every morning"`
+		streak        int      `json:"streak,example=7"`
+		completed     bool     `json:"completed,example=false"`
+		category      string   `json:"category,example=fitness"`
+		userId        string   `json:"userId,example=user-123"`
+		recentHistory []bool   `json:"recentHistory,optional"`
+		createdAt     string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt     string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
 	}
 	HabitResponse {
 		data Habit `json:"data"`
@@ -94,6 +95,7 @@ type (
 		category    string `json:"category,example=fitness"`
 	}
 	UpdateHabitRequest {
+		id          string `path:"id"`
 		name        string `json:"name,optional"`
 		description string `json:"description,optional"`
 		category    string `json:"category,optional"`

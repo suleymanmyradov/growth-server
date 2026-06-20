@@ -1,14 +1,14 @@
 package habits
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
-
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -34,9 +34,7 @@ func (l *ResetTodayHabitsLogic) ResetTodayHabits() (resp *types.EmptyResponse, e
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	_, err = l.svcCtx.HabitsRpc.ResetTodayHabits(l.ctx, &clienthabits.ResetTodayHabitsRequest{
-		UserId: "",
-	})
+	_, err = l.svcCtx.HabitsRpc.ResetTodayHabits(l.ctx, &clienthabits.ResetTodayHabitsRequest{})
 	if err != nil {
 		return nil, err
 	}

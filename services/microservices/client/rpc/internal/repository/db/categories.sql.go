@@ -11,6 +11,17 @@ import (
 	"github.com/google/uuid"
 )
 
+const countArticlesByCategory = `-- name: CountArticlesByCategory :one
+SELECT COUNT(*) FROM articles WHERE category_id = $1
+`
+
+func (q *Queries) CountArticlesByCategory(ctx context.Context, categoryID uuid.NullUUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countArticlesByCategory, categoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCategories = `-- name: CountCategories :one
 SELECT COUNT(*) FROM categories
 `
@@ -116,6 +127,18 @@ func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const reorderCategories = `-- name: ReorderCategories :exec
+UPDATE categories
+SET sort_order = new_sort.sort_order
+FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::int[]) AS sort_order) AS new_sort
+WHERE categories.id = new_sort.id
+`
+
+func (q *Queries) ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error {
+	_, err := q.db.Exec(ctx, reorderCategories, column1, column2)
+	return err
 }
 
 const updateCategory = `-- name: UpdateCategory :one

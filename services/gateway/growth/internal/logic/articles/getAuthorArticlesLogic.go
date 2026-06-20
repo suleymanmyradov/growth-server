@@ -47,7 +47,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesR
 		return nil, err
 	}
 
-	var articles []types.Article
+	articles := make([]types.Article, 0, len(rpcResp.Articles))
 	for _, a := range rpcResp.Articles {
 		var category *types.ArticleCategory
 		if a.Category != nil {

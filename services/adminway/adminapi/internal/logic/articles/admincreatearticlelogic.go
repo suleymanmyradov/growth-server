@@ -42,6 +42,7 @@ func (l *AdminCreateArticleLogic) AdminCreateArticle(req *types.CreateArticleReq
 		Tags:       req.Tags,
 		ReadTime:   int32(req.ReadTime),
 		CategoryId: req.CategoryId,
+		Status:     req.Status,
 	}
 
 	rpcResp, err := l.svcCtx.ArticlesRpc.CreateArticle(l.ctx, rpcReq)
@@ -69,6 +70,8 @@ func (l *AdminCreateArticleLogic) AdminCreateArticle(req *types.CreateArticleReq
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
 		IsSaved:     rpcArticle.IsSaved,
+		Tags:        rpcArticle.Tags,
+		Status:      rpcArticle.Status,
 	}
 
 	return &types.ArticleResponse{

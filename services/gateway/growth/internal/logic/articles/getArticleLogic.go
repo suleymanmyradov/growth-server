@@ -41,6 +41,7 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 
 	rpcReq := &clientarticles.GetArticleRequest{
 		ArticleId: req.Id,
+		Status:    "published",
 	}
 
 	// Pass user ID if authenticated so backend can compute isSaved

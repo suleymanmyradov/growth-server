@@ -49,7 +49,7 @@ func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.AuthResponse
 		return nil, err
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, sessionID)
+	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("login failed to create refresh token for user %s: %v", user.ID, err)
 		return nil, err

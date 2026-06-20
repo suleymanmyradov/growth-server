@@ -1,11 +1,11 @@
 package files
 
 import (
-	"io"
-	"mime"
 	"net/http"
 	"path/filepath"
+	"strings"
 
+	"github.com/suleymanmyradov/growth-server/pkg/imageproc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -31,24 +31,24 @@ func AdminUploadArticleImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 		}
 		defer file.Close()
 
-		data, err := io.ReadAll(file)
+		// Resize, convert to JPEG, and enforce size limits.
+		data, contentType, err := imageproc.ProcessArticleCover(file)
 		if err != nil {
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
 
-		contentType := header.Header.Get("Content-Type")
-		if contentType == "" {
-			ext := filepath.Ext(header.Filename)
-			contentType = mime.TypeByExtension(ext)
-			if contentType == "" {
-				contentType = "application/octet-stream"
-			}
+		// Force .jpg extension so the stored key matches the processed format.
+		filename := header.Filename
+		if ext := filepath.Ext(filename); ext != "" {
+			filename = strings.TrimSuffix(filename, ext) + ".jpg"
+		} else {
+			filename = filename + ".jpg"
 		}
 
 		resp, err := svcCtx.FileManagerRpc.UploadFile(r.Context(), &fileManagerClient.UploadFileRequest{
 			Data:        data,
-			Filename:    header.Filename,
+			Filename:    filename,
 			ContentType: contentType,
 			Folder:      "articles",
 		})

@@ -50,7 +50,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 	// Filter by category slug if provided
 	if in.CategorySlug != "" {
 		if hasUser {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlugWithSaved(ctx, in.CategorySlug, limit, offset, userID)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlugWithSaved(ctx, in.CategorySlug, in.Status, limit, offset, userID)
 			if err != nil {
 				l.Errorf("Failed to list articles by category with saved: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles by category")
@@ -60,7 +60,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertCategorySlugWithSavedRowToPbArticle(a)
 			}
 		} else {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(ctx, in.CategorySlug, limit, offset)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesByCategorySlug(ctx, in.CategorySlug, in.Status, limit, offset)
 			if err != nil {
 				l.Errorf("Failed to list articles by category: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles by category")
@@ -70,10 +70,10 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertCategorySlugRowToPbArticle(a)
 			}
 		}
-		totalCount, _ = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(ctx, in.CategorySlug)
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticlesByCategorySlug(ctx, in.CategorySlug, in.Status)
 	} else {
 		if hasUser {
-			articles, err := l.svcCtx.Repo.Articles.ListArticlesWithSaved(ctx, limit, offset, userID)
+			articles, err := l.svcCtx.Repo.Articles.ListArticlesWithSaved(ctx, in.Status, limit, offset, userID)
 			if err != nil {
 				l.Errorf("Failed to list articles with saved: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles")
@@ -83,7 +83,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertListWithSavedRowToPbArticle(a)
 			}
 		} else {
-			articles, err := l.svcCtx.Repo.Articles.ListArticles(ctx, limit, offset)
+			articles, err := l.svcCtx.Repo.Articles.ListArticles(ctx, in.Status, limit, offset)
 			if err != nil {
 				l.Errorf("Failed to list articles: %v", err)
 				return nil, status.Error(codes.Internal, "failed to list articles")
@@ -93,7 +93,7 @@ func (l *ListArticlesLogic) ListArticles(in *client.ListArticlesRequest) (*clien
 				pbArticles[i] = convertListRowToPbArticle(a)
 			}
 		}
-		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(ctx)
+		totalCount, _ = l.svcCtx.Repo.Articles.CountArticles(ctx, in.Status)
 	}
 
 	if len(pbArticles) > 0 {

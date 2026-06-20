@@ -116,6 +116,17 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		habits = []db.GetHabitRow{}
 	}
 
+	// Streaks are derived from check_ins history (not stored on the habit).
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	if err != nil {
+		l.Infof("failed to get habit streaks: %v", err)
+		streakRows = []db.GetHabitStreaksRow{}
+	}
+	streakByHabit := make(map[uuid.UUID]int32, len(streakRows))
+	for _, s := range streakRows {
+		streakByHabit[s.HabitID] = s.Streak
+	}
+
 	// Get recent check-ins (last 30 days)
 	thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 	recentCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(ctx, userID, thirtyDaysAgo, time.Now(), 100, 0)
@@ -151,7 +162,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	}
 
 	// Build pattern insights using the pattern detection service
-	patternInsights := l.svcCtx.PatternDetection.AnalyzeLite(recentCheckIns, habits, userLoc)
+	patternInsights := l.svcCtx.PatternDetection.AnalyzeLite(recentCheckIns, habits, streakByHabit, userLoc)
 
 	// Add habit count for backward compatibility
 	if len(habits) > 0 {
@@ -175,7 +186,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 
 	protoHabits := make([]*client.Habit, len(habits))
 	for i, habit := range habits {
-		protoHabits[i] = dbHabitToProto(habit)
+		protoHabits[i] = dbHabitToProto(habit, streakByHabit[habit.ID])
 	}
 
 	protoCheckIns := make([]*client.CheckIn, len(recentCheckIns))
@@ -229,7 +240,7 @@ func dbGoalToProto(goal db.GetGoalRow) *client.Goal {
 	}
 }
 
-func dbHabitToProto(habit db.GetHabitRow) *client.Habit {
+func dbHabitToProto(habit db.GetHabitRow, streak int32) *client.Habit {
 	description := ""
 	if habit.Description != nil {
 		description = *habit.Description
@@ -238,7 +249,7 @@ func dbHabitToProto(habit db.GetHabitRow) *client.Habit {
 		Id:          habit.ID.String(),
 		Name:        habit.Name,
 		Description: description,
-		Streak:      habit.Streak,
+		Streak:      streak,
 		Completed:   habit.Completed,
 		Category:    habit.Category,
 		UserId:      habit.UserID.String(),

@@ -73,33 +73,33 @@ func (r *weeklyReviewsRepo) GetCheckInStatsForWeek(ctx context.Context, userID u
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetCheckInStatsForWeek")
 	defer span.End()
 
-	return r.db.GetCheckInStatsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
+	return r.db.GetCheckInStatsForWeek(ctx, userID, pgtype.Date{Time: start, Valid: true}, pgtype.Date{Time: end, Valid: true})
 }
 
 func (r *weeklyReviewsRepo) GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetDailyCheckInStatsForWeekRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetDailyCheckInStatsForWeek")
 	defer span.End()
 
-	return r.db.GetDailyCheckInStatsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
+	return r.db.GetDailyCheckInStatsForWeek(ctx, userID, pgtype.Date{Time: start, Valid: true}, pgtype.Date{Time: end, Valid: true})
 }
 
 func (r *weeklyReviewsRepo) GetBlockerStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetBlockerStatsForWeekRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetBlockerStatsForWeek")
 	defer span.End()
 
-	return r.db.GetBlockerStatsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
+	return r.db.GetBlockerStatsForWeek(ctx, userID, pgtype.Date{Time: start, Valid: true}, pgtype.Date{Time: end, Valid: true})
 }
 
 func (r *weeklyReviewsRepo) GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetMoodStatsForWeekRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetMoodStatsForWeek")
 	defer span.End()
 
-	return r.db.GetMoodStatsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
+	return r.db.GetMoodStatsForWeek(ctx, userID, pgtype.Date{Time: start, Valid: true}, pgtype.Date{Time: end, Valid: true})
 }
 
 func (r *weeklyReviewsRepo) GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.GetEnergyStatsForWeekRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "WeeklyReviewsRepo.GetEnergyStatsForWeek")
 	defer span.End()
 
-	return r.db.GetEnergyStatsForWeek(ctx, userID, pgtype.Timestamptz{Time: start, Valid: true}, pgtype.Timestamptz{Time: end, Valid: true})
+	return r.db.GetEnergyStatsForWeek(ctx, userID, pgtype.Date{Time: start, Valid: true}, pgtype.Date{Time: end, Valid: true})
 }

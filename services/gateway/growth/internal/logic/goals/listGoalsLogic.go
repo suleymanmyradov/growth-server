@@ -41,7 +41,7 @@ func (l *ListGoalsLogic) ListGoals(req *types.PageRequest) (resp *types.GoalsRes
 		return nil, err
 	}
 
-	var goals []types.Goal
+	goals := make([]types.Goal, 0, len(rpcResp.Goals))
 	for _, g := range rpcResp.Goals {
 		goals = append(goals, types.Goal{
 			Id:          g.Id,

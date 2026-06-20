@@ -523,6 +523,7 @@ message Article {
   int64 updatedAt = 14;
   bool isSaved = 15;
   bool isLiked = 16;
+  string status = 17;
 }
 
 message ListArticlesRequest {
@@ -532,6 +533,7 @@ message ListArticlesRequest {
   string tag = 4;
   string authorId = 5;
   string userId = 6;
+  string status = 7;
 }
 
 message ListArticlesResponse {
@@ -542,6 +544,7 @@ message ListArticlesResponse {
 message GetArticleRequest {
   string articleId = 1;
   string userId = 2;
+  string status = 3;
 }
 
 message GetArticleResponse {
@@ -590,6 +593,7 @@ message CreateArticleRequest {
   repeated string tags = 6;
   int32 readTime = 7;
   string categoryId = 8;
+  string status = 9;
 }
 
 message CreateArticleResponse {
@@ -606,6 +610,7 @@ message UpdateArticleRequest {
   repeated string tags = 7;
   int32 readTime = 8;
   string categoryId = 9;
+  string status = 10;
 }
 
 message UpdateArticleResponse {
@@ -620,6 +625,30 @@ message DeleteArticleResponse {
   bool success = 1;
 }
 
+message Tag {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message ListTagsRequest {}
+
+message ListTagsResponse {
+  repeated Tag tags = 1;
+}
+
+message SearchArticlesRequest {
+  string query = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string status = 4;
+}
+
+message SearchArticlesResponse {
+  repeated Article articles = 1;
+  int32 totalCount = 2;
+}
+
 service Articles {
   rpc ListArticles(ListArticlesRequest) returns (ListArticlesResponse);
   rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
@@ -629,6 +658,43 @@ service Articles {
   rpc LikeArticle(LikeArticleRequest) returns (LikeArticleResponse);
   rpc ShareArticle(ShareArticleRequest) returns (ShareArticleResponse);
   rpc GetAuthorArticles(GetAuthorArticlesRequest) returns (GetAuthorArticlesResponse);
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+  rpc SearchArticles(SearchArticlesRequest) returns (SearchArticlesResponse);
+}
+
+// Tags Service (admin tag management)
+message CreateTagRequest {
+  string name = 1;
+  string slug = 2;
+}
+
+message CreateTagResponse {
+  Tag tag = 1;
+}
+
+message UpdateTagRequest {
+  string tagId = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message UpdateTagResponse {
+  Tag tag = 1;
+}
+
+message DeleteTagRequest {
+  string tagId = 1;
+}
+
+message DeleteTagResponse {
+  bool success = 1;
+}
+
+service Tags {
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+  rpc CreateTag(CreateTagRequest) returns (CreateTagResponse);
+  rpc UpdateTag(UpdateTagRequest) returns (UpdateTagResponse);
+  rpc DeleteTag(DeleteTagRequest) returns (DeleteTagResponse);
 }
 
 message Habit {
@@ -642,6 +708,9 @@ message Habit {
   bool completedToday = 8;
   int64 createdAt = 9;
   int64 updatedAt = 10;
+  // Last 28 days of completion (oldest first, index 0 = 27 days ago).
+  // Populated by ListHabits; empty for single-habit responses.
+  repeated bool recentHistory = 11;
 }
 
 message ListHabitsRequest {
@@ -691,16 +760,7 @@ message DeleteHabitResponse {
   bool success = 1;
 }
 
-message ToggleHabitRequest {
-  string habitId = 1;
-}
-
-message ToggleHabitResponse {
-  Habit habit = 1;
-}
-
 message ResetTodayHabitsRequest {
-  string userId = 1;
 }
 
 message ResetTodayHabitsResponse {
@@ -713,7 +773,6 @@ service Habits {
   rpc CreateHabit(CreateHabitRequest) returns (CreateHabitResponse);
   rpc UpdateHabit(UpdateHabitRequest) returns (UpdateHabitResponse);
   rpc DeleteHabit(DeleteHabitRequest) returns (DeleteHabitResponse);
-  rpc ToggleHabit(ToggleHabitRequest) returns (ToggleHabitResponse);
   rpc ResetTodayHabits(ResetTodayHabitsRequest) returns (ResetTodayHabitsResponse);
 }
 
@@ -825,8 +884,50 @@ message ListCategoriesResponse {
   repeated Category categories = 1;
 }
 
+message CreateCategoryRequest {
+  string name = 1;
+  string slug = 2;
+  int32 sortOrder = 3;
+}
+
+message CreateCategoryResponse {
+  Category category = 1;
+}
+
+message UpdateCategoryRequest {
+  string categoryId = 1;
+  string name = 2;
+  string slug = 3;
+  int32 sortOrder = 4;
+}
+
+message UpdateCategoryResponse {
+  Category category = 1;
+}
+
+message DeleteCategoryRequest {
+  string categoryId = 1;
+}
+
+message DeleteCategoryResponse {
+  bool success = 1;
+}
+
+message ReorderCategoriesRequest {
+  repeated string ids = 1;
+  repeated int32 sortOrders = 2;
+}
+
+message ReorderCategoriesResponse {
+  bool success = 1;
+}
+
 service Categories {
   rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+  rpc ReorderCategories(ReorderCategoriesRequest) returns (ReorderCategoriesResponse);
 }
 
 // CheckIn Service

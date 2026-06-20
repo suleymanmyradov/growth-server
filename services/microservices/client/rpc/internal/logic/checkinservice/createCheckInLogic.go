@@ -3,14 +3,16 @@ package checkinservicelogic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -59,16 +61,20 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		return nil, status.Error(codes.InvalidArgument, "habitId and status are required")
 	}
 
+	p, ok := principal.PrincipalFrom(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		l.Errorf("Invalid user ID: %v", err)
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
 	habitID, err := uuid.Parse(in.HabitId)
 	if err != nil {
 		l.Errorf("Invalid habit ID: %v", err)
 		return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
-	}
-
-	userID, err := uuid.Parse(in.UserId)
-	if err != nil {
-		l.Errorf("Invalid user ID: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
 	// Validate enum values and length bounds before persistence / AI prompts.
@@ -91,8 +97,19 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	// Wrap all state-mutating operations in a transaction with RLS context.
 	var checkIn db.CheckIn
 	var habit db.GetHabitRow
-	err = l.svcCtx.TxRunner.Run(ctx, in.UserId, func(tx pgx.Tx) error {
+	var streak int32
+	err = l.svcCtx.TxRunner.Run(ctx, userID.String(), func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
+
+		// Verify the habit exists and belongs to the caller before creating a
+		// check-in. Prevents IDOR (checking in on another user's habit).
+		habit, err = txRepo.Habits.GetHabitByID(ctx, habitID)
+		if err != nil {
+			return status.Error(codes.NotFound, "habit not found")
+		}
+		if habit.UserID != userID {
+			return status.Error(codes.PermissionDenied, "access denied")
+		}
 
 		// Check for duplicate check-in
 		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(ctx, userID, habitID)
@@ -103,35 +120,26 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 			return status.Error(codes.AlreadyExists, "already checked in on this habit today")
 		}
 
-		// Create check-in record
+		// Create check-in record. The UNIQUE(habit_id, local_date) constraint is
+		// the last line of defense against a concurrent duplicate; surface that
+		// race as AlreadyExists (409) instead of a generic Internal (500).
 		params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
 		checkIn, err = txRepo.CheckIns.CreateCheckIn(ctx, params)
 		if err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				return status.Error(codes.AlreadyExists, "already checked in on this habit today")
+			}
 			return fmt.Errorf("create check-in: %w", err)
 		}
 
-		// Get habit to return in response
-		habit, err = txRepo.Habits.GetHabitByID(ctx, habitID)
-		if err != nil {
-			return fmt.Errorf("get habit: %w", err)
-		}
-
-		// If completed, toggle habit to mark as completed and bump streak
-		// The habit's completed flag derives from the check-in just written;
-		// only the streak counter needs updating here.
-		switch in.Status {
-		case "completed":
-			updatedHabit, err := txRepo.Habits.UpdateHabitStreak(ctx, habitID, habit.Streak+1)
-			if err != nil {
-				return fmt.Errorf("bump habit streak: %w", err)
-			}
-			habit = updatedHabit
-		case "missed":
-			// Reset streak on missed check-in
-			_, err := txRepo.Habits.UpdateHabitStreak(ctx, habitID, 0)
-			if err != nil {
-				return fmt.Errorf("reset habit streak: %w", err)
-			}
+		// Streak is derived from check_ins history (consecutive completed days),
+		// not a stored counter, so completion/miss no longer mutate it. Recompute
+		// it here so the response and the published event carry the truthful
+		// value (e.g. a 'completed' check-in may start/extend a streak; a
+		// 'missed' check-in does not change today's streak).
+		if s, sErr := txRepo.Habits.GetHabitStreak(ctx, habitID, userID); sErr == nil {
+			streak = s
 		}
 
 		// Log activity record
@@ -156,11 +164,20 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		return nil
 	})
 	if err != nil {
+		// Preserve business-logic gRPC status errors (e.g. AlreadyExists,
+		// InvalidArgument, PermissionDenied) returned from inside the
+		// transaction so the client receives the correct status code and
+		// message. Only unexpected errors are logged and converted to Internal.
+		if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown {
+			return nil, st.Err()
+		}
 		l.Errorf("Failed check-in workflow: %v", err)
 		return nil, status.Error(codes.Internal, "failed check-in workflow")
 	}
 
-	// Fire-and-forget publish check-in event to Kafka.
+	// Fire-and-forget publish check-in event to Kafka. The ai-coach-consumer
+	// generates feedback asynchronously from this event, so there is no need
+	// for a synchronous AI call here.
 	if l.svcCtx.EventsPub != nil {
 		runBackground(func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -171,7 +188,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 				HabitID:   habit.ID.String(),
 				HabitName: habit.Name,
 				Status:    in.Status,
-				Streak:    habit.Streak,
+				Streak:    streak,
 			})
 			if err != nil {
 				logx.Errorf("envelope: %v", err)
@@ -183,87 +200,9 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		})
 	}
 
-	// Fire-and-forget: generate AI feedback (non-blocking, best-effort)
-	runBackground(func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		feedback := l.generateAIFeedback(ctx, in, habit)
-		if feedback != "" {
-			l.Infof("AI feedback generated for check-in %s: %s", checkIn.ID, feedback)
-		}
-	})
-
 	return &client.CreateCheckInResponse{
 		CheckIn:    checkInToProto(checkIn),
-		Habit:      habitToProto(habit),
-		AiFeedback: "", // TODO: remove once frontend migrates to async delivery via notifications
+		Habit:      habitToProto(habit, streak),
+		AiFeedback: "", // delivered asynchronously via notifications from the ai-coach-consumer
 	}, nil
-}
-
-func (l *CreateCheckInLogic) generateAIFeedback(ctx context.Context, in *client.CreateCheckInRequest, habit db.GetHabitRow) string {
-	// Fetch user settings for accountability style
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, habit.UserID)
-	accountabilityStyle := "balanced"
-	if err == nil && settings.AccountabilityStyle != "" {
-		accountabilityStyle = string(settings.AccountabilityStyle)
-	}
-
-	// Fetch the primary goal for context (best-effort)
-	goals, err := l.svcCtx.Repo.Goals.ListGoals(ctx, habit.UserID, 1, 0)
-	goalTitle := ""
-	if err == nil && len(goals) > 0 {
-		goalTitle = goals[0].Title
-	}
-
-	// Build recent pattern summary (last 7 days check-ins for this habit)
-	weekAgo := time.Now().AddDate(0, 0, -7)
-	recentCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInsForWeek(ctx, habit.UserID, weekAgo, time.Now())
-	recentPattern := "No recent check-ins"
-	if err == nil && len(recentCheckIns) > 0 {
-		completedCount := 0
-		missedCount := 0
-		for _, ci := range recentCheckIns {
-			if ci.HabitID == habit.ID {
-				if ci.Status == "completed" {
-					completedCount++
-				} else {
-					missedCount++
-				}
-			}
-		}
-		if completedCount+missedCount > 0 {
-			recentPattern = fmt.Sprintf("%d completed, %d missed in the last 7 days", completedCount, missedCount)
-		}
-	}
-
-	resp, err := l.svcCtx.AICoachRpc.GenerateCheckInFeedback(ctx, &aicoachservice.CheckInFeedbackRequest{
-		UserId:               in.UserId,
-		HabitId:              in.HabitId,
-		HabitName:            habit.Name,
-		Status:               in.Status,
-		Mood:                 in.Mood,
-		Energy:               in.Energy,
-		Blocker:              in.Blocker,
-		Note:                 in.Note,
-		Streak:               int32(habit.Streak),
-		AccountabilityStyle:  accountabilityStyle,
-		PreferredTone:        "",
-		DifficultyPreference: "",
-		CommonBlockers:       nil,
-		RecentPattern:        recentPattern,
-		GoalTitle:            goalTitle,
-	})
-	if err != nil {
-		l.Errorf("AI feedback generation failed: %v", err)
-		return ""
-	}
-
-	return resp.Feedback
-}
-
-func orDefault(s, def string) string {
-	if s == "" {
-		return def
-	}
-	return s
 }
