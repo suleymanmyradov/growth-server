@@ -45,9 +45,20 @@ func toPbUser(u db.User) *auth.User {
 		Bio:       bio,
 		Location:  location,
 		Website:   website,
-		Interests: u.Interests,
+		// Normalize nil → [] so JSON serialization produces [] instead of null
+		// (go-zero's `optional` tag is not omitempty).
+		Interests: nonNilStrings(u.Interests),
 		AvatarUrl: avatarUrl,
 		CreatedAt: formatTime(u.CreatedAt),
 		UpdatedAt: formatTime(u.UpdatedAt),
 	}
+}
+
+// nonNilStrings returns the slice if non-nil, otherwise an empty slice so JSON
+// serialization produces [] instead of null.
+func nonNilStrings(s []string) []string {
+	if s == nil {
+		return []string{}
+	}
+	return s
 }

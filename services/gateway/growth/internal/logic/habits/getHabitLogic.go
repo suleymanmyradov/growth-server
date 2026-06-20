@@ -34,15 +34,16 @@ func (l *GetHabitLogic) GetHabit(req *types.HabitRequest) (resp *types.HabitResp
 
 	return &types.HabitResponse{
 		Data: types.Habit{
-			Id:          rpcResp.Habit.Id,
-			Name:        rpcResp.Habit.Name,
-			Description: rpcResp.Habit.Description,
-			Streak:      int(rpcResp.Habit.Streak),
-			Completed:   rpcResp.Habit.Completed,
-			Category:    rpcResp.Habit.Category,
-			UserId:      rpcResp.Habit.UserId,
-			CreatedAt:   formatTime(rpcResp.Habit.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Habit.UpdatedAt),
+			Id:            rpcResp.Habit.Id,
+			Name:          rpcResp.Habit.Name,
+			Description:   rpcResp.Habit.Description,
+			Streak:        int(rpcResp.Habit.Streak),
+			Completed:     rpcResp.Habit.Completed,
+			Category:      rpcResp.Habit.Category,
+			UserId:        rpcResp.Habit.UserId,
+			RecentHistory: rpcResp.Habit.RecentHistory,
+			CreatedAt:     formatTime(rpcResp.Habit.CreatedAt),
+			UpdatedAt:     formatTime(rpcResp.Habit.UpdatedAt),
 		},
 	}, nil
 }

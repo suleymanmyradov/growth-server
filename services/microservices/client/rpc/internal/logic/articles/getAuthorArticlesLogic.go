@@ -83,7 +83,11 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(in *client.GetAuthorArticlesR
 				tagMap[t.ArticleID.String()] = append(tagMap[t.ArticleID.String()], t.Name)
 			}
 			for _, a := range pbArticles {
-				a.Tags = tagMap[a.Id]
+				tags := tagMap[a.Id]
+				if tags == nil {
+					tags = []string{}
+				}
+				a.Tags = tags
 			}
 		}
 	}
