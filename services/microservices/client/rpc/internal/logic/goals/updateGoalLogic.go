@@ -2,9 +2,10 @@ package goalslogic
 
 import (
 	"context"
+	"time"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -62,7 +63,19 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		return nil, status.Error(codes.Internal, "failed to update goal")
 	}
 
+	// Replace goal-habit links: unlink all existing, then link the new set.
+	// Always unlink first (even if the new list is empty) to clear old links.
+	if err := l.svcCtx.Repo.Goals.UnlinkAllGoalHabits(ctx, goalID); err != nil {
+		l.Errorf("Failed to unlink old goal-habits: %v", err)
+	}
+	habitIDs := parseHabitIDs(in.RelatedHabitIds)
+	if len(habitIDs) > 0 {
+		if err := l.svcCtx.Repo.Goals.LinkGoalHabitsBatch(ctx, goalID, habitIDs); err != nil {
+			l.Errorf("Failed to link habits to goal: %v", err)
+		}
+	}
+
 	return &client.UpdateGoalResponse{
-		Goal: goalToProto(goal),
+		Goal: goalToProto(goal, in.RelatedHabitIds),
 	}, nil
 }

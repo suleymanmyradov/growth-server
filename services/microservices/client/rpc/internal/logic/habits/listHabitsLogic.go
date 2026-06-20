@@ -91,9 +91,6 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 	}
 	today := userToday(tz)
 
-	l.Infof("ListHabits debug: historyRows=%d, buckets=%d, tz=%q, today=%v",
-		len(historyRows), len(historyByHabit), tz, today)
-
 	pbHabits := make([]*client.Habit, len(habits))
 	for i, h := range habits {
 		pbHabits[i] = habitToProto(h, streakByHabit[h.ID], buildRecentHistory(h.ID, today, historyByHabit[h.ID]))

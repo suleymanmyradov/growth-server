@@ -7066,19 +7066,20 @@ func (x *ResetTodayHabitsResponse) GetResetCount() int32 {
 }
 
 type Goal struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	UserId        string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
-	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	Category      string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
-	Progress      int32                  `protobuf:"varint,6,opt,name=progress,proto3" json:"progress,omitempty"`
-	Completed     bool                   `protobuf:"varint,7,opt,name=completed,proto3" json:"completed,omitempty"`
-	DueDate       int64                  `protobuf:"varint,8,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,9,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,10,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	UserId          string                 `protobuf:"bytes,2,opt,name=userId,proto3" json:"userId,omitempty"`
+	Title           string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description     string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Category        string                 `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
+	Progress        int32                  `protobuf:"varint,6,opt,name=progress,proto3" json:"progress,omitempty"`
+	Completed       bool                   `protobuf:"varint,7,opt,name=completed,proto3" json:"completed,omitempty"`
+	DueDate         int64                  `protobuf:"varint,8,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
+	CreatedAt       int64                  `protobuf:"varint,9,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	UpdatedAt       int64                  `protobuf:"varint,10,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	RelatedHabitIds []string               `protobuf:"bytes,11,rep,name=relatedHabitIds,proto3" json:"relatedHabitIds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Goal) Reset() {
@@ -7179,6 +7180,13 @@ func (x *Goal) GetUpdatedAt() int64 {
 		return x.UpdatedAt
 	}
 	return 0
+}
+
+func (x *Goal) GetRelatedHabitIds() []string {
+	if x != nil {
+		return x.RelatedHabitIds
+	}
+	return nil
 }
 
 type ListGoalsRequest struct {
@@ -7374,13 +7382,14 @@ func (x *GetGoalResponse) GetGoal() *Goal {
 }
 
 type CreateGoalRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Category      string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
-	DueDate       int64                  `protobuf:"varint,4,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Title           string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Category        string                 `protobuf:"bytes,3,opt,name=category,proto3" json:"category,omitempty"`
+	DueDate         int64                  `protobuf:"varint,4,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
+	RelatedHabitIds []string               `protobuf:"bytes,5,rep,name=relatedHabitIds,proto3" json:"relatedHabitIds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *CreateGoalRequest) Reset() {
@@ -7441,6 +7450,13 @@ func (x *CreateGoalRequest) GetDueDate() int64 {
 	return 0
 }
 
+func (x *CreateGoalRequest) GetRelatedHabitIds() []string {
+	if x != nil {
+		return x.RelatedHabitIds
+	}
+	return nil
+}
+
 type CreateGoalResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Goal          *Goal                  `protobuf:"bytes,1,opt,name=goal,proto3" json:"goal,omitempty"`
@@ -7486,14 +7502,15 @@ func (x *CreateGoalResponse) GetGoal() *Goal {
 }
 
 type UpdateGoalRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GoalId        string                 `protobuf:"bytes,1,opt,name=goalId,proto3" json:"goalId,omitempty"`
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
-	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Category      string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
-	DueDate       int64                  `protobuf:"varint,5,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	GoalId          string                 `protobuf:"bytes,1,opt,name=goalId,proto3" json:"goalId,omitempty"`
+	Title           string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	Category        string                 `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
+	DueDate         int64                  `protobuf:"varint,5,opt,name=dueDate,proto3" json:"dueDate,omitempty"`
+	RelatedHabitIds []string               `protobuf:"bytes,6,rep,name=relatedHabitIds,proto3" json:"relatedHabitIds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *UpdateGoalRequest) Reset() {
@@ -7559,6 +7576,13 @@ func (x *UpdateGoalRequest) GetDueDate() int64 {
 		return x.DueDate
 	}
 	return 0
+}
+
+func (x *UpdateGoalRequest) GetRelatedHabitIds() []string {
+	if x != nil {
+		return x.RelatedHabitIds
+	}
+	return nil
 }
 
 type UpdateGoalResponse struct {
@@ -12771,7 +12795,7 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x18ResetTodayHabitsResponse\x12\x1e\n" +
 	"\n" +
 	"resetCount\x18\x01 \x01(\x05R\n" +
-	"resetCount\"\x92\x02\n" +
+	"resetCount\"\xbc\x02\n" +
 	"\x04Goal\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06userId\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -12783,7 +12807,8 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\adueDate\x18\b \x01(\x03R\adueDate\x12\x1c\n" +
 	"\tcreatedAt\x18\t \x01(\x03R\tcreatedAt\x12\x1c\n" +
 	"\tupdatedAt\x18\n" +
-	" \x01(\x03R\tupdatedAt\"<\n" +
+	" \x01(\x03R\tupdatedAt\x12(\n" +
+	"\x0frelatedHabitIds\x18\v \x03(\tR\x0frelatedHabitIds\"<\n" +
 	"\x10ListGoalsRequest\x12\x12\n" +
 	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x14\n" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\"M\n" +
@@ -12793,20 +12818,22 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x0eGetGoalRequest\x12\x16\n" +
 	"\x06goalId\x18\x01 \x01(\tR\x06goalId\"3\n" +
 	"\x0fGetGoalResponse\x12 \n" +
-	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\x81\x01\n" +
+	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\xab\x01\n" +
 	"\x11CreateGoalRequest\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
 	"\bcategory\x18\x03 \x01(\tR\bcategory\x12\x18\n" +
-	"\adueDate\x18\x04 \x01(\x03R\adueDate\"6\n" +
+	"\adueDate\x18\x04 \x01(\x03R\adueDate\x12(\n" +
+	"\x0frelatedHabitIds\x18\x05 \x03(\tR\x0frelatedHabitIds\"6\n" +
 	"\x12CreateGoalResponse\x12 \n" +
-	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\x99\x01\n" +
+	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"\xc3\x01\n" +
 	"\x11UpdateGoalRequest\x12\x16\n" +
 	"\x06goalId\x18\x01 \x01(\tR\x06goalId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1a\n" +
 	"\bcategory\x18\x04 \x01(\tR\bcategory\x12\x18\n" +
-	"\adueDate\x18\x05 \x01(\x03R\adueDate\"6\n" +
+	"\adueDate\x18\x05 \x01(\x03R\adueDate\x12(\n" +
+	"\x0frelatedHabitIds\x18\x06 \x03(\tR\x0frelatedHabitIds\"6\n" +
 	"\x12UpdateGoalResponse\x12 \n" +
 	"\x04goal\x18\x01 \x01(\v2\f.client.GoalR\x04goal\"+\n" +
 	"\x11DeleteGoalRequest\x12\x16\n" +

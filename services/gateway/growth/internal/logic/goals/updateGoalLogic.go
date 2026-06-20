@@ -1,9 +1,10 @@
 package goals
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -34,10 +35,11 @@ func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.
 	}
 
 	rpcResp, err := l.svcCtx.GoalsRpc.UpdateGoal(l.ctx, &clientgoals.UpdateGoalRequest{
-		GoalId:      goalID,
-		Title:       req.Title,
-		Description: req.Description,
-		Category:    req.Category,
+		GoalId:          goalID,
+		Title:           req.Title,
+		Description:     req.Description,
+		Category:        req.Category,
+		RelatedHabitIds: req.RelatedHabitIds,
 	})
 	if err != nil {
 		return nil, err
@@ -45,16 +47,17 @@ func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.
 
 	return &types.GoalResponse{
 		Data: types.Goal{
-			Id:          rpcResp.Goal.Id,
-			Title:       rpcResp.Goal.Title,
-			Description: rpcResp.Goal.Description,
-			Category:    rpcResp.Goal.Category,
-			DueDate:     formatTime(rpcResp.Goal.DueDate),
-			Progress:    int(rpcResp.Goal.Progress),
-			Completed:   rpcResp.Goal.Completed,
-			UserId:      rpcResp.Goal.UserId,
-			CreatedAt:   formatTime(rpcResp.Goal.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Goal.UpdatedAt),
+			Id:              rpcResp.Goal.Id,
+			Title:           rpcResp.Goal.Title,
+			Description:     rpcResp.Goal.Description,
+			Category:        rpcResp.Goal.Category,
+			DueDate:         formatTime(rpcResp.Goal.DueDate),
+			Progress:        int(rpcResp.Goal.Progress),
+			Completed:       rpcResp.Goal.Completed,
+			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
+			UserId:          rpcResp.Goal.UserId,
+			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
+			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),
 		},
 	}, nil
 }

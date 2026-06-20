@@ -14,6 +14,7 @@ type Querier interface {
 	CreateInternalUser(ctx context.Context, email string, passwordHash string, fullName string, role string) (InternalUser, error)
 	GetInternalUserByEmail(ctx context.Context, email string) (InternalUser, error)
 	GetInternalUserByID(ctx context.Context, id uuid.UUID) (InternalUser, error)
+	ListTags(ctx context.Context) ([]ListTagsRow, error)
 	UpdateInternalUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (InternalUser, error)
 	UpdateInternalUserProfile(ctx context.Context, iD uuid.UUID, fullName string) (InternalUser, error)
 }

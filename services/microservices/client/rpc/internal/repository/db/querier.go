@@ -145,6 +145,9 @@ type Querier interface {
 	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
 	IsStripeEventProcessed(ctx context.Context, eventID string) (bool, error)
 	LinkArticleTags(ctx context.Context, articleID uuid.UUID, column2 []string) error
+	// Link multiple habits to a goal at once.
+	// $1 = goal_id, $2 = array of habit_ids to link.
+	LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, column2 []uuid.UUID) error
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 	ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
@@ -172,6 +175,12 @@ type Querier interface {
 	ListArticlesWithSaved(ctx context.Context, limit int32, offset int32, userID uuid.UUID, status string) ([]ListArticlesWithSavedRow, error)
 	ListCategories(ctx context.Context) ([]Category, error)
 	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]ListExpiredActiveSubscriptionsRow, error)
+	// ─── Goal-habit links ───────────────────────────────────────────────────────
+	// Batch-fetch all (goal_id, habit_id) pairs for a user's goals so the logic
+	// layer can group them per-goal without N+1 queries.
+	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]ListGoalHabitIDsRow, error)
+	// Fetch habit IDs linked to a single goal.
+	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
 	// Goal rows are returned with a resolved category slug and a derived
 	// `completed` flag so callers never deal with category_id directly.
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error)
@@ -210,6 +219,8 @@ type Querier interface {
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
 	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32, status string) ([]SearchArticlesRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error)
+	// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
+	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
 	UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error)
 	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UpdateCoachingProfileBlockersRow, error)

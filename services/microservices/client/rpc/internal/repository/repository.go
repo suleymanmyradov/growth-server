@@ -113,6 +113,10 @@ type IGoals interface {
 	ToggleGoal(ctx context.Context, id uuid.UUID) (db.GetGoalRow, error)
 	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error)
+	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
+	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
+	LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, habitIDs []uuid.UUID) error
 }
 
 type ICategories interface {

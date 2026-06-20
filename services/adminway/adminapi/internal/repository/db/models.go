@@ -43,6 +43,7 @@ type Article struct {
 	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	SearchVector    interface{}        `db:"search_vector" json:"search_vector"`
+	Status          string             `db:"status" json:"status"`
 }
 
 type ArticleLike struct {
@@ -58,6 +59,11 @@ type ArticleShare struct {
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	Platform  string             `db:"platform" json:"platform"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type ArticleTag struct {
+	ArticleID uuid.UUID `db:"article_id" json:"article_id"`
+	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
 }
 
 type Category struct {
@@ -107,7 +113,6 @@ type Habit struct {
 	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Name        string             `db:"name" json:"name"`
 	Description *string            `db:"description" json:"description"`
-	Streak      int32              `db:"streak" json:"streak"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
@@ -230,6 +235,13 @@ type Subscription struct {
 	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type Tag struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Name      string             `db:"name" json:"name"`
+	Slug      string             `db:"slug" json:"slug"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type UpgradeEvent struct {
