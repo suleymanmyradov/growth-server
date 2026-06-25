@@ -44,7 +44,7 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(req *types.PageRequest) (resp
 
 	reviews := make([]types.WeeklyReview, 0, len(rpcResp.Reviews))
 	for _, r := range rpcResp.Reviews {
-		reviews = append(reviews, protoToWeeklyReview(r))
+		reviews = append(reviews, ProtoToWeeklyReview(r))
 	}
 
 	totalPages := int(rpcResp.Total) / req.Limit

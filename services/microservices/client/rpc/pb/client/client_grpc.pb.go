@@ -3434,6 +3434,7 @@ var CheckInService_ServiceDesc = grpc.ServiceDesc{
 
 const (
 	WeeklyReviewService_GenerateWeeklyReview_FullMethodName   = "/client.WeeklyReviewService/GenerateWeeklyReview"
+	WeeklyReviewService_StreamWeeklyReview_FullMethodName     = "/client.WeeklyReviewService/StreamWeeklyReview"
 	WeeklyReviewService_GetWeeklyReview_FullMethodName        = "/client.WeeklyReviewService/GetWeeklyReview"
 	WeeklyReviewService_GetCurrentWeeklyReview_FullMethodName = "/client.WeeklyReviewService/GetCurrentWeeklyReview"
 	WeeklyReviewService_ListWeeklyReviews_FullMethodName      = "/client.WeeklyReviewService/ListWeeklyReviews"
@@ -3444,6 +3445,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WeeklyReviewServiceClient interface {
 	GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error)
+	StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error)
 	GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error)
 	GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error)
 	ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error)
@@ -3466,6 +3468,25 @@ func (c *weeklyReviewServiceClient) GenerateWeeklyReview(ctx context.Context, in
 	}
 	return out, nil
 }
+
+func (c *weeklyReviewServiceClient) StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &WeeklyReviewService_ServiceDesc.Streams[0], WeeklyReviewService_StreamWeeklyReview_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GenerateWeeklyReviewRequest, WeeklyReviewStreamChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WeeklyReviewService_StreamWeeklyReviewClient = grpc.ServerStreamingClient[WeeklyReviewStreamChunk]
 
 func (c *weeklyReviewServiceClient) GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -3502,6 +3523,7 @@ func (c *weeklyReviewServiceClient) ListWeeklyReviews(ctx context.Context, in *L
 // for forward compatibility.
 type WeeklyReviewServiceServer interface {
 	GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error)
+	StreamWeeklyReview(*GenerateWeeklyReviewRequest, grpc.ServerStreamingServer[WeeklyReviewStreamChunk]) error
 	GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error)
 	GetCurrentWeeklyReview(context.Context, *GetCurrentWeeklyReviewRequest) (*GetCurrentWeeklyReviewResponse, error)
 	ListWeeklyReviews(context.Context, *ListWeeklyReviewsRequest) (*ListWeeklyReviewsResponse, error)
@@ -3517,6 +3539,9 @@ type UnimplementedWeeklyReviewServiceServer struct{}
 
 func (UnimplementedWeeklyReviewServiceServer) GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateWeeklyReview not implemented")
+}
+func (UnimplementedWeeklyReviewServiceServer) StreamWeeklyReview(*GenerateWeeklyReviewRequest, grpc.ServerStreamingServer[WeeklyReviewStreamChunk]) error {
+	return status.Error(codes.Unimplemented, "method StreamWeeklyReview not implemented")
 }
 func (UnimplementedWeeklyReviewServiceServer) GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWeeklyReview not implemented")
@@ -3565,6 +3590,17 @@ func _WeeklyReviewService_GenerateWeeklyReview_Handler(srv interface{}, ctx cont
 	}
 	return interceptor(ctx, in, info, handler)
 }
+
+func _WeeklyReviewService_StreamWeeklyReview_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GenerateWeeklyReviewRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(WeeklyReviewServiceServer).StreamWeeklyReview(m, &grpc.GenericServerStream[GenerateWeeklyReviewRequest, WeeklyReviewStreamChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type WeeklyReviewService_StreamWeeklyReviewServer = grpc.ServerStreamingServer[WeeklyReviewStreamChunk]
 
 func _WeeklyReviewService_GetWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWeeklyReviewRequest)
@@ -3644,7 +3680,13 @@ var WeeklyReviewService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WeeklyReviewService_ListWeeklyReviews_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamWeeklyReview",
+			Handler:       _WeeklyReviewService_StreamWeeklyReview_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
 

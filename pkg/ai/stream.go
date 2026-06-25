@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
@@ -29,9 +30,18 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 	start := time.Now()
 
 	var einoStream *schema.StreamReader[*schema.Message]
-	streamErr := c.withRetry(ctx, m.modelID, func(ctx context.Context) error {
+	streamErr := c.withRetry(ctx, m.modelID, func(attemptCtx context.Context) error {
 		var genErr error
+		// Use the long-lived ctx, not attemptCtx, to open the stream. withRetry
+		// cancels attemptCtx via defer cancel() when this function returns, which
+		// would close the HTTP connection to OpenRouter before any chunks are
+		// read. The stream reader needs the connection to stay open for the
+		// entire generation, so it must be tied to ctx (which lives until the
+		// caller is done with the stream).
 		einoStream, genErr = m.chat.Stream(ctx, msgs, opts...)
+		if genErr != nil {
+			logx.WithContext(ctx).Errorf("ai.Stream: model %s stream open failed: %v (type=%T), ctx.Err()=%v", m.modelID, genErr, genErr, ctx.Err())
+		}
 		return genErr
 	})
 	if streamErr != nil {
@@ -44,6 +54,8 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		recordMetrics(req.ModelProfile, m.modelID, "error", Usage{}, 0, latencyMS)
 		return nil, fmt.Errorf("ai.Stream: %w", streamErr)
 	}
+
+	logx.WithContext(ctx).Infof("ai.Stream: model %s stream opened after %v", m.modelID, time.Since(start))
 
 	return &einoStreamReader{
 		ctx:     ctx,
@@ -69,8 +81,10 @@ func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msg
 	logx.WithContext(ctx).Infof("ai: primary stream failed, trying fallback: %v", primaryErr)
 
 	var einoStream *schema.StreamReader[*schema.Message]
-	streamErr := c.withRetry(ctx, fb.modelID, func(ctx context.Context) error {
+	streamErr := c.withRetry(ctx, fb.modelID, func(attemptCtx context.Context) error {
 		var genErr error
+		// Use ctx, not attemptCtx — see Stream() for why the stream connection
+		// must outlive the per-attempt context.
 		einoStream, genErr = fb.chat.Stream(ctx, msgs, opts...)
 		return genErr
 	})
@@ -122,13 +136,20 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 			recordMetrics(r.profile, r.modelID, "ok", r.total, costUSD, latencyMS)
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
+		// Log detailed error: error type, context state, tokens received so far.
+		ctxErr := r.ctx.Err()
+		logx.WithContext(r.ctx).Errorf("ai.Stream recv error: err=%v (type=%T), model=%s, ctx.Err()=%v, latency=%dms, promptTokens=%d, completionTokens=%d",
+			err, err, r.modelID, ctxErr, latencyMS, r.total.PromptTokens, r.total.CompletionTokens)
 		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, 0, err)
 		recordMetrics(r.profile, r.modelID, "error", r.total, 0, latencyMS)
 		return Chunk{}, err
 	}
 
 	chunk := Chunk{
-		Delta: msg.Content,
+		// Sanitize at the source: some LLM streaming APIs (especially free-tier
+		// models on OpenRouter) emit invalid UTF-8 sequences that would cause
+		// gRPC marshaling errors downstream.
+		Delta: sanitizeUTF8(msg.Content),
 	}
 
 	// Extract tool call deltas if present.
@@ -169,6 +190,27 @@ func (r *einoStreamReader) Close() {
 
 // Ensure einoStreamReader implements StreamReader.
 var _ StreamReader = (*einoStreamReader)(nil)
+
+// sanitizeUTF8 ensures a string is valid UTF-8 by replacing invalid bytes with
+// the Unicode replacement character. Some LLM streaming APIs (especially
+// free-tier models on OpenRouter) emit invalid sequences that would cause gRPC
+// marshaling errors downstream.
+func sanitizeUTF8(s string) string {
+	if utf8.ValidString(s) {
+		return s
+	}
+	v := make([]rune, 0, len(s))
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError && size == 1 {
+			v = append(v, 0xFFFD)
+		} else {
+			v = append(v, r)
+		}
+		i += size
+	}
+	return string(v)
+}
 
 // Suppress unused import.
 var _ = model.WithTemperature

@@ -18,7 +18,7 @@ func TestClient_Generate_WithFallback(t *testing.T) {
 		_ = json.NewDecoder(r.Body).Decode(&body)
 		model, _ := body["model"].(string)
 
-		if model == "deepseek/deepseek-chat-v3" {
+		if model == "nvidia/nemotron-nano-9b-v2:free" {
 			// Primary model returns 500.
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"error":{"message":"overloaded","type":"server_error","code":500}}`))
@@ -29,7 +29,7 @@ func TestClient_Generate_WithFallback(t *testing.T) {
 		resp := map[string]any{
 			"id":      "chatcmpl-fb",
 			"object":  "chat.completion",
-			"model":   "anthropic/claude-3.5-haiku",
+			"model":   "meta-llama/llama-3.3-70b-instruct:free",
 			"choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": "fallback response"}, "finish_reason": "stop"}},
 			"usage":   map[string]any{"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
 		}

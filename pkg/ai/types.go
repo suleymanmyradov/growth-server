@@ -82,6 +82,9 @@ type GenerateRequest struct {
 	Tools []Tool `json:"tools,omitempty"`
 	// Metadata carries call-level context for logging/spend tracking.
 	Metadata Metadata `json:"metadata,omitempty"`
+	// DisableReasoning sends reasoning:{enabled:false} to OpenRouter,
+	// disabling the thinking/reasoning phase for reasoning models (e.g. nvidia nemotron).
+	DisableReasoning bool `json:"disable_reasoning,omitempty"`
 }
 
 // GenerateResponse is returned by Generate.

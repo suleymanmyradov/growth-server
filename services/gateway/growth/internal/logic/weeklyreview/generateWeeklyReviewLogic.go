@@ -43,5 +43,5 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(req *types.GenerateWeek
 		return nil, err
 	}
 
-	return &types.WeeklyReviewResponse{Data: protoToWeeklyReview(rpcResp.Review)}, nil
+	return &types.WeeklyReviewResponse{Data: ProtoToWeeklyReview(rpcResp.Review)}, nil
 }

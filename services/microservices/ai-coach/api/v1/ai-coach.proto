@@ -112,8 +112,17 @@ message WeeklyReviewResponse {
   NextWeekPlan next_week_plan = 3;
 }
 
+// Streaming weekly review
+message WeeklyReviewStreamChunk {
+  string delta = 1;              // text delta (summary text as it's generated)
+  bool complete = 2;             // true when the stream is finished
+  WeeklyReviewResponse review = 3; // full structured response (only set when complete=true)
+  bool finalizing = 4;           // true when text is done, backend is parsing JSON
+}
+
 service AICoachService {
   rpc GenerateCheckInFeedback(CheckInFeedbackRequest) returns (CheckInFeedbackResponse);
   rpc GeneratePersonalizedCoaching(PersonalizedCoachingRequest) returns (PersonalizedCoachingResponse);
   rpc GenerateWeeklyReview(WeeklyReviewRequest) returns (WeeklyReviewResponse);
+  rpc StreamWeeklyReview(WeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
 }

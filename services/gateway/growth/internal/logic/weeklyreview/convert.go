@@ -7,7 +7,7 @@ import (
 	pbclient "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
 
-func protoToWeeklyReview(r *pbclient.WeeklyReview) types.WeeklyReview {
+func ProtoToWeeklyReview(r *pbclient.WeeklyReview) types.WeeklyReview {
 	habits := make([]types.WeeklyReviewHabitBreakdown, 0, len(r.HabitBreakdown))
 	for _, h := range r.HabitBreakdown {
 		habits = append(habits, types.WeeklyReviewHabitBreakdown{
@@ -34,14 +34,33 @@ func protoToWeeklyReview(r *pbclient.WeeklyReview) types.WeeklyReview {
 	}
 
 	plan := r.NextWeekPlan
-	var nextWeekPlan types.WeeklyReviewNextWeekPlan
+	nextWeekPlan := types.WeeklyReviewNextWeekPlan{
+		Commitments:     []string{},
+		Risks:           []string{},
+		RecoveryActions: []string{},
+	}
 	if plan != nil {
-		nextWeekPlan = types.WeeklyReviewNextWeekPlan{
-			Focus:           plan.Focus,
-			Commitments:     plan.Commitments,
-			Risks:           plan.Risks,
-			RecoveryActions: plan.RecoveryActions,
+		nextWeekPlan.Focus = plan.Focus
+		if plan.Commitments != nil {
+			nextWeekPlan.Commitments = plan.Commitments
 		}
+		if plan.Risks != nil {
+			nextWeekPlan.Risks = plan.Risks
+		}
+		if plan.RecoveryActions != nil {
+			nextWeekPlan.RecoveryActions = plan.RecoveryActions
+		}
+	}
+
+	// gRPC delivers empty proto maps as nil; coerce to empty so the JSON
+	// response stays consistent with the contract (objects, not null).
+	mood := r.MoodSummary
+	if mood == nil {
+		mood = map[string]int32{}
+	}
+	energy := r.EnergySummary
+	if energy == nil {
+		energy = map[string]int32{}
 	}
 
 	return types.WeeklyReview{
@@ -56,13 +75,30 @@ func protoToWeeklyReview(r *pbclient.WeeklyReview) types.WeeklyReview {
 		BestDay:              r.BestDay,
 		HardestDay:           r.HardestDay,
 		TopBlocker:           r.TopBlocker,
-		MoodSummary:          r.MoodSummary,
-		EnergySummary:        r.EnergySummary,
+		MoodSummary:          mood,
+		EnergySummary:        energy,
 		HabitBreakdown:       habits,
 		AiSummary:            r.AiSummary,
 		SuggestedAdjustments: adjustments,
 		NextWeekPlan:         nextWeekPlan,
 		GeneratedAt:          formatTime(r.GeneratedAt),
+	}
+}
+
+// emptyWeeklyReview returns a well-formed zero-value review with non-nil
+// collections, so the JSON response uses empty arrays/objects (not null)
+// when the user has no review for the current week yet.
+func emptyWeeklyReview() types.WeeklyReview {
+	return types.WeeklyReview{
+		MoodSummary:          map[string]int32{},
+		EnergySummary:        map[string]int32{},
+		HabitBreakdown:       []types.WeeklyReviewHabitBreakdown{},
+		SuggestedAdjustments: []types.WeeklyReviewAdjustment{},
+		NextWeekPlan: types.WeeklyReviewNextWeekPlan{
+			Commitments:     []string{},
+			Risks:           []string{},
+			RecoveryActions: []string{},
+		},
 	}
 }
 

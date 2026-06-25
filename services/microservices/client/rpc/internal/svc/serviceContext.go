@@ -2,6 +2,7 @@ package svc
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -20,6 +21,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/zrpc"
+	"golang.org/x/sync/singleflight"
 )
 
 type ServiceContext struct {
@@ -32,8 +34,13 @@ type ServiceContext struct {
 	StripeClient     *stripe.Client
 	TxRunner         *postgres.PgxTxRunner
 	Authz            *authz.Checker
-	pool             *pgxpool.Pool
-	redis            *redis.Client
+	// WeeklyReviewSF dedupes concurrent weekly-review generations for the same
+	// (user, week) so a double-submit doesn't run the expensive AI pipeline
+	// more than once. The DB unique constraint still guarantees a single row;
+	// this only avoids the wasted work and last-write-wins churn.
+	WeeklyReviewSF singleflight.Group
+	pool           *pgxpool.Pool
+	redis          *redis.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -55,7 +62,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
 	}
 
-	aiCoachRpc := aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc))
+	aiCoachRpc := aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, zrpc.WithTimeout(time.Second*90)))
 	fileManagerRpc := fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc))
 
 	var redisClient *redis.Client
