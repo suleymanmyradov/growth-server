@@ -596,6 +596,7 @@ type UpdateCoachingProfilePreferencesRequest struct {
 }
 
 type UpdateGoalRequest struct {
+	Id              string   `path:"id"`
 	Title           string   `json:"title,optional"`
 	Description     string   `json:"description,optional"`
 	Category        string   `json:"category,optional"`

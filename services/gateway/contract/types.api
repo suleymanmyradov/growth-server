@@ -135,6 +135,7 @@ type (
 		relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
 	}
 	UpdateGoalRequest {
+		id              string   `path:"id"`
 		title           string   `json:"title,optional"`
 		description     string   `json:"description,optional"`
 		category        string   `json:"category,optional"`

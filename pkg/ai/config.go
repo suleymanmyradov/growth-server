@@ -27,30 +27,21 @@ const (
 	ModelFallback ModelProfile = "fallback"
 )
 
-// DefaultModels maps each profile to its default model ID via OpenRouter.
-// Override per-environment through Config.Models.
-var DefaultModels = map[ModelProfile]string{
-	ModelCheap:      "deepseek/deepseek-chat-v3",
-	ModelCheapLong:  "google/gemini-2.0-flash-001",
-	ModelClassifier: "google/gemini-2.0-flash-lite-001",
-	ModelChat:       "openai/gpt-4o-mini",
-	ModelFallback:   "anthropic/claude-3.5-haiku",
+// requiredProfiles lists every ModelProfile that must be mapped in Config.Models.
+// If any is missing, Validate returns an error so no AI-using service can start
+// without an explicit model assignment.
+var requiredProfiles = []ModelProfile{
+	ModelCheap,
+	ModelCheapLong,
+	ModelClassifier,
+	ModelChat,
+	ModelFallback,
 }
 
 // CostRate describes the per-1K-token cost in USD for a model.
 type CostRate struct {
 	PromptPer1K     float64
 	CompletionPer1K float64
-}
-
-// DefaultCostRates maps model IDs to their per-1K-token pricing.
-// Used to compute cost_usd for observability.
-var DefaultCostRates = map[string]CostRate{
-	"deepseek/deepseek-chat-v3":        {PromptPer1K: 0.0001, CompletionPer1K: 0.0002},
-	"google/gemini-2.0-flash-001":      {PromptPer1K: 0.0001, CompletionPer1K: 0.0004},
-	"google/gemini-2.0-flash-lite-001": {PromptPer1K: 0.0000075, CompletionPer1K: 0.00003},
-	"openai/gpt-4o-mini":               {PromptPer1K: 0.00015, CompletionPer1K: 0.0006},
-	"anthropic/claude-3.5-haiku":       {PromptPer1K: 0.0008, CompletionPer1K: 0.004},
 }
 
 // FallbackPolicy controls automatic retry with a fallback model.
@@ -69,9 +60,12 @@ type Config struct {
 	APIKey string `json:"api_key"`
 	// BaseURL defaults to https://openrouter.ai/api/v1.
 	BaseURL string `json:"base_url,optional"`
-	// Models maps ModelProfile to model ID. Merged over DefaultModels.
-	Models map[ModelProfile]string `json:"models,optional"`
-	// CostRates maps model ID to per-1K-token pricing. Merged over DefaultCostRates.
+	// Models maps profile name (string key, e.g. "cheap", "chat") to model ID.
+	// Required: every profile in requiredProfiles must be present or Validate
+	// will reject the config and no AI-using service will start.
+	Models map[string]string `json:"models"`
+	// CostRates maps model ID to per-1K-token pricing. Optional; unknown models
+	// default to zero cost.
 	CostRates map[string]CostRate `json:"cost_rates,optional"`
 	// DefaultTimeout per request.
 	DefaultTimeout time.Duration `json:"default_timeout,optional"`
@@ -132,20 +126,20 @@ func (c *Config) Validate() error {
 		c.XTitle = "growth"
 	}
 	if c.Models == nil {
-		c.Models = make(map[ModelProfile]string)
+		c.Models = make(map[string]string)
 	}
-	for k, v := range DefaultModels {
-		if _, ok := c.Models[k]; !ok {
-			c.Models[k] = v
+	// Every required profile must be explicitly mapped in config. No defaults.
+	var missing []string
+	for _, p := range requiredProfiles {
+		if id, ok := c.Models[string(p)]; !ok || id == "" {
+			missing = append(missing, string(p))
 		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("ai.Config: Models is missing required profiles: %v (set them under AI.models in the YAML config)", missing)
 	}
 	if c.CostRates == nil {
 		c.CostRates = make(map[string]CostRate)
-	}
-	for k, v := range DefaultCostRates {
-		if _, ok := c.CostRates[k]; !ok {
-			c.CostRates[k] = v
-		}
 	}
 	if c.FallbackPolicy.Enabled && c.FallbackPolicy.MaxFailures == 0 {
 		c.FallbackPolicy.MaxFailures = 2
@@ -155,8 +149,8 @@ func (c *Config) Validate() error {
 
 // ModelID returns the concrete model ID for a profile.
 func (c *Config) ModelID(p ModelProfile) (string, error) {
-	id, ok := c.Models[p]
-	if !ok {
+	id, ok := c.Models[string(p)]
+	if !ok || id == "" {
 		return "", fmt.Errorf("ai.Config: no model mapped for profile %q", p)
 	}
 	return id, nil

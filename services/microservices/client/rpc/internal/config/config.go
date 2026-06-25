@@ -35,4 +35,7 @@ type Config struct {
 		Password string `json:",optional" secret:"true"`
 		DB       int
 	}
+	WeeklyReview struct {
+		RegenerationCooldown time.Duration `json:",optional"`
+	}
 }

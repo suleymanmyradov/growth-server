@@ -22,8 +22,19 @@ func testConfig(apiKey string) Config {
 		RetryBackoff:   100 * time.Millisecond,
 		HTTPReferer:    "https://growth.app",
 		XTitle:         "growth",
-		Models:         DefaultModels,
-		CostRates:      DefaultCostRates,
+		Models: map[string]string{
+			string(ModelCheap):      "nvidia/nemotron-nano-9b-v2:free",
+			string(ModelCheapLong):  "nvidia/nemotron-3-ultra-550b-a55b:free",
+			string(ModelClassifier): "nvidia/nemotron-nano-9b-v2:free",
+			string(ModelChat):       "qwen/qwen3-next-80b-a3b-instruct:free",
+			string(ModelFallback):   "meta-llama/llama-3.3-70b-instruct:free",
+		},
+		CostRates: map[string]CostRate{
+			"nvidia/nemotron-nano-9b-v2:free":        {PromptPer1K: 0, CompletionPer1K: 0},
+			"nvidia/nemotron-3-ultra-550b-a55b:free": {PromptPer1K: 0, CompletionPer1K: 0},
+			"qwen/qwen3-next-80b-a3b-instruct:free":  {PromptPer1K: 0, CompletionPer1K: 0},
+			"meta-llama/llama-3.3-70b-instruct:free": {PromptPer1K: 0, CompletionPer1K: 0},
+		},
 	}
 }
 
@@ -33,6 +44,14 @@ func mockOpenRouterServer(handler http.HandlerFunc) *httptest.Server {
 }
 
 func TestConfig_Validate(t *testing.T) {
+	allProfiles := map[string]string{
+		string(ModelCheap):      "nvidia/nemotron-nano-9b-v2:free",
+		string(ModelCheapLong):  "nvidia/nemotron-3-ultra-550b-a55b:free",
+		string(ModelClassifier): "nvidia/nemotron-nano-9b-v2:free",
+		string(ModelChat):       "qwen/qwen3-next-80b-a3b-instruct:free",
+		string(ModelFallback):   "meta-llama/llama-3.3-70b-instruct:free",
+	}
+
 	tests := []struct {
 		name    string
 		cfg     Config
@@ -44,14 +63,30 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid minimal",
-			cfg:  Config{APIKey: "test-key"},
+			name:    "missing models",
+			cfg:     Config{APIKey: "test-key"},
+			wantErr: true,
 		},
 		{
-			name: "custom models override",
+			name: "missing one profile",
 			cfg: Config{
 				APIKey: "test-key",
-				Models: map[ModelProfile]string{ModelCheap: "custom/model"},
+				Models: func() map[string]string {
+					m := make(map[string]string, len(allProfiles))
+					for k, v := range allProfiles {
+						m[k] = v
+					}
+					delete(m, string(ModelChat))
+					return m
+				}(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "valid with all profiles",
+			cfg: Config{
+				APIKey: "test-key",
+				Models: allProfiles,
 			},
 		},
 	}
@@ -72,26 +107,41 @@ func TestConfig_Validate(t *testing.T) {
 }
 
 func TestConfig_ModelID(t *testing.T) {
-	cfg := Config{APIKey: "test"}
+	cfg := Config{
+		APIKey: "test",
+		Models: map[string]string{
+			string(ModelCheap):      "nvidia/nemotron-nano-9b-v2:free",
+			string(ModelCheapLong):  "nvidia/nemotron-3-ultra-550b-a55b:free",
+			string(ModelClassifier): "nvidia/nemotron-nano-9b-v2:free",
+			string(ModelChat):       "qwen/qwen3-next-80b-a3b-instruct:free",
+			string(ModelFallback):   "meta-llama/llama-3.3-70b-instruct:free",
+		},
+	}
 	require.NoError(t, cfg.Validate())
 
 	id, err := cfg.ModelID(ModelCheap)
 	require.NoError(t, err)
-	assert.Equal(t, "deepseek/deepseek-chat-v3", id)
+	assert.Equal(t, "nvidia/nemotron-nano-9b-v2:free", id)
 
 	_, err = cfg.ModelID(ModelProfile("nonexistent"))
 	assert.Error(t, err)
 }
 
 func TestConfig_ComputeCost(t *testing.T) {
-	cfg := Config{APIKey: "test"}
-	require.NoError(t, cfg.Validate())
+	cfg := Config{APIKey: "test", CostRates: map[string]CostRate{}}
 
-	cost := cfg.ComputeCost("deepseek/deepseek-chat-v3", 1000, 1000)
-	assert.Greater(t, cost, 0.0)
+	// Free models have zero cost.
+	cost := cfg.ComputeCost("nvidia/nemotron-nano-9b-v2:free", 1000, 1000)
+	assert.Equal(t, 0.0, cost)
 
+	// Unknown models also return zero cost.
 	cost = cfg.ComputeCost("unknown-model", 1000, 1000)
 	assert.Equal(t, 0.0, cost)
+
+	// Custom cost rate is respected.
+	cfg.CostRates["custom/paid-model"] = CostRate{PromptPer1K: 0.001, CompletionPer1K: 0.002}
+	cost = cfg.ComputeCost("custom/paid-model", 1000, 1000)
+	assert.Equal(t, 0.003, cost)
 }
 
 func TestNew_MissingAPIKey(t *testing.T) {
@@ -123,7 +173,7 @@ func TestClient_Generate(t *testing.T) {
 		resp := map[string]any{
 			"id":      "chatcmpl-test",
 			"object":  "chat.completion",
-			"model":   "deepseek/deepseek-chat-v3",
+			"model":   "nvidia/nemotron-nano-9b-v2:free",
 			"choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": "Great work!"}, "finish_reason": "stop"}},
 			"usage":   map[string]any{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 		}
@@ -146,7 +196,7 @@ func TestClient_Generate(t *testing.T) {
 	assert.Equal(t, "Great work!", resp.Message.Content)
 	assert.Equal(t, 10, resp.Usage.PromptTokens)
 	assert.Equal(t, 5, resp.Usage.CompletionTokens)
-	assert.Greater(t, resp.CostUSD, 0.0)
+	assert.Equal(t, 0.0, resp.CostUSD) // free model
 }
 
 func TestClient_Generate_APIError(t *testing.T) {
@@ -175,7 +225,7 @@ func TestClient_GenerateStructured(t *testing.T) {
 		resp := map[string]any{
 			"id":      "chatcmpl-test",
 			"object":  "chat.completion",
-			"model":   "deepseek/deepseek-chat-v3",
+			"model":   "nvidia/nemotron-nano-9b-v2:free",
 			"choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": `{"summary":"good week","blockers":"none"}`}, "finish_reason": "stop"}},
 			"usage":   map[string]any{"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
 		}
@@ -209,7 +259,7 @@ func TestClient_GenerateStructured_MarkdownFence(t *testing.T) {
 		resp := map[string]any{
 			"id":      "chatcmpl-test",
 			"object":  "chat.completion",
-			"model":   "deepseek/deepseek-chat-v3",
+			"model":   "nvidia/nemotron-nano-9b-v2:free",
 			"choices": []any{map[string]any{"index": 0, "message": map[string]any{"role": "assistant", "content": content}, "finish_reason": "stop"}},
 			"usage":   map[string]any{"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
 		}

@@ -9,7 +9,7 @@ Port: 8888
 # Connection / DoS hardening
 MaxConns: 10000
 MaxBytes: 1048576   # 1 MB
-Timeout: 3000      # 3 seconds
+Timeout: 300000    # 300 seconds (weekly review generation can be slow)
 
 # Middleware toggles (go-zero defaults are generally safe)
 Middlewares:

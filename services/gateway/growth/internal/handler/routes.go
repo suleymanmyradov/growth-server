@@ -493,4 +493,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		),
 		rest.WithPrefix("/api/v1"),
 	)
+
+	// SSE streaming route registered separately with rest.WithSSE() so go-zero
+	// clears the per-request write deadline (http.Server.WriteTimeout would
+	// otherwise kill long AI generations) and sets SSE headers automatically.
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/weekly-reviews/generate-stream",
+					Handler: weeklyreview.StreamWeeklyReviewHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+		rest.WithSSE(),
+	)
 }

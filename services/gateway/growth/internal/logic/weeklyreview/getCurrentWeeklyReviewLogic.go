@@ -37,12 +37,14 @@ func (l *GetCurrentWeeklyReviewLogic) GetCurrentWeeklyReview() (resp *types.Week
 		UserId: p.UserID,
 	})
 	if err != nil {
-		// Handle NotFound gracefully - return empty data instead of error
+		// Handle NotFound gracefully - return a well-formed empty review
+		// (non-null collections) instead of an error. The client detects the
+		// empty state by the absent id.
 		if status.Code(err) == codes.NotFound {
-			return &types.WeeklyReviewResponse{Data: types.WeeklyReview{}}, nil
+			return &types.WeeklyReviewResponse{Data: emptyWeeklyReview()}, nil
 		}
 		return nil, err
 	}
 
-	return &types.WeeklyReviewResponse{Data: protoToWeeklyReview(rpcResp.Review)}, nil
+	return &types.WeeklyReviewResponse{Data: ProtoToWeeklyReview(rpcResp.Review)}, nil
 }

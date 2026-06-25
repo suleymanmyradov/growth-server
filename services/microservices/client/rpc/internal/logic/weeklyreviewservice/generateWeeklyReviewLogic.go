@@ -26,6 +26,34 @@ var (
 	tzCache   = make(map[string]*time.Location)
 )
 
+// Page sizes for paging the full set of inputs that feed pattern detection
+// and the AI prompt. These bound the per-query result set, not the total
+// amount of data considered (fetchAllPages keeps going until exhausted).
+const (
+	checkInPageSize int32 = 500
+	habitPageSize   int32 = 200
+	goalPageSize    int32 = 100
+)
+
+// fetchAllPages repeatedly calls fetch with an increasing offset until a short
+// (final) page is returned, accumulating every row. It exists so weekly-review
+// inputs are computed over the user's full data instead of being silently
+// truncated at a hardcoded cap. On error it returns the rows gathered so far
+// alongside the error, letting callers decide whether a partial set is usable.
+func fetchAllPages[T any](pageSize int32, fetch func(limit, offset int32) ([]T, error)) ([]T, error) {
+	var all []T
+	for offset := int32(0); ; offset += pageSize {
+		page, err := fetch(pageSize, offset)
+		if err != nil {
+			return all, err
+		}
+		all = append(all, page...)
+		if int32(len(page)) < pageSize {
+			return all, nil
+		}
+	}
+}
+
 // loadLocationCached returns a *time.Location, caching successful lookups.
 func loadLocationCached(name string) (*time.Location, error) {
 	if name == "" || name == "UTC" {
@@ -91,38 +119,72 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		return nil, status.Error(codes.InvalidArgument, "invalid weekStart")
 	}
 
+	// Dedupe concurrent generations for the same (user, week). A double-submit
+	// (retry, two devices) would otherwise both pass the "no existing review"
+	// check below and each run the expensive AI pipeline, then clobber each
+	// other's row. The DB unique upsert already prevents duplicate rows; this
+	// collapses the redundant work so only one generation runs and the others
+	// share its result.
+	sfKey := userID.String() + ":" + weekStart.Format("2006-01-02")
+	res, err, _ := l.svcCtx.WeeklyReviewSF.Do(sfKey, func() (any, error) {
+		return l.generateWeeklyReview(ctx, in, userID, settings, loc, weekStart, weekEnd)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res.(*client.GenerateWeeklyReviewResponse), nil
+}
+
+func (l *GenerateWeeklyReviewLogic) generateWeeklyReview(ctx context.Context, in *client.GenerateWeeklyReviewRequest, userID uuid.UUID, settings db.UserSetting, loc *time.Location, weekStart, weekEnd time.Time) (*client.GenerateWeeklyReviewResponse, error) {
 	if !in.ForceRegenerate {
 		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 		if err == nil && existing.ID != uuid.Nil {
 			return &client.GenerateWeeklyReviewResponse{Review: dbReviewToProto(existing)}, nil
 		}
 	} else {
-		// Add cooldown for forced regeneration (1 hour minimum)
+		// Cooldown for forced regeneration, configurable via YAML (default 1h).
+		cooldown := l.svcCtx.Config.WeeklyReview.RegenerationCooldown
+		if cooldown == 0 {
+			cooldown = time.Hour
+		}
 		existing, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 		if err == nil && existing.ID != uuid.Nil {
 			timeSinceGeneration := time.Since(existing.GeneratedAt.Time)
-			if timeSinceGeneration < time.Hour {
-				return nil, status.Error(codes.ResourceExhausted, "please wait at least 1 hour before regenerating")
+			if timeSinceGeneration < cooldown {
+				remaining := cooldown - timeSinceGeneration
+				return nil, status.Errorf(codes.ResourceExhausted, "please wait %s before regenerating", remaining.Round(time.Second))
 			}
 		}
 	}
 
-	stats, err := l.computeWeeklyStats(userID, weekStart, weekEnd)
+	stats, err := l.computeWeeklyStats(ctx, userID, weekStart, weekEnd)
 	if err != nil {
 		l.Errorf("compute weekly stats: %v", err)
 		return nil, status.Error(codes.Internal, "failed to compute weekly stats")
 	}
 
-	// Get raw check-ins and habits for pattern detection
-	weekCheckIns, err := l.svcCtx.Repo.CheckIns.GetCheckInHistory(ctx, userID, weekStart, weekEnd, 1000, 0)
+	// Get raw check-ins and habits for pattern detection. These feed the
+	// pattern engine and AI prompt, so they are paged in full rather than
+	// truncated at a fixed cap, which would silently skew the analysis for
+	// users with many habits or check-ins. On a partial failure we keep
+	// whatever pages were fetched (better a partial signal than none).
+	weekCheckIns, err := fetchAllPages(checkInPageSize, func(limit, offset int32) ([]db.CheckIn, error) {
+		return l.svcCtx.Repo.CheckIns.GetCheckInHistory(ctx, userID, weekStart, weekEnd, limit, offset)
+	})
 	if err != nil {
-		l.Infof("failed to get week check-ins for pattern detection: %v", err)
+		l.Infof("failed to get all week check-ins for pattern detection (using %d fetched): %v", len(weekCheckIns), err)
+	}
+	if weekCheckIns == nil {
 		weekCheckIns = []db.CheckIn{}
 	}
 
-	weekHabits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, 50, 0)
+	weekHabits, err := fetchAllPages(habitPageSize, func(limit, offset int32) ([]db.GetHabitRow, error) {
+		return l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset)
+	})
 	if err != nil {
-		l.Infof("failed to get habits for pattern detection: %v", err)
+		l.Infof("failed to get all habits for pattern detection (using %d fetched): %v", len(weekHabits), err)
+	}
+	if weekHabits == nil {
 		weekHabits = []db.GetHabitRow{}
 	}
 
@@ -166,9 +228,11 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		accountabilityStyle = string(settings.AccountabilityStyle)
 	}
 
-	goals, err := l.svcCtx.Repo.Goals.ListGoals(ctx, userID, 10, 0)
+	goals, err := fetchAllPages(goalPageSize, func(limit, offset int32) ([]db.GetGoalRow, error) {
+		return l.svcCtx.Repo.Goals.ListGoals(ctx, userID, limit, offset)
+	})
 	if err != nil {
-		l.Infof("failed to get goals: %v", err)
+		l.Infof("failed to get all goals (using %d fetched): %v", len(goals), err)
 	}
 	goalTitles := make([]string, len(goals))
 	for i, g := range goals {
@@ -273,6 +337,13 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 		aiSummary = aiResp.AiSummary
 		suggestedAdjustments = aiResp.SuggestedAdjustments
 		nextWeekPlan = aiResp.NextWeekPlan
+		// The LLM occasionally omits or invents an adjustment type; coerce to a
+		// valid enum value before persisting so stored data honors the contract.
+		for _, adj := range suggestedAdjustments {
+			if adj != nil {
+				adj.AdjustmentType = normalizeAdjustmentType(adj.AdjustmentType)
+			}
+		}
 	}
 
 	moodSummaryJSON, err := json.Marshal(stats.moodMap)
@@ -351,10 +422,19 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *client.GenerateWeek
 
 	// Automatically create plan adjustment suggestions from AI recommendations
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				logx.Errorf("panic while creating plan adjustment suggestions: %v", r)
+			}
+		}()
+
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		for _, adjustment := range suggestedAdjustments {
+			if adjustment == nil {
+				continue
+			}
 			if adjustment.AdjustmentType == "keep_same" {
 				continue // Skip suggestions to keep things the same
 			}
@@ -423,12 +503,12 @@ type habitBreakdownDB struct {
 	LastCheckInAt  string  `json:"lastCheckInAt,omitempty"`
 }
 
-func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, end time.Time) (weeklyStats, error) {
+func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(ctx context.Context, userID uuid.UUID, start, end time.Time) (weeklyStats, error) {
 	var stats weeklyStats
 	stats.moodMap = make(map[string]int)
 	stats.energyMap = make(map[string]int)
 
-	habitStats, err := l.svcCtx.Repo.WeeklyReviews.GetCheckInStatsForWeek(l.ctx, userID, start, end)
+	habitStats, err := l.svcCtx.Repo.WeeklyReviews.GetCheckInStatsForWeek(ctx, userID, start, end)
 	if err != nil {
 		return stats, err
 	}
@@ -477,7 +557,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 		stats.completionRate = float64(stats.completedCheckIns) / float64(total) * 100
 	}
 
-	dailyStats, err := l.svcCtx.Repo.WeeklyReviews.GetDailyCheckInStatsForWeek(l.ctx, userID, start, end)
+	dailyStats, err := l.svcCtx.Repo.WeeklyReviews.GetDailyCheckInStatsForWeek(ctx, userID, start, end)
 	if err != nil {
 		return stats, err
 	}
@@ -502,7 +582,14 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 		}
 	}
 
-	blockerStats, err := l.svcCtx.Repo.WeeklyReviews.GetBlockerStatsForWeek(l.ctx, userID, start, end)
+	// With a single active day (or all days at the same rate) the best and
+	// hardest day resolve to the same value, which is meaningless to report.
+	// Drop hardestDay so the review only highlights a genuinely distinct day.
+	if stats.hardestDay == stats.bestDay {
+		stats.hardestDay = ""
+	}
+
+	blockerStats, err := l.svcCtx.Repo.WeeklyReviews.GetBlockerStatsForWeek(ctx, userID, start, end)
 	if err != nil {
 		return stats, err
 	}
@@ -517,7 +604,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 		}
 	}
 
-	moodStats, err := l.svcCtx.Repo.WeeklyReviews.GetMoodStatsForWeek(l.ctx, userID, start, end)
+	moodStats, err := l.svcCtx.Repo.WeeklyReviews.GetMoodStatsForWeek(ctx, userID, start, end)
 	if err != nil {
 		return stats, err
 	}
@@ -530,7 +617,7 @@ func (l *GenerateWeeklyReviewLogic) computeWeeklyStats(userID uuid.UUID, start, 
 		stats.moodMap[m.Mood] = int(m.Count)
 	}
 
-	energyStats, err := l.svcCtx.Repo.WeeklyReviews.GetEnergyStatsForWeek(l.ctx, userID, start, end)
+	energyStats, err := l.svcCtx.Repo.WeeklyReviews.GetEnergyStatsForWeek(ctx, userID, start, end)
 	if err != nil {
 		return stats, err
 	}
@@ -604,20 +691,23 @@ func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 		}
 	}
 
-	var adjustments []prompts.WeeklyReviewAdjustment
+	var adjustments []*aicoachservice.WeeklyReviewAdjustment
 	_ = json.Unmarshal(r.SuggestedAdjustments, &adjustments)
-	protoAdjustments := make([]*client.WeeklyReviewAdjustment, len(adjustments))
-	for i, a := range adjustments {
-		protoAdjustments[i] = &client.WeeklyReviewAdjustment{
-			HabitId:        a.HabitID,
+	protoAdjustments := make([]*client.WeeklyReviewAdjustment, 0, len(adjustments))
+	for _, a := range adjustments {
+		if a == nil {
+			continue
+		}
+		protoAdjustments = append(protoAdjustments, &client.WeeklyReviewAdjustment{
+			HabitId:        a.HabitId,
 			HabitName:      a.HabitName,
 			Reason:         a.Reason,
 			Suggestion:     a.Suggestion,
-			AdjustmentType: a.AdjustmentType,
-		}
+			AdjustmentType: normalizeAdjustmentType(a.AdjustmentType),
+		})
 	}
 
-	var nextWeekPlan prompts.WeeklyReviewNextWeekPlan
+	var nextWeekPlan aicoachservice.NextWeekPlan
 	_ = json.Unmarshal(r.NextWeekPlan, &nextWeekPlan)
 	protoPlan := &client.WeeklyReviewNextWeekPlan{
 		Focus:           nextWeekPlan.Focus,
@@ -655,14 +745,26 @@ func stringPtrToString(s *string) string {
 	return ""
 }
 
+// normalizeAdjustmentType coerces an AI-provided adjustment type to a valid
+// enum value. The LLM occasionally returns an empty or unexpected value;
+// callers (and the API contract) require one of the known types, so anything
+// invalid defaults to "keep_same".
+func normalizeAdjustmentType(t string) string {
+	switch t {
+	case "reduce_difficulty", "change_time", "clarify_plan", "keep_same", "pause_habit":
+		return t
+	default:
+		return "keep_same"
+	}
+}
+
 func parseCompletionRate(n pgtype.Numeric) float64 {
 	if !n.Valid {
 		return 0
 	}
-	var v float64
-	_, err := fmt.Sscanf(fmt.Sprintf("%v", n), "%f", &v)
+	f, err := n.Float64Value()
 	if err != nil {
 		return 0
 	}
-	return v
+	return f.Float64
 }

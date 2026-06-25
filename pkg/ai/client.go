@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	openaimodel "github.com/cloudwego/eino-ext/components/model/openai"
+	aclopenai "github.com/cloudwego/eino-ext/libs/acl/openai"
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/breaker"
@@ -76,7 +77,11 @@ func New(cfg Config, opts ...Option) (Client, error) {
 
 	httpClient := o.httpClient
 	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.DefaultTimeout}
+		// Timeout=0 disables http.Client's total-request timeout (which
+		// includes reading the response body and would kill SSE streams).
+		// Per-call timeouts are enforced via context deadlines in withRetry
+		// (for non-streaming) and by the caller's context (for streaming).
+		httpClient = &http.Client{}
 	}
 
 	// Always wrap the transport to inject OpenRouter analytics headers.
@@ -92,7 +97,8 @@ func New(cfg Config, opts ...Option) (Client, error) {
 	}
 
 	models := make(map[ModelProfile]openaiModel, len(cfg.Models))
-	for profile, modelID := range cfg.Models {
+	for profileStr, modelID := range cfg.Models {
+		profile := ModelProfile(profileStr)
 		cm, err := openaimodel.NewChatModel(context.Background(), &openaimodel.ChatModelConfig{
 			APIKey:     cfg.APIKey,
 			BaseURL:    cfg.BaseURL,
@@ -230,6 +236,11 @@ func einoModelOptions(req GenerateRequest) []model.Option {
 	}
 	if req.MaxTokens != nil {
 		opts = append(opts, model.WithMaxTokens(*req.MaxTokens))
+	}
+	if req.DisableReasoning {
+		opts = append(opts, aclopenai.WithExtraFields(map[string]any{
+			"reasoning": map[string]any{"enabled": false},
+		}))
 	}
 	return opts
 }

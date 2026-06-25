@@ -86,7 +86,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	aiCoachOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
-		zrpc.WithTimeout(time.Second * 15),
+		zrpc.WithTimeout(time.Second * 90),
 	}
 
 	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...))

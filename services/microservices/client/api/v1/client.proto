@@ -1055,6 +1055,13 @@ message GenerateWeeklyReviewResponse {
   WeeklyReview review = 1;
 }
 
+message WeeklyReviewStreamChunk {
+  string delta = 1;              // text delta (summary text as it's generated)
+  bool complete = 2;             // true when the stream is finished
+  WeeklyReview review = 3;       // full review object (only set when complete=true)
+  bool finalizing = 4;           // true when text is done, backend is parsing JSON
+}
+
 message GetWeeklyReviewRequest {
   string userId = 1;
   string weekStart = 2;
@@ -1085,6 +1092,7 @@ message ListWeeklyReviewsResponse {
 
 service WeeklyReviewService {
   rpc GenerateWeeklyReview(GenerateWeeklyReviewRequest) returns (GenerateWeeklyReviewResponse);
+  rpc StreamWeeklyReview(GenerateWeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
   rpc GetWeeklyReview(GetWeeklyReviewRequest) returns (GetWeeklyReviewResponse);
   rpc GetCurrentWeeklyReview(GetCurrentWeeklyReviewRequest) returns (GetCurrentWeeklyReviewResponse);
   rpc ListWeeklyReviews(ListWeeklyReviewsRequest) returns (ListWeeklyReviewsResponse);

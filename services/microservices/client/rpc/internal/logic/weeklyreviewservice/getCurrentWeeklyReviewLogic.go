@@ -2,10 +2,11 @@ package weeklyreviewservicelogic
 
 import (
 	"context"
-	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -63,7 +64,7 @@ func (l *GetCurrentWeeklyReviewLogic) GetCurrentWeeklyReview(in *client.GetCurre
 	// Get the review for the current week
 	review, err := l.svcCtx.Repo.WeeklyReviews.GetWeeklyReview(ctx, userID, weekStart)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, status.Error(codes.NotFound, "weekly review not found")
 		}
 		l.Errorf("failed to get current weekly review: %v", err)

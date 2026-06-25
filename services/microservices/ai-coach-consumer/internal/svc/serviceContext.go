@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/jackc/pgx/v5"
@@ -51,10 +52,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 		client, err := ai.New(c.AI, opts...)
 		if err != nil {
-			logx.Errorf("failed to create AI client: %v", err)
-		} else {
-			aiClient = client
+			logx.Must(fmt.Errorf("failed to create AI client: %w", err))
 		}
+		aiClient = client
 	}
 
 	// Events publisher (for publishing feedback events).
