@@ -26,10 +26,10 @@ type (
 
 	WeeklyReviewService interface {
 		GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error)
+		StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (client.WeeklyReviewService_StreamWeeklyReviewClient, error)
 		GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error)
 		GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error)
 		ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error)
-		StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error)
 	}
 
 	defaultWeeklyReviewService struct {
@@ -48,6 +48,11 @@ func (m *defaultWeeklyReviewService) GenerateWeeklyReview(ctx context.Context, i
 	return client.GenerateWeeklyReview(ctx, in, opts...)
 }
 
+func (m *defaultWeeklyReviewService) StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (client.WeeklyReviewService_StreamWeeklyReviewClient, error) {
+	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
+	return client.StreamWeeklyReview(ctx, in, opts...)
+}
+
 func (m *defaultWeeklyReviewService) GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error) {
 	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
 	return client.GetWeeklyReview(ctx, in, opts...)
@@ -61,9 +66,4 @@ func (m *defaultWeeklyReviewService) GetCurrentWeeklyReview(ctx context.Context,
 func (m *defaultWeeklyReviewService) ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error) {
 	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
 	return client.ListWeeklyReviews(ctx, in, opts...)
-}
-
-func (m *defaultWeeklyReviewService) StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error) {
-	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
-	return client.StreamWeeklyReview(ctx, in, opts...)
 }

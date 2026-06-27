@@ -13,7 +13,8 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/conversationservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 	clientactivity "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
@@ -56,6 +57,7 @@ type ServiceContext struct {
 	PersonalizationRpc clientpersonalization.PersonalizationService
 	BillingRpc         clientbilling.BillingService
 	AICoachRpc         aicoachservice.AICoachService
+	ConversationRpc    conversationservice.ConversationService
 	FileManagerRpc     fileManagerClient.FileManager
 	StripeClient       *stripe.Client
 }
@@ -131,6 +133,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
 		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		AICoachRpc:         aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...)),
+		ConversationRpc:    conversationservice.NewConversationService(zrpc.MustNewClient(c.AICoachRpc, baseOpts...)),
 		FileManagerRpc:     fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
 		StripeClient:       stripeClient,
 	}

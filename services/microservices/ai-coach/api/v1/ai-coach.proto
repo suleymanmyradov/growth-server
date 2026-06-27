@@ -120,9 +120,101 @@ message WeeklyReviewStreamChunk {
   bool finalizing = 4;           // true when text is done, backend is parsing JSON
 }
 
+// Streaming personalized coaching
+message PersonalizedCoachingStreamChunk {
+  string delta = 1;              // text delta (coaching response as it's generated)
+  bool complete = 2;             // true when the stream is finished
+  string full_response = 3;      // full coaching response (only set when complete=true)
+}
+
 service AICoachService {
   rpc GenerateCheckInFeedback(CheckInFeedbackRequest) returns (CheckInFeedbackResponse);
   rpc GeneratePersonalizedCoaching(PersonalizedCoachingRequest) returns (PersonalizedCoachingResponse);
   rpc GenerateWeeklyReview(WeeklyReviewRequest) returns (WeeklyReviewResponse);
   rpc StreamWeeklyReview(WeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
+  rpc StreamPersonalizedCoaching(PersonalizedCoachingRequest) returns (stream PersonalizedCoachingStreamChunk);
+}
+
+// Conversation Service
+message Conversation {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string type = 4;       // coach | therapist
+  string last_message = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+}
+
+message ConversationMessage {
+  string id = 1;
+  string conversation_id = 2;
+  string role = 3;        // user | assistant
+  string content = 4;
+  int64 created_at = 5;
+}
+
+message StartConversationRequest {
+  string user_id = 1;
+  string type = 2;        // coach | therapist
+  string title = 3;
+  string initial_message = 4;
+}
+
+message StartConversationResponse {
+  Conversation conversation = 1;
+  ConversationMessage initial_message_row = 2; // only set if initial_message was provided
+}
+
+message ListConversationsRequest {
+  string user_id = 1;
+  string type = 2;        // optional filter
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ListConversationsResponse {
+  repeated Conversation conversations = 1;
+  int32 total = 2;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message GetConversationResponse {
+  Conversation conversation = 1;
+}
+
+message GetMessagesRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message GetMessagesResponse {
+  repeated ConversationMessage messages = 1;
+  int32 total = 2;
+}
+
+message AppendMessageRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+  string role = 3;        // user | assistant
+  string content = 4;
+}
+
+message AppendMessageResponse {
+  ConversationMessage message = 1;
+  Conversation conversation = 2; // updated conversation with new last_message
+}
+
+service ConversationService {
+  rpc StartConversation(StartConversationRequest) returns (StartConversationResponse);
+  rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
+  rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
+  rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
+  rpc AppendMessage(AppendMessageRequest) returns (AppendMessageResponse);
 }

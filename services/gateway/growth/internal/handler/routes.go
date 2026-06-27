@@ -12,6 +12,7 @@ import (
 	billing "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/billing"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
 	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
 	notifications "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/notifications"
@@ -510,5 +511,57 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		),
 		rest.WithPrefix("/api/v1"),
 		rest.WithSSE(),
+	)
+
+	// SSE streaming route for personalized coaching (same pattern as weekly
+	// review streaming above).
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/coaching-stream",
+					Handler: personalization.StreamPersonalizedCoachingHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+		rest.WithSSE(),
+	)
+
+	// Conversations (AI coach chat history persistence)
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/conversations",
+					Handler: conversations.StartConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/conversations",
+					Handler: conversations.ListConversationsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/conversations/:id",
+					Handler: conversations.GetConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/conversations/:id/messages",
+					Handler: conversations.GetMessagesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/conversations/:id/messages",
+					Handler: conversations.AppendMessageHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
 	)
 }

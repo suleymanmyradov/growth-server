@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/aicoachservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 

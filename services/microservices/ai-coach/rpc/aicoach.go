@@ -6,7 +6,8 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server"
+	aicoachserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server/aicoachservice"
+	conversationserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server/conversationservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 
@@ -27,7 +28,8 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
-		aicoach.RegisterAICoachServiceServer(grpcServer, server.NewAICoachServiceServer(ctx))
+		aicoach.RegisterAICoachServiceServer(grpcServer, aicoachserver.NewAICoachServiceServer(ctx))
+		aicoach.RegisterConversationServiceServer(grpcServer, conversationserver.NewConversationServiceServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)

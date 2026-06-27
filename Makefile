@@ -245,7 +245,7 @@ generate-notification-proto:
 	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc -m --style goZero
 generate-ai-coach-proto:
 	@echo "Generating ai-coach proto..."
-	goctl rpc protoc ./services/microservices/ai-coach/api/v1/ai-coach.proto --go_out=./services/microservices/ai-coach/rpc/pb --go-grpc_out=./services/microservices/ai-coach/rpc/pb --zrpc_out=./services/microservices/ai-coach/rpc --style goZero
+	goctl rpc protoc ./services/microservices/ai-coach/api/v1/ai-coach.proto --go_out=./services/microservices/ai-coach/rpc/pb --go-grpc_out=./services/microservices/ai-coach/rpc/pb --zrpc_out=./services/microservices/ai-coach/rpc -m --style goZero
 generate-filemanager-proto:
 	@echo "Generating filemanager proto..."
 	goctl rpc protoc ./services/microservices/filemanager/api/v1/filemanager.proto --go_out=./services/microservices/filemanager/rpc/pb --go-grpc_out=./services/microservices/filemanager/rpc/pb --zrpc_out=./services/microservices/filemanager/rpc --style goZero
