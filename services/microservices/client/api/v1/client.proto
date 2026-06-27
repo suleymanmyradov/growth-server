@@ -1230,6 +1230,14 @@ message GeneratePersonalizedCoachingRequest {
   string userId = 1;
   string userMessage = 2;
   string context = 3;
+  string conversationId = 4;        // optional: used to fetch conversation history
+  repeated HistoryMessage history = 5;  // prior conversation messages (oldest first)
+}
+
+// HistoryMessage is a single prior message in a conversation.
+message HistoryMessage {
+  string role = 1;     // "user" | "assistant"
+  string content = 2;
 }
 
 message GeneratePersonalizedCoachingResponse {

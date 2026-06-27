@@ -39,6 +39,14 @@ message PersonalizedCoachingRequest {
   string recent_check_ins_summary = 8;
   repeated string common_blockers = 9;
   map<string, string> pattern_insights = 10;
+  repeated HistoryMessage history = 11;  // prior conversation messages (oldest first)
+}
+
+// HistoryMessage is a single prior message in a conversation, used to give the
+// LLM context from earlier turns.
+message HistoryMessage {
+  string role = 1;    // "user" | "assistant"
+  string content = 2;
 }
 
 message PersonalizedCoachingResponse {
@@ -144,6 +152,7 @@ message Conversation {
   string last_message = 5;
   int64 created_at = 6;
   int64 updated_at = 7;
+  bool archived = 8;
 }
 
 message ConversationMessage {
@@ -211,10 +220,29 @@ message AppendMessageResponse {
   Conversation conversation = 2; // updated conversation with new last_message
 }
 
+message ArchiveConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message ArchiveConversationResponse {
+  Conversation conversation = 1;
+}
+
+message DeleteConversationRequest {
+  string conversation_id = 1;
+  string user_id = 2;
+}
+
+message DeleteConversationResponse {}
+
 service ConversationService {
   rpc StartConversation(StartConversationRequest) returns (StartConversationResponse);
   rpc ListConversations(ListConversationsRequest) returns (ListConversationsResponse);
   rpc GetConversation(GetConversationRequest) returns (GetConversationResponse);
   rpc GetMessages(GetMessagesRequest) returns (GetMessagesResponse);
   rpc AppendMessage(AppendMessageRequest) returns (AppendMessageResponse);
+  rpc ArchiveConversation(ArchiveConversationRequest) returns (ArchiveConversationResponse);
+  rpc UnarchiveConversation(ArchiveConversationRequest) returns (ArchiveConversationResponse);
+  rpc DeleteConversation(DeleteConversationRequest) returns (DeleteConversationResponse);
 }

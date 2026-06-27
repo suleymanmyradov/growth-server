@@ -4,10 +4,11 @@
 package personalization
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 	"encoding/json"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -54,6 +55,14 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile() (resp *types.CoachingProf
 		coachingNotes = make(map[string]string)
 	}
 
+	// proto3 omits empty repeated fields on the wire, so an empty slice
+	// arrives as nil. Normalize to a non-nil empty slice so JSON serializes
+	// to [] instead of null.
+	commonBlockers := rpcResp.Profile.CommonBlockers
+	if commonBlockers == nil {
+		commonBlockers = []string{}
+	}
+
 	return &types.CoachingProfileResponse{
 		Data: types.CoachingProfile{
 			Id:                   rpcResp.Profile.Id,
@@ -62,7 +71,7 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile() (resp *types.CoachingProf
 			PreferredTone:        rpcResp.Profile.PreferredTone,
 			DifficultyPreference: rpcResp.Profile.DifficultyPreference,
 			PrimaryMotivation:    rpcResp.Profile.PrimaryMotivation,
-			CommonBlockers:       rpcResp.Profile.CommonBlockers,
+			CommonBlockers:       commonBlockers,
 			CoachingNotes:        coachingNotes,
 			LastContextRefreshAt: formatTimestamp(rpcResp.Profile.LastContextRefreshAt),
 			CreatedAt:            formatTimestamp(rpcResp.Profile.CreatedAt),
