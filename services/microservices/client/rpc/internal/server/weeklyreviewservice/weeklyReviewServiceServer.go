@@ -7,7 +7,7 @@ package server
 import (
 	"context"
 
-	weeklyreviewservicelogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/weeklyreviewservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/weeklyreviewservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
@@ -28,6 +28,11 @@ func (s *WeeklyReviewServiceServer) GenerateWeeklyReview(ctx context.Context, in
 	return l.GenerateWeeklyReview(in)
 }
 
+func (s *WeeklyReviewServiceServer) StreamWeeklyReview(in *client.GenerateWeeklyReviewRequest, stream client.WeeklyReviewService_StreamWeeklyReviewServer) error {
+	l := weeklyreviewservicelogic.NewStreamWeeklyReviewLogic(stream.Context(), s.svcCtx)
+	return l.StreamWeeklyReview(in, stream)
+}
+
 func (s *WeeklyReviewServiceServer) GetWeeklyReview(ctx context.Context, in *client.GetWeeklyReviewRequest) (*client.GetWeeklyReviewResponse, error) {
 	l := weeklyreviewservicelogic.NewGetWeeklyReviewLogic(ctx, s.svcCtx)
 	return l.GetWeeklyReview(in)
@@ -41,9 +46,4 @@ func (s *WeeklyReviewServiceServer) GetCurrentWeeklyReview(ctx context.Context, 
 func (s *WeeklyReviewServiceServer) ListWeeklyReviews(ctx context.Context, in *client.ListWeeklyReviewsRequest) (*client.ListWeeklyReviewsResponse, error) {
 	l := weeklyreviewservicelogic.NewListWeeklyReviewsLogic(ctx, s.svcCtx)
 	return l.ListWeeklyReviews(in)
-}
-
-func (s *WeeklyReviewServiceServer) StreamWeeklyReview(in *client.GenerateWeeklyReviewRequest, stream client.WeeklyReviewService_StreamWeeklyReviewServer) error {
-	l := weeklyreviewservicelogic.NewStreamWeeklyReviewLogic(stream.Context(), s.svcCtx)
-	return l.StreamWeeklyReview(in, stream)
 }

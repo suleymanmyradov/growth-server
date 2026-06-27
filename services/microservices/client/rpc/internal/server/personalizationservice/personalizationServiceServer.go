@@ -67,3 +67,8 @@ func (s *PersonalizationServiceServer) GeneratePersonalizedCoaching(ctx context.
 	l := personalizationservicelogic.NewGeneratePersonalizedCoachingLogic(ctx, s.svcCtx)
 	return l.GeneratePersonalizedCoaching(in)
 }
+
+func (s *PersonalizationServiceServer) StreamPersonalizedCoaching(in *client.GeneratePersonalizedCoachingRequest, stream client.PersonalizationService_StreamPersonalizedCoachingServer) error {
+	l := personalizationservicelogic.NewStreamPersonalizedCoachingLogic(stream.Context(), s.svcCtx)
+	return l.StreamPersonalizedCoaching(in, stream)
+}

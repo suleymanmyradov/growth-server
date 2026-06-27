@@ -3700,6 +3700,7 @@ const (
 	PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_FullMethodName = "/client.PersonalizationService/UpdatePlanAdjustmentSuggestionStatus"
 	PersonalizationService_ApplyPlanAdjustmentSuggestion_FullMethodName        = "/client.PersonalizationService/ApplyPlanAdjustmentSuggestion"
 	PersonalizationService_GeneratePersonalizedCoaching_FullMethodName         = "/client.PersonalizationService/GeneratePersonalizedCoaching"
+	PersonalizationService_StreamPersonalizedCoaching_FullMethodName           = "/client.PersonalizationService/StreamPersonalizedCoaching"
 )
 
 // PersonalizationServiceClient is the client API for PersonalizationService service.
@@ -3715,6 +3716,7 @@ type PersonalizationServiceClient interface {
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, in *UpdatePlanAdjustmentSuggestionStatusRequest, opts ...grpc.CallOption) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error)
 	GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error)
+	StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk], error)
 }
 
 type personalizationServiceClient struct {
@@ -3815,6 +3817,25 @@ func (c *personalizationServiceClient) GeneratePersonalizedCoaching(ctx context.
 	return out, nil
 }
 
+func (c *personalizationServiceClient) StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &PersonalizationService_ServiceDesc.Streams[0], PersonalizationService_StreamPersonalizedCoaching_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[GeneratePersonalizedCoachingRequest, PersonalizedCoachingStreamChunk]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PersonalizationService_StreamPersonalizedCoachingClient = grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk]
+
 // PersonalizationServiceServer is the server API for PersonalizationService service.
 // All implementations must embed UnimplementedPersonalizationServiceServer
 // for forward compatibility.
@@ -3828,6 +3849,7 @@ type PersonalizationServiceServer interface {
 	UpdatePlanAdjustmentSuggestionStatus(context.Context, *UpdatePlanAdjustmentSuggestionStatusRequest) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
 	ApplyPlanAdjustmentSuggestion(context.Context, *ApplyPlanAdjustmentSuggestionRequest) (*ApplyPlanAdjustmentSuggestionResponse, error)
 	GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error)
+	StreamPersonalizedCoaching(*GeneratePersonalizedCoachingRequest, grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]) error
 	mustEmbedUnimplementedPersonalizationServiceServer()
 }
 
@@ -3864,6 +3886,9 @@ func (UnimplementedPersonalizationServiceServer) ApplyPlanAdjustmentSuggestion(c
 }
 func (UnimplementedPersonalizationServiceServer) GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GeneratePersonalizedCoaching not implemented")
+}
+func (UnimplementedPersonalizationServiceServer) StreamPersonalizedCoaching(*GeneratePersonalizedCoachingRequest, grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]) error {
+	return status.Error(codes.Unimplemented, "method StreamPersonalizedCoaching not implemented")
 }
 func (UnimplementedPersonalizationServiceServer) mustEmbedUnimplementedPersonalizationServiceServer() {
 }
@@ -4049,6 +4074,17 @@ func _PersonalizationService_GeneratePersonalizedCoaching_Handler(srv interface{
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PersonalizationService_StreamPersonalizedCoaching_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(GeneratePersonalizedCoachingRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PersonalizationServiceServer).StreamPersonalizedCoaching(m, &grpc.GenericServerStream[GeneratePersonalizedCoachingRequest, PersonalizedCoachingStreamChunk]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type PersonalizationService_StreamPersonalizedCoachingServer = grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]
+
 // PersonalizationService_ServiceDesc is the grpc.ServiceDesc for PersonalizationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4093,7 +4129,13 @@ var PersonalizationService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PersonalizationService_GeneratePersonalizedCoaching_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "StreamPersonalizedCoaching",
+			Handler:       _PersonalizationService_StreamPersonalizedCoaching_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
 

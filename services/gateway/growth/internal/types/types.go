@@ -207,8 +207,9 @@ type Entitlements struct {
 }
 
 type GeneratePersonalizedCoachingRequest struct {
-	UserMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
-	Context     string `json:"context,optional,example=User has been struggling with motivation"`
+	UserMessage     string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+	Context         string `json:"context,optional,example=User has been struggling with motivation"`
+	ConversationId  string `json:"conversationId,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {
@@ -721,4 +722,78 @@ type WeeklyReviewResponse struct {
 type WeeklyReviewsResponse struct {
 	Data []WeeklyReview `json:"data"`
 	Page PageResponse   `json:"page"`
+}
+
+// ============================================
+// Conversations
+// ============================================
+
+type Conversation struct {
+	Id          string `json:"id"`
+	Title       string `json:"title"`
+	Type        string `json:"type"`
+	LastMessage string `json:"lastMessage"`
+	UserId      string `json:"userId,omitempty"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+}
+
+type ConversationMessage struct {
+	Id             string `json:"id"`
+	ConversationId string `json:"conversationId"`
+	Role           string `json:"role"`
+	Content        string `json:"content"`
+	CreatedAt      string `json:"createdAt"`
+}
+
+type StartConversationRequest struct {
+	Type           string `json:"type,optional"`
+	Title          string `json:"title,optional"`
+	InitialMessage string `json:"initialMessage,optional"`
+}
+
+type StartConversationResponse struct {
+	Data             Conversation         `json:"data"`
+	InitialMessage   *ConversationMessage `json:"initialMessage,omitempty"`
+}
+
+type ListConversationsRequest struct {
+	Type  string `form:"type,optional"`
+	Page  int    `form:"page,default=1"`
+	Limit int    `form:"limit,default=20"`
+}
+
+type ListConversationsResponse struct {
+	Data []Conversation `json:"data"`
+	Page PageResponse   `json:"page"`
+}
+
+type GetConversationResponse struct {
+	Data Conversation `json:"data"`
+}
+
+type ConversationRequest struct {
+	Id string `path:"id"`
+}
+
+type GetMessagesRequest struct {
+	Id    string `path:"id"`
+	Page  int    `form:"page,default=1"`
+	Limit int    `form:"limit,default=50"`
+}
+
+type GetMessagesResponse struct {
+	Data []ConversationMessage `json:"data"`
+	Page PageResponse          `json:"page"`
+}
+
+type AppendMessageRequest struct {
+	Id      string `path:"id"`
+	Content string `json:"content"`
+	Role    string `json:"role,optional"`
+}
+
+type AppendMessageResponse struct {
+	Data         ConversationMessage `json:"data"`
+	Conversation Conversation         `json:"conversation"`
 }
