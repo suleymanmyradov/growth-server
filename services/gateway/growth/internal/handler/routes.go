@@ -560,6 +560,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/conversations/:id/messages",
 					Handler: conversations.AppendMessageHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/conversations/:id/archive",
+					Handler: conversations.ArchiveConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/conversations/:id/unarchive",
+					Handler: conversations.UnarchiveConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/conversations/:id",
+					Handler: conversations.DeleteConversationHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),

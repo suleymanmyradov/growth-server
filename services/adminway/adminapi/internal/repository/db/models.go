@@ -88,6 +88,25 @@ type CheckIn struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type Conversation struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Title       string             `db:"title" json:"title"`
+	Type        string             `db:"type" json:"type"`
+	LastMessage string             `db:"last_message" json:"last_message"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Archived    bool               `db:"archived" json:"archived"`
+}
+
+type ConversationMessage struct {
+	ID             uuid.UUID          `db:"id" json:"id"`
+	ConversationID uuid.UUID          `db:"conversation_id" json:"conversation_id"`
+	Role           string             `db:"role" json:"role"`
+	Content        string             `db:"content" json:"content"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 type Goal struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`

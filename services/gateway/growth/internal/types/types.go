@@ -734,6 +734,7 @@ type Conversation struct {
 	Type        string `json:"type"`
 	LastMessage string `json:"lastMessage"`
 	UserId      string `json:"userId,omitempty"`
+	Archived    bool   `json:"archived"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 }
@@ -797,3 +798,5 @@ type AppendMessageResponse struct {
 	Data         ConversationMessage `json:"data"`
 	Conversation Conversation         `json:"conversation"`
 }
+
+type DeleteConversationResponse struct{}

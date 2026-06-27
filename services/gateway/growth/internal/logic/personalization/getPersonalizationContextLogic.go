@@ -4,10 +4,11 @@
 package personalization
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 	"encoding/json"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -56,6 +57,14 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(req *types.Ge
 		coachingNotes = make(map[string]string)
 	}
 
+	// proto3 omits empty repeated/map fields on the wire, so empty slices and
+	// maps arrive as nil. Normalize to non-nil empties so JSON serializes to
+	// [] / {} instead of null.
+	commonBlockers := rpcResp.Context.Profile.CommonBlockers
+	if commonBlockers == nil {
+		commonBlockers = []string{}
+	}
+
 	// Convert RPC response to API response
 	profile := types.CoachingProfile{
 		Id:                   rpcResp.Context.Profile.Id,
@@ -64,7 +73,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(req *types.Ge
 		PreferredTone:        rpcResp.Context.Profile.PreferredTone,
 		DifficultyPreference: rpcResp.Context.Profile.DifficultyPreference,
 		PrimaryMotivation:    rpcResp.Context.Profile.PrimaryMotivation,
-		CommonBlockers:       rpcResp.Context.Profile.CommonBlockers,
+		CommonBlockers:       commonBlockers,
 		CoachingNotes:        coachingNotes,
 		LastContextRefreshAt: formatTimestamp(rpcResp.Context.Profile.LastContextRefreshAt),
 		CreatedAt:            formatTimestamp(rpcResp.Context.Profile.CreatedAt),
@@ -164,6 +173,11 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(req *types.Ge
 		}
 	}
 
+	patternInsights := rpcResp.Context.PatternInsights
+	if patternInsights == nil {
+		patternInsights = map[string]string{}
+	}
+
 	return &types.PersonalizationContextResponse{
 		Data: types.PersonalizationContext{
 			Profile:            profile,
@@ -172,7 +186,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(req *types.Ge
 			RecentCheckIns:     recentCheckIns,
 			LatestWeeklyReview: latestWeeklyReview,
 			PendingSuggestions: pendingSuggestions,
-			PatternInsights:    rpcResp.Context.PatternInsights,
+			PatternInsights:    patternInsights,
 		},
 	}, nil
 }
