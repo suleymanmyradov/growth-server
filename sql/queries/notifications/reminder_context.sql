@@ -27,4 +27,4 @@ GROUP BY usr.tz, usr.check_in_time, usr.habit_reminders, usr.onboarding_complete
 UPDATE reminders
 SET sent_at = now()
 WHERE id = $1
-RETURNING *;
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at;

@@ -24,7 +24,6 @@ type (
 	GetCoachingProfileResponse                   = client.GetCoachingProfileResponse
 	GetPersonalizationContextRequest             = client.GetPersonalizationContextRequest
 	GetPersonalizationContextResponse            = client.GetPersonalizationContextResponse
-	HistoryMessage                               = client.HistoryMessage
 	ListPendingPlanAdjustmentSuggestionsRequest  = client.ListPendingPlanAdjustmentSuggestionsRequest
 	ListPendingPlanAdjustmentSuggestionsResponse = client.ListPendingPlanAdjustmentSuggestionsResponse
 	PersonalizedCoachingStreamChunk              = client.PersonalizedCoachingStreamChunk
@@ -34,6 +33,7 @@ type (
 	UpdatePlanAdjustmentSuggestionStatusResponse = client.UpdatePlanAdjustmentSuggestionStatusResponse
 	UpsertCoachingProfileRequest                 = client.UpsertCoachingProfileRequest
 	UpsertCoachingProfileResponse                = client.UpsertCoachingProfileResponse
+	HistoryMessage                               = client.HistoryMessage
 
 	PersonalizationService interface {
 		GetCoachingProfile(ctx context.Context, in *GetCoachingProfileRequest, opts ...grpc.CallOption) (*GetCoachingProfileResponse, error)

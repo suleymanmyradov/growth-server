@@ -104,7 +104,8 @@ func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ s
 }
 
 const getPendingByUser = `-- name: GetPendingByUser :many
-SELECT id, user_id, type, scheduled_at, sent_at, metadata, created_at FROM reminders
+SELECT id, user_id, type, scheduled_at, sent_at, metadata, created_at
+FROM reminders
 WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at
 `

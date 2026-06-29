@@ -150,7 +150,9 @@ func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetA
 }
 
 const getActivity = `-- name: GetActivity :one
-SELECT id, user_id, type, title, description, metadata, created_at FROM activities WHERE id = $1
+SELECT id, user_id, type, title, description, metadata, created_at
+FROM activities
+WHERE id = $1
 `
 
 func (q *Queries) GetActivity(ctx context.Context, id uuid.UUID) (Activity, error) {
@@ -318,7 +320,8 @@ func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksR
 }
 
 const listActivities = `-- name: ListActivities :many
-SELECT id, user_id, type, title, description, metadata, created_at FROM activities
+SELECT id, user_id, type, title, description, metadata, created_at
+FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
@@ -354,7 +357,9 @@ func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit in
 }
 
 const listActivitiesByType = `-- name: ListActivitiesByType :many
-SELECT id, user_id, type, title, description, metadata, created_at FROM activities WHERE user_id = $1 AND type = $2
+SELECT id, user_id, type, title, description, metadata, created_at
+FROM activities
+WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `

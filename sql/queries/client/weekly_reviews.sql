@@ -37,25 +37,25 @@ WITH ins AS (
         suggested_adjustments = EXCLUDED.suggested_adjustments,
         next_week_plan = EXCLUDED.next_week_plan,
         updated_at = now()
-    RETURNING *
+    RETURNING id, user_id, week_start, total_habits, completed_check_ins, missed_check_ins, completion_rate, best_day, hardest_day, top_blocker, mood_summary, energy_summary, habit_breakdown, ai_summary, suggested_adjustments, next_week_plan, created_at, updated_at
 )
-SELECT ins.*, (ins.week_start + 6)::date AS week_end, ins.updated_at AS generated_at
+SELECT ins.id, ins.user_id, ins.week_start, ins.total_habits, ins.completed_check_ins, ins.missed_check_ins, ins.completion_rate, ins.best_day, ins.hardest_day, ins.top_blocker, ins.mood_summary, ins.energy_summary, ins.habit_breakdown, ins.ai_summary, ins.suggested_adjustments, ins.next_week_plan, ins.created_at, ins.updated_at, (ins.week_start + 6)::date AS week_end, ins.updated_at AS generated_at
 FROM ins;
 
 -- name: GetWeeklyReview :one
-SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
 FROM weekly_reviews wr
 WHERE wr.user_id = $1 AND wr.week_start = $2;
 
 -- name: GetCurrentWeeklyReview :one
-SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
 FROM weekly_reviews wr
 WHERE wr.user_id = $1
 ORDER BY wr.week_start DESC
 LIMIT 1;
 
 -- name: ListWeeklyReviews :many
-SELECT wr.*, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
+SELECT wr.id, wr.user_id, wr.week_start, wr.total_habits, wr.completed_check_ins, wr.missed_check_ins, wr.completion_rate, wr.best_day, wr.hardest_day, wr.top_blocker, wr.mood_summary, wr.energy_summary, wr.habit_breakdown, wr.ai_summary, wr.suggested_adjustments, wr.next_week_plan, wr.created_at, wr.updated_at, (wr.week_start + 6)::date AS week_end, wr.updated_at AS generated_at
 FROM weekly_reviews wr
 WHERE wr.user_id = $1
 ORDER BY wr.week_start DESC

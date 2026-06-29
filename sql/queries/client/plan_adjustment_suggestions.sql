@@ -16,32 +16,37 @@ DO UPDATE SET
     reason = EXCLUDED.reason,
     suggestion = EXCLUDED.suggestion,
     metadata = EXCLUDED.metadata
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at;
 
 -- name: GetPlanAdjustmentSuggestion :one
-SELECT * FROM plan_adjustments
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
+FROM plan_adjustments
 WHERE id = $1 AND user_id = $2;
 
 -- name: ListPendingPlanAdjustmentSuggestions :many
-SELECT * FROM plan_adjustments
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
+FROM plan_adjustments
 WHERE user_id = $1 AND status = 'pending'
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListAllPlanAdjustmentSuggestions :many
-SELECT * FROM plan_adjustments
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
+FROM plan_adjustments
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListPlanAdjustmentSuggestionsByHabit :many
-SELECT * FROM plan_adjustments
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
+FROM plan_adjustments
 WHERE user_id = $1 AND habit_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: ListPlanAdjustmentSuggestionsByGoal :many
-SELECT * FROM plan_adjustments
+SELECT id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at
+FROM plan_adjustments
 WHERE user_id = $1 AND goal_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
@@ -50,7 +55,7 @@ LIMIT $3 OFFSET $4;
 UPDATE plan_adjustments
 SET status = $3
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at;
 
 -- name: UpdatePlanAdjustmentSuggestion :one
 UPDATE plan_adjustments
@@ -59,7 +64,7 @@ SET adjustment_type = $3,
     suggestion = $5,
     metadata = $6
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at;
 
 -- name: DeletePlanAdjustmentSuggestion :exec
 DELETE FROM plan_adjustments
@@ -80,4 +85,4 @@ WHERE user_id = $1
 UPDATE plan_adjustments
 SET status = 'applied'
 WHERE id = $1 AND user_id = $2
-RETURNING *;
+RETURNING id, user_id, goal_id, habit_id, source, adjustment_type, status, reason, suggestion, metadata, week_start, created_at, updated_at;

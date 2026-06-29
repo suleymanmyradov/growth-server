@@ -133,6 +133,7 @@ type Querier interface {
 	GetTagsByArticleIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetTagsByArticleIDsRow, error)
 	// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error)
+	GetUserProfileByID(ctx context.Context, id uuid.UUID) (GetUserProfileByIDRow, error)
 	GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error)
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error)
 	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (GetUserSubscriptionByStripeCustomerIDRow, error)

@@ -63,9 +63,16 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 					})
 				}
 			}
+			// Even on Free, include the user's name/bio so the coach can
+			// address them personally. Non-fatal if unavailable.
+			var freeUserProfile db.GetUserProfileByIDRow
+			if up, upErr := l.svcCtx.Repo.Users.GetUserProfileByID(ctx, userID); upErr == nil {
+				freeUserProfile = up
+			}
 			return &client.GetPersonalizationContextResponse{
 				Context: &client.PersonalizationContext{
 					Profile:            dbCoachingProfileToProto(profile),
+					User:               dbUserProfileToProto(freeUserProfile),
 					ActiveGoals:        []*client.Goal{},
 					ActiveHabits:       []*client.Habit{},
 					RecentCheckIns:     []*client.CheckIn{},
@@ -100,6 +107,14 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 			l.Errorf("failed to get coaching profile: %v", err)
 			return nil, status.Error(codes.Internal, "failed to get coaching profile")
 		}
+	}
+
+	// Get the user's public profile (name, bio, location, interests, etc.)
+	// so coaching responses can address the user by name and reference
+	// background context they've shared. Non-fatal: continue without it.
+	userProfile, userErr := l.svcCtx.Repo.Users.GetUserProfileByID(ctx, userID)
+	if userErr != nil {
+		l.Infof("failed to get user profile: %v", userErr)
 	}
 
 	// Get active goals
@@ -207,6 +222,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	return &client.GetPersonalizationContextResponse{
 		Context: &client.PersonalizationContext{
 			Profile:            protoProfile,
+			User:               dbUserProfileToProto(userProfile),
 			ActiveGoals:        protoGoals,
 			ActiveHabits:       protoHabits,
 			RecentCheckIns:     protoCheckIns,
@@ -215,6 +231,38 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 			PatternInsights:    patternInsights,
 		},
 	}, nil
+}
+
+func dbUserProfileToProto(u db.GetUserProfileByIDRow) *client.UserProfile {
+	if u.ID == uuid.Nil {
+		return nil
+	}
+	bio := ""
+	if u.Bio != nil {
+		bio = *u.Bio
+	}
+	location := ""
+	if u.Location != nil {
+		location = *u.Location
+	}
+	website := ""
+	if u.Website != nil {
+		website = *u.Website
+	}
+	avatarURL := ""
+	if u.AvatarUrl != nil {
+		avatarURL = *u.AvatarUrl
+	}
+	return &client.UserProfile{
+		Id:        u.ID.String(),
+		Username:  u.Username,
+		FullName:  u.FullName,
+		Bio:       bio,
+		Location:  location,
+		Website:   website,
+		Interests: u.Interests,
+		AvatarUrl: avatarURL,
+	}
 }
 
 func dbGoalToProto(goal db.GetGoalRow) *client.Goal {

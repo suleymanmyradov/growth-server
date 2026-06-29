@@ -91,6 +91,10 @@ type IUserSettings interface {
 	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
 }
 
+type IUsers interface {
+	GetUserProfileByID(ctx context.Context, id uuid.UUID) (db.GetUserProfileByIDRow, error)
+}
+
 type IHabits interface {
 	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetHabitRow, error)
 	GetHabitByID(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
@@ -205,6 +209,7 @@ type Repository struct {
 	SavedItems                ISavedItems
 	Activities                IActivities
 	UserSettings              IUserSettings
+	Users                     IUsers
 	Habits                    IHabits
 	Goals                     IGoals
 	Categories                ICategories
@@ -223,6 +228,7 @@ func NewRepository(db *db.Queries) *Repository {
 		SavedItems:                NewSavedItemsRepo(db),
 		Activities:                NewActivitiesRepo(db),
 		UserSettings:              NewUserSettingsRepo(db),
+		Users:                     NewUsersRepo(db),
 		Habits:                    NewHabitsRepo(db),
 		Goals:                     NewGoalsRepo(db),
 		Categories:                NewCategoriesRepo(db),

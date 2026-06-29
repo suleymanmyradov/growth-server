@@ -50,6 +50,7 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 
 	// Build prompt input
 	profile := contextResp.Context.Profile
+	user := contextResp.Context.User
 	activeGoals := make([]string, len(contextResp.Context.ActiveGoals))
 	for i, goal := range contextResp.Context.ActiveGoals {
 		activeGoals[i] = goal.Title
@@ -91,6 +92,10 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 		RecentCheckInsSummary: recentCheckInsSummary,
 		CommonBlockers:        profile.CommonBlockers,
 		PatternInsights:       patternInsights,
+		UserFullName:          user.FullName,
+		UserBio:               user.Bio,
+		UserLocation:          user.Location,
+		UserInterests:         user.Interests,
 	})
 
 	coachingResponse := ""

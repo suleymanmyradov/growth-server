@@ -63,7 +63,9 @@ func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 }
 
 const getCategory = `-- name: GetCategory :one
-SELECT id, name, slug, sort_order, created_at, updated_at FROM categories WHERE id = $1
+SELECT id, name, slug, sort_order, created_at, updated_at
+FROM categories
+WHERE id = $1
 `
 
 func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, error) {
@@ -81,7 +83,9 @@ func (q *Queries) GetCategory(ctx context.Context, id uuid.UUID) (Category, erro
 }
 
 const getCategoryBySlug = `-- name: GetCategoryBySlug :one
-SELECT id, name, slug, sort_order, created_at, updated_at FROM categories WHERE slug = $1
+SELECT id, name, slug, sort_order, created_at, updated_at
+FROM categories
+WHERE slug = $1
 `
 
 func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string) (Category, error) {
@@ -99,7 +103,9 @@ func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string) (Category,
 }
 
 const listCategories = `-- name: ListCategories :many
-SELECT id, name, slug, sort_order, created_at, updated_at FROM categories ORDER BY sort_order ASC
+SELECT id, name, slug, sort_order, created_at, updated_at
+FROM categories
+ORDER BY sort_order ASC
 `
 
 func (q *Queries) ListCategories(ctx context.Context) ([]Category, error) {
