@@ -1121,6 +1121,20 @@ message PersonalizationContext {
   WeeklyReview latestWeeklyReview = 5;
   repeated PlanAdjustmentSuggestion pendingSuggestions = 6;
   map<string, string> patternInsights = 7;
+  UserProfile user = 8;
+}
+
+// UserProfile holds the public profile fields (name, bio, etc.) used to
+// personalize coaching responses.
+message UserProfile {
+  string id = 1;
+  string username = 2;
+  string fullName = 3;
+  string bio = 4;
+  string location = 5;
+  string website = 6;
+  repeated string interests = 7;
+  string avatarUrl = 8;
 }
 
 message PlanAdjustmentSuggestion {

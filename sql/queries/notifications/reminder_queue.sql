@@ -6,7 +6,7 @@ VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
               metadata = EXCLUDED.metadata
-RETURNING *;
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at;
 
 -- name: CancelPendingReminderForDate :exec
 DELETE FROM reminders
@@ -26,9 +26,10 @@ WITH due AS (
 UPDATE reminders r SET sent_at = now()
 FROM due
 WHERE r.id = due.id
-RETURNING r.*;
+RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent_at, r.metadata, r.created_at;
 
 -- name: GetPendingByUser :many
-SELECT * FROM reminders
+SELECT id, user_id, type, scheduled_at, sent_at, metadata, created_at
+FROM reminders
 WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at;

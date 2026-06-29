@@ -40,6 +40,10 @@ message PersonalizedCoachingRequest {
   repeated string common_blockers = 9;
   map<string, string> pattern_insights = 10;
   repeated HistoryMessage history = 11;  // prior conversation messages (oldest first)
+  string user_full_name = 12;
+  string user_bio = 13;
+  string user_location = 14;
+  repeated string user_interests = 15;
 }
 
 // HistoryMessage is a single prior message in a conversation, used to give the

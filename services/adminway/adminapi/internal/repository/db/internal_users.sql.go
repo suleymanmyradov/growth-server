@@ -38,7 +38,9 @@ func (q *Queries) CreateInternalUser(ctx context.Context, email string, password
 }
 
 const getInternalUserByEmail = `-- name: GetInternalUserByEmail :one
-SELECT id, email, password_hash, full_name, role, created_at, updated_at FROM internal_users WHERE email = $1
+SELECT id, email, password_hash, full_name, role, created_at, updated_at
+FROM internal_users
+WHERE email = $1
 `
 
 func (q *Queries) GetInternalUserByEmail(ctx context.Context, email string) (InternalUser, error) {
@@ -57,7 +59,9 @@ func (q *Queries) GetInternalUserByEmail(ctx context.Context, email string) (Int
 }
 
 const getInternalUserByID = `-- name: GetInternalUserByID :one
-SELECT id, email, password_hash, full_name, role, created_at, updated_at FROM internal_users WHERE id = $1
+SELECT id, email, password_hash, full_name, role, created_at, updated_at
+FROM internal_users
+WHERE id = $1
 `
 
 func (q *Queries) GetInternalUserByID(ctx context.Context, id uuid.UUID) (InternalUser, error) {

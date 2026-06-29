@@ -23,7 +23,7 @@ WHERE g.id = $1;
 WITH ins AS (
     INSERT INTO goals (title, description, category_id, due_date, user_id)
     VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4, $5)
-    RETURNING *
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
 )
 SELECT ins.id, ins.user_id, ins.category_id, ins.title, ins.description, ins.status, ins.progress, ins.due_date, ins.created_at, ins.updated_at,
        COALESCE(c.slug, '')::varchar AS category,
@@ -38,7 +38,7 @@ WITH upd AS (
         category_id = (SELECT c2.id FROM categories c2 WHERE c2.slug = $4),
         due_date = $5
     WHERE goals.id = $1
-    RETURNING *
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
        COALESCE(c.slug, '')::varchar AS category,
@@ -55,7 +55,7 @@ WITH upd AS (
     SET status = CASE WHEN status = 'completed' THEN 'active' ELSE 'completed' END,
         progress = CASE WHEN status = 'completed' THEN 0 ELSE 100 END
     WHERE goals.id = $1
-    RETURNING *
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
        COALESCE(c.slug, '')::varchar AS category,
@@ -69,7 +69,7 @@ WITH upd AS (
     SET progress = $2,
         status = CASE WHEN $2 >= 100 THEN 'completed' ELSE status END
     WHERE goals.id = $1
-    RETURNING *
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
        COALESCE(c.slug, '')::varchar AS category,

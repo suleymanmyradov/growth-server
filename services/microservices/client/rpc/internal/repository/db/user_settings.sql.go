@@ -77,7 +77,9 @@ func (q *Queries) DeleteUserSettings(ctx context.Context, userID uuid.UUID) erro
 }
 
 const getUserSettings = `-- name: GetUserSettings :one
-SELECT user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at FROM user_settings WHERE user_id = $1
+SELECT user_id, theme, language, timezone, email_notifications, push_notifications, habit_reminders, goal_reminders, check_in_time, onboarding_completed, accountability_style, coach_tone, difficulty, primary_motivation, common_blockers, coaching_notes, last_context_refresh_at, created_at, updated_at
+FROM user_settings
+WHERE user_id = $1
 `
 
 func (q *Queries) GetUserSettings(ctx context.Context, userID uuid.UUID) (UserSetting, error) {
