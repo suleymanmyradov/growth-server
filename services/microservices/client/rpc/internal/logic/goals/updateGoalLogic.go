@@ -75,6 +75,8 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		}
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
 	return &client.UpdateGoalResponse{
 		Goal: goalToProto(goal, in.RelatedHabitIds),
 	}, nil

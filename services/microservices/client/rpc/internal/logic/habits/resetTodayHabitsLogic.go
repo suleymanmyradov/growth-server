@@ -53,6 +53,8 @@ func (l *ResetTodayHabitsLogic) ResetTodayHabits(in *client.ResetTodayHabitsRequ
 		return nil, status.Error(codes.Internal, "failed to reset today habits")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	return &client.ResetTodayHabitsResponse{
 		ResetCount: int32(count),
 	}, nil

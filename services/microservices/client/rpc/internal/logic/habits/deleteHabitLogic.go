@@ -58,6 +58,8 @@ func (l *DeleteHabitLogic) DeleteHabit(in *client.DeleteHabitRequest) (*client.D
 		return nil, status.Error(codes.Internal, "failed to delete habit")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, existing.UserID)
+
 	return &client.DeleteHabitResponse{
 		Success: true,
 	}, nil

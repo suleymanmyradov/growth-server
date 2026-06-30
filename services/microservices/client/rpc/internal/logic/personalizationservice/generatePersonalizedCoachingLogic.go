@@ -2,8 +2,8 @@ package personalizationservicelogic
 
 import (
 	"context"
-	"fmt"
 
+	aiprompts "github.com/suleymanmyradov/growth-server/pkg/ai/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -73,13 +73,20 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *cli
 		completionRate = float64(completedCount) / float64(len(contextResp.Context.RecentCheckIns)) * 100
 	}
 
-	recentCheckInsSummary := fmt.Sprintf("Recent activity: %d check-ins with %.1f%% completion rate.",
-		len(contextResp.Context.RecentCheckIns), completionRate)
-
 	patternInsights := make(map[string]string, len(contextResp.Context.PatternInsights))
 	for k, v := range contextResp.Context.PatternInsights {
 		patternInsights[k] = v
 	}
+
+	// Build an aggregate check-in digest (counts + trend + top blocker) instead
+	// of enumerating raw check-in rows. Trend/top-blocker come from the
+	// pre-computed pattern insights so this stays near-constant size.
+	recentCheckInsSummary := aiprompts.BuildContextSummary(
+		len(contextResp.Context.RecentCheckIns),
+		completionRate,
+		patternInsights["top_blocker"],
+		patternInsights["completion_pattern"],
+	)
 
 	aiResp, aiErr := l.svcCtx.AICoachRpc.GeneratePersonalizedCoaching(ctx, &aicoachservice.PersonalizedCoachingRequest{
 		UserId:                in.UserId,

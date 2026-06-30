@@ -49,6 +49,8 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
 	return &client.UpdateGoalProgressResponse{
 		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
 	}, nil

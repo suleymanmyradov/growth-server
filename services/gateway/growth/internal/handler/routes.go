@@ -530,6 +530,22 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithSSE(),
 	)
 
+	// Onboarding habit generation (server-owned: client sends structured data
+	// only, never a prompt). Manually registered — re-add after make generate-api.
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/onboarding/generate-habits",
+					Handler: personalization.GenerateOnboardingHabitsHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
 	// Conversations (AI coach chat history persistence)
 	server.AddRoutes(
 		rest.WithMiddlewares(

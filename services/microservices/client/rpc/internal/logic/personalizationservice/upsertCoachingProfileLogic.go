@@ -72,6 +72,8 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 		return nil, status.Error(codes.Internal, "failed to upsert coaching profile")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	return &client.UpsertCoachingProfileResponse{
 		Profile: dbCoachingProfileToProto(profile),
 	}, nil

@@ -110,6 +110,7 @@ require (
 	github.com/bytedance/sonic v1.15.1 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
+	github.com/dlclark/regexp2/v2 v2.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/evanphx/json-patch v0.5.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
@@ -133,6 +134,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.47 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/slongfield/pyfmt v0.0.0-20220222012616-ea85ff4c361f // indirect
+	github.com/tiktoken-go/tokenizer v0.8.0 // indirect
 	github.com/tinylib/msgp v1.6.1 // indirect
 	github.com/titanous/json5 v1.0.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect

@@ -62,6 +62,8 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 		return nil, status.Error(codes.Internal, "failed to create habit")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	return &client.CreateHabitResponse{
 		Habit: habitToProto(habit, 0, nil), // new habit has no check-ins → streak 0
 	}, nil
