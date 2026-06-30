@@ -50,10 +50,22 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(in.Password))
+	// OAuth-only users have no local password and must sign in via their provider.
+	if user.PasswordHash == nil {
+		l.Errorf("Login rejected: user %s has no password (OAuth-only account)", user.ID)
+		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(in.Password))
 	if err != nil {
 		l.Errorf("Login password mismatch for user %s: %v", user.ID, err)
 		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+	}
+
+	// Block login until the email is verified.
+	if !user.EmailVerified {
+		l.Errorf("Login rejected: user %s email not verified", user.ID)
+		return nil, status.Error(codes.PermissionDenied, "email not verified")
 	}
 
 	sessionID := uuid.New()

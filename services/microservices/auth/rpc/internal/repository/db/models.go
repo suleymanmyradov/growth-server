@@ -278,18 +278,28 @@ type UpgradeEvent struct {
 }
 
 type User struct {
-	ID           uuid.UUID          `db:"id" json:"id"`
-	Username     string             `db:"username" json:"username"`
-	Email        string             `db:"email" json:"email"`
-	PasswordHash string             `db:"password_hash" json:"password_hash"`
-	FullName     string             `db:"full_name" json:"full_name"`
-	Bio          *string            `db:"bio" json:"bio"`
-	Location     *string            `db:"location" json:"location"`
-	Website      *string            `db:"website" json:"website"`
-	Interests    []string           `db:"interests" json:"interests"`
-	AvatarUrl    *string            `db:"avatar_url" json:"avatar_url"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID            uuid.UUID          `db:"id" json:"id"`
+	Username      string             `db:"username" json:"username"`
+	Email         string             `db:"email" json:"email"`
+	PasswordHash  *string            `db:"password_hash" json:"password_hash"`
+	FullName      string             `db:"full_name" json:"full_name"`
+	Bio           *string            `db:"bio" json:"bio"`
+	Location      *string            `db:"location" json:"location"`
+	Website       *string            `db:"website" json:"website"`
+	Interests     []string           `db:"interests" json:"interests"`
+	AvatarUrl     *string            `db:"avatar_url" json:"avatar_url"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	EmailVerified bool               `db:"email_verified" json:"email_verified"`
+}
+
+type UserOauthAccount struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Provider    string             `db:"provider" json:"provider"`
+	ProviderUid string             `db:"provider_uid" json:"provider_uid"`
+	Email       *string            `db:"email" json:"email"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type UserSetting struct {

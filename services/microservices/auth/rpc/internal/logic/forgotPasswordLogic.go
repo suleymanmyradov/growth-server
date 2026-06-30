@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
@@ -52,6 +53,16 @@ func (l *ForgotPasswordLogic) ForgotPassword(in *auth.ForgotPasswordRequest) (*a
 	if err := resetRepo.Store(ctx, token, user.Email, time.Hour); err != nil {
 		l.Errorf("ForgotPassword failed to store password reset token for user %s: %v", user.ID, err)
 		return nil, status.Error(codes.Internal, "failed to process password reset")
+	}
+
+	resetURL := l.svcCtx.Config.Email.FrontendBaseURL + "/reset-password?token=" + token
+	if err := l.svcCtx.EmailSender.Send(ctx, email.Email{
+		To:      []string{user.Email},
+		Subject: "Reset your password",
+		HTML:    passwordResetHTML(user.FullName, resetURL),
+	}); err != nil {
+		l.Errorf("ForgotPassword failed to send reset email to %s: %v", user.Email, err)
+		// Don't surface email failures to avoid leaking account existence / config issues.
 	}
 
 	l.Infof("ForgotPassword password reset token generated for user %s", user.ID)

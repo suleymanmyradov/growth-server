@@ -50,7 +50,13 @@ func (l *ChangePasswordLogic) ChangePassword(in *auth.ChangePasswordRequest) (*a
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(in.OldPassword))
+	// OAuth-only users have no local password and cannot change one here.
+	if user.PasswordHash == nil {
+		l.Errorf("ChangePassword rejected: user %s has no password (OAuth-only account)", userID)
+		return nil, status.Error(codes.FailedPrecondition, "no password set for this account")
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(in.OldPassword))
 	if err != nil {
 		l.Errorf("ChangePassword invalid old password for user %s: %v", userID, err)
 		return nil, status.Error(codes.Unauthenticated, "invalid old password")

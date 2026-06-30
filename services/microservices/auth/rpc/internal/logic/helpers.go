@@ -38,19 +38,20 @@ func toPbUser(u db.User) *auth.User {
 	}
 
 	return &auth.User{
-		Id:        u.ID.String(),
-		Username:  u.Username,
-		Email:     u.Email,
-		FullName:  u.FullName,
-		Bio:       bio,
-		Location:  location,
-		Website:   website,
+		Id:            u.ID.String(),
+		Username:      u.Username,
+		Email:         u.Email,
+		FullName:      u.FullName,
+		Bio:           bio,
+		Location:      location,
+		Website:       website,
 		// Normalize nil → [] so JSON serialization produces [] instead of null
 		// (go-zero's `optional` tag is not omitempty).
-		Interests: nonNilStrings(u.Interests),
-		AvatarUrl: avatarUrl,
-		CreatedAt: formatTime(u.CreatedAt),
-		UpdatedAt: formatTime(u.UpdatedAt),
+		Interests:     nonNilStrings(u.Interests),
+		AvatarUrl:     avatarUrl,
+		CreatedAt:     formatTime(u.CreatedAt),
+		UpdatedAt:     formatTime(u.UpdatedAt),
+		EmailVerified: u.EmailVerified,
 	}
 }
 

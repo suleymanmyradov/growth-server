@@ -6,18 +6,28 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/config"
-	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/indexer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/repository"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// Indexer is the subset of the Meili indexer the syncer needs. Defining it
+// here lets routing be unit-tested with a fake instead of a live Meili server.
+// *indexer.MeiliIndexer satisfies this interface.
+type Indexer interface {
+	Upsert(ctx context.Context, doc map[string]any) error
+	Delete(ctx context.Context, docID string) error
+	UpsertMemory(ctx context.Context, doc map[string]any) error
+	DeleteMemory(ctx context.Context, docID string) error
+	HasMemoryIndex() bool
+}
+
 type Syncer struct {
 	repo    *repository.OutboxRepository
-	indexer *indexer.MeiliIndexer
+	indexer Indexer
 	config  config.Config
 }
 
-func NewSyncer(repo *repository.OutboxRepository, indexer *indexer.MeiliIndexer, config config.Config) *Syncer {
+func NewSyncer(repo *repository.OutboxRepository, indexer Indexer, config config.Config) *Syncer {
 	return &Syncer{
 		repo:    repo,
 		indexer: indexer,
@@ -77,14 +87,20 @@ func (s *Syncer) processRow(ctx context.Context, row repository.OutboxRow) {
 		doc, err = s.repo.GetGoal(ctx, row.EntityID)
 	case "habit":
 		doc, err = s.repo.GetHabit(ctx, row.EntityID)
+	case "check_in":
+		doc, err = s.repo.GetCheckIn(ctx, row.EntityID)
+	case "conversation_message":
+		doc, err = s.repo.GetMessage(ctx, row.EntityID)
+	case "weekly_review":
+		doc, err = s.repo.GetWeeklyReview(ctx, row.EntityID)
 	default:
 		err = fmt.Errorf("unknown entity type: %s", row.EntityType)
 	}
 
 	if err != nil {
 		if repository.IsNoRows(err) {
-			// Entity was deleted before sync ran; treat as delete
-			if delErr := s.indexer.Delete(ctx, fmt.Sprintf("%s:%s", row.EntityType, row.EntityID.String())); delErr != nil {
+			// Entity was deleted before sync ran; treat as delete.
+			if delErr := s.deleteDoc(ctx, row); delErr != nil {
 				logx.Errorf("delete missing %s:%s: %v", row.EntityType, row.EntityID, delErr)
 				s.retryOrFail(ctx, row, delErr)
 				return
@@ -100,13 +116,13 @@ func (s *Syncer) processRow(ctx context.Context, row repository.OutboxRow) {
 	}
 
 	if row.Operation == "delete" {
-		if delErr := s.indexer.Delete(ctx, fmt.Sprintf("%s:%s", row.EntityType, row.EntityID.String())); delErr != nil {
+		if delErr := s.deleteDoc(ctx, row); delErr != nil {
 			logx.Errorf("delete %s:%s: %v", row.EntityType, row.EntityID, delErr)
 			s.retryOrFail(ctx, row, delErr)
 			return
 		}
 	} else {
-		if upsertErr := s.indexer.Upsert(ctx, doc); upsertErr != nil {
+		if upsertErr := s.upsertDoc(ctx, row, doc); upsertErr != nil {
 			logx.Errorf("upsert %s:%s: %v", row.EntityType, row.EntityID, upsertErr)
 			s.retryOrFail(ctx, row, upsertErr)
 			return
@@ -116,6 +132,36 @@ func (s *Syncer) processRow(ctx context.Context, row repository.OutboxRow) {
 	if markErr := s.repo.MarkProcessed(ctx, row.ID); markErr != nil {
 		logx.Errorf("mark processed %s:%s: %v", row.EntityType, row.EntityID, markErr)
 	}
+}
+
+// isMemoryEntity reports whether an entity type belongs to the private
+// user_memory index (per-user free-text) rather than the public catalog.
+func isMemoryEntity(entityType string) bool {
+	switch entityType {
+	case "check_in", "conversation_message", "weekly_review":
+		return true
+	default:
+		return false
+	}
+}
+
+// upsertDoc routes an upsert to the correct index: the private user_memory
+// index for memory entity types, the public catalog index otherwise.
+func (s *Syncer) upsertDoc(ctx context.Context, row repository.OutboxRow, doc map[string]any) error {
+	if isMemoryEntity(row.EntityType) {
+		return s.indexer.UpsertMemory(ctx, doc)
+	}
+	return s.indexer.Upsert(ctx, doc)
+}
+
+// deleteDoc routes a delete to the correct index. The doc id scheme
+// ("<entity_type>:<uuid>") is shared across both indexes.
+func (s *Syncer) deleteDoc(ctx context.Context, row repository.OutboxRow) error {
+	docID := fmt.Sprintf("%s_%s", row.EntityType, row.EntityID.String())
+	if isMemoryEntity(row.EntityType) {
+		return s.indexer.DeleteMemory(ctx, docID)
+	}
+	return s.indexer.Delete(ctx, docID)
 }
 
 func (s *Syncer) retryOrFail(ctx context.Context, row repository.OutboxRow, err error) {

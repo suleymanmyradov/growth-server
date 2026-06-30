@@ -100,6 +100,67 @@ func buildSections(in PersonalizedCoachingInput) []section {
 		{2, "pattern_insights", func() string { return renderPatternInsights(in) }},
 		{3, "check_in_digest", func() string { return renderCheckInDigest(in) }},
 		{4, "common_blockers", func() string { return renderCommonBlockers(in) }},
+		// Lowest priority: long-term memory retrieval. Dropped first when the
+		// budget is tight, so retrieval can never push the prompt over budget.
+		{5, "relevant_memories", func() string { return renderRelevantMemories(in) }},
+	}
+}
+
+// maxMemorySnippets caps how many retrieved snippets are ever rendered, as
+// defense-in-depth on top of the token budget and the retriever's own limit.
+const maxMemorySnippets = 5
+
+// maxMemorySnippetChars caps each rendered snippet so a single verbose memory
+// cannot dominate the section.
+const maxMemorySnippetChars = 240
+
+// renderRelevantMemories renders the bounded "Relevant past context" section.
+// Every snippet is wrapped via WrapUserContent (prompt-injection defense) and
+// SanitizeAndTruncate so retrieved free-text is treated as untrusted data.
+func renderRelevantMemories(in PersonalizedCoachingInput) string {
+	if len(in.RelevantMemories) == 0 {
+		return ""
+	}
+	n := len(in.RelevantMemories)
+	if n > maxMemorySnippets {
+		n = maxMemorySnippets
+	}
+	var b strings.Builder
+	b.WriteString("\n--- Relevant Past Context ---\n")
+	for i := 0; i < n; i++ {
+		m := in.RelevantMemories[i]
+		body := aiprompts.SanitizeAndTruncate(m.Content, maxMemorySnippetChars)
+		if body == "" {
+			continue
+		}
+		label := memoryLabel(m)
+		if m.CreatedAt.IsZero() {
+			b.WriteString(aiprompts.WrapUserContent(label, body))
+		} else {
+			b.WriteString(aiprompts.WrapUserContent(label+" "+m.CreatedAt.Format("2006-01-02"), body))
+		}
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+// memoryLabel maps an entity type to a human-readable source tag.
+func memoryLabel(m MemorySnippet) string {
+	switch m.EntityType {
+	case "check_in":
+		if m.HabitName != "" {
+			return "past check-in note for " + m.HabitName
+		}
+		return "past check-in note"
+	case "conversation_message":
+		if m.Role == "assistant" {
+			return "past assistant message"
+		}
+		return "past user message"
+	case "weekly_review":
+		return "past weekly review summary"
+	default:
+		return "past note"
 	}
 }
 

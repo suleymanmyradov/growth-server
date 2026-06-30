@@ -87,6 +87,13 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 		})
 	}
 
+	// Long-term memory retrieval (Workstream 2). Fetches cross-conversation
+	// snippets from the private user_memory index and injects them at the
+	// LOWEST priority tier of the context budget (see context_assembler.go),
+	// so retrieval enhances the prompt without ever blowing the Stage-1 token
+	// budget. Fail-open: errors/timeouts log + metric and yield no snippets.
+	memories := l.retrieveMemories(in.UserId, in.UserMessage, in.History, in.RecentCheckInsSummary)
+
 	input := prompts.PersonalizedCoachingInput{
 		UserMessage:           in.UserMessage,
 		AccountabilityStyle:   in.AccountabilityStyle,
@@ -101,6 +108,7 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 		UserBio:               in.UserBio,
 		UserLocation:          in.UserLocation,
 		UserInterests:         in.UserInterests,
+		RelevantMemories:      memories,
 	}
 
 	systemPrompt := prompts.BuildPersonalizedCoachingSystemPrompt(input)

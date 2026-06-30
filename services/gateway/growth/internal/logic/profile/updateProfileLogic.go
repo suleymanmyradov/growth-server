@@ -54,17 +54,18 @@ func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileRequest) (res
 
 	return &types.ProfileResponse{
 		Data: types.Profile{
-			Id:        rpcResp.User.Id,
-			FullName:  rpcResp.User.FullName,
-			Username:  rpcResp.User.Username,
-			Email:     rpcResp.User.Email,
-			Bio:       rpcResp.User.Bio,
-			Location:  rpcResp.User.Location,
-			Website:   rpcResp.User.Website,
-			Interests: rpcResp.User.Interests,
-			AvatarUrl: rpcResp.User.AvatarUrl,
-			CreatedAt: rpcResp.User.CreatedAt,
-			UpdatedAt: rpcResp.User.UpdatedAt,
+			Id:            rpcResp.User.Id,
+			FullName:      rpcResp.User.FullName,
+			Username:      rpcResp.User.Username,
+			Email:         rpcResp.User.Email,
+			Bio:           rpcResp.User.Bio,
+			Location:      rpcResp.User.Location,
+			Website:       rpcResp.User.Website,
+			Interests:     rpcResp.User.Interests,
+			AvatarUrl:     rpcResp.User.AvatarUrl,
+			CreatedAt:     rpcResp.User.CreatedAt,
+			UpdatedAt:     rpcResp.User.UpdatedAt,
+			EmailVerified: rpcResp.User.EmailVerified,
 		},
 	}, nil
 }

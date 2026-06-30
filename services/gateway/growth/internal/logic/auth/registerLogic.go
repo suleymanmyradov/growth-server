@@ -30,7 +30,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	}
 }
 
-func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.AuthResponse, error) {
+func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.RegisterResponse, error) {
 	if !validator.IsNotEmpty(req.Username) {
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
@@ -54,17 +54,10 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.AuthRespons
 		return nil, err
 	}
 
-	resp := &types.AuthResponse{
-		AccessToken:  registerResp.GetAccessToken(),
-		RefreshToken: registerResp.GetRefreshToken(),
-		ExpiresIn:    registerResp.GetExpiresIn(),
-	}
-
-	if registerResp.GetUser() != nil {
-		resp.User = mapAuthUserToProfile(registerResp.GetUser())
-	}
-
-	return resp, nil
+	return &types.RegisterResponse{
+		RequiresVerification: registerResp.GetRequiresVerification(),
+		Message:              registerResp.GetMessage(),
+	}, nil
 }
 
 func mapAuthUserToProfile(user *authservice.User) types.Profile {
@@ -73,16 +66,17 @@ func mapAuthUserToProfile(user *authservice.User) types.Profile {
 	}
 
 	return types.Profile{
-		Id:        user.GetId(),
-		FullName:  user.GetFullName(),
-		Username:  user.GetUsername(),
-		Email:     user.GetEmail(),
-		Bio:       user.GetBio(),
-		Location:  user.GetLocation(),
-		Website:   user.GetWebsite(),
-		Interests: user.GetInterests(),
-		AvatarUrl: user.GetAvatarUrl(),
-		CreatedAt: user.GetCreatedAt(),
-		UpdatedAt: user.GetUpdatedAt(),
+		Id:            user.GetId(),
+		FullName:      user.GetFullName(),
+		Username:      user.GetUsername(),
+		Email:         user.GetEmail(),
+		Bio:           user.GetBio(),
+		Location:      user.GetLocation(),
+		Website:       user.GetWebsite(),
+		Interests:     user.GetInterests(),
+		AvatarUrl:     user.GetAvatarUrl(),
+		CreatedAt:     user.GetCreatedAt(),
+		UpdatedAt:     user.GetUpdatedAt(),
+		EmailVerified: user.GetEmailVerified(),
 	}
 }

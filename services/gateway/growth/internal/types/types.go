@@ -425,17 +425,18 @@ type PlanAdjustmentSuggestionsResponse struct {
 }
 
 type Profile struct {
-	Id        string   `json:"id,example=user-123"`
-	FullName  string   `json:"fullName,example=John Doe"`
-	Username  string   `json:"username,example=johndoe"`
-	Email     string   `json:"email,example=john@example.com"`
-	Bio       string   `json:"bio,optional,example=Passionate about personal growth"`
-	Location  string   `json:"location,optional,example=San Francisco"`
-	Website   string   `json:"website,optional,example=https://johndoe.com"`
-	Interests []string `json:"interests,optional,example=[\"fitness\",\"reading\"]"`
-	AvatarUrl string   `json:"avatarUrl,optional,example=https://example.com/avatar.jpg"`
-	CreatedAt string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
-	UpdatedAt string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	Id            string   `json:"id,example=user-123"`
+	FullName      string   `json:"fullName,example=John Doe"`
+	Username      string   `json:"username,example=johndoe"`
+	Email         string   `json:"email,example=john@example.com"`
+	Bio           string   `json:"bio,optional,example=Passionate about personal growth"`
+	Location      string   `json:"location,optional,example=San Francisco"`
+	Website       string   `json:"website,optional,example=https://johndoe.com"`
+	Interests     []string `json:"interests,optional,example=[\"fitness\",\"reading\"]"`
+	AvatarUrl     string   `json:"avatarUrl,optional,example=https://example.com/avatar.jpg"`
+	CreatedAt     string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	UpdatedAt     string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	EmailVerified bool     `json:"emailVerified,example=true"`
 }
 
 type ProfileResponse struct {
@@ -452,6 +453,33 @@ type RegisterRequest struct {
 	Password string `json:"password,example=securePassword123"`
 	FullName string `json:"fullName,example=John Doe"`
 	DeviceId string `header:"X-Device-Id,optional,example=device-12345"`
+}
+
+type RegisterResponse struct {
+	RequiresVerification bool   `json:"requiresVerification,example=true"`
+	Message              string `json:"message,example=Check your email for a verification link."`
+}
+
+type VerifyEmailRequest struct {
+	Token string `json:"token,example=9f8e..."`
+}
+
+type ResendVerificationRequest struct {
+	Email string `json:"email,example=john@example.com"`
+}
+
+type GoogleLoginRequest struct {
+	AuthorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
+	RedirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email,example=john@example.com"`
+}
+
+type ResetPasswordRequest struct {
+	Token       string `json:"token,example=9f8e..."`
+	NewPassword string `json:"newPassword,example=securePassword123"`
 }
 
 type ReportRequest struct {

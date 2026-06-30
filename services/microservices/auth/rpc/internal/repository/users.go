@@ -24,51 +24,56 @@ func (r *UsersRepo) WithTx(tx pgx.Tx) *UsersRepo {
 	return &UsersRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *UsersRepo) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (db.User, error) {
+func (r *UsersRepo) CreateUser(ctx context.Context, arg db.CreateUserParams) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.CreateUser")
 	defer span.End()
+	return r.db.CreateUser(ctx, arg)
+}
 
-	return r.db.CreateUser(ctx, username, email, passwordHash, fullName)
+func (r *UsersRepo) CreateUserOAuth(ctx context.Context, username, email, fullName string, emailVerified bool) (db.User, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.CreateUserOAuth")
+	defer span.End()
+	return r.db.CreateUserOAuth(ctx, username, email, fullName, emailVerified)
 }
 
 func (r *UsersRepo) GetUserByEmail(ctx context.Context, email string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.GetUserByEmail")
 	defer span.End()
-
 	return r.db.GetUserByEmail(ctx, email)
 }
 
 func (r *UsersRepo) GetUserByID(ctx context.Context, id uuid.UUID) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.GetUserByID")
 	defer span.End()
-
 	return r.db.GetUserByID(ctx, id)
 }
 
 func (r *UsersRepo) GetUserByUsername(ctx context.Context, username string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.GetUserByUsername")
 	defer span.End()
-
 	return r.db.GetUserByUsername(ctx, username)
 }
 
 func (r *UsersRepo) UpdateUserPassword(ctx context.Context, id uuid.UUID, passwordHash string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserPassword")
 	defer span.End()
-
-	return r.db.UpdateUserPassword(ctx, id, passwordHash)
+	return r.db.UpdateUserPassword(ctx, id, &passwordHash)
 }
 
 func (r *UsersRepo) UpdateUserFullName(ctx context.Context, id uuid.UUID, fullName string) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserFullName")
 	defer span.End()
-
 	return r.db.UpdateUserFullName(ctx, id, fullName)
+}
+
+func (r *UsersRepo) SetEmailVerified(ctx context.Context, id uuid.UUID) (db.User, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.SetEmailVerified")
+	defer span.End()
+	return r.db.SetEmailVerified(ctx, id)
 }
 
 func (r *UsersRepo) UpdateUserProfile(ctx context.Context, params db.UpdateUserProfileParams) (db.User, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.UpdateUserProfile")
 	defer span.End()
-
 	return r.db.UpdateUserProfile(ctx, params)
 }

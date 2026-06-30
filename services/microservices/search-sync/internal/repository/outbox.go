@@ -141,7 +141,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 	}
 
 	result := map[string]any{
-		"id":            fmt.Sprintf("article:%s", doc.ID.String()),
+		"id":            docID("article", doc.ID),
 		"entity_id":     doc.ID.String(),
 		"type":          "article",
 		"user_id":       nil,
@@ -190,7 +190,7 @@ func (r *OutboxRepository) GetGoal(ctx context.Context, id uuid.UUID) (map[strin
 	}
 
 	result := map[string]any{
-		"id":          fmt.Sprintf("goal:%s", doc.ID.String()),
+		"id":          docID("goal", doc.ID),
 		"entity_id":   doc.ID.String(),
 		"type":        "goal",
 		"user_id":     doc.UserID.String(),
@@ -231,7 +231,7 @@ func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[stri
 	}
 
 	result := map[string]any{
-		"id":          fmt.Sprintf("habit:%s", doc.ID.String()),
+		"id":          docID("habit", doc.ID),
 		"entity_id":   doc.ID.String(),
 		"type":        "habit",
 		"user_id":     doc.UserID.String(),
@@ -249,6 +249,118 @@ func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[stri
 	return result, nil
 }
 
+// GetCheckIn returns a user_memory doc for a check-in note. The insert trigger
+// only enqueues rows with a non-empty note, so content is the note text.
+// habit_name is carried as light metadata so the coach can attribute a snippet.
+func (r *OutboxRepository) GetCheckIn(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+	query := `SELECT c.id, c.user_id, c.note, c.local_date, c.created_at, COALESCE(h.name, '') AS habit_name
+		FROM check_ins c
+		LEFT JOIN habits h ON h.id = c.habit_id
+		WHERE c.id = $1`
+
+	var doc struct {
+		ID        uuid.UUID `json:"id"`
+		UserID    uuid.UUID `json:"user_id"`
+		Note      *string   `json:"note"`
+		LocalDate time.Time `json:"local_date"`
+		CreatedAt time.Time `json:"created_at"`
+		HabitName string    `json:"habit_name"`
+	}
+
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&doc.ID, &doc.UserID, &doc.Note, &doc.LocalDate, &doc.CreatedAt, &doc.HabitName,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	content := ""
+	if doc.Note != nil {
+		content = *doc.Note
+	}
+	return map[string]any{
+		"id":          docID("check_in", doc.ID),
+		"entity_id":   doc.ID.String(),
+		"entity_type": "check_in",
+		"user_id":     doc.UserID.String(),
+		"content":     content,
+		"habit_name":  doc.HabitName,
+		"local_date":  doc.LocalDate.Unix(),
+		"created_at":  doc.CreatedAt.Unix(),
+	}, nil
+}
+
+// GetMessage returns a user_memory doc for a conversation message. user_id is
+// joined from the parent conversation. role is carried as light metadata.
+func (r *OutboxRepository) GetMessage(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+	query := `SELECT m.id, conv.user_id, m.role, m.content, m.created_at
+		FROM conversation_messages m
+		JOIN conversations conv ON conv.id = m.conversation_id
+		WHERE m.id = $1`
+
+	var doc struct {
+		ID        uuid.UUID `json:"id"`
+		UserID    uuid.UUID `json:"user_id"`
+		Role      string    `json:"role"`
+		Content   string    `json:"content"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&doc.ID, &doc.UserID, &doc.Role, &doc.Content, &doc.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]any{
+		"id":          docID("conversation_message", doc.ID),
+		"entity_id":   doc.ID.String(),
+		"entity_type": "conversation_message",
+		"user_id":     doc.UserID.String(),
+		"content":     doc.Content,
+		"role":        doc.Role,
+		"created_at":  doc.CreatedAt.Unix(),
+	}, nil
+}
+
+// GetWeeklyReview returns a user_memory doc for a weekly review's ai_summary.
+// The upsert trigger only fires when ai_summary is non-empty.
+func (r *OutboxRepository) GetWeeklyReview(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+	query := `SELECT w.id, w.user_id, w.ai_summary, w.week_start, w.created_at
+		FROM weekly_reviews w
+		WHERE w.id = $1`
+
+	var doc struct {
+		ID        uuid.UUID `json:"id"`
+		UserID    uuid.UUID `json:"user_id"`
+		AISummary *string   `json:"ai_summary"`
+		WeekStart time.Time `json:"week_start"`
+		CreatedAt time.Time `json:"created_at"`
+	}
+
+	err := r.pool.QueryRow(ctx, query, id).Scan(
+		&doc.ID, &doc.UserID, &doc.AISummary, &doc.WeekStart, &doc.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	content := ""
+	if doc.AISummary != nil {
+		content = *doc.AISummary
+	}
+	return map[string]any{
+		"id":          docID("weekly_review", doc.ID),
+		"entity_id":   doc.ID.String(),
+		"entity_type": "weekly_review",
+		"user_id":     doc.UserID.String(),
+		"content":     content,
+		"week_start":  doc.WeekStart.Unix(),
+		"created_at":  doc.CreatedAt.Unix(),
+	}, nil
+}
+
 func (r *OutboxRepository) Backfill(ctx context.Context) error {
 	queries := []string{
 		`INSERT INTO search_outbox (entity_type, entity_id, operation)
@@ -259,6 +371,19 @@ func (r *OutboxRepository) Backfill(ctx context.Context) error {
 		 ON CONFLICT DO NOTHING`,
 		`INSERT INTO search_outbox (entity_type, entity_id, operation)
 		 SELECT 'habit', id, 'upsert' FROM habits
+		 ON CONFLICT DO NOTHING`,
+		// Private memory index sources. check_ins only where a note exists; the
+		// insert trigger has the same guard, so this matches steady-state.
+		`INSERT INTO search_outbox (entity_type, entity_id, operation)
+		 SELECT 'check_in', id, 'upsert' FROM check_ins
+		 WHERE note IS NOT NULL AND note <> ''
+		 ON CONFLICT DO NOTHING`,
+		`INSERT INTO search_outbox (entity_type, entity_id, operation)
+		 SELECT 'conversation_message', id, 'upsert' FROM conversation_messages
+		 ON CONFLICT DO NOTHING`,
+		`INSERT INTO search_outbox (entity_type, entity_id, operation)
+		 SELECT 'weekly_review', id, 'upsert' FROM weekly_reviews
+		 WHERE ai_summary IS NOT NULL AND ai_summary <> ''
 		 ON CONFLICT DO NOTHING`,
 	}
 
@@ -312,4 +437,12 @@ func (r *OutboxRepository) ListenNotify(ctx context.Context) (chan struct{}, err
 
 func IsNoRows(err error) bool {
 	return err == pgx.ErrNoRows
+}
+
+// docID builds the Meili primary-key for an indexed row. Meili document ids may
+// only contain A-Za-z0-9-_ (no ':'), so the entity type and uuid are joined
+// with '_'. This is the single source of truth for the id scheme used by both
+// the getters (upsert) and the syncer (delete).
+func docID(entityType string, id uuid.UUID) string {
+	return fmt.Sprintf("%s_%s", entityType, id.String())
 }
