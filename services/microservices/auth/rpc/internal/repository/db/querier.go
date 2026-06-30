@@ -11,12 +11,22 @@ import (
 )
 
 type Querier interface {
-	CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (User, error)
+	CreateOAuthAccount(ctx context.Context, userID uuid.UUID, provider string, providerUid string, email *string) (UserOauthAccount, error)
+	// Column order in all RETURNING/SELECT clauses matches the `users` table
+	// definition so sqlc reuses the db.User model struct (avoids per-query Row
+	// types). Order: id, username, email, password_hash, full_name, bio, location,
+	// website, interests, avatar_url, created_at, updated_at, email_verified.
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	// Creates a user with no local password (OAuth-only). email_verified is taken
+	// from the provider's verified claim.
+	CreateUserOAuth(ctx context.Context, username string, email string, fullName string, emailVerified bool) (User, error)
+	GetOAuthAccount(ctx context.Context, provider string, providerUid string) (UserOauthAccount, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	SetEmailVerified(ctx context.Context, id uuid.UUID) (User, error)
 	UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error)
-	UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (User, error)
+	UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash *string) (User, error)
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 }
 

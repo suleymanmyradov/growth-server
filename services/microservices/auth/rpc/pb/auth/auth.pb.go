@@ -230,6 +230,7 @@ type User struct {
 	AvatarUrl     string                 `protobuf:"bytes,9,opt,name=avatar_url,json=avatarUrl,proto3" json:"avatar_url,omitempty"`
 	CreatedAt     string                 `protobuf:"bytes,10,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
 	UpdatedAt     string                 `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	EmailVerified bool                   `protobuf:"varint,12,opt,name=email_verified,json=emailVerified,proto3" json:"email_verified,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -339,6 +340,13 @@ func (x *User) GetUpdatedAt() string {
 		return x.UpdatedAt
 	}
 	return ""
+}
+
+func (x *User) GetEmailVerified() bool {
+	if x != nil {
+		return x.EmailVerified
+	}
+	return false
 }
 
 type RefreshRequest struct {
@@ -1025,6 +1033,203 @@ func (x *ResetPasswordRequest) GetNewPassword() string {
 	return ""
 }
 
+// RegisterResponse is returned by Register. With email verification enabled,
+// registration does not issue tokens; the user must verify their email first
+// (VerifyEmail issues tokens on success).
+type RegisterResponse struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	RequiresVerification bool                   `protobuf:"varint,1,opt,name=requires_verification,json=requiresVerification,proto3" json:"requires_verification,omitempty"`
+	Message              string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *RegisterResponse) Reset() {
+	*x = RegisterResponse{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterResponse) ProtoMessage() {}
+
+func (x *RegisterResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterResponse.ProtoReflect.Descriptor instead.
+func (*RegisterResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *RegisterResponse) GetRequiresVerification() bool {
+	if x != nil {
+		return x.RequiresVerification
+	}
+	return false
+}
+
+func (x *RegisterResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type VerifyEmailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *VerifyEmailRequest) Reset() {
+	*x = VerifyEmailRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *VerifyEmailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*VerifyEmailRequest) ProtoMessage() {}
+
+func (x *VerifyEmailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use VerifyEmailRequest.ProtoReflect.Descriptor instead.
+func (*VerifyEmailRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *VerifyEmailRequest) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+type ResendVerificationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Email         string                 `protobuf:"bytes,1,opt,name=email,proto3" json:"email,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResendVerificationRequest) Reset() {
+	*x = ResendVerificationRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResendVerificationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResendVerificationRequest) ProtoMessage() {}
+
+func (x *ResendVerificationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResendVerificationRequest.ProtoReflect.Descriptor instead.
+func (*ResendVerificationRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ResendVerificationRequest) GetEmail() string {
+	if x != nil {
+		return x.Email
+	}
+	return ""
+}
+
+type GoogleLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// OAuth authorization code exchanged server-side for Google tokens.
+	AuthorizationCode string `protobuf:"bytes,1,opt,name=authorization_code,json=authorizationCode,proto3" json:"authorization_code,omitempty"`
+	// Redirect URI registered with Google for this client.
+	RedirectUri   string `protobuf:"bytes,2,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GoogleLoginRequest) Reset() {
+	*x = GoogleLoginRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GoogleLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GoogleLoginRequest) ProtoMessage() {}
+
+func (x *GoogleLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GoogleLoginRequest.ProtoReflect.Descriptor instead.
+func (*GoogleLoginRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GoogleLoginRequest) GetAuthorizationCode() string {
+	if x != nil {
+		return x.AuthorizationCode
+	}
+	return ""
+}
+
+func (x *GoogleLoginRequest) GetRedirectUri() string {
+	if x != nil {
+		return x.RedirectUri
+	}
+	return ""
+}
+
 type EmptyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1033,7 +1238,7 @@ type EmptyResponse struct {
 
 func (x *EmptyResponse) Reset() {
 	*x = EmptyResponse{}
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[17]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1045,7 +1250,7 @@ func (x *EmptyResponse) String() string {
 func (*EmptyResponse) ProtoMessage() {}
 
 func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[17]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1058,7 +1263,7 @@ func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmptyResponse.ProtoReflect.Descriptor instead.
 func (*EmptyResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{17}
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{21}
 }
 
 var File_services_microservices_auth_api_v1_auth_proto protoreflect.FileDescriptor
@@ -1081,7 +1286,7 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\n" +
 	"expires_in\x18\x03 \x01(\x03R\texpiresIn\x12\x1e\n" +
 	"\x04user\x18\x04 \x01(\v2\n" +
-	".auth.UserR\x04user\"\xa8\x02\n" +
+	".auth.UserR\x04user\"\xcf\x02\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x14\n" +
@@ -1097,7 +1302,8 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\tR\tupdatedAt\"5\n" +
+	"updated_at\x18\v \x01(\tR\tupdatedAt\x12%\n" +
+	"\x0eemail_verified\x18\f \x01(\bR\remailVerified\"5\n" +
 	"\x0eRefreshRequest\x12#\n" +
 	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"2\n" +
 	"\rLogoutRequest\x12!\n" +
@@ -1142,10 +1348,20 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"O\n" +
 	"\x14ResetPasswordRequest\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x12!\n" +
-	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"\x0f\n" +
-	"\rEmptyResponse2\xd8\x05\n" +
-	"\vAuthService\x125\n" +
-	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x12.auth.AuthResponse\x12/\n" +
+	"\fnew_password\x18\x02 \x01(\tR\vnewPassword\"a\n" +
+	"\x10RegisterResponse\x123\n" +
+	"\x15requires_verification\x18\x01 \x01(\bR\x14requiresVerification\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"*\n" +
+	"\x12VerifyEmailRequest\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\"1\n" +
+	"\x19ResendVerificationRequest\x12\x14\n" +
+	"\x05email\x18\x01 \x01(\tR\x05email\"f\n" +
+	"\x12GoogleLoginRequest\x12-\n" +
+	"\x12authorization_code\x18\x01 \x01(\tR\x11authorizationCode\x12!\n" +
+	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\"\x0f\n" +
+	"\rEmptyResponse2\xa2\a\n" +
+	"\vAuthService\x129\n" +
+	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12/\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x12.auth.AuthResponse\x128\n" +
 	"\fRefreshToken\x12\x14.auth.RefreshRequest\x1a\x12.auth.AuthResponse\x122\n" +
 	"\x06Logout\x12\x13.auth.LogoutRequest\x1a\x13.auth.EmptyResponse\x12H\n" +
@@ -1156,7 +1372,10 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\rUpdateProfile\x12\x1a.auth.UpdateProfileRequest\x1a\x1b.auth.UpdateProfileResponse\x12B\n" +
 	"\x0eChangePassword\x12\x1b.auth.ChangePasswordRequest\x1a\x13.auth.EmptyResponse\x12B\n" +
 	"\x0eForgotPassword\x12\x1b.auth.ForgotPasswordRequest\x1a\x13.auth.EmptyResponse\x12@\n" +
-	"\rResetPassword\x12\x1a.auth.ResetPasswordRequest\x1a\x13.auth.EmptyResponseB\bZ\x06./authb\x06proto3"
+	"\rResetPassword\x12\x1a.auth.ResetPasswordRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
+	"\vVerifyEmail\x12\x18.auth.VerifyEmailRequest\x1a\x12.auth.AuthResponse\x12J\n" +
+	"\x12ResendVerification\x12\x1f.auth.ResendVerificationRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
+	"\vGoogleLogin\x12\x18.auth.GoogleLoginRequest\x1a\x12.auth.AuthResponseB\bZ\x06./authb\x06proto3"
 
 var (
 	file_services_microservices_auth_api_v1_auth_proto_rawDescOnce sync.Once
@@ -1170,7 +1389,7 @@ func file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP() []byte {
 	return file_services_microservices_auth_api_v1_auth_proto_rawDescData
 }
 
-var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),           // 0: auth.RegisterRequest
 	(*LoginRequest)(nil),              // 1: auth.LoginRequest
@@ -1189,7 +1408,11 @@ var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*ChangePasswordRequest)(nil),     // 14: auth.ChangePasswordRequest
 	(*ForgotPasswordRequest)(nil),     // 15: auth.ForgotPasswordRequest
 	(*ResetPasswordRequest)(nil),      // 16: auth.ResetPasswordRequest
-	(*EmptyResponse)(nil),             // 17: auth.EmptyResponse
+	(*RegisterResponse)(nil),          // 17: auth.RegisterResponse
+	(*VerifyEmailRequest)(nil),        // 18: auth.VerifyEmailRequest
+	(*ResendVerificationRequest)(nil), // 19: auth.ResendVerificationRequest
+	(*GoogleLoginRequest)(nil),        // 20: auth.GoogleLoginRequest
+	(*EmptyResponse)(nil),             // 21: auth.EmptyResponse
 }
 var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.AuthResponse.user:type_name -> auth.User
@@ -1206,19 +1429,25 @@ var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	14, // 11: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
 	15, // 12: auth.AuthService.ForgotPassword:input_type -> auth.ForgotPasswordRequest
 	16, // 13: auth.AuthService.ResetPassword:input_type -> auth.ResetPasswordRequest
-	2,  // 14: auth.AuthService.Register:output_type -> auth.AuthResponse
-	2,  // 15: auth.AuthService.Login:output_type -> auth.AuthResponse
-	2,  // 16: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
-	17, // 17: auth.AuthService.Logout:output_type -> auth.EmptyResponse
-	7,  // 18: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
-	9,  // 19: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
-	11, // 20: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
-	13, // 21: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
-	17, // 22: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
-	17, // 23: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
-	17, // 24: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
-	14, // [14:25] is the sub-list for method output_type
-	3,  // [3:14] is the sub-list for method input_type
+	18, // 14: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
+	19, // 15: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
+	20, // 16: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
+	17, // 17: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	2,  // 18: auth.AuthService.Login:output_type -> auth.AuthResponse
+	2,  // 19: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
+	21, // 20: auth.AuthService.Logout:output_type -> auth.EmptyResponse
+	7,  // 21: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
+	9,  // 22: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
+	11, // 23: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
+	13, // 24: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
+	21, // 25: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
+	21, // 26: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
+	21, // 27: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
+	2,  // 28: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
+	21, // 29: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
+	2,  // 30: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
+	17, // [17:31] is the sub-list for method output_type
+	3,  // [3:17] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1235,7 +1464,7 @@ func file_services_microservices_auth_api_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_auth_api_v1_auth_proto_rawDesc), len(file_services_microservices_auth_api_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

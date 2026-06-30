@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
+	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
@@ -16,13 +17,14 @@ import (
 )
 
 type ServiceContext struct {
-	Config      config.Config
-	Repo        *repository.Repository
-	TokenMaker  *jwt.TokenMaker
-	TxRunner    *postgres.PgxTxRunner
-	RedisClient *redis.Client
-	cancel      context.CancelFunc
-	pool        *pgxpool.Pool
+	Config       config.Config
+	Repo         *repository.Repository
+	TokenMaker   *jwt.TokenMaker
+	TxRunner     *postgres.PgxTxRunner
+	RedisClient  *redis.Client
+	EmailSender  email.Sender
+	cancel       context.CancelFunc
+	pool         *pgxpool.Pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -66,12 +68,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(err)
 	}
 
+	emailSender, err := email.New(email.Config{
+		Provider:    c.Email.Provider,
+		APIKey:      c.Email.APIKey,
+		FromAddress: c.Email.FromAddress,
+	})
+	if err != nil {
+		logx.Must(err)
+	}
+
 	return &ServiceContext{
 		Config:      c,
 		Repo:        repo,
 		TokenMaker:  tokenMaker,
 		TxRunner:    txRunner,
 		RedisClient: redisClient,
+		EmailSender: emailSender,
 		cancel:      cancel,
 		pool:        pool,
 	}

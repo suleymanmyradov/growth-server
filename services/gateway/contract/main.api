@@ -19,13 +19,28 @@ import "types.api"
 )
 service growthapi {
 	@handler Register
-	post /auth/register (RegisterRequest) returns (AuthResponse)
+	post /auth/register (RegisterRequest) returns (RegisterResponse)
 
 	@handler Login
 	post /auth/login (LoginRequest) returns (AuthResponse)
 
 	@handler RefreshToken
 	post /auth/refresh (RefreshRequest) returns (AuthResponse)
+
+	@handler VerifyEmail
+	post /auth/verify-email (VerifyEmailRequest) returns (AuthResponse)
+
+	@handler ResendVerification
+	post /auth/resend-verification (ResendVerificationRequest) returns (EmptyResponse)
+
+	@handler GoogleLogin
+	post /auth/google (GoogleLoginRequest) returns (AuthResponse)
+
+	@handler ForgotPassword
+	post /auth/forgot-password (ForgotPasswordRequest) returns (EmptyResponse)
+
+	@handler ResetPassword
+	post /auth/reset-password (ResetPasswordRequest) returns (EmptyResponse)
 }
 
 @server (

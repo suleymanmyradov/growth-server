@@ -12,17 +12,31 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (username, email, password_hash, full_name)
-VALUES ($1, $2, $3, $4)
-RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+
+INSERT INTO users (username, email, password_hash, full_name, email_verified)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 `
 
-func (q *Queries) CreateUser(ctx context.Context, username string, email string, passwordHash string, fullName string) (User, error) {
+type CreateUserParams struct {
+	Username      string  `db:"username" json:"username"`
+	Email         string  `db:"email" json:"email"`
+	PasswordHash  *string `db:"password_hash" json:"password_hash"`
+	FullName      string  `db:"full_name" json:"full_name"`
+	EmailVerified bool    `db:"email_verified" json:"email_verified"`
+}
+
+// Column order in all RETURNING/SELECT clauses matches the `users` table
+// definition so sqlc reuses the db.User model struct (avoids per-query Row
+// types). Order: id, username, email, password_hash, full_name, bio, location,
+// website, interests, avatar_url, created_at, updated_at, email_verified.
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
-		username,
-		email,
-		passwordHash,
-		fullName,
+		arg.Username,
+		arg.Email,
+		arg.PasswordHash,
+		arg.FullName,
+		arg.EmailVerified,
 	)
 	var i User
 	err := row.Scan(
@@ -38,12 +52,47 @@ func (q *Queries) CreateUser(ctx context.Context, username string, email string,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+	)
+	return i, err
+}
+
+const createUserOAuth = `-- name: CreateUserOAuth :one
+INSERT INTO users (username, email, password_hash, full_name, email_verified)
+VALUES ($1, $2, NULL, $3, $4)
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
+`
+
+// Creates a user with no local password (OAuth-only). email_verified is taken
+// from the provider's verified claim.
+func (q *Queries) CreateUserOAuth(ctx context.Context, username string, email string, fullName string, emailVerified bool) (User, error) {
+	row := q.db.QueryRow(ctx, createUserOAuth,
+		username,
+		email,
+		fullName,
+		emailVerified,
+	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 FROM users
 WHERE email = $1
 `
@@ -64,12 +113,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 FROM users
 WHERE id = $1
 `
@@ -90,12 +140,13 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+SELECT id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 FROM users
 WHERE username = $1
 `
@@ -116,6 +167,35 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+	)
+	return i, err
+}
+
+const setEmailVerified = `-- name: SetEmailVerified :one
+UPDATE users
+SET email_verified = true
+WHERE id = $1
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
+`
+
+func (q *Queries) SetEmailVerified(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, setEmailVerified, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Email,
+		&i.PasswordHash,
+		&i.FullName,
+		&i.Bio,
+		&i.Location,
+		&i.Website,
+		&i.Interests,
+		&i.AvatarUrl,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
@@ -124,7 +204,7 @@ const updateUserFullName = `-- name: UpdateUserFullName :one
 UPDATE users
 SET full_name = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 `
 
 func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error) {
@@ -143,6 +223,7 @@ func (q *Queries) UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
@@ -151,10 +232,10 @@ const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
 SET password_hash = $2
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 `
 
-func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (User, error) {
+func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash *string) (User, error) {
 	row := q.db.QueryRow(ctx, updateUserPassword, iD, passwordHash)
 	var i User
 	err := row.Scan(
@@ -170,6 +251,7 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, password
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }
@@ -182,7 +264,7 @@ SET bio        = $2,
     interests  = $5,
     avatar_url = $6
 WHERE id = $1
-RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at
+RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 `
 
 type UpdateUserProfileParams struct {
@@ -217,6 +299,7 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.AvatarUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
 	)
 	return i, err
 }

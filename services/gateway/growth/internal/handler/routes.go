@@ -115,6 +115,31 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/auth/register",
 				Handler: auth.RegisterHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/verify-email",
+				Handler: auth.VerifyEmailHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/resend-verification",
+				Handler: auth.ResendVerificationHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/google",
+				Handler: auth.GoogleLoginHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/forgot-password",
+				Handler: auth.ForgotPasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/reset-password",
+				Handler: auth.ResetPasswordHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/api/v1"),
 	)

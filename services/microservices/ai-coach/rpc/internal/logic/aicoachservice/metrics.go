@@ -56,6 +56,52 @@ var (
 		},
 		[]string{"feature"},
 	)
+
+	// ---- Long-term memory retrieval (Workstream 2) ----
+
+	// coachingMemoryRetrievalLatency observes the wall-clock time spent
+	// querying the user_memory index, including fail-open timeouts.
+	coachingMemoryRetrievalLatency = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_memory_retrieval_latency_seconds",
+			Help:      "Latency of user_memory retrieval on the coaching path.",
+			Buckets:   []float64{0.05, 0.1, 0.2, 0.3, 0.5, 0.75, 1.0, 2.0},
+		},
+	)
+
+	// coachingMemoryHits observes the number of snippets returned by Meili
+	// (before de-dupe) per coaching request.
+	coachingMemoryHits = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_memory_hits",
+			Help:      "Number of memory snippets returned by Meili per coaching request.",
+			Buckets:   []float64{0, 1, 2, 3, 4, 5, 8, 12},
+		},
+	)
+
+	// coachingMemoryHitsAfterDedupe observes how many snippets survived the
+	// score floor + de-dupe against current history and were actually injected.
+	coachingMemoryHitsAfterDedupe = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_memory_hits_after_dedupe",
+			Help:      "Memory snippets actually injected after floor + de-dupe.",
+			Buckets:   []float64{0, 1, 2, 3, 4, 5},
+		},
+	)
+
+	// coachingMemoryRetrievalErrors counts retrieval failures (Meili errors or
+	// timeouts). The coaching path fails open on these; this metric makes
+	// outages visible.
+	coachingMemoryRetrievalErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_memory_retrieval_errors_total",
+			Help:      "Total user_memory retrieval errors on the coaching path (fail-open).",
+		},
+	)
 )
 
 func init() {
@@ -64,5 +110,9 @@ func init() {
 		coachingSafetyClassifyErrors,
 		coachingPromptSectionTokens,
 		coachingContextTokens,
+		coachingMemoryRetrievalLatency,
+		coachingMemoryHits,
+		coachingMemoryHitsAfterDedupe,
+		coachingMemoryRetrievalErrors,
 	)
 }

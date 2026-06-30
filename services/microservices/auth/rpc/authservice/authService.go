@@ -20,10 +20,13 @@ type (
 	ForgotPasswordRequest     = auth.ForgotPasswordRequest
 	GetProfileRequest         = auth.GetProfileRequest
 	GetProfileResponse        = auth.GetProfileResponse
+	GoogleLoginRequest        = auth.GoogleLoginRequest
 	LoginRequest              = auth.LoginRequest
 	LogoutRequest             = auth.LogoutRequest
 	RefreshRequest            = auth.RefreshRequest
 	RegisterRequest           = auth.RegisterRequest
+	RegisterResponse          = auth.RegisterResponse
+	ResendVerificationRequest = auth.ResendVerificationRequest
 	ResetPasswordRequest      = auth.ResetPasswordRequest
 	UpdateProfileRequest      = auth.UpdateProfileRequest
 	UpdateProfileResponse     = auth.UpdateProfileResponse
@@ -32,10 +35,11 @@ type (
 	ValidateTokenResponse     = auth.ValidateTokenResponse
 	VerifyAccessTokenRequest  = auth.VerifyAccessTokenRequest
 	VerifyAccessTokenResponse = auth.VerifyAccessTokenResponse
+	VerifyEmailRequest        = auth.VerifyEmailRequest
 
 	AuthService interface {
 		// Core authentication
-		Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+		Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
 		Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 		RefreshToken(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 		Logout(ctx context.Context, in *LogoutRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
@@ -49,6 +53,11 @@ type (
 		ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+		// Email verification
+		VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+		ResendVerification(ctx context.Context, in *ResendVerificationRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+		// OAuth
+		GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	}
 
 	defaultAuthService struct {
@@ -63,7 +72,7 @@ func NewAuthService(cli zrpc.Client) AuthService {
 }
 
 // Core authentication
-func (m *defaultAuthService) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+func (m *defaultAuthService) Register(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error) {
 	client := auth.NewAuthServiceClient(m.cli.Conn())
 	return client.Register(ctx, in, opts...)
 }
@@ -119,4 +128,21 @@ func (m *defaultAuthService) ForgotPassword(ctx context.Context, in *ForgotPassw
 func (m *defaultAuthService) ResetPassword(ctx context.Context, in *ResetPasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	client := auth.NewAuthServiceClient(m.cli.Conn())
 	return client.ResetPassword(ctx, in, opts...)
+}
+
+// Email verification
+func (m *defaultAuthService) VerifyEmail(ctx context.Context, in *VerifyEmailRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	client := auth.NewAuthServiceClient(m.cli.Conn())
+	return client.VerifyEmail(ctx, in, opts...)
+}
+
+func (m *defaultAuthService) ResendVerification(ctx context.Context, in *ResendVerificationRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	client := auth.NewAuthServiceClient(m.cli.Conn())
+	return client.ResendVerification(ctx, in, opts...)
+}
+
+// OAuth
+func (m *defaultAuthService) GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	client := auth.NewAuthServiceClient(m.cli.Conn())
+	return client.GoogleLogin(ctx, in, opts...)
 }

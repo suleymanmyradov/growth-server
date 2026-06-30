@@ -3,11 +3,13 @@ package logic
 import (
 	"context"
 	"errors"
+	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
@@ -18,6 +20,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const verificationTokenTTL = 1 * time.Hour
 
 type RegisterLogic struct {
 	ctx    context.Context
@@ -33,7 +37,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 	}
 }
 
-func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, error) {
+func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "RegisterLogic.Register")
 	defer span.End()
 
@@ -65,11 +69,17 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 		return nil, status.Error(codes.Internal, "failed to process password")
 	}
 
+	hashStr := string(hashedPassword)
 	var user db.User
 	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
-		var err error
-		user, err = q.CreateUser(ctx, in.Username, in.Email, string(hashedPassword), in.FullName)
+		row, err := q.CreateUser(ctx, db.CreateUserParams{
+			Username:      in.Username,
+			Email:         in.Email,
+			PasswordHash:  &hashStr,
+			FullName:      in.FullName,
+			EmailVerified: false,
+		})
 		if err != nil {
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -79,33 +89,38 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.AuthResponse, 
 			l.Errorf("Register failed to create user: %v", err)
 			return status.Error(codes.Internal, "failed to create user")
 		}
-
+		user = db.User(row)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	sessionID := uuid.New()
-
-	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
-	if err != nil {
-		l.Errorf("Register failed to create access token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate access token")
+	// Generate and store an email verification token (Redis, 1h TTL).
+	token := generateRandomToken(32)
+	verificationRepo := repository.NewVerificationRepo(l.svcCtx.RedisClient)
+	if err := verificationRepo.Store(ctx, token, user.ID.String(), user.Email, verificationTokenTTL); err != nil {
+		l.Errorf("Register failed to store verification token for user %s: %v", user.ID, err)
+		return nil, status.Error(codes.Internal, "failed to generate verification token")
+	}
+	if err := verificationRepo.SetThrottle(ctx, user.Email, 60*time.Second); err != nil {
+		l.Errorf("Register failed to set verification throttle: %v", err)
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
-	if err != nil {
-		l.Errorf("Register failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate refresh token")
+	verificationURL := l.svcCtx.Config.Email.FrontendBaseURL + "/verify-email?token=" + token
+	if err := l.svcCtx.EmailSender.Send(ctx, email.Email{
+		To:      []string{user.Email},
+		Subject: "Verify your email",
+		HTML:    emailVerificationHTML(user.FullName, verificationURL),
+	}); err != nil {
+		l.Errorf("Register failed to send verification email to %s: %v", user.Email, err)
+		// Don't fail registration if email delivery fails — user can resend.
 	}
 
-	l.Infof("Register successful for user %s", user.ID)
+	l.Infof("Register successful for user %s (pending email verification)", user.ID)
 
-	return &auth.AuthResponse{
-		AccessToken:  accessToken.Token,
-		RefreshToken: refreshToken.Token,
-		ExpiresIn:    int64(l.svcCtx.Config.JWT.AccessExpiryDuration.Seconds()),
-		User:         toPbUser(user),
+	return &auth.RegisterResponse{
+		RequiresVerification: true,
+		Message:              "Account created. Check your email for a verification link to activate your account.",
 	}, nil
 }

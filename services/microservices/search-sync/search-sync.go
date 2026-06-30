@@ -53,7 +53,7 @@ func main() {
 	defer ctx.Close()
 
 	repo := repository.NewOutboxRepository(ctx.Pool)
-	idx := indexer.NewMeiliIndexer(ctx.Index)
+	idx := indexer.NewMeiliIndexer(ctx.Index, ctx.MemoryIndex)
 	sync := syncer.NewSyncer(repo, idx, c)
 
 	if c.Backfill {

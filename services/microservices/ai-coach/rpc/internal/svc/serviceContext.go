@@ -3,21 +3,24 @@ package svc
 import (
 	"fmt"
 
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/memory"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
 type ServiceContext struct {
-	Config     config.Config
-	AIClient   ai.Client
-	Classifier safety.Classifier
-	Queries    *db.Queries
-	TxRunner   *postgres.PgxTxRunner
+	Config          config.Config
+	AIClient        ai.Client
+	Classifier      safety.Classifier
+	Queries         *db.Queries
+	TxRunner        *postgres.PgxTxRunner
+	MemoryRetriever *memory.Retriever
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -57,11 +60,26 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		txRunner = postgres.NewPgxTxRunner(pool)
 	}
 
+	// Long-term memory retrieval (Workstream 2). Read-only client over the
+	// private user_memory index. Optional: if Meili.Host or MemoryIndex is
+	// empty, retrieval stays disabled and coaching behaves as before.
+	var memoryRetriever *memory.Retriever
+	if c.Meili.Host != "" && c.Meili.MemoryIndex != "" {
+		meiliClient := meilisearch.New(c.Meili.Host, meilisearch.WithAPIKey(c.Meili.APIKey))
+		memoryRetriever = memory.NewRetriever(meiliClient.Index(c.Meili.MemoryIndex), memory.Config{
+			EmbedderName:  c.CoachMemory.EmbedderName,
+			SemanticRatio: c.CoachMemory.SemanticRatio,
+			Limit:         c.CoachMemory.Limit,
+			ScoreFloor:    c.CoachMemory.ScoreFloor,
+		})
+	}
+
 	return &ServiceContext{
-		Config:     c,
-		AIClient:   aiClient,
-		Classifier: classifier,
-		Queries:    queries,
-		TxRunner:   txRunner,
+		Config:          c,
+		AIClient:        aiClient,
+		Classifier:      classifier,
+		Queries:         queries,
+		TxRunner:        txRunner,
+		MemoryRetriever: memoryRetriever,
 	}
 }

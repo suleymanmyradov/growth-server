@@ -24,7 +24,7 @@ func NewAuthServiceServer(svcCtx *svc.ServiceContext) *AuthServiceServer {
 }
 
 // Core authentication
-func (s *AuthServiceServer) Register(ctx context.Context, in *auth.RegisterRequest) (*auth.AuthResponse, error) {
+func (s *AuthServiceServer) Register(ctx context.Context, in *auth.RegisterRequest) (*auth.RegisterResponse, error) {
 	l := logic.NewRegisterLogic(ctx, s.svcCtx)
 	return l.Register(in)
 }
@@ -80,4 +80,21 @@ func (s *AuthServiceServer) ForgotPassword(ctx context.Context, in *auth.ForgotP
 func (s *AuthServiceServer) ResetPassword(ctx context.Context, in *auth.ResetPasswordRequest) (*auth.EmptyResponse, error) {
 	l := logic.NewResetPasswordLogic(ctx, s.svcCtx)
 	return l.ResetPassword(in)
+}
+
+// Email verification
+func (s *AuthServiceServer) VerifyEmail(ctx context.Context, in *auth.VerifyEmailRequest) (*auth.AuthResponse, error) {
+	l := logic.NewVerifyEmailLogic(ctx, s.svcCtx)
+	return l.VerifyEmail(in)
+}
+
+func (s *AuthServiceServer) ResendVerification(ctx context.Context, in *auth.ResendVerificationRequest) (*auth.EmptyResponse, error) {
+	l := logic.NewResendVerificationLogic(ctx, s.svcCtx)
+	return l.ResendVerification(in)
+}
+
+// OAuth
+func (s *AuthServiceServer) GoogleLogin(ctx context.Context, in *auth.GoogleLoginRequest) (*auth.AuthResponse, error) {
+	l := logic.NewGoogleLoginLogic(ctx, s.svcCtx)
+	return l.GoogleLogin(in)
 }

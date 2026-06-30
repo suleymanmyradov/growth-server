@@ -1,5 +1,7 @@
 package prompts
 
+import "time"
+
 // Note: the priority-tiered context assembler (AssembleContextWithBreakdown)
 // lives in context_assembler.go. BuildContextSummary (the shared check-in
 // digest helper) lives in pkg/ai/prompts.
@@ -19,6 +21,18 @@ If you're in immediate danger, please call your local emergency number now.
 
 You deserve support from someone trained to help. Would you like to keep talking about your goals when you're ready?`
 
+// MemorySnippet is one retrieved long-term memory hit from the private
+// user_memory index. It is treated as untrusted user data: the assembler
+// wraps every snippet via prompts.WrapUserContent and SanitizeAndTruncate
+// before it reaches the model.
+type MemorySnippet struct {
+	EntityType string    // check_in | conversation_message | weekly_review
+	Content    string    // note / message / ai_summary
+	CreatedAt  time.Time // when the source row was created
+	HabitName  string    // check_in only — light metadata for attribution
+	Role       string    // conversation_message only — user | assistant
+}
+
 // PersonalizedCoachingInput holds the data needed for personalized coaching prompts
 type PersonalizedCoachingInput struct {
 	UserMessage           string
@@ -34,6 +48,11 @@ type PersonalizedCoachingInput struct {
 	UserBio               string
 	UserLocation          string
 	UserInterests         []string
+	// RelevantMemories are cross-conversation, long-term memory snippets
+	// retrieved from user_memory. They are injected at the LOWEST priority
+	// tier of the context budget so they are the first section dropped when
+	// the budget is tight, and never blow past the Stage-1 token budget.
+	RelevantMemories []MemorySnippet
 }
 
 // BuildPersonalizedCoachingSystemPrompt creates a system prompt for personalized AI coaching
