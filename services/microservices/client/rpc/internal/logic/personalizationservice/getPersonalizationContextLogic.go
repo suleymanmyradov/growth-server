@@ -14,6 +14,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	gproto "google.golang.org/protobuf/proto"
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
@@ -86,6 +87,56 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		}
 	}
 
+	// Pro path: serve the assembled personalization context from the Redis
+	// read-through cache when fresh. This collapses ~11 DB queries (profile,
+	// user, goals, habits, streaks, check-ins, weekly review, suggestions,
+	// settings, goal-habit links) into a single Redis GET on the hot path;
+	// singleflight dedupes concurrent misses so a cache stampede can't fan
+	// out into 11*N queries. ForceRefresh bypasses the cache and repopulates
+	// it so explicit refreshes always rebuild from DB. When Redis is not
+	// configured, GetOrFetch falls back to calling the fetcher directly.
+	cacheKey := svc.PersonalizationContextKey(userID)
+
+	if in.ForceRefresh {
+		pc, bErr := l.buildPersonalizationContext(ctx, userID, true)
+		if bErr != nil {
+			return nil, bErr
+		}
+		if data, mErr := gproto.Marshal(pc); mErr == nil {
+			_ = l.svcCtx.Cache.Set(ctx, cacheKey, data, svc.PersonalizationContextTTL)
+		}
+		return &client.GetPersonalizationContextResponse{Context: pc}, nil
+	}
+
+	data, err := l.svcCtx.Cache.GetOrFetch(ctx, cacheKey, svc.PersonalizationContextTTL, func() ([]byte, error) {
+		pc, bErr := l.buildPersonalizationContext(ctx, userID, false)
+		if bErr != nil {
+			return nil, bErr
+		}
+		return gproto.Marshal(pc)
+	})
+	if err != nil {
+		// Preserve gRPC status errors from the builder (e.g. Internal);
+		// only unexpected cache errors are wrapped.
+		if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown {
+			return nil, st.Err()
+		}
+		return nil, status.Error(codes.Internal, "failed to build personalization context")
+	}
+
+	var pc client.PersonalizationContext
+	if err := gproto.Unmarshal(data, &pc); err != nil {
+		return nil, status.Error(codes.Internal, "failed to decode personalization context")
+	}
+	return &client.GetPersonalizationContextResponse{Context: &pc}, nil
+}
+
+// buildPersonalizationContext assembles the full personalized coaching context
+// from the database. This is the cache-miss / refresh path: it runs the ~11
+// queries and pattern detection, then returns the assembled proto. Callers are
+// responsible for caching the result. forceRefresh records a context-refresh
+// timestamp on the coaching profile.
+func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context.Context, userID uuid.UUID, forceRefresh bool) (*client.PersonalizationContext, error) {
 	// Get or create coaching profile
 	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 	if err != nil {
@@ -176,7 +227,9 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		}
 	}
 
-	// Build pattern insights using the pattern detection service
+	// Build pattern insights. The whole context is cached upstream, so pattern
+	// detection only runs on a cache miss/refresh — no separate per-pattern
+	// cache is needed here.
 	patternInsights := l.svcCtx.PatternDetection.AnalyzeLite(recentCheckIns, habits, streakByHabit, userLoc)
 
 	// Add habit count for backward compatibility
@@ -185,18 +238,30 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 	}
 
 	// Update context refresh timestamp if forced
-	if in.ForceRefresh {
+	if forceRefresh {
 		_, err = l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfileContextRefresh(ctx, userID)
 		if err != nil {
 			l.Infof("failed to update context refresh timestamp: %v", err)
 		}
 	}
 
+	// Batch-fetch all goal-habit links for this user's goals and group by
+	// goal ID so we can populate RelatedHabitIds without N+1 queries.
+	linkRows, err := l.svcCtx.Repo.Goals.ListGoalHabitIDs(ctx, userID)
+	if err != nil {
+		l.Infof("failed to list goal-habit links: %v", err)
+		linkRows = []db.ListGoalHabitIDsRow{}
+	}
+	habitsByGoal := make(map[uuid.UUID][]string, len(goals))
+	for _, r := range linkRows {
+		habitsByGoal[r.GoalID] = append(habitsByGoal[r.GoalID], r.HabitID.String())
+	}
+
 	// Build response
 	protoProfile := dbCoachingProfileToProto(profile)
 	protoGoals := make([]*client.Goal, len(goals))
 	for i, goal := range goals {
-		protoGoals[i] = dbGoalToProto(goal)
+		protoGoals[i] = dbGoalToProto(goal, habitsByGoal[goal.ID])
 	}
 
 	protoHabits := make([]*client.Habit, len(habits))
@@ -219,17 +284,15 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		protoWeeklyReview = dbWeeklyReviewToProto(latestWeeklyReview[0])
 	}
 
-	return &client.GetPersonalizationContextResponse{
-		Context: &client.PersonalizationContext{
-			Profile:            protoProfile,
-			User:               dbUserProfileToProto(userProfile),
-			ActiveGoals:        protoGoals,
-			ActiveHabits:       protoHabits,
-			RecentCheckIns:     protoCheckIns,
-			LatestWeeklyReview: protoWeeklyReview,
-			PendingSuggestions: protoSuggestions,
-			PatternInsights:    patternInsights,
-		},
+	return &client.PersonalizationContext{
+		Profile:            protoProfile,
+		User:               dbUserProfileToProto(userProfile),
+		ActiveGoals:        protoGoals,
+		ActiveHabits:       protoHabits,
+		RecentCheckIns:     protoCheckIns,
+		LatestWeeklyReview: protoWeeklyReview,
+		PendingSuggestions: protoSuggestions,
+		PatternInsights:    patternInsights,
 	}, nil
 }
 
@@ -265,7 +328,7 @@ func dbUserProfileToProto(u db.GetUserProfileByIDRow) *client.UserProfile {
 	}
 }
 
-func dbGoalToProto(goal db.GetGoalRow) *client.Goal {
+func dbGoalToProto(goal db.GetGoalRow, relatedHabitIds []string) *client.Goal {
 	description := ""
 	if goal.Description != nil {
 		description = *goal.Description
@@ -274,17 +337,21 @@ func dbGoalToProto(goal db.GetGoalRow) *client.Goal {
 	if goal.DueDate.Valid {
 		dueDate = goal.DueDate.Time.Unix()
 	}
+	if relatedHabitIds == nil {
+		relatedHabitIds = []string{}
+	}
 	return &client.Goal{
-		Id:          goal.ID.String(),
-		Title:       goal.Title,
-		Description: description,
-		Category:    goal.Category,
-		DueDate:     dueDate,
-		Progress:    goal.Progress,
-		Completed:   goal.Completed,
-		UserId:      goal.UserID.String(),
-		CreatedAt:   goal.CreatedAt.Time.Unix(),
-		UpdatedAt:   goal.UpdatedAt.Time.Unix(),
+		Id:              goal.ID.String(),
+		Title:           goal.Title,
+		Description:     description,
+		Category:        goal.Category,
+		DueDate:         dueDate,
+		Progress:        goal.Progress,
+		Completed:       goal.Completed,
+		UserId:          goal.UserID.String(),
+		CreatedAt:       goal.CreatedAt.Time.Unix(),
+		UpdatedAt:       goal.UpdatedAt.Time.Unix(),
+		RelatedHabitIds: relatedHabitIds,
 	}
 }
 

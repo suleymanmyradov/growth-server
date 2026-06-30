@@ -800,3 +800,24 @@ type AppendMessageResponse struct {
 }
 
 type DeleteConversationResponse struct{}
+
+// Onboarding habit generation (manually added — not in the .api contract).
+// The endpoint is server-owned: the client sends only structured onboarding
+// data, never a prompt. See handler/personalization/generateOnboardingHabitsHandler.go.
+type GenerateOnboardingHabitsRequest struct {
+	GoalTitle          string `json:"goalTitle,example=Run a 5k"`
+	GoalCategory       string `json:"goalCategory,optional,example=fitness"`
+	Motivation         string `json:"motivation,optional,example=Improve my health and energy"`
+	Blocker            string `json:"blocker,optional,example=Lack of time in the morning"`
+	DailyMinutes       int32  `json:"dailyMinutes,range=[1:600],example=30"`
+	AccountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
+}
+
+type OnboardingHabitSuggestion struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type GenerateOnboardingHabitsResponse struct {
+	Data []OnboardingHabitSuggestion `json:"data"`
+}

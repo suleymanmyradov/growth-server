@@ -175,6 +175,10 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		return nil, status.Error(codes.Internal, "failed check-in workflow")
 	}
 
+	// Invalidate the cached personalization context so the next coaching
+	// request reflects the new check-in immediately rather than at TTL.
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	// Fire-and-forget publish check-in event to Kafka. The ai-coach-consumer
 	// generates feedback asynchronously from this event, so there is no need
 	// for a synchronous AI call here.

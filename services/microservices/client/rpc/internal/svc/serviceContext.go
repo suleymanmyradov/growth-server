@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
+	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
@@ -34,6 +35,9 @@ type ServiceContext struct {
 	StripeClient     *stripe.Client
 	TxRunner         *postgres.PgxTxRunner
 	Authz            *authz.Checker
+	// Cache is a Redis-backed read-through cache (with singleflight dedup)
+	// used for the assembled personalization context and other hot paths.
+	Cache *cache.Cache
 	// WeeklyReviewSF dedupes concurrent weekly-review generations for the same
 	// (user, week) so a double-submit doesn't run the expensive AI pipeline
 	// more than once. The DB unique constraint still guarantees a single row;
@@ -67,6 +71,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	var redisClient *redis.Client
 	var authzChecker *authz.Checker
+	var appCache *cache.Cache
 	if c.AppRedis.Addr != "" {
 		client, err := redisutil.NewClient(c.AppRedis.Addr, c.AppRedis.Password, c.AppRedis.DB)
 		if err != nil {
@@ -87,6 +92,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Info("Redis not configured; authz caching disabled")
 	}
 
+	// Always construct the cache, even with a nil redis client: its methods
+	// are no-ops / fetch-through when rdb is nil, so callers (e.g. the
+	// personalization context read-through) can use it unconditionally
+	// without nil-guarding on every call site.
+	appCache = cache.New(redisClient)
+
 	return &ServiceContext{
 		Config:           c,
 		Repo:             repo,
@@ -97,6 +108,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		StripeClient:     stripeClient,
 		TxRunner:         txRunner,
 		Authz:            authzChecker,
+		Cache:            appCache,
 		pool:             pool,
 		redis:            redisClient,
 	}
@@ -133,3 +145,32 @@ func (s *ServiceContext) Close() {
 		_ = s.redis.Close()
 	}
 }
+
+// PersonalizationContextKey is the Redis cache key for a user's assembled
+// personalization context. Shared between the read path (GetPersonalizationContext)
+// and the write paths that invalidate it.
+func PersonalizationContextKey(userID uuid.UUID) string {
+	return personalizationContextKeyPrefix + userID.String()
+}
+
+// InvalidatePersonalizationContext drops the cached personalization context for
+// a user so the next read rebuilds it from fresh data. Call this from any write
+// path that changes data included in the context (check-ins, goals, habits,
+// coaching profile, plan-adjustment suggestions). Non-fatal: a stale entry
+// simply expires at TTL.
+func (s *ServiceContext) InvalidatePersonalizationContext(ctx context.Context, userID uuid.UUID) {
+	if s.Cache == nil {
+		return
+	}
+	if err := s.Cache.Delete(ctx, PersonalizationContextKey(userID)); err != nil {
+		logx.Errorf("invalidate personalization context for %s: %v", userID, err)
+	}
+}
+
+const (
+	personalizationContextKeyPrefix = "personalization_context:"
+	// PersonalizationContextTTL is how long an assembled personalization context
+	// is served from cache before being rebuilt. Writes invalidate eagerly, so
+	// this only bounds staleness if an invalidation is missed. Tunable.
+	PersonalizationContextTTL = 3 * time.Minute
+)

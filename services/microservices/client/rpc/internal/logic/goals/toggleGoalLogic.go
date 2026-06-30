@@ -49,6 +49,8 @@ func (l *ToggleGoalLogic) ToggleGoal(in *client.ToggleGoalRequest) (*client.Togg
 		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
 	return &client.ToggleGoalResponse{
 		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
 	}, nil

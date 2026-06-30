@@ -71,6 +71,8 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		streak = 0
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, habit.UserID)
+
 	return &client.UpdateHabitResponse{
 		Habit: habitToProto(habit, streak, nil),
 	}, nil

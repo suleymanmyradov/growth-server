@@ -73,6 +73,8 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 		return nil, status.Error(codes.Internal, "failed to update coaching profile preferences")
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	return &client.UpdateCoachingProfilePreferencesResponse{
 		Profile: dbCoachingProfileToProto(profile),
 	}, nil

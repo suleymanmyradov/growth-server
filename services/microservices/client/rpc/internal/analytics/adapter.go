@@ -15,15 +15,22 @@ type PatternDetection struct {
 
 // NewPatternDetection creates a new PatternDetection adapter.
 func NewPatternDetection() *PatternDetection {
-	return &PatternDetection{inner: &analytics.PatternDetectionService{}}
+	return &PatternDetection{
+		inner: &analytics.PatternDetectionService{},
+	}
 }
 
 // AnalyzeLite maps db types to domain types and returns flat insights.
 // streakByHabit supplies the derived (history-based) streak for each habit,
 // since the streak is no longer stored on the habit row.
+//
+// Pattern detection is not cached here: the assembled personalization context
+// that calls this is itself cached upstream (Redis read-through), so AnalyzeLite
+// only runs on a context cache miss/refresh.
 func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32, userLoc *time.Location) map[string]string {
 	return p.inner.AnalyzeLite(mapCheckIns(checkIns), mapHabits(habits, streakByHabit), userLoc)
 }
+
 
 // AnalyzeFullFromData maps db types to domain types and returns rich insights.
 func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32, userLoc *time.Location) *analytics.PatternInsights {

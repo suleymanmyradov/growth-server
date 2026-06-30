@@ -71,6 +71,8 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		}
 	}
 
+	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
 	return &client.CreateGoalResponse{
 		Goal: goalToProto(goal, in.RelatedHabitIds),
 	}, nil

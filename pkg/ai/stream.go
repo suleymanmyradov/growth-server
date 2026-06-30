@@ -51,7 +51,7 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		}
 		latencyMS := time.Since(start).Milliseconds()
 		c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
-		recordMetrics(req.ModelProfile, m.modelID, "error", Usage{}, 0, latencyMS)
+		recordMetrics(req.ModelProfile, m.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
 		return nil, fmt.Errorf("ai.Stream: %w", streamErr)
 	}
 
@@ -91,7 +91,7 @@ func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msg
 	if streamErr != nil {
 		latencyMS := time.Since(start).Milliseconds()
 		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
-		recordMetrics(ModelFallback, fb.modelID, "error", Usage{}, 0, latencyMS)
+		recordMetrics(ModelFallback, fb.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
 		return nil, fmt.Errorf("ai.Stream fallback also failed: %w (primary: %v)", streamErr, primaryErr)
 	}
 
@@ -133,7 +133,7 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 			costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
 			r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
 			r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, costUSD, nil)
-			recordMetrics(r.profile, r.modelID, "ok", r.total, costUSD, latencyMS)
+			recordMetrics(r.profile, r.modelID, "ok", r.meta.Feature, r.total, costUSD, latencyMS)
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
 		// Log detailed error: error type, context state, tokens received so far.
@@ -141,7 +141,7 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 		logx.WithContext(r.ctx).Errorf("ai.Stream recv error: err=%v (type=%T), model=%s, ctx.Err()=%v, latency=%dms, promptTokens=%d, completionTokens=%d",
 			err, err, r.modelID, ctxErr, latencyMS, r.total.PromptTokens, r.total.CompletionTokens)
 		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, 0, err)
-		recordMetrics(r.profile, r.modelID, "error", r.total, 0, latencyMS)
+		recordMetrics(r.profile, r.modelID, "error", r.meta.Feature, r.total, 0, latencyMS)
 		return Chunk{}, err
 	}
 
