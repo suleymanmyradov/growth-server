@@ -420,6 +420,23 @@ func (l *GenerateWeeklyReviewLogic) generateWeeklyReview(ctx context.Context, in
 		return nil, status.Error(codes.Internal, "failed to save weekly review")
 	}
 
+	// Log activity
+	weekLabel := weekStart.Format("Jan 2, 2006")
+	desc := fmt.Sprintf("Generated weekly review for %s", weekLabel)
+	meta, _ := json.Marshal(map[string]string{
+		"reviewId":  review.ID.String(),
+		"weekStart": weekStart.Format("2006-01-02"),
+	})
+	if _, err := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+		Type:        "weekly_review_generated",
+		Title:       fmt.Sprintf("Weekly review for %s", weekLabel),
+		Description: &desc,
+		Metadata:    meta,
+		UserID:      userID,
+	}); err != nil {
+		l.Errorf("Failed to log weekly_review_generated activity: %v", err)
+	}
+
 	// Automatically create plan adjustment suggestions from AI recommendations
 	go func() {
 		defer func() {

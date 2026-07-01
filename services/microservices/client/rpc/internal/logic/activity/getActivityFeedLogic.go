@@ -58,13 +58,18 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 
 	pbActivities := make([]*client.ActivityItem, len(activities))
 	for i, a := range activities {
-		pbActivities[i] = &client.ActivityItem{
-			Id:          a.ID.String(),
-			UserId:      a.UserID.String(),
-			Type:        a.Type,
-			Description: a.Title,
-			Timestamp:   a.CreatedAt.Time.Unix(),
+		item := &client.ActivityItem{
+			Id:      a.ID.String(),
+			UserId:  a.UserID.String(),
+			Type:    a.Type,
+			Title:   a.Title,
+			Metadata: make(map[string]string, 0),
+			Timestamp: a.CreatedAt.Time.Unix(),
 		}
+		if a.Description != nil {
+			item.Description = *a.Description
+		}
+		pbActivities[i] = item
 	}
 
 	return &client.GetActivityFeedResponse{

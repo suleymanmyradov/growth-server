@@ -9,9 +9,10 @@ message ActivityItem {
   string id = 1;
   string userId = 2;
   string type = 3;
-  string description = 4;
-  int64 timestamp = 5;
-  map<string, string> metadata = 6;
+  string title = 4;
+  string description = 5;
+  int64 timestamp = 6;
+  map<string, string> metadata = 7;
 }
 
 message GetActivityFeedRequest {

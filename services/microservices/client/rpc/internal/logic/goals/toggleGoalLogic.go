@@ -2,11 +2,14 @@ package goalslogic
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -50,6 +53,21 @@ func (l *ToggleGoalLogic) ToggleGoal(in *client.ToggleGoalRequest) (*client.Togg
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
+	// Log activity only when the goal is marked as completed
+	if goal.Completed {
+		desc := fmt.Sprintf("Completed goal: %s", goal.Title)
+		meta, _ := json.Marshal(map[string]string{"goalId": goal.ID.String()})
+		if _, err := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+			Type:        "goal_completed",
+			Title:       fmt.Sprintf("Completed %s", goal.Title),
+			Description: &desc,
+			Metadata:    meta,
+			UserID:      goal.UserID,
+		}); err != nil {
+			l.Errorf("Failed to log goal_completed activity: %v", err)
+		}
+	}
 
 	return &client.ToggleGoalResponse{
 		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),

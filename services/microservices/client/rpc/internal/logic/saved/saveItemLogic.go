@@ -2,8 +2,11 @@ package savedlogic
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -51,6 +54,24 @@ func (l *SaveItemLogic) SaveItem(in *client.SaveItemRequest) (*client.SaveItemRe
 	if err != nil {
 		l.Errorf("Failed to save item: %v", err)
 		return nil, status.Error(codes.Internal, "failed to save item")
+	}
+
+	// Log article_saved activity when an article is saved
+	if in.ItemType == "article" {
+		desc := fmt.Sprintf("Saved article: %s", in.ItemId)
+		meta, _ := json.Marshal(map[string]string{
+			"itemId":   in.ItemId,
+			"itemType": in.ItemType,
+		})
+		if _, err := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+			Type:        "article_saved",
+			Title:       "Saved an article",
+			Description: &desc,
+			Metadata:    meta,
+			UserID:      userID,
+		}); err != nil {
+			l.Errorf("Failed to log article_saved activity: %v", err)
+		}
 	}
 
 	return &client.SaveItemResponse{

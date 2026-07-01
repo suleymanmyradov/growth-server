@@ -21,6 +21,7 @@ type (
 	GeneratePersonalizedCoachingRequest          = client.GeneratePersonalizedCoachingRequest
 	GeneratePersonalizedCoachingResponse         = client.GeneratePersonalizedCoachingResponse
 	GetCoachingProfileRequest                    = client.GetCoachingProfileRequest
+	HistoryMessage                               = client.HistoryMessage
 	GetCoachingProfileResponse                   = client.GetCoachingProfileResponse
 	GetPersonalizationContextRequest             = client.GetPersonalizationContextRequest
 	GetPersonalizationContextResponse            = client.GetPersonalizationContextResponse
@@ -33,7 +34,6 @@ type (
 	UpdatePlanAdjustmentSuggestionStatusResponse = client.UpdatePlanAdjustmentSuggestionStatusResponse
 	UpsertCoachingProfileRequest                 = client.UpsertCoachingProfileRequest
 	UpsertCoachingProfileResponse                = client.UpsertCoachingProfileResponse
-	HistoryMessage                               = client.HistoryMessage
 
 	PersonalizationService interface {
 		GetCoachingProfile(ctx context.Context, in *GetCoachingProfileRequest, opts ...grpc.CallOption) (*GetCoachingProfileResponse, error)

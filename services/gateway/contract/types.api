@@ -319,14 +319,14 @@ type (
 		page PageResponse `json:"page"`
 	}
 	SavedItemDetailed {
-		id        string  `json:"id"`
-		itemType  string  `json:"itemType"` // "article", "goal", "habit"
-		itemId    string  `json:"itemId"`
-		userId    string  `json:"userId"`
-		createdAt string  `json:"createdAt"`
-		article   Article `json:"article,optional"`
-		habit     Habit   `json:"habit,optional"`
-		goal      Goal    `json:"goal,optional"`
+		id        string   `json:"id"`
+		itemType  string   `json:"itemType"` // "article", "goal", "habit"
+		itemId    string   `json:"itemId"`
+		userId    string   `json:"userId"`
+		createdAt string   `json:"createdAt"`
+		article   *Article `json:"article,optional"`
+		habit     *Habit   `json:"habit,optional"`
+		goal      *Goal    `json:"goal,optional"`
 	}
 	SavedItemsDetailedResponse {
 		data []SavedItemDetailed `json:"data"`

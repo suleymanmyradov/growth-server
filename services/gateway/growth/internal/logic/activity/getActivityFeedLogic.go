@@ -56,11 +56,19 @@ func (l *GetActivityFeedLogic) GetActivityFeed(req *types.PageRequest) (resp *ty
 		activities = append(activities, types.Activity{
 			Id:          a.Id,
 			ItemType:    a.Type,
-			Title:       a.Description,
-			Description: "",
+			Title:       a.Title,
+			Description: a.Description,
 			UserId:      a.UserId,
 			CreatedAt:   createdAt,
 		})
+	}
+
+	total := int64(len(activities))
+	// If we got a full page, there may be more items — report a total that
+	// signals pagination is available. The RPC doesn't return a count, so we
+	// approximate: if the page is full, assume at least one more page exists.
+	if int32(len(activities)) >= limit {
+		total = int64(req.Page+1) * int64(req.Limit)
 	}
 
 	return &types.ActivityResponse{
@@ -68,7 +76,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(req *types.PageRequest) (resp *ty
 		Page: types.PageResponse{
 			Page:  req.Page,
 			Limit: req.Limit,
-			Total: 0,
+			Total: total,
 		},
 	}, nil
 }
