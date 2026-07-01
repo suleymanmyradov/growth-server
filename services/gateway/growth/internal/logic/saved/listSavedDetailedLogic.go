@@ -116,7 +116,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 		switch item.ItemType {
 		case "article":
 			if a := articleMap[item.ItemId]; a != nil {
-				detailed.Article = types.Article{
+				article := types.Article{
 					Id:          a.Id,
 					Title:       a.Title,
 					Excerpt:     a.Summary,
@@ -130,16 +130,17 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 					Tags:        a.Tags,
 				}
 				if a.Category != nil {
-					detailed.Article.Category = &types.ArticleCategory{
+					article.Category = &types.ArticleCategory{
 						Id:   a.Category.Id,
 						Name: a.Category.Name,
 						Slug: a.Category.Slug,
 					}
 				}
+				detailed.Article = &article
 			}
 		case "habit":
 			if h := habitMap[item.ItemId]; h != nil {
-				detailed.Habit = types.Habit{
+				detailed.Habit = &types.Habit{
 					Id:          h.Id,
 					Name:        h.Name,
 					Description: h.Description,
@@ -152,16 +153,17 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 			}
 		case "goal":
 			if g := goalMap[item.ItemId]; g != nil {
-				detailed.Goal = types.Goal{
-					Id:          g.Id,
-					Title:       g.Title,
-					Description: g.Description,
-					Category:    g.Category,
-					Progress:    int(g.Progress),
-					Completed:   g.Completed,
-					DueDate:     formatUnix(g.DueDate),
-					CreatedAt:   formatUnix(g.CreatedAt),
-					UpdatedAt:   formatUnix(g.UpdatedAt),
+				detailed.Goal = &types.Goal{
+					Id:              g.Id,
+					Title:           g.Title,
+					Description:     g.Description,
+					Category:        g.Category,
+					Progress:        int(g.Progress),
+					Completed:       g.Completed,
+					DueDate:         formatUnix(g.DueDate),
+					RelatedHabitIds: nonNilHabitIds(g.RelatedHabitIds),
+					CreatedAt:       formatUnix(g.CreatedAt),
+					UpdatedAt:       formatUnix(g.UpdatedAt),
 				}
 			}
 		}
@@ -190,4 +192,13 @@ func formatUnix(ts int64) string {
 		return ""
 	}
 	return time.Unix(ts, 0).Format(time.RFC3339)
+}
+
+// nonNilHabitIds returns the slice if non-nil, otherwise an empty slice so
+// JSON serialization produces [] instead of null.
+func nonNilHabitIds(ids []string) []string {
+	if ids == nil {
+		return []string{}
+	}
+	return ids
 }

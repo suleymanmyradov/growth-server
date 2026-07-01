@@ -503,14 +503,14 @@ type SavedItem struct {
 }
 
 type SavedItemDetailed struct {
-	Id        string  `json:"id"`
-	ItemType  string  `json:"itemType"` // "article", "goal", "habit"
-	ItemId    string  `json:"itemId"`
-	UserId    string  `json:"userId"`
-	CreatedAt string  `json:"createdAt"`
-	Article   Article `json:"article,optional"`
-	Habit     Habit   `json:"habit,optional"`
-	Goal      Goal    `json:"goal,optional"`
+	Id        string   `json:"id"`
+	ItemType  string   `json:"itemType"` // "article", "goal", "habit"
+	ItemId    string   `json:"itemId"`
+	UserId    string   `json:"userId"`
+	CreatedAt string   `json:"createdAt"`
+	Article   *Article `json:"article,optional"`
+	Habit     *Habit   `json:"habit,optional"`
+	Goal      *Goal    `json:"goal,optional"`
 }
 
 type SavedItemRequest struct {

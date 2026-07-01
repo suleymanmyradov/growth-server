@@ -2,9 +2,12 @@ package goalslogic
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -72,6 +75,19 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
+	// Log activity
+	desc := fmt.Sprintf("Created goal: %s", goal.Title)
+	meta, _ := json.Marshal(map[string]string{"goalId": goal.ID.String()})
+	if _, err := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+		Type:        "goal_created",
+		Title:       fmt.Sprintf("Created %s", goal.Title),
+		Description: &desc,
+		Metadata:    meta,
+		UserID:      userID,
+	}); err != nil {
+		l.Errorf("Failed to log goal_created activity: %v", err)
+	}
 
 	return &client.CreateGoalResponse{
 		Goal: goalToProto(goal, in.RelatedHabitIds),
