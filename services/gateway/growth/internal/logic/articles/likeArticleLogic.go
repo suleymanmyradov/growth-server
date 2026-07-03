@@ -34,7 +34,7 @@ func (l *LikeArticleLogic) LikeArticle(req *types.LikeArticleRequest) (resp *typ
 		return nil, nil
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.LikeArticle(l.ctx, &clientarticles.LikeArticleRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.LikeArticle(l.ctx, &clientarticles.LikeArticleRequest{
 		ArticleId: req.Id,
 		UserId:    p.UserID,
 	})

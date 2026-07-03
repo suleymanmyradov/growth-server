@@ -14,14 +14,11 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/zrpc"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -29,8 +26,6 @@ type ServiceContext struct {
 	Config           config.Config
 	Repo             *repository.Repository
 	EventsPub        *events.Publisher
-	AICoachRpc       aicoachservice.AICoachService
-	FileManagerRpc   fileManagerClient.FileManager
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
 	TxRunner         *postgres.PgxTxRunner
@@ -66,9 +61,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
 	}
 
-	aiCoachRpc := aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, zrpc.WithTimeout(time.Second*90)))
-	fileManagerRpc := fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc))
-
 	var redisClient *redis.Client
 	var authzChecker *authz.Checker
 	var appCache *cache.Cache
@@ -102,8 +94,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:           c,
 		Repo:             repo,
 		EventsPub:        eventsPub,
-		AICoachRpc:       aiCoachRpc,
-		FileManagerRpc:   fileManagerRpc,
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
 		TxRunner:         txRunner,

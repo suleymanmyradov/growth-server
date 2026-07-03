@@ -25,7 +25,7 @@ func NewCreateCustomerPortalSessionLogic(ctx context.Context, svcCtx *svc.Servic
 }
 
 func (l *CreateCustomerPortalSessionLogic) CreateCustomerPortalSession() (resp *types.CreateCustomerPortalSessionResponse, err error) {
-	rpcResp, err := l.svcCtx.BillingRpc.CreateCustomerPortalSession(l.ctx, &clientbilling.CreateCustomerPortalSessionRequest{})
+	rpcResp, err := l.svcCtx.ClientRpc.BillingService.CreateCustomerPortalSession(l.ctx, &clientbilling.CreateCustomerPortalSessionRequest{})
 	if err != nil {
 		return nil, err
 	}

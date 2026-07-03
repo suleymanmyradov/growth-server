@@ -316,7 +316,6 @@ const (
 	Report_ListReports_FullMethodName         = "/client.Report/ListReports"
 	Report_UpdateReport_FullMethodName        = "/client.Report/UpdateReport"
 	Report_GetReportCategories_FullMethodName = "/client.Report/GetReportCategories"
-	Report_UploadAttachment_FullMethodName    = "/client.Report/UploadAttachment"
 	Report_GetReportStatus_FullMethodName     = "/client.Report/GetReportStatus"
 	Report_CloseReport_FullMethodName         = "/client.Report/CloseReport"
 	Report_AddReportComment_FullMethodName    = "/client.Report/AddReportComment"
@@ -332,7 +331,6 @@ type ReportClient interface {
 	ListReports(ctx context.Context, in *ListReportsRequest, opts ...grpc.CallOption) (*ListReportsResponse, error)
 	UpdateReport(ctx context.Context, in *UpdateReportRequest, opts ...grpc.CallOption) (*UpdateReportResponse, error)
 	GetReportCategories(ctx context.Context, in *GetReportCategoriesRequest, opts ...grpc.CallOption) (*GetReportCategoriesResponse, error)
-	UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error)
 	GetReportStatus(ctx context.Context, in *GetReportStatusRequest, opts ...grpc.CallOption) (*GetReportStatusResponse, error)
 	CloseReport(ctx context.Context, in *CloseReportRequest, opts ...grpc.CallOption) (*CloseReportResponse, error)
 	AddReportComment(ctx context.Context, in *AddReportCommentRequest, opts ...grpc.CallOption) (*AddReportCommentResponse, error)
@@ -397,16 +395,6 @@ func (c *reportClient) GetReportCategories(ctx context.Context, in *GetReportCat
 	return out, nil
 }
 
-func (c *reportClient) UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UploadAttachmentResponse)
-	err := c.cc.Invoke(ctx, Report_UploadAttachment_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *reportClient) GetReportStatus(ctx context.Context, in *GetReportStatusRequest, opts ...grpc.CallOption) (*GetReportStatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetReportStatusResponse)
@@ -456,7 +444,6 @@ type ReportServer interface {
 	ListReports(context.Context, *ListReportsRequest) (*ListReportsResponse, error)
 	UpdateReport(context.Context, *UpdateReportRequest) (*UpdateReportResponse, error)
 	GetReportCategories(context.Context, *GetReportCategoriesRequest) (*GetReportCategoriesResponse, error)
-	UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error)
 	GetReportStatus(context.Context, *GetReportStatusRequest) (*GetReportStatusResponse, error)
 	CloseReport(context.Context, *CloseReportRequest) (*CloseReportResponse, error)
 	AddReportComment(context.Context, *AddReportCommentRequest) (*AddReportCommentResponse, error)
@@ -485,9 +472,6 @@ func (UnimplementedReportServer) UpdateReport(context.Context, *UpdateReportRequ
 }
 func (UnimplementedReportServer) GetReportCategories(context.Context, *GetReportCategoriesRequest) (*GetReportCategoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetReportCategories not implemented")
-}
-func (UnimplementedReportServer) UploadAttachment(context.Context, *UploadAttachmentRequest) (*UploadAttachmentResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UploadAttachment not implemented")
 }
 func (UnimplementedReportServer) GetReportStatus(context.Context, *GetReportStatusRequest) (*GetReportStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetReportStatus not implemented")
@@ -612,24 +596,6 @@ func _Report_GetReportCategories_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Report_UploadAttachment_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadAttachmentRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ReportServer).UploadAttachment(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Report_UploadAttachment_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ReportServer).UploadAttachment(ctx, req.(*UploadAttachmentRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Report_GetReportStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetReportStatusRequest)
 	if err := dec(in); err != nil {
@@ -728,10 +694,6 @@ var Report_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetReportCategories",
 			Handler:    _Report_GetReportCategories_Handler,
-		},
-		{
-			MethodName: "UploadAttachment",
-			Handler:    _Report_UploadAttachment_Handler,
 		},
 		{
 			MethodName: "GetReportStatus",
@@ -1279,7 +1241,6 @@ const (
 	Settings_UpdateSettings_FullMethodName        = "/client.Settings/UpdateSettings"
 	Settings_GetPreferences_FullMethodName        = "/client.Settings/GetPreferences"
 	Settings_UpdatePreferences_FullMethodName     = "/client.Settings/UpdatePreferences"
-	Settings_UploadAvatar_FullMethodName          = "/client.Settings/UploadAvatar"
 	Settings_DeleteAccount_FullMethodName         = "/client.Settings/DeleteAccount"
 	Settings_ExportData_FullMethodName            = "/client.Settings/ExportData"
 	Settings_GetPrivacySettings_FullMethodName    = "/client.Settings/GetPrivacySettings"
@@ -1294,7 +1255,6 @@ type SettingsClient interface {
 	UpdateSettings(ctx context.Context, in *UpdateSettingsRequest, opts ...grpc.CallOption) (*UpdateSettingsResponse, error)
 	GetPreferences(ctx context.Context, in *GetPreferencesRequest, opts ...grpc.CallOption) (*GetPreferencesResponse, error)
 	UpdatePreferences(ctx context.Context, in *UpdatePreferencesRequest, opts ...grpc.CallOption) (*UpdatePreferencesResponse, error)
-	UploadAvatar(ctx context.Context, in *UploadAvatarRequest, opts ...grpc.CallOption) (*UploadAvatarResponse, error)
 	DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
 	ExportData(ctx context.Context, in *ExportDataRequest, opts ...grpc.CallOption) (*ExportDataResponse, error)
 	GetPrivacySettings(ctx context.Context, in *GetPrivacySettingsRequest, opts ...grpc.CallOption) (*GetPrivacySettingsResponse, error)
@@ -1349,16 +1309,6 @@ func (c *settingsClient) UpdatePreferences(ctx context.Context, in *UpdatePrefer
 	return out, nil
 }
 
-func (c *settingsClient) UploadAvatar(ctx context.Context, in *UploadAvatarRequest, opts ...grpc.CallOption) (*UploadAvatarResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UploadAvatarResponse)
-	err := c.cc.Invoke(ctx, Settings_UploadAvatar_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *settingsClient) DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DeleteAccountResponse)
@@ -1407,7 +1357,6 @@ type SettingsServer interface {
 	UpdateSettings(context.Context, *UpdateSettingsRequest) (*UpdateSettingsResponse, error)
 	GetPreferences(context.Context, *GetPreferencesRequest) (*GetPreferencesResponse, error)
 	UpdatePreferences(context.Context, *UpdatePreferencesRequest) (*UpdatePreferencesResponse, error)
-	UploadAvatar(context.Context, *UploadAvatarRequest) (*UploadAvatarResponse, error)
 	DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error)
 	ExportData(context.Context, *ExportDataRequest) (*ExportDataResponse, error)
 	GetPrivacySettings(context.Context, *GetPrivacySettingsRequest) (*GetPrivacySettingsResponse, error)
@@ -1433,9 +1382,6 @@ func (UnimplementedSettingsServer) GetPreferences(context.Context, *GetPreferenc
 }
 func (UnimplementedSettingsServer) UpdatePreferences(context.Context, *UpdatePreferencesRequest) (*UpdatePreferencesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdatePreferences not implemented")
-}
-func (UnimplementedSettingsServer) UploadAvatar(context.Context, *UploadAvatarRequest) (*UploadAvatarResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UploadAvatar not implemented")
 }
 func (UnimplementedSettingsServer) DeleteAccount(context.Context, *DeleteAccountRequest) (*DeleteAccountResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteAccount not implemented")
@@ -1542,24 +1488,6 @@ func _Settings_UpdatePreferences_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Settings_UploadAvatar_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UploadAvatarRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(SettingsServer).UploadAvatar(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Settings_UploadAvatar_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SettingsServer).UploadAvatar(ctx, req.(*UploadAvatarRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _Settings_DeleteAccount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteAccountRequest)
 	if err := dec(in); err != nil {
@@ -1654,10 +1582,6 @@ var Settings_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdatePreferences",
 			Handler:    _Settings_UpdatePreferences_Handler,
-		},
-		{
-			MethodName: "UploadAvatar",
-			Handler:    _Settings_UploadAvatar_Handler,
 		},
 		{
 			MethodName: "DeleteAccount",
@@ -3433,8 +3357,8 @@ var CheckInService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	WeeklyReviewService_GenerateWeeklyReview_FullMethodName   = "/client.WeeklyReviewService/GenerateWeeklyReview"
-	WeeklyReviewService_StreamWeeklyReview_FullMethodName     = "/client.WeeklyReviewService/StreamWeeklyReview"
+	WeeklyReviewService_PrepareWeeklyReview_FullMethodName    = "/client.WeeklyReviewService/PrepareWeeklyReview"
+	WeeklyReviewService_SaveWeeklyReview_FullMethodName       = "/client.WeeklyReviewService/SaveWeeklyReview"
 	WeeklyReviewService_GetWeeklyReview_FullMethodName        = "/client.WeeklyReviewService/GetWeeklyReview"
 	WeeklyReviewService_GetCurrentWeeklyReview_FullMethodName = "/client.WeeklyReviewService/GetCurrentWeeklyReview"
 	WeeklyReviewService_ListWeeklyReviews_FullMethodName      = "/client.WeeklyReviewService/ListWeeklyReviews"
@@ -3444,8 +3368,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WeeklyReviewServiceClient interface {
-	GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error)
-	StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error)
+	PrepareWeeklyReview(ctx context.Context, in *PrepareWeeklyReviewRequest, opts ...grpc.CallOption) (*PrepareWeeklyReviewResponse, error)
+	SaveWeeklyReview(ctx context.Context, in *SaveWeeklyReviewRequest, opts ...grpc.CallOption) (*SaveWeeklyReviewResponse, error)
 	GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error)
 	GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error)
 	ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error)
@@ -3459,34 +3383,25 @@ func NewWeeklyReviewServiceClient(cc grpc.ClientConnInterface) WeeklyReviewServi
 	return &weeklyReviewServiceClient{cc}
 }
 
-func (c *weeklyReviewServiceClient) GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error) {
+func (c *weeklyReviewServiceClient) PrepareWeeklyReview(ctx context.Context, in *PrepareWeeklyReviewRequest, opts ...grpc.CallOption) (*PrepareWeeklyReviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GenerateWeeklyReviewResponse)
-	err := c.cc.Invoke(ctx, WeeklyReviewService_GenerateWeeklyReview_FullMethodName, in, out, cOpts...)
+	out := new(PrepareWeeklyReviewResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_PrepareWeeklyReview_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *weeklyReviewServiceClient) StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error) {
+func (c *weeklyReviewServiceClient) SaveWeeklyReview(ctx context.Context, in *SaveWeeklyReviewRequest, opts ...grpc.CallOption) (*SaveWeeklyReviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &WeeklyReviewService_ServiceDesc.Streams[0], WeeklyReviewService_StreamWeeklyReview_FullMethodName, cOpts...)
+	out := new(SaveWeeklyReviewResponse)
+	err := c.cc.Invoke(ctx, WeeklyReviewService_SaveWeeklyReview_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[GenerateWeeklyReviewRequest, WeeklyReviewStreamChunk]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
+	return out, nil
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type WeeklyReviewService_StreamWeeklyReviewClient = grpc.ServerStreamingClient[WeeklyReviewStreamChunk]
 
 func (c *weeklyReviewServiceClient) GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -3522,8 +3437,8 @@ func (c *weeklyReviewServiceClient) ListWeeklyReviews(ctx context.Context, in *L
 // All implementations must embed UnimplementedWeeklyReviewServiceServer
 // for forward compatibility.
 type WeeklyReviewServiceServer interface {
-	GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error)
-	StreamWeeklyReview(*GenerateWeeklyReviewRequest, grpc.ServerStreamingServer[WeeklyReviewStreamChunk]) error
+	PrepareWeeklyReview(context.Context, *PrepareWeeklyReviewRequest) (*PrepareWeeklyReviewResponse, error)
+	SaveWeeklyReview(context.Context, *SaveWeeklyReviewRequest) (*SaveWeeklyReviewResponse, error)
 	GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error)
 	GetCurrentWeeklyReview(context.Context, *GetCurrentWeeklyReviewRequest) (*GetCurrentWeeklyReviewResponse, error)
 	ListWeeklyReviews(context.Context, *ListWeeklyReviewsRequest) (*ListWeeklyReviewsResponse, error)
@@ -3537,11 +3452,11 @@ type WeeklyReviewServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedWeeklyReviewServiceServer struct{}
 
-func (UnimplementedWeeklyReviewServiceServer) GenerateWeeklyReview(context.Context, *GenerateWeeklyReviewRequest) (*GenerateWeeklyReviewResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GenerateWeeklyReview not implemented")
+func (UnimplementedWeeklyReviewServiceServer) PrepareWeeklyReview(context.Context, *PrepareWeeklyReviewRequest) (*PrepareWeeklyReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareWeeklyReview not implemented")
 }
-func (UnimplementedWeeklyReviewServiceServer) StreamWeeklyReview(*GenerateWeeklyReviewRequest, grpc.ServerStreamingServer[WeeklyReviewStreamChunk]) error {
-	return status.Error(codes.Unimplemented, "method StreamWeeklyReview not implemented")
+func (UnimplementedWeeklyReviewServiceServer) SaveWeeklyReview(context.Context, *SaveWeeklyReviewRequest) (*SaveWeeklyReviewResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SaveWeeklyReview not implemented")
 }
 func (UnimplementedWeeklyReviewServiceServer) GetWeeklyReview(context.Context, *GetWeeklyReviewRequest) (*GetWeeklyReviewResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetWeeklyReview not implemented")
@@ -3573,34 +3488,41 @@ func RegisterWeeklyReviewServiceServer(s grpc.ServiceRegistrar, srv WeeklyReview
 	s.RegisterService(&WeeklyReviewService_ServiceDesc, srv)
 }
 
-func _WeeklyReviewService_GenerateWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GenerateWeeklyReviewRequest)
+func _WeeklyReviewService_PrepareWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareWeeklyReviewRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(WeeklyReviewServiceServer).GenerateWeeklyReview(ctx, in)
+		return srv.(WeeklyReviewServiceServer).PrepareWeeklyReview(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: WeeklyReviewService_GenerateWeeklyReview_FullMethodName,
+		FullMethod: WeeklyReviewService_PrepareWeeklyReview_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(WeeklyReviewServiceServer).GenerateWeeklyReview(ctx, req.(*GenerateWeeklyReviewRequest))
+		return srv.(WeeklyReviewServiceServer).PrepareWeeklyReview(ctx, req.(*PrepareWeeklyReviewRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _WeeklyReviewService_StreamWeeklyReview_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GenerateWeeklyReviewRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
+func _WeeklyReviewService_SaveWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveWeeklyReviewRequest)
+	if err := dec(in); err != nil {
+		return nil, err
 	}
-	return srv.(WeeklyReviewServiceServer).StreamWeeklyReview(m, &grpc.GenericServerStream[GenerateWeeklyReviewRequest, WeeklyReviewStreamChunk]{ServerStream: stream})
+	if interceptor == nil {
+		return srv.(WeeklyReviewServiceServer).SaveWeeklyReview(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WeeklyReviewService_SaveWeeklyReview_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WeeklyReviewServiceServer).SaveWeeklyReview(ctx, req.(*SaveWeeklyReviewRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type WeeklyReviewService_StreamWeeklyReviewServer = grpc.ServerStreamingServer[WeeklyReviewStreamChunk]
 
 func _WeeklyReviewService_GetWeeklyReview_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetWeeklyReviewRequest)
@@ -3664,8 +3586,12 @@ var WeeklyReviewService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*WeeklyReviewServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "GenerateWeeklyReview",
-			Handler:    _WeeklyReviewService_GenerateWeeklyReview_Handler,
+			MethodName: "PrepareWeeklyReview",
+			Handler:    _WeeklyReviewService_PrepareWeeklyReview_Handler,
+		},
+		{
+			MethodName: "SaveWeeklyReview",
+			Handler:    _WeeklyReviewService_SaveWeeklyReview_Handler,
 		},
 		{
 			MethodName: "GetWeeklyReview",
@@ -3680,13 +3606,7 @@ var WeeklyReviewService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WeeklyReviewService_ListWeeklyReviews_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StreamWeeklyReview",
-			Handler:       _WeeklyReviewService_StreamWeeklyReview_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
 
@@ -3699,8 +3619,6 @@ const (
 	PersonalizationService_ListPendingPlanAdjustmentSuggestions_FullMethodName = "/client.PersonalizationService/ListPendingPlanAdjustmentSuggestions"
 	PersonalizationService_UpdatePlanAdjustmentSuggestionStatus_FullMethodName = "/client.PersonalizationService/UpdatePlanAdjustmentSuggestionStatus"
 	PersonalizationService_ApplyPlanAdjustmentSuggestion_FullMethodName        = "/client.PersonalizationService/ApplyPlanAdjustmentSuggestion"
-	PersonalizationService_GeneratePersonalizedCoaching_FullMethodName         = "/client.PersonalizationService/GeneratePersonalizedCoaching"
-	PersonalizationService_StreamPersonalizedCoaching_FullMethodName           = "/client.PersonalizationService/StreamPersonalizedCoaching"
 )
 
 // PersonalizationServiceClient is the client API for PersonalizationService service.
@@ -3715,8 +3633,6 @@ type PersonalizationServiceClient interface {
 	ListPendingPlanAdjustmentSuggestions(ctx context.Context, in *ListPendingPlanAdjustmentSuggestionsRequest, opts ...grpc.CallOption) (*ListPendingPlanAdjustmentSuggestionsResponse, error)
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, in *UpdatePlanAdjustmentSuggestionStatusRequest, opts ...grpc.CallOption) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error)
-	GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error)
-	StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk], error)
 }
 
 type personalizationServiceClient struct {
@@ -3807,35 +3723,6 @@ func (c *personalizationServiceClient) ApplyPlanAdjustmentSuggestion(ctx context
 	return out, nil
 }
 
-func (c *personalizationServiceClient) GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GeneratePersonalizedCoachingResponse)
-	err := c.cc.Invoke(ctx, PersonalizationService_GeneratePersonalizedCoaching_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *personalizationServiceClient) StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &PersonalizationService_ServiceDesc.Streams[0], PersonalizationService_StreamPersonalizedCoaching_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[GeneratePersonalizedCoachingRequest, PersonalizedCoachingStreamChunk]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type PersonalizationService_StreamPersonalizedCoachingClient = grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk]
-
 // PersonalizationServiceServer is the server API for PersonalizationService service.
 // All implementations must embed UnimplementedPersonalizationServiceServer
 // for forward compatibility.
@@ -3848,8 +3735,6 @@ type PersonalizationServiceServer interface {
 	ListPendingPlanAdjustmentSuggestions(context.Context, *ListPendingPlanAdjustmentSuggestionsRequest) (*ListPendingPlanAdjustmentSuggestionsResponse, error)
 	UpdatePlanAdjustmentSuggestionStatus(context.Context, *UpdatePlanAdjustmentSuggestionStatusRequest) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
 	ApplyPlanAdjustmentSuggestion(context.Context, *ApplyPlanAdjustmentSuggestionRequest) (*ApplyPlanAdjustmentSuggestionResponse, error)
-	GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error)
-	StreamPersonalizedCoaching(*GeneratePersonalizedCoachingRequest, grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]) error
 	mustEmbedUnimplementedPersonalizationServiceServer()
 }
 
@@ -3883,12 +3768,6 @@ func (UnimplementedPersonalizationServiceServer) UpdatePlanAdjustmentSuggestionS
 }
 func (UnimplementedPersonalizationServiceServer) ApplyPlanAdjustmentSuggestion(context.Context, *ApplyPlanAdjustmentSuggestionRequest) (*ApplyPlanAdjustmentSuggestionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ApplyPlanAdjustmentSuggestion not implemented")
-}
-func (UnimplementedPersonalizationServiceServer) GeneratePersonalizedCoaching(context.Context, *GeneratePersonalizedCoachingRequest) (*GeneratePersonalizedCoachingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GeneratePersonalizedCoaching not implemented")
-}
-func (UnimplementedPersonalizationServiceServer) StreamPersonalizedCoaching(*GeneratePersonalizedCoachingRequest, grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]) error {
-	return status.Error(codes.Unimplemented, "method StreamPersonalizedCoaching not implemented")
 }
 func (UnimplementedPersonalizationServiceServer) mustEmbedUnimplementedPersonalizationServiceServer() {
 }
@@ -4056,35 +3935,6 @@ func _PersonalizationService_ApplyPlanAdjustmentSuggestion_Handler(srv interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _PersonalizationService_GeneratePersonalizedCoaching_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GeneratePersonalizedCoachingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PersonalizationServiceServer).GeneratePersonalizedCoaching(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: PersonalizationService_GeneratePersonalizedCoaching_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PersonalizationServiceServer).GeneratePersonalizedCoaching(ctx, req.(*GeneratePersonalizedCoachingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _PersonalizationService_StreamPersonalizedCoaching_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(GeneratePersonalizedCoachingRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(PersonalizationServiceServer).StreamPersonalizedCoaching(m, &grpc.GenericServerStream[GeneratePersonalizedCoachingRequest, PersonalizedCoachingStreamChunk]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type PersonalizationService_StreamPersonalizedCoachingServer = grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]
-
 // PersonalizationService_ServiceDesc is the grpc.ServiceDesc for PersonalizationService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4124,18 +3974,8 @@ var PersonalizationService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ApplyPlanAdjustmentSuggestion",
 			Handler:    _PersonalizationService_ApplyPlanAdjustmentSuggestion_Handler,
 		},
-		{
-			MethodName: "GeneratePersonalizedCoaching",
-			Handler:    _PersonalizationService_GeneratePersonalizedCoaching_Handler,
-		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "StreamPersonalizedCoaching",
-			Handler:       _PersonalizationService_StreamPersonalizedCoaching_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
 

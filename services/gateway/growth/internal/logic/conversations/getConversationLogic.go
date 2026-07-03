@@ -33,7 +33,7 @@ func (l *GetConversationLogic) GetConversation(req *types.ConversationRequest) (
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.GetConversation(l.ctx, &conversationservice.GetConversationRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.GetConversation(l.ctx, &conversationservice.GetConversationRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 	})

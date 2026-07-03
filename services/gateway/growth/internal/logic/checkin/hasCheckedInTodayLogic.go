@@ -34,7 +34,7 @@ func (l *HasCheckedInTodayLogic) HasCheckedInToday(req *types.HasCheckedInTodayR
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.CheckInRpc.HasCheckedInToday(l.ctx, &clientcheckin.HasCheckedInTodayRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.CheckInService.HasCheckedInToday(l.ctx, &clientcheckin.HasCheckedInTodayRequest{
 		UserId:  p.UserID,
 		HabitId: req.HabitId,
 	})

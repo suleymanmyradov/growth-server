@@ -48,11 +48,6 @@ func (s *ReportServer) GetReportCategories(ctx context.Context, in *client.GetRe
 	return l.GetReportCategories(in)
 }
 
-func (s *ReportServer) UploadAttachment(ctx context.Context, in *client.UploadAttachmentRequest) (*client.UploadAttachmentResponse, error) {
-	l := reportlogic.NewUploadAttachmentLogic(ctx, s.svcCtx)
-	return l.UploadAttachment(in)
-}
-
 func (s *ReportServer) GetReportStatus(ctx context.Context, in *client.GetReportStatusRequest) (*client.GetReportStatusResponse, error) {
 	l := reportlogic.NewGetReportStatusLogic(ctx, s.svcCtx)
 	return l.GetReportStatus(in)

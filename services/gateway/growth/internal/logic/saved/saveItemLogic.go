@@ -34,7 +34,7 @@ func (l *SaveItemLogic) SaveItem(req *types.SaveItemRequest) (resp *types.SavedI
 		return nil, nil
 	}
 
-	rpcResp, err := l.svcCtx.SavedRpc.SaveItem(l.ctx, &clientsaved.SaveItemRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Saved.SaveItem(l.ctx, &clientsaved.SaveItemRequest{
 		UserId:   p.UserID,
 		ItemType: req.ItemType,
 		ItemId:   req.ItemId,

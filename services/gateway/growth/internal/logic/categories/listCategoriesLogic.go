@@ -29,7 +29,7 @@ func NewListCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Li
 }
 
 func (l *ListCategoriesLogic) ListCategories(req *types.ListCategoriesRequest) (resp *types.CategoriesResponse, err error) {
-	rpcResp, err := l.svcCtx.CategoriesRpc.ListCategories(l.ctx, &clientcategories.ListCategoriesRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Categories.ListCategories(l.ctx, &clientcategories.ListCategoriesRequest{
 		EntityType: req.EntityType,
 	})
 	if err != nil {

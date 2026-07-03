@@ -25,7 +25,7 @@ func NewGetGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetGoalLo
 }
 
 func (l *GetGoalLogic) GetGoal(req *types.GoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.GoalsRpc.GetGoal(l.ctx, &clientgoals.GetGoalRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.GetGoal(l.ctx, &clientgoals.GetGoalRequest{
 		GoalId: req.Id,
 	})
 	if err != nil {

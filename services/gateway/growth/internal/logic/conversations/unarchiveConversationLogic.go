@@ -33,7 +33,7 @@ func (l *UnarchiveConversationLogic) UnarchiveConversation(req *types.Conversati
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.UnarchiveConversation(l.ctx, &conversationservice.ArchiveConversationRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.UnarchiveConversation(l.ctx, &conversationservice.ArchiveConversationRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 	})

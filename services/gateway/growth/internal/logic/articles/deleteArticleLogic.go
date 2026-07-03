@@ -32,7 +32,7 @@ func (l *DeleteArticleLogic) DeleteArticle(req *types.ArticleRequest) (resp *typ
 		ArticleId: req.Id,
 	}
 
-	_, err = l.svcCtx.ArticlesRpc.DeleteArticle(l.ctx, rpcReq)
+	_, err = l.svcCtx.ClientRpc.Articles.DeleteArticle(l.ctx, rpcReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete article via rpc: %w", err)
 	}

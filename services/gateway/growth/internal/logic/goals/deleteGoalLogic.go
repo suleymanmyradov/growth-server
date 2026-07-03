@@ -25,7 +25,7 @@ func NewDeleteGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delete
 }
 
 func (l *DeleteGoalLogic) DeleteGoal(req *types.GoalRequest) (resp *types.EmptyResponse, err error) {
-	_, err = l.svcCtx.GoalsRpc.DeleteGoal(l.ctx, &clientgoals.DeleteGoalRequest{
+	_, err = l.svcCtx.ClientRpc.Goals.DeleteGoal(l.ctx, &clientgoals.DeleteGoalRequest{
 		GoalId: req.Id,
 	})
 	if err != nil {

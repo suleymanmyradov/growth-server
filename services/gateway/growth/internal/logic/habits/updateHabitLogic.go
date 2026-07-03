@@ -25,7 +25,7 @@ func NewUpdateHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Updat
 }
 
 func (l *UpdateHabitLogic) UpdateHabit(req *types.UpdateHabitRequest) (resp *types.HabitResponse, err error) {
-	rpcResp, err := l.svcCtx.HabitsRpc.UpdateHabit(l.ctx, &clienthabits.UpdateHabitRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Habits.UpdateHabit(l.ctx, &clienthabits.UpdateHabitRequest{
 		HabitId:     req.Id,
 		Name:        req.Name,
 		Description: req.Description,

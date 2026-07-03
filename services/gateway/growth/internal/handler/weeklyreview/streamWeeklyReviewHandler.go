@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
@@ -12,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/weeklyreview"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	clientweeklyreview "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -57,22 +59,54 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// Open the client-rpc streaming RPC before writing any response, so a
-		// dial-time error can be surfaced as a proper HTTP status code rather
-		// than an in-band SSE error event after a committed 200.
 		streamStart := time.Now()
-		logx.WithContext(r.Context()).Infof("SSE stream: opening client-rpc stream for user=%s weekStart=%s", p.UserID, req.WeekStart)
-		stream, err := svcCtx.WeeklyReviewRpc.StreamWeeklyReview(r.Context(), &clientweeklyreview.GenerateWeeklyReviewRequest{
+
+		// Step 1: Prepare — compute stats, check cache/cooldown.
+		logx.WithContext(r.Context()).Infof("SSE stream: preparing weekly review for user=%s weekStart=%s", p.UserID, req.WeekStart)
+		prepResp, err := svcCtx.ClientRpc.WeeklyReviewService.PrepareWeeklyReview(r.Context(), &clientweeklyreview.PrepareWeeklyReviewRequest{
 			UserId:          p.UserID,
 			WeekStart:       req.WeekStart,
 			ForceRegenerate: req.ForceRegenerate,
 		})
 		if err != nil {
-			logx.WithContext(r.Context()).Errorf("SSE stream: client-rpc stream open failed after %v: %v", time.Since(streamStart), err)
+			logx.WithContext(r.Context()).Errorf("SSE stream: prepare failed after %v: %v", time.Since(streamStart), err)
 			errors.HandleGrpcError(w, err)
 			return
 		}
-		logx.WithContext(r.Context()).Infof("SSE stream: client-rpc stream opened after %v", time.Since(streamStart))
+
+		// If a cached review exists, return it directly (no AI call needed).
+		if prepResp.ExistingReview != nil {
+			logx.WithContext(r.Context()).Infof("SSE stream: returning cached review")
+			w.Header().Set("Content-Type", "text/event-stream")
+			w.Header().Set("Cache-Control", "no-cache")
+			w.Header().Set("Connection", "keep-alive")
+			w.Header().Set("X-Accel-Buffering", "no")
+			w.WriteHeader(http.StatusOK)
+			flusher, _ := w.(http.Flusher)
+			resp := &types.WeeklyReviewResponse{Data: weeklyreview.ProtoToWeeklyReview(prepResp.ExistingReview)}
+			data, _ := json.Marshal(resp)
+			fmt.Fprintf(w, "event: complete\ndata: %s\n\n", data)
+			if flusher != nil {
+				flusher.Flush()
+			}
+			return
+		}
+
+		if prepResp.Data == nil {
+			errors.HandleGrpcError(w, status.Error(codes.Internal, "prepare returned no data and no existing review"))
+			return
+		}
+
+		// Step 2: Open the ai-coach streaming RPC directly.
+		aiReq := weeklyreview.BuildWeeklyReviewAIRequest(prepResp.Data)
+		logx.WithContext(r.Context()).Infof("SSE stream: opening ai-coach stream for user=%s", p.UserID)
+		aiStream, err := svcCtx.AICoachRpc.AICoachService.StreamWeeklyReview(r.Context(), aiReq)
+		if err != nil {
+			logx.WithContext(r.Context()).Errorf("SSE stream: ai-coach stream open failed after %v: %v", time.Since(streamStart), err)
+			errors.HandleGrpcError(w, err)
+			return
+		}
+		logx.WithContext(r.Context()).Infof("SSE stream: ai-coach stream opened after %v", time.Since(streamStart))
 
 		// Set SSE headers and commit a 200 now that the upstream stream is open.
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -82,18 +116,37 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 
 		flusher, _ := w.(http.Flusher)
-
 		flush := func() {
 			if flusher != nil {
 				flusher.Flush()
 			}
 		}
 
+		// Serialize all SSE writes (thinking goroutine, heartbeat, and main loop).
+		var writeMu sync.Mutex
+		writeSSE := func(event, data string) error {
+			writeMu.Lock()
+			defer writeMu.Unlock()
+			_, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", event, data)
+			if err != nil {
+				return err
+			}
+			flush()
+			return nil
+		}
+		writeKeepalive := func() error {
+			writeMu.Lock()
+			defer writeMu.Unlock()
+			_, err := fmt.Fprintf(w, ": keepalive\n\n")
+			if err != nil {
+				return err
+			}
+			flush()
+			return nil
+		}
+
 		// Start a thinking goroutine that sends periodic "thinking" SSE events
-		// while the model processes the prompt. The goroutine stops once the
-		// first delta arrives (firstDelta signal) or the stream ends (done
-		// channel). This gives the user visual feedback during the
-		// potentially long time-to-first-token period.
+		// while the model processes the prompt. Stops on first delta or stream end.
 		firstDelta := make(chan struct{})
 		done := make(chan struct{})
 		go func() {
@@ -110,19 +163,46 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 					msg := thinkingMessages[idx%len(thinkingMessages)]
 					idx++
 					data, _ := json.Marshal(map[string]string{"message": msg})
-					if _, err := fmt.Fprintf(w, "event: thinking\ndata: %s\n\n", data); err != nil {
-						return
-					}
-					flush()
+					_ = writeSSE("thinking", string(data))
 				}
 			}
+		}()
+
+		// Heartbeat goroutine: sends SSE comments every 15s to keep the
+		// connection alive while the AI generates structured JSON (can take
+		// 60+ seconds with no output). This was previously in the client RPC.
+		heartbeatDone := make(chan struct{})
+		var heartbeatWG sync.WaitGroup
+		go func() {
+			heartbeatWG.Add(1)
+			defer heartbeatWG.Done()
+			ticker := time.NewTicker(15 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-heartbeatDone:
+					return
+				case <-ticker.C:
+					_ = writeKeepalive()
+				}
+			}
+		}()
+		defer func() {
+			close(heartbeatDone)
+			heartbeatWG.Wait()
 		}()
 
 		deltaCount := 0
 		var totalDeltaChars int
 		firstDeltaSent := false
+
+		// Step 3: Relay chunks from the ai-coach stream to the SSE client.
+		var aiSummary string
+		var suggestedAdjustments []*aicoachservice.WeeklyReviewAdjustment
+		var nextWeekPlan *aicoachservice.NextWeekPlan
+
 		for {
-			chunk, recvErr := stream.Recv()
+			chunk, recvErr := aiStream.Recv()
 			if recvErr != nil {
 				close(done)
 				if recvErr == io.EOF {
@@ -137,43 +217,24 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 			if chunk.Complete {
 				close(done)
-				if chunk.Review == nil {
-					logx.WithContext(r.Context()).Errorf("SSE stream: complete chunk has nil review after %d deltas, %v elapsed", deltaCount, time.Since(streamStart))
-					writeSSEError(w, flush, "stream completed without a review")
-					return
+				if chunk.Review != nil {
+					aiSummary = chunk.Review.AiSummary
+					suggestedAdjustments = chunk.Review.SuggestedAdjustments
+					nextWeekPlan = chunk.Review.NextWeekPlan
 				}
-				resp := &types.WeeklyReviewResponse{Data: weeklyreview.ProtoToWeeklyReview(chunk.Review)}
-				data, _ := json.Marshal(resp)
-				if _, err := fmt.Fprintf(w, "event: complete\ndata: %s\n\n", data); err != nil {
-					return
-				}
-				flush()
-				logx.WithContext(r.Context()).Infof("SSE stream: complete event sent after %d deltas, %d chars, %v elapsed", deltaCount, totalDeltaChars, time.Since(streamStart))
-				return
+				break
 			}
 
 			if chunk.Finalizing {
 				logx.WithContext(r.Context()).Infof("SSE stream: finalizing event after %d deltas, %d chars, %v elapsed", deltaCount, totalDeltaChars, time.Since(streamStart))
-				if _, err := fmt.Fprintf(w, "event: finalizing\ndata: {}\n\n"); err != nil {
-					return
-				}
+				writeMu.Lock()
+				fmt.Fprintf(w, "event: finalizing\ndata: {}\n\n")
 				flush()
-				continue
-			}
-
-			// Empty delta is a heartbeat keepalive — send an SSE comment
-			// and flush to keep the connection alive without producing a
-			// client-visible event.
-			if chunk.Delta == "" {
-				if _, err := fmt.Fprintf(w, ": keepalive\n\n"); err != nil {
-					return
-				}
-				flush()
+				writeMu.Unlock()
 				continue
 			}
 
 			if chunk.Delta != "" {
-				// Signal the thinking goroutine to stop on the first real delta.
 				if !firstDeltaSent {
 					firstDeltaSent = true
 					close(firstDelta)
@@ -181,13 +242,42 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 				deltaCount++
 				totalDeltaChars += len(chunk.Delta)
 				deltaData, _ := json.Marshal(map[string]string{"text": chunk.Delta})
+				writeMu.Lock()
 				if _, err := fmt.Fprintf(w, "event: delta\ndata: %s\n\n", deltaData); err != nil {
+					writeMu.Unlock()
 					logx.WithContext(r.Context()).Errorf("SSE stream: write delta error after %d deltas: %v", deltaCount, err)
 					return
 				}
 				flush()
+				writeMu.Unlock()
 			}
 		}
+
+		// Stop the heartbeat before persisting.
+		close(heartbeatDone)
+		heartbeatWG.Wait()
+
+		// Step 4: Save — persist to DB via the client RPC.
+		saveResp, err := svcCtx.ClientRpc.WeeklyReviewService.SaveWeeklyReview(r.Context(), &clientweeklyreview.SaveWeeklyReviewRequest{
+			Data:                 prepResp.Data,
+			AiSummary:            aiSummary,
+			SuggestedAdjustments: weeklyreview.ConvertAdjustmentsToClient(suggestedAdjustments),
+			NextWeekPlan:         weeklyreview.ConvertNextWeekPlanToClient(nextWeekPlan),
+		})
+		if err != nil {
+			logx.WithContext(r.Context()).Errorf("SSE stream: save failed: %v", err)
+			writeSSEError(w, flush, "failed to save weekly review")
+			return
+		}
+
+		// Send the final complete event with the persisted review.
+		resp := &types.WeeklyReviewResponse{Data: weeklyreview.ProtoToWeeklyReview(saveResp.Review)}
+		data, _ := json.Marshal(resp)
+		writeMu.Lock()
+		fmt.Fprintf(w, "event: complete\ndata: %s\n\n", data)
+		flush()
+		writeMu.Unlock()
+		logx.WithContext(r.Context()).Infof("SSE stream: complete event sent after %d deltas, %d chars, %v elapsed", deltaCount, totalDeltaChars, time.Since(streamStart))
 	}
 }
 

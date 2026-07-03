@@ -34,7 +34,7 @@ func (l *ShareArticleLogic) ShareArticle(req *types.ShareArticleRequest) (resp *
 		return nil, nil
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.ShareArticle(l.ctx, &clientarticles.ShareArticleRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.ShareArticle(l.ctx, &clientarticles.ShareArticleRequest{
 		ArticleId: req.Id,
 		UserId:    p.UserID,
 		Platform:  req.Platform,

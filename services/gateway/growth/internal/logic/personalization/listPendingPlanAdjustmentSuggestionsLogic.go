@@ -37,7 +37,7 @@ func (l *ListPendingPlanAdjustmentSuggestionsLogic) ListPendingPlanAdjustmentSug
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.ListPendingPlanAdjustmentSuggestions(l.ctx, &clientpersonalization.ListPendingPlanAdjustmentSuggestionsRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.ListPendingPlanAdjustmentSuggestions(l.ctx, &clientpersonalization.ListPendingPlanAdjustmentSuggestionsRequest{
 		UserId: principal.UserID,
 		Limit:  20,
 		Offset: 0,

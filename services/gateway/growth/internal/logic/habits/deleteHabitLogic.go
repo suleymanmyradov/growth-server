@@ -25,7 +25,7 @@ func NewDeleteHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Delet
 }
 
 func (l *DeleteHabitLogic) DeleteHabit(req *types.HabitRequest) (resp *types.EmptyResponse, err error) {
-	_, err = l.svcCtx.HabitsRpc.DeleteHabit(l.ctx, &clienthabits.DeleteHabitRequest{
+	_, err = l.svcCtx.ClientRpc.Habits.DeleteHabit(l.ctx, &clienthabits.DeleteHabitRequest{
 		HabitId: req.Id,
 	})
 	if err != nil {

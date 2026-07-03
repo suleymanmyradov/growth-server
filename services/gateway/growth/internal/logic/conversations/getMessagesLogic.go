@@ -42,7 +42,7 @@ func (l *GetMessagesLogic) GetMessages(req *types.GetMessagesRequest) (resp *typ
 		limit = 50
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.GetMessages(l.ctx, &conversationservice.GetMessagesRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.GetMessages(l.ctx, &conversationservice.GetMessagesRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 		Page:           int32(page),

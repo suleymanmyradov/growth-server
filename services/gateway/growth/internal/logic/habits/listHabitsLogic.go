@@ -35,7 +35,7 @@ func (l *ListHabitsLogic) ListHabits(req *types.PageRequest) (resp *types.Habits
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.HabitsRpc.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Habits.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
 		Page:  int32(req.Page),
 		Limit: int32(req.Limit),
 	})

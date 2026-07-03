@@ -38,7 +38,7 @@ func (l *AppendMessageLogic) AppendMessage(req *types.AppendMessageRequest) (res
 		role = "user"
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.AppendMessage(l.ctx, &conversationservice.AppendMessageRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.AppendMessage(l.ctx, &conversationservice.AppendMessageRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 		Role:           role,

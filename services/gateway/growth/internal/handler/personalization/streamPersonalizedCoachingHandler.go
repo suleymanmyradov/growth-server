@@ -9,10 +9,12 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/personalization"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/conversationservice"
 	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
+	clientpb "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest/httpx"
 	"google.golang.org/grpc/codes"
@@ -54,9 +56,9 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 		// If a conversationId is provided, persist the user message before
 		// opening the stream so the message is saved even if streaming fails.
 		// Also fetch prior conversation history to give the LLM context.
-		var history []*clientpersonalization.HistoryMessage
+		var history []*clientpb.HistoryMessage
 		if req.ConversationId != "" {
-			if _, err := svcCtx.ConversationRpc.AppendMessage(r.Context(), &conversationservice.AppendMessageRequest{
+			if _, err := svcCtx.AICoachRpc.ConversationService.AppendMessage(r.Context(), &conversationservice.AppendMessageRequest{
 				ConversationId: req.ConversationId,
 				UserId:         p.UserID,
 				Role:           "user",
@@ -69,7 +71,7 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			// Fetch prior messages (before the one we just appended) so the
 			// LLM can see the conversation context. We exclude the latest
 			// user message since it's already passed as UserMessage.
-			if msgsResp, err := svcCtx.ConversationRpc.GetMessages(r.Context(), &conversationservice.GetMessagesRequest{
+			if msgsResp, err := svcCtx.AICoachRpc.ConversationService.GetMessages(r.Context(), &conversationservice.GetMessagesRequest{
 				ConversationId: req.ConversationId,
 				UserId:         p.UserID,
 				Page:           1,
@@ -85,7 +87,7 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 					msgs = msgs[:n-1]
 				}
 				for _, m := range msgs {
-					history = append(history, &clientpersonalization.HistoryMessage{
+					history = append(history, &clientpb.HistoryMessage{
 						Role:    m.Role,
 						Content: m.Content,
 					})
@@ -93,24 +95,35 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			}
 		}
 
-		// Open the client-rpc streaming RPC before writing any response, so a
-		// dial-time error can be surfaced as a proper HTTP status code rather
-		// than an in-band SSE error event after a committed 200.
+		// Fetch the personalization context from the client RPC (DB-backed)
+		// before opening the ai-coach stream, so a context-fetch error can be
+		// surfaced as a proper HTTP status code rather than an in-band SSE
+		// error event after a committed 200.
 		streamStart := time.Now()
-		logx.WithContext(r.Context()).Infof("SSE coaching stream: opening client-rpc stream for user=%s", p.UserID)
-		stream, err := svcCtx.PersonalizationRpc.StreamPersonalizedCoaching(r.Context(), &clientpersonalization.GeneratePersonalizedCoachingRequest{
-			UserId:         p.UserID,
-			UserMessage:    req.UserMessage,
-			Context:        req.Context,
-			ConversationId: req.ConversationId,
-			History:        history,
+		logx.WithContext(r.Context()).Infof("SSE coaching stream: fetching personalization context for user=%s", p.UserID)
+		contextResp, err := svcCtx.ClientRpc.PersonalizationService.GetPersonalizationContext(r.Context(), &clientpersonalization.GetPersonalizationContextRequest{
+			UserId:       p.UserID,
+			ForceRefresh: false,
 		})
 		if err != nil {
-			logx.WithContext(r.Context()).Errorf("SSE coaching stream: client-rpc stream open failed after %v: %v", time.Since(streamStart), err)
+			logx.WithContext(r.Context()).Errorf("SSE coaching stream: get personalization context failed after %v: %v", time.Since(streamStart), err)
 			errors.HandleGrpcError(w, err)
 			return
 		}
-		logx.WithContext(r.Context()).Infof("SSE coaching stream: client-rpc stream opened after %v", time.Since(streamStart))
+
+		// Build the ai-coach request from the context + user message + history.
+		aiReq := personalization.BuildPersonalizedCoachingRequest(p.UserID, req.UserMessage, history, contextResp.Context)
+
+		// Open the ai-coach streaming RPC directly (gateway orchestrates the
+		// cross-service flow; the client RPC no longer calls the ai-coach RPC).
+		logx.WithContext(r.Context()).Infof("SSE coaching stream: opening ai-coach stream for user=%s", p.UserID)
+		stream, err := svcCtx.AICoachRpc.AICoachService.StreamPersonalizedCoaching(r.Context(), aiReq)
+		if err != nil {
+			logx.WithContext(r.Context()).Errorf("SSE coaching stream: ai-coach stream open failed after %v: %v", time.Since(streamStart), err)
+			errors.HandleGrpcError(w, err)
+			return
+		}
+		logx.WithContext(r.Context()).Infof("SSE coaching stream: ai-coach stream opened after %v", time.Since(streamStart))
 
 		// Set SSE headers and commit a 200 now that the upstream stream is open.
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -180,7 +193,7 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 
 				// Persist the assistant response if a conversationId was provided.
 				if req.ConversationId != "" && chunk.FullResponse != "" {
-					if _, err := svcCtx.ConversationRpc.AppendMessage(r.Context(), &conversationservice.AppendMessageRequest{
+					if _, err := svcCtx.AICoachRpc.ConversationService.AppendMessage(r.Context(), &conversationservice.AppendMessageRequest{
 						ConversationId: req.ConversationId,
 						UserId:         p.UserID,
 						Role:           "assistant",

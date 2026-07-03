@@ -33,7 +33,7 @@ func (l *ArchiveConversationLogic) ArchiveConversation(req *types.ConversationRe
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.ArchiveConversation(l.ctx, &conversationservice.ArchiveConversationRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.ArchiveConversation(l.ctx, &conversationservice.ArchiveConversationRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 	})

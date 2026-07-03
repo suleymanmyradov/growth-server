@@ -41,7 +41,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(req *types.CreateCheckInRequest) (res
 		return nil, status.Error(codes.InvalidArgument, "status is required")
 	}
 
-	rpcResp, err := l.svcCtx.CheckInRpc.CreateCheckIn(l.ctx, &clientcheckin.CreateCheckInRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.CheckInService.CreateCheckIn(l.ctx, &clientcheckin.CreateCheckInRequest{
 		UserId:  p.UserID,
 		HabitId: req.HabitId,
 		Status:  req.Status,

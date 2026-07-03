@@ -34,7 +34,7 @@ func (l *SubmitReportLogic) SubmitReport(req *types.ReportRequest) (resp *types.
 		return &types.EmptyResponse{}, nil
 	}
 
-	_, err = l.svcCtx.ReportRpc.SubmitReport(l.ctx, &clientreport.SubmitReportRequest{
+	_, err = l.svcCtx.ClientRpc.Report.SubmitReport(l.ctx, &clientreport.SubmitReportRequest{
 		ReporterId:  p.UserID,
 		TargetType:  req.ItemType,
 		Category:    req.ItemType,

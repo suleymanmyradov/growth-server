@@ -42,7 +42,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesR
 		rpcReq.UserId = p.UserID
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.GetAuthorArticles(l.ctx, rpcReq)
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.GetAuthorArticles(l.ctx, rpcReq)
 	if err != nil {
 		return nil, err
 	}

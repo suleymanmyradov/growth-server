@@ -34,7 +34,7 @@ func (l *GetCheckInHistoryLogic) GetCheckInHistory(req *types.GetCheckInHistoryR
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.CheckInRpc.GetCheckInHistory(l.ctx, &clientcheckin.GetCheckInHistoryRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.CheckInService.GetCheckInHistory(l.ctx, &clientcheckin.GetCheckInHistoryRequest{
 		UserId:  p.UserID,
 		HabitId: req.HabitId,
 		Page:    int32(req.Page),

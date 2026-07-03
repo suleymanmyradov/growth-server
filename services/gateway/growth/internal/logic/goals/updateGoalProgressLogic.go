@@ -25,7 +25,7 @@ func NewUpdateGoalProgressLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *UpdateGoalProgressLogic) UpdateGoalProgress(req *types.UpdateProgressRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.GoalsRpc.UpdateGoalProgress(l.ctx, &clientgoals.UpdateGoalProgressRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.UpdateGoalProgress(l.ctx, &clientgoals.UpdateGoalProgressRequest{
 		GoalId:   req.Id,
 		Progress: int32(req.Progress),
 	})

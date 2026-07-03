@@ -25,7 +25,7 @@ func NewToggleGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Toggle
 }
 
 func (l *ToggleGoalLogic) ToggleGoal(req *types.GoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.GoalsRpc.ToggleGoal(l.ctx, &clientgoals.ToggleGoalRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.ToggleGoal(l.ctx, &clientgoals.ToggleGoalRequest{
 		GoalId: req.Id,
 	})
 	if err != nil {

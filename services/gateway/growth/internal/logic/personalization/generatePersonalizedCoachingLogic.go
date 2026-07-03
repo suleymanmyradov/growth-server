@@ -4,16 +4,16 @@
 package personalization
 
 import (
-	"google.golang.org/grpc/status"
-	"google.golang.org/grpc/codes"
 	"context"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
 
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type GeneratePersonalizedCoachingLogic struct {
@@ -31,22 +31,37 @@ func NewGeneratePersonalizedCoachingLogic(ctx context.Context, svcCtx *svc.Servi
 }
 
 func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(req *types.GeneratePersonalizedCoachingRequest) (resp *types.GeneratePersonalizedCoachingResponse, err error) {
-	principal, ok := principal.PrincipalFrom(l.ctx)
+	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.GeneratePersonalizedCoaching(l.ctx, &clientpersonalization.GeneratePersonalizedCoachingRequest{
-		UserId:      principal.UserID,
-		UserMessage: req.UserMessage,
-		Context:     req.Context,
+	// Fetch the personalization context from the client RPC (DB-backed).
+	contextResp, err := l.svcCtx.ClientRpc.PersonalizationService.GetPersonalizationContext(l.ctx, &clientpersonalization.GetPersonalizationContextRequest{
+		UserId:       p.UserID,
+		ForceRefresh: false,
 	})
 	if err != nil {
-		return nil, err
+		l.Errorf("failed to get personalization context: %v", err)
+		return nil, status.Error(codes.Internal, "failed to get personalization context")
+	}
+
+	// Build the ai-coach request from the context + user message.
+	aiReq := BuildPersonalizedCoachingRequest(p.UserID, req.UserMessage, nil, contextResp.Context)
+
+	// Call the ai-coach RPC directly (gateway orchestrates cross-service flow).
+	aiResp, aiErr := l.svcCtx.AICoachRpc.AICoachService.GeneratePersonalizedCoaching(l.ctx, aiReq)
+
+	coachingResponse := ""
+	if aiErr != nil {
+		l.Errorf("AI generation failed: %v", aiErr)
+		coachingResponse = "I couldn't generate a full coaching response right now, but based on your recent activity, pick one small action you can complete today and keep it easy. Small consistent actions build momentum over time."
+	} else {
+		coachingResponse = aiResp.CoachingResponse
 	}
 
 	return &types.GeneratePersonalizedCoachingResponse{
-		CoachingResponse: rpcResp.CoachingResponse,
+		CoachingResponse: coachingResponse,
 		Context:          req.Context,
 	}, nil
 }

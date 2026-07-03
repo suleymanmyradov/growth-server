@@ -43,11 +43,6 @@ func (s *SettingsServer) UpdatePreferences(ctx context.Context, in *client.Updat
 	return l.UpdatePreferences(in)
 }
 
-func (s *SettingsServer) UploadAvatar(ctx context.Context, in *client.UploadAvatarRequest) (*client.UploadAvatarResponse, error) {
-	l := settingslogic.NewUploadAvatarLogic(ctx, s.svcCtx)
-	return l.UploadAvatar(in)
-}
-
 func (s *SettingsServer) DeleteAccount(ctx context.Context, in *client.DeleteAccountRequest) (*client.DeleteAccountResponse, error) {
 	l := settingslogic.NewDeleteAccountLogic(ctx, s.svcCtx)
 	return l.DeleteAccount(in)

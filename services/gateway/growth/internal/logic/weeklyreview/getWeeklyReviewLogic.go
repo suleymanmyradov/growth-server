@@ -33,7 +33,7 @@ func (l *GetWeeklyReviewLogic) GetWeeklyReview(weekStart string) (resp *types.We
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
 
-	rpcResp, err := l.svcCtx.WeeklyReviewRpc.GetWeeklyReview(l.ctx, &clientweeklyreview.GetWeeklyReviewRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.WeeklyReviewService.GetWeeklyReview(l.ctx, &clientweeklyreview.GetWeeklyReviewRequest{
 		UserId:    p.UserID,
 		WeekStart: weekStart,
 	})

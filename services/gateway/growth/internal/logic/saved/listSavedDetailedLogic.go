@@ -36,7 +36,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 	}
 
 	// 1. Get saved items
-	rpcResp, err := l.svcCtx.SavedRpc.ListSaved(l.ctx, &clientsaved.ListSavedRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Saved.ListSaved(l.ctx, &clientsaved.ListSavedRequest{
 		Limit:  int32(req.Limit),
 		Offset: int32((req.Page - 1) * req.Limit),
 	})
@@ -53,13 +53,13 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		habitsResp, habitsErr = l.svcCtx.HabitsRpc.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
+		habitsResp, habitsErr = l.svcCtx.ClientRpc.Habits.ListHabits(l.ctx, &clienthabits.ListHabitsRequest{
 			Limit: 1000,
 		})
 	}()
 	go func() {
 		defer wg.Done()
-		goalsResp, goalsErr = l.svcCtx.GoalsRpc.ListGoals(l.ctx, &clientgoals.ListGoalsRequest{
+		goalsResp, goalsErr = l.svcCtx.ClientRpc.Goals.ListGoals(l.ctx, &clientgoals.ListGoalsRequest{
 			Limit: 1000,
 		})
 	}()
@@ -90,7 +90,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 			articleWg.Add(1)
 			go func(id string) {
 				defer articleWg.Done()
-				articleResp, err := l.svcCtx.ArticlesRpc.GetArticle(l.ctx, &pbclient.GetArticleRequest{ArticleId: id})
+				articleResp, err := l.svcCtx.ClientRpc.Articles.GetArticle(l.ctx, &pbclient.GetArticleRequest{ArticleId: id})
 				if err != nil || articleResp == nil {
 					return
 				}

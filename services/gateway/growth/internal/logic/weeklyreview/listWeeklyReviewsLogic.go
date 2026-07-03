@@ -33,7 +33,7 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(req *types.PageRequest) (resp
 		return nil, status.Error(codes.Unauthenticated, "not authenticated")
 	}
 
-	rpcResp, err := l.svcCtx.WeeklyReviewRpc.ListWeeklyReviews(l.ctx, &clientweeklyreview.ListWeeklyReviewsRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.WeeklyReviewService.ListWeeklyReviews(l.ctx, &clientweeklyreview.ListWeeklyReviewsRequest{
 		UserId: p.UserID,
 		Page:   int32(req.Page),
 		Limit:  int32(req.Limit),

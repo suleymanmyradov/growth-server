@@ -38,7 +38,7 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile() (resp *types.CoachingProf
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.GetCoachingProfile(l.ctx, &clientpersonalization.GetCoachingProfileRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.GetCoachingProfile(l.ctx, &clientpersonalization.GetCoachingProfileRequest{
 		UserId: principal.UserID,
 	})
 	if err != nil {

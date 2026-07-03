@@ -25,7 +25,7 @@ func NewCreateCheckoutSessionLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *CreateCheckoutSessionLogic) CreateCheckoutSession(req *types.CreateCheckoutSessionRequest) (resp *types.CreateCheckoutSessionResponse, err error) {
-	rpcResp, err := l.svcCtx.BillingRpc.CreateCheckoutSession(l.ctx, &clientbilling.CreateCheckoutSessionRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.BillingService.CreateCheckoutSession(l.ctx, &clientbilling.CreateCheckoutSessionRequest{
 		PlanCode:        req.PlanCode,
 		BillingInterval: req.BillingInterval,
 	})
