@@ -34,7 +34,7 @@ func (l *ResetTodayHabitsLogic) ResetTodayHabits() (resp *types.EmptyResponse, e
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	_, err = l.svcCtx.HabitsRpc.ResetTodayHabits(l.ctx, &clienthabits.ResetTodayHabitsRequest{})
+	_, err = l.svcCtx.ClientRpc.Habits.ResetTodayHabits(l.ctx, &clienthabits.ResetTodayHabitsRequest{})
 	if err != nil {
 		return nil, err
 	}

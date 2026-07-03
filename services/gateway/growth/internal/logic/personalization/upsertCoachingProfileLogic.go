@@ -42,7 +42,7 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(req *types.UpsertCoac
 		return nil, err
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.UpsertCoachingProfile(l.ctx, &clientpersonalization.UpsertCoachingProfileRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.UpsertCoachingProfile(l.ctx, &clientpersonalization.UpsertCoachingProfileRequest{
 		UserId:               principal.UserID,
 		AccountabilityStyle:  req.AccountabilityStyle,
 		PreferredTone:        req.PreferredTone,

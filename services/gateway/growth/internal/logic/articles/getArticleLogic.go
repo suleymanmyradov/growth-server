@@ -49,7 +49,7 @@ func (l *GetArticleLogic) GetArticle(req *types.ArticleRequest) (resp *types.Art
 		rpcReq.UserId = p.UserID
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.GetArticle(l.ctx, rpcReq)
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.GetArticle(l.ctx, rpcReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get article from rpc: %w", err)
 	}

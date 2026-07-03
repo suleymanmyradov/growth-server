@@ -165,16 +165,6 @@ message GetReportCategoriesResponse {
   repeated ReportCategory categories = 1;
 }
 
-message UploadAttachmentRequest {
-  string reportId = 1;
-  string filename = 2;
-  bytes data = 3;
-}
-
-message UploadAttachmentResponse {
-  string attachmentUrl = 1;
-}
-
 message GetReportStatusRequest {
   string reportId = 1;
 }
@@ -225,7 +215,6 @@ service Report {
   rpc ListReports(ListReportsRequest) returns (ListReportsResponse);
   rpc UpdateReport(UpdateReportRequest) returns (UpdateReportResponse);
   rpc GetReportCategories(GetReportCategoriesRequest) returns (GetReportCategoriesResponse);
-  rpc UploadAttachment(UploadAttachmentRequest) returns (UploadAttachmentResponse);
   rpc GetReportStatus(GetReportStatusRequest) returns (GetReportStatusResponse);
   rpc CloseReport(CloseReportRequest) returns (CloseReportResponse);
   rpc AddReportComment(AddReportCommentRequest) returns (AddReportCommentResponse);
@@ -434,16 +423,6 @@ message UpdatePreferencesResponse {
   bool success = 1;
 }
 
-message UploadAvatarRequest {
-  string userId = 1;
-  bytes imageData = 2;
-  string format = 3;
-}
-
-message UploadAvatarResponse {
-  string avatarUrl = 1;
-}
-
 message DeleteAccountRequest {
   string userId = 1;
   string reason = 2;
@@ -493,7 +472,6 @@ service Settings {
   rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
   rpc GetPreferences(GetPreferencesRequest) returns (GetPreferencesResponse);
   rpc UpdatePreferences(UpdatePreferencesRequest) returns (UpdatePreferencesResponse);
-  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse);
   rpc DeleteAccount(DeleteAccountRequest) returns (DeleteAccountResponse);
   rpc ExportData(ExportDataRequest) returns (ExportDataResponse);
   rpc GetPrivacySettings(GetPrivacySettingsRequest) returns (GetPrivacySettingsResponse);
@@ -1046,21 +1024,84 @@ message WeeklyReview {
   int64 generatedAt = 18;
 }
 
-message GenerateWeeklyReviewRequest {
+// PrepareWeeklyReview computes the stats, patterns, and coaching preferences
+// needed to build an AI weekly review request. If a cached review already
+// exists (and forceRegenerate is false), it returns the existing review in
+// existingReview and leaves data empty. If forceRegenerate is true and a
+// cooldown is active, it returns a ResourceExhausted error.
+message PrepareWeeklyReviewRequest {
   string userId = 1;
   string weekStart = 2; // optional, YYYY-MM-DD. Defaults to current week start.
   bool forceRegenerate = 3;
 }
 
-message GenerateWeeklyReviewResponse {
-  WeeklyReview review = 1;
+// PreparedBlockerStat / PreparedMoodStat / PreparedEnergyStat carry the raw
+// breakdown stats for both the AI prompt and DB persistence.
+message PreparedBlockerStat {
+  string blocker = 1;
+  int32 count = 2;
 }
 
-message WeeklyReviewStreamChunk {
-  string delta = 1;              // text delta (summary text as it's generated)
-  bool complete = 2;             // true when the stream is finished
-  WeeklyReview review = 3;       // full review object (only set when complete=true)
-  bool finalizing = 4;           // true when text is done, backend is parsing JSON
+message PreparedMoodStat {
+  string mood = 1;
+  int32 count = 2;
+}
+
+message PreparedEnergyStat {
+  string energy = 1;
+  int32 count = 2;
+}
+
+// PreparedWeeklyReviewData carries everything the gateway needs to build the
+// ai-coach request and, after the AI responds, persist the review via
+// SaveWeeklyReview.
+message PreparedWeeklyReviewData {
+  string userId = 1;
+  string weekStart = 2;         // YYYY-MM-DD
+  // Coaching preferences
+  string accountabilityStyle = 3;
+  string preferredTone = 4;
+  string difficultyPreference = 5;
+  repeated string commonBlockers = 6;
+  repeated string goals = 7;
+  // Computed stats
+  int32 totalHabits = 8;
+  double completionRate = 9;
+  int32 completedCheckIns = 10;
+  int32 missedCheckIns = 11;
+  string bestDay = 12;
+  string hardestDay = 13;
+  string topBlocker = 14;
+  repeated WeeklyReviewHabitBreakdown habitBreakdowns = 15;
+  repeated PreparedBlockerStat blockerStats = 16;
+  repeated PreparedMoodStat moodStats = 17;
+  repeated PreparedEnergyStat energyStats = 18;
+  repeated string detectedPatterns = 19;
+  // For DB persistence
+  map<string, int32> moodSummary = 20;
+  map<string, int32> energySummary = 21;
+}
+
+message PrepareWeeklyReviewResponse {
+  // If non-null, a cached review already exists; the caller should return it
+  // directly without calling the AI.
+  WeeklyReview existingReview = 1;
+  // If non-null, the data needed to build the AI request and persist the result.
+  PreparedWeeklyReviewData data = 2;
+}
+
+// SaveWeeklyReview persists the AI-generated weekly review. The gateway calls
+// this after receiving the AI response (from GenerateWeeklyReview or
+// StreamWeeklyReview on the ai-coach RPC).
+message SaveWeeklyReviewRequest {
+  PreparedWeeklyReviewData data = 1;
+  string aiSummary = 2;
+  repeated WeeklyReviewAdjustment suggestedAdjustments = 3;
+  WeeklyReviewNextWeekPlan nextWeekPlan = 4;
+}
+
+message SaveWeeklyReviewResponse {
+  WeeklyReview review = 1;
 }
 
 message GetWeeklyReviewRequest {
@@ -1092,8 +1133,8 @@ message ListWeeklyReviewsResponse {
 }
 
 service WeeklyReviewService {
-  rpc GenerateWeeklyReview(GenerateWeeklyReviewRequest) returns (GenerateWeeklyReviewResponse);
-  rpc StreamWeeklyReview(GenerateWeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
+  rpc PrepareWeeklyReview(PrepareWeeklyReviewRequest) returns (PrepareWeeklyReviewResponse);
+  rpc SaveWeeklyReview(SaveWeeklyReviewRequest) returns (SaveWeeklyReviewResponse);
   rpc GetWeeklyReview(GetWeeklyReviewRequest) returns (GetWeeklyReviewResponse);
   rpc GetCurrentWeeklyReview(GetCurrentWeeklyReviewRequest) returns (GetCurrentWeeklyReviewResponse);
   rpc ListWeeklyReviews(ListWeeklyReviewsRequest) returns (ListWeeklyReviewsResponse);
@@ -1241,29 +1282,11 @@ message ApplyPlanAdjustmentSuggestionResponse {
   bool success = 2;
 }
 
-message GeneratePersonalizedCoachingRequest {
-  string userId = 1;
-  string userMessage = 2;
-  string context = 3;
-  string conversationId = 4;        // optional: used to fetch conversation history
-  repeated HistoryMessage history = 5;  // prior conversation messages (oldest first)
-}
-
-// HistoryMessage is a single prior message in a conversation.
+// HistoryMessage is a single prior message in a conversation. Used by the
+// gateway to build coaching history before calling the ai-coach RPC.
 message HistoryMessage {
   string role = 1;     // "user" | "assistant"
   string content = 2;
-}
-
-message GeneratePersonalizedCoachingResponse {
-  string coachingResponse = 1;
-  PersonalizationContext context = 2;
-}
-
-message PersonalizedCoachingStreamChunk {
-  string delta = 1;              // text delta (coaching response as it's generated)
-  bool complete = 2;             // true when the stream is finished
-  string fullResponse = 3;       // full coaching response (only set when complete=true)
 }
 
 service PersonalizationService {
@@ -1275,8 +1298,6 @@ service PersonalizationService {
   rpc ListPendingPlanAdjustmentSuggestions(ListPendingPlanAdjustmentSuggestionsRequest) returns (ListPendingPlanAdjustmentSuggestionsResponse);
   rpc UpdatePlanAdjustmentSuggestionStatus(UpdatePlanAdjustmentSuggestionStatusRequest) returns (UpdatePlanAdjustmentSuggestionStatusResponse);
   rpc ApplyPlanAdjustmentSuggestion(ApplyPlanAdjustmentSuggestionRequest) returns (ApplyPlanAdjustmentSuggestionResponse);
-  rpc GeneratePersonalizedCoaching(GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse);
-  rpc StreamPersonalizedCoaching(GeneratePersonalizedCoachingRequest) returns (stream PersonalizedCoachingStreamChunk);
 }
 
 // Billing Service

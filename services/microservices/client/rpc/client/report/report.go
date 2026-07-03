@@ -32,8 +32,6 @@ type (
 	SubmitReportResponse        = client.SubmitReportResponse
 	UpdateReportRequest         = client.UpdateReportRequest
 	UpdateReportResponse        = client.UpdateReportResponse
-	UploadAttachmentRequest     = client.UploadAttachmentRequest
-	UploadAttachmentResponse    = client.UploadAttachmentResponse
 
 	Report interface {
 		SubmitReport(ctx context.Context, in *SubmitReportRequest, opts ...grpc.CallOption) (*SubmitReportResponse, error)
@@ -41,7 +39,6 @@ type (
 		ListReports(ctx context.Context, in *ListReportsRequest, opts ...grpc.CallOption) (*ListReportsResponse, error)
 		UpdateReport(ctx context.Context, in *UpdateReportRequest, opts ...grpc.CallOption) (*UpdateReportResponse, error)
 		GetReportCategories(ctx context.Context, in *GetReportCategoriesRequest, opts ...grpc.CallOption) (*GetReportCategoriesResponse, error)
-		UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error)
 		GetReportStatus(ctx context.Context, in *GetReportStatusRequest, opts ...grpc.CallOption) (*GetReportStatusResponse, error)
 		CloseReport(ctx context.Context, in *CloseReportRequest, opts ...grpc.CallOption) (*CloseReportResponse, error)
 		AddReportComment(ctx context.Context, in *AddReportCommentRequest, opts ...grpc.CallOption) (*AddReportCommentResponse, error)
@@ -82,11 +79,6 @@ func (m *defaultReport) UpdateReport(ctx context.Context, in *UpdateReportReques
 func (m *defaultReport) GetReportCategories(ctx context.Context, in *GetReportCategoriesRequest, opts ...grpc.CallOption) (*GetReportCategoriesResponse, error) {
 	client := client.NewReportClient(m.cli.Conn())
 	return client.GetReportCategories(ctx, in, opts...)
-}
-
-func (m *defaultReport) UploadAttachment(ctx context.Context, in *UploadAttachmentRequest, opts ...grpc.CallOption) (*UploadAttachmentResponse, error) {
-	client := client.NewReportClient(m.cli.Conn())
-	return client.UploadAttachment(ctx, in, opts...)
 }
 
 func (m *defaultReport) GetReportStatus(ctx context.Context, in *GetReportStatusRequest, opts ...grpc.CallOption) (*GetReportStatusResponse, error) {

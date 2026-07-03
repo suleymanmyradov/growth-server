@@ -25,7 +25,7 @@ func NewTrackUpgradeEventLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 }
 
 func (l *TrackUpgradeEventLogic) TrackUpgradeEvent(req *types.TrackUpgradeEventRequest) (resp *types.TrackUpgradeEventResponse, err error) {
-	rpcResp, err := l.svcCtx.BillingRpc.TrackUpgradeEvent(l.ctx, &clientbilling.TrackUpgradeEventRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.BillingService.TrackUpgradeEvent(l.ctx, &clientbilling.TrackUpgradeEventRequest{
 		EventType:       req.EventType,
 		Surface:         req.Surface,
 		Trigger:         req.Trigger,

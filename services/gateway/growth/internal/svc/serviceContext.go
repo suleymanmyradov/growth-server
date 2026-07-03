@@ -13,21 +13,9 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/conversationservice"
+	aicoachrpc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	clientactivity "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
-	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
-	clientbilling "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
-	clientcategories "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/categories"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
-	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
-	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
-	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
-	clientreport "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/report"
-	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
-	clientsettings "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
-	clientweeklyreview "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	clientrpc "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/notificationsClient"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
@@ -37,29 +25,17 @@ import (
 )
 
 type ServiceContext struct {
-	Config             config.Config
-	Auth               rest.Middleware
-	RateLimit          rest.Middleware
-	TokenMaker         *jwt.TokenMaker
-	AuthRpc            authservice.AuthService
-	NotificationsRpc   notificationsClient.Notifications
-	SavedRpc           clientsaved.Saved
-	SettingsRpc        clientsettings.Settings
-	ReportRpc          clientreport.Report
-	SearchRpc          searchservice.SearchService
-	HabitsRpc          clienthabits.Habits
-	GoalsRpc           clientgoals.Goals
-	CategoriesRpc      clientcategories.Categories
-	ArticlesRpc        clientarticles.Articles
-	CheckInRpc         checkinservice.CheckInService
-	ActivityRpc        clientactivity.Activity
-	WeeklyReviewRpc    clientweeklyreview.WeeklyReviewService
-	PersonalizationRpc clientpersonalization.PersonalizationService
-	BillingRpc         clientbilling.BillingService
-	AICoachRpc         aicoachservice.AICoachService
-	ConversationRpc    conversationservice.ConversationService
-	FileManagerRpc     fileManagerClient.FileManager
-	StripeClient       *stripe.Client
+	Config           config.Config
+	Auth             rest.Middleware
+	RateLimit        rest.Middleware
+	TokenMaker       *jwt.TokenMaker
+	AuthRpc          authservice.AuthService
+	NotificationsRpc notificationsClient.Notifications
+	ClientRpc        *clientrpc.Service
+	SearchRpc        searchservice.SearchService
+	AICoachRpc       *aicoachrpc.Service
+	FileManagerRpc   fileManagerClient.FileManager
+	StripeClient     *stripe.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -92,6 +68,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...))
+	clientRpc := clientrpc.NewClientService(zrpc.MustNewClient(c.ClientRpc, baseOpts...))
+	aiCoachRpc := aicoachrpc.NewAICoachClientService(
+		zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...),
+		zrpc.MustNewClient(c.AICoachRpc, baseOpts...),
+	)
 	var stripeClient *stripe.Client
 	if c.Billing.StripeSecretKey != "" {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
@@ -115,26 +96,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Issuer:   c.Auth.Issuer,
 			Audience: c.Auth.Audience,
 		}),
-		TokenMaker:         tokenMaker,
-		RateLimit:          middleware.RateLimitMiddleware(limiters),
-		AuthRpc:            authRpc,
-		NotificationsRpc:   notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),
-		SavedRpc:           clientsaved.NewSaved(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		SettingsRpc:        clientsettings.NewSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		ReportRpc:          clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		SearchRpc:          searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
-		HabitsRpc:          clienthabits.NewHabits(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		GoalsRpc:           clientgoals.NewGoals(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		CategoriesRpc:      clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		ArticlesRpc:        clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		CheckInRpc:         checkinservice.NewCheckInService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		ActivityRpc:        clientactivity.NewActivity(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		WeeklyReviewRpc:    clientweeklyreview.NewWeeklyReviewService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
-		PersonalizationRpc: clientpersonalization.NewPersonalizationService(zrpc.MustNewClient(c.ClientRpc, aiCoachOpts...)),
-		BillingRpc:         clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		AICoachRpc:         aicoachservice.NewAICoachService(zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...)),
-		ConversationRpc:    conversationservice.NewConversationService(zrpc.MustNewClient(c.AICoachRpc, baseOpts...)),
-		FileManagerRpc:     fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
-		StripeClient:       stripeClient,
+		TokenMaker:       tokenMaker,
+		RateLimit:        middleware.RateLimitMiddleware(limiters),
+		AuthRpc:          authRpc,
+		NotificationsRpc: notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),
+		ClientRpc:        clientRpc,
+		SearchRpc:        searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
+		AICoachRpc:       aiCoachRpc,
+		FileManagerRpc:   fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
+		StripeClient:     stripeClient,
 	}
 }

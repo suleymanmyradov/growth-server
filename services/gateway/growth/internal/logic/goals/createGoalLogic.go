@@ -41,7 +41,7 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 		return nil, status.Error(codes.InvalidArgument, "category is required")
 	}
 
-	rpcResp, err := l.svcCtx.GoalsRpc.CreateGoal(l.ctx, &clientgoals.CreateGoalRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.CreateGoal(l.ctx, &clientgoals.CreateGoalRequest{
 		Title:           req.Title,
 		Description:     req.Description,
 		Category:        req.Category,

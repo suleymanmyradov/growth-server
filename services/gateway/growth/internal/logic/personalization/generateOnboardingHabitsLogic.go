@@ -38,7 +38,7 @@ func (l *GenerateOnboardingHabitsLogic) GenerateOnboardingHabits(req *types.Gene
 		style = "balanced"
 	}
 
-	rpcResp, err := l.svcCtx.AICoachRpc.GenerateOnboardingHabits(l.ctx, &aicoachservice.GenerateOnboardingHabitsRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.AICoachService.GenerateOnboardingHabits(l.ctx, &aicoachservice.GenerateOnboardingHabitsRequest{
 		UserId:              p.UserID,
 		GoalTitle:           req.GoalTitle,
 		GoalCategory:        req.GoalCategory,

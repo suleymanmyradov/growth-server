@@ -34,7 +34,7 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(req *types.GetTodayCheckInsRequ
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.CheckInRpc.GetTodayCheckIns(l.ctx, &clientcheckin.GetTodayCheckInsRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.CheckInService.GetTodayCheckIns(l.ctx, &clientcheckin.GetTodayCheckInsRequest{
 		UserId: p.UserID,
 	})
 	if err != nil {

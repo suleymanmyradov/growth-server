@@ -35,7 +35,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(req *types.UpdateSettingsRequest) (
 		return &types.SettingsResponse{Data: types.Settings{}}, nil
 	}
 
-	_, err = l.svcCtx.SettingsRpc.UpdateSettings(l.ctx, &clientsettings.UpdateSettingsRequest{
+	_, err = l.svcCtx.ClientRpc.Settings.UpdateSettings(l.ctx, &clientsettings.UpdateSettingsRequest{
 		Settings: &client.UserSettings{
 			Theme:               req.Theme,
 			Language:            req.Language,

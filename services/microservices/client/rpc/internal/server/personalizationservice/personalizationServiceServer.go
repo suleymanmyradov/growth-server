@@ -62,13 +62,3 @@ func (s *PersonalizationServiceServer) ApplyPlanAdjustmentSuggestion(ctx context
 	l := personalizationservicelogic.NewApplyPlanAdjustmentSuggestionLogic(ctx, s.svcCtx)
 	return l.ApplyPlanAdjustmentSuggestion(in)
 }
-
-func (s *PersonalizationServiceServer) GeneratePersonalizedCoaching(ctx context.Context, in *client.GeneratePersonalizedCoachingRequest) (*client.GeneratePersonalizedCoachingResponse, error) {
-	l := personalizationservicelogic.NewGeneratePersonalizedCoachingLogic(ctx, s.svcCtx)
-	return l.GeneratePersonalizedCoaching(in)
-}
-
-func (s *PersonalizationServiceServer) StreamPersonalizedCoaching(in *client.GeneratePersonalizedCoachingRequest, stream client.PersonalizationService_StreamPersonalizedCoachingServer) error {
-	l := personalizationservicelogic.NewStreamPersonalizedCoachingLogic(stream.Context(), s.svcCtx)
-	return l.StreamPersonalizedCoaching(in, stream)
-}

@@ -39,7 +39,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(req *types.Ge
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.GetPersonalizationContext(l.ctx, &clientpersonalization.GetPersonalizationContextRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.GetPersonalizationContext(l.ctx, &clientpersonalization.GetPersonalizationContextRequest{
 		UserId:       principal.UserID,
 		ForceRefresh: req.ForceRefresh,
 	})

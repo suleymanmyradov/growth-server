@@ -37,7 +37,7 @@ func (l *UpdatePlanAdjustmentSuggestionStatusLogic) UpdatePlanAdjustmentSuggesti
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.UpdatePlanAdjustmentSuggestionStatus(l.ctx, &clientpersonalization.UpdatePlanAdjustmentSuggestionStatusRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus(l.ctx, &clientpersonalization.UpdatePlanAdjustmentSuggestionStatusRequest{
 		SuggestionId: req.Id,
 		UserId:       principal.UserID,
 		Status:       req.Status,

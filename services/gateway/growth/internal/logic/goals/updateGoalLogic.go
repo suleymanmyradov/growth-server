@@ -25,7 +25,7 @@ func NewUpdateGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 }
 
 func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.GoalsRpc.UpdateGoal(l.ctx, &clientgoals.UpdateGoalRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.UpdateGoal(l.ctx, &clientgoals.UpdateGoalRequest{
 		GoalId:          req.Id,
 		Title:           req.Title,
 		Description:     req.Description,

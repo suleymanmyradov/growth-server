@@ -48,7 +48,7 @@ func (l *UpdateArticleLogic) UpdateArticle(req *types.UpdateArticleRequest) (res
 		CategoryId: req.CategoryId,
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.UpdateArticle(l.ctx, rpcReq)
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.UpdateArticle(l.ctx, rpcReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update article via rpc: %w", err)
 	}

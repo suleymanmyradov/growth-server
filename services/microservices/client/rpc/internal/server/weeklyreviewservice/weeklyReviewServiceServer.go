@@ -23,14 +23,14 @@ func NewWeeklyReviewServiceServer(svcCtx *svc.ServiceContext) *WeeklyReviewServi
 	}
 }
 
-func (s *WeeklyReviewServiceServer) GenerateWeeklyReview(ctx context.Context, in *client.GenerateWeeklyReviewRequest) (*client.GenerateWeeklyReviewResponse, error) {
-	l := weeklyreviewservicelogic.NewGenerateWeeklyReviewLogic(ctx, s.svcCtx)
-	return l.GenerateWeeklyReview(in)
+func (s *WeeklyReviewServiceServer) PrepareWeeklyReview(ctx context.Context, in *client.PrepareWeeklyReviewRequest) (*client.PrepareWeeklyReviewResponse, error) {
+	l := weeklyreviewservicelogic.NewPrepareWeeklyReviewLogic(ctx, s.svcCtx)
+	return l.PrepareWeeklyReview(in)
 }
 
-func (s *WeeklyReviewServiceServer) StreamWeeklyReview(in *client.GenerateWeeklyReviewRequest, stream client.WeeklyReviewService_StreamWeeklyReviewServer) error {
-	l := weeklyreviewservicelogic.NewStreamWeeklyReviewLogic(stream.Context(), s.svcCtx)
-	return l.StreamWeeklyReview(in, stream)
+func (s *WeeklyReviewServiceServer) SaveWeeklyReview(ctx context.Context, in *client.SaveWeeklyReviewRequest) (*client.SaveWeeklyReviewResponse, error) {
+	l := weeklyreviewservicelogic.NewSaveWeeklyReviewLogic(ctx, s.svcCtx)
+	return l.SaveWeeklyReview(in)
 }
 
 func (s *WeeklyReviewServiceServer) GetWeeklyReview(ctx context.Context, in *client.GetWeeklyReviewRequest) (*client.GetWeeklyReviewResponse, error) {

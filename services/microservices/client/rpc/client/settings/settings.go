@@ -30,15 +30,12 @@ type (
 	UpdatePrivacySettingsResponse = client.UpdatePrivacySettingsResponse
 	UpdateSettingsRequest         = client.UpdateSettingsRequest
 	UpdateSettingsResponse        = client.UpdateSettingsResponse
-	UploadAvatarRequest           = client.UploadAvatarRequest
-	UploadAvatarResponse          = client.UploadAvatarResponse
 
 	Settings interface {
 		GetSettings(ctx context.Context, in *GetSettingsRequest, opts ...grpc.CallOption) (*GetSettingsResponse, error)
 		UpdateSettings(ctx context.Context, in *UpdateSettingsRequest, opts ...grpc.CallOption) (*UpdateSettingsResponse, error)
 		GetPreferences(ctx context.Context, in *GetPreferencesRequest, opts ...grpc.CallOption) (*GetPreferencesResponse, error)
 		UpdatePreferences(ctx context.Context, in *UpdatePreferencesRequest, opts ...grpc.CallOption) (*UpdatePreferencesResponse, error)
-		UploadAvatar(ctx context.Context, in *UploadAvatarRequest, opts ...grpc.CallOption) (*UploadAvatarResponse, error)
 		DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error)
 		ExportData(ctx context.Context, in *ExportDataRequest, opts ...grpc.CallOption) (*ExportDataResponse, error)
 		GetPrivacySettings(ctx context.Context, in *GetPrivacySettingsRequest, opts ...grpc.CallOption) (*GetPrivacySettingsResponse, error)
@@ -74,11 +71,6 @@ func (m *defaultSettings) GetPreferences(ctx context.Context, in *GetPreferences
 func (m *defaultSettings) UpdatePreferences(ctx context.Context, in *UpdatePreferencesRequest, opts ...grpc.CallOption) (*UpdatePreferencesResponse, error) {
 	client := client.NewSettingsClient(m.cli.Conn())
 	return client.UpdatePreferences(ctx, in, opts...)
-}
-
-func (m *defaultSettings) UploadAvatar(ctx context.Context, in *UploadAvatarRequest, opts ...grpc.CallOption) (*UploadAvatarResponse, error) {
-	client := client.NewSettingsClient(m.cli.Conn())
-	return client.UploadAvatar(ctx, in, opts...)
 }
 
 func (m *defaultSettings) DeleteAccount(ctx context.Context, in *DeleteAccountRequest, opts ...grpc.CallOption) (*DeleteAccountResponse, error) {

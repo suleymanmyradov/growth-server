@@ -41,7 +41,7 @@ func (l *CreateHabitLogic) CreateHabit(req *types.CreateHabitRequest) (resp *typ
 		return nil, status.Error(codes.InvalidArgument, "category is required")
 	}
 
-	rpcResp, err := l.svcCtx.HabitsRpc.CreateHabit(l.ctx, &clienthabits.CreateHabitRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Habits.CreateHabit(l.ctx, &clienthabits.CreateHabitRequest{
 		Name:        req.Name,
 		Description: req.Description,
 		Category:    req.Category,

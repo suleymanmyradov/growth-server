@@ -25,7 +25,7 @@ func NewGetBillingOverviewLogic(ctx context.Context, svcCtx *svc.ServiceContext)
 }
 
 func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverviewResponse, err error) {
-	rpcResp, err := l.svcCtx.BillingRpc.GetBillingOverview(l.ctx, &clientbilling.GetBillingOverviewRequest{})
+	rpcResp, err := l.svcCtx.ClientRpc.BillingService.GetBillingOverview(l.ctx, &clientbilling.GetBillingOverviewRequest{})
 	if err != nil {
 		return nil, err
 	}

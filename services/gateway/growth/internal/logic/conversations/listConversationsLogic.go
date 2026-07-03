@@ -42,7 +42,7 @@ func (l *ListConversationsLogic) ListConversations(req *types.ListConversationsR
 		limit = 20
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.ListConversations(l.ctx, &conversationservice.ListConversationsRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.ListConversations(l.ctx, &conversationservice.ListConversationsRequest{
 		UserId: p.UserID,
 		Type:   req.Type,
 		Page:   int32(page),

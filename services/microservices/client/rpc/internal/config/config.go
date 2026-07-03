@@ -20,8 +20,6 @@ type Config struct {
 		Brokers     []string
 		EventsTopic string
 	}
-	AICoachRpc     zrpc.RpcClientConf
-	FileManagerRpc zrpc.RpcClientConf
 	Billing        struct {
 		Mode                string `json:",optional"`
 		StripeSecretKey     string `json:",optional" secret:"true"`

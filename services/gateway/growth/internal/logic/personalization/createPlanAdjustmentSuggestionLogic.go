@@ -42,7 +42,7 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(req
 		return nil, err
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.CreatePlanAdjustmentSuggestion(l.ctx, &clientpersonalization.CreatePlanAdjustmentSuggestionRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.CreatePlanAdjustmentSuggestion(l.ctx, &clientpersonalization.CreatePlanAdjustmentSuggestionRequest{
 		UserId:         principal.UserID,
 		GoalId:         req.GoalId,
 		HabitId:        req.HabitId,

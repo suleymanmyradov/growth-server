@@ -38,7 +38,7 @@ func (l *StartConversationLogic) StartConversation(req *types.StartConversationR
 		convType = "coach"
 	}
 
-	rpcResp, err := l.svcCtx.ConversationRpc.StartConversation(l.ctx, &conversationservice.StartConversationRequest{
+	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.StartConversation(l.ctx, &conversationservice.StartConversationRequest{
 		UserId:          p.UserID,
 		Type:            convType,
 		Title:           req.Title,

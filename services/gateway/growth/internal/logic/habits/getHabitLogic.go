@@ -25,7 +25,7 @@ func NewGetHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetHabit
 }
 
 func (l *GetHabitLogic) GetHabit(req *types.HabitRequest) (resp *types.HabitResponse, err error) {
-	rpcResp, err := l.svcCtx.HabitsRpc.GetHabit(l.ctx, &clienthabits.GetHabitRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Habits.GetHabit(l.ctx, &clienthabits.GetHabitRequest{
 		HabitId: req.Id,
 	})
 	if err != nil {

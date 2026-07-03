@@ -28,7 +28,7 @@ func NewRemoveSavedLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Remov
 }
 
 func (l *RemoveSavedLogic) RemoveSaved(req *types.SavedItemRequest) (resp *types.EmptyResponse, err error) {
-	_, err = l.svcCtx.SavedRpc.RemoveSaved(l.ctx, &clientsaved.RemoveSavedRequest{
+	_, err = l.svcCtx.ClientRpc.Saved.RemoveSaved(l.ctx, &clientsaved.RemoveSavedRequest{
 		SavedId: req.Id,
 	})
 	if err != nil {

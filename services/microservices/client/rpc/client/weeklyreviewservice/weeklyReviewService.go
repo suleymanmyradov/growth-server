@@ -14,19 +14,20 @@ import (
 )
 
 type (
-	GenerateWeeklyReviewRequest    = client.GenerateWeeklyReviewRequest
-	GenerateWeeklyReviewResponse   = client.GenerateWeeklyReviewResponse
 	GetCurrentWeeklyReviewRequest  = client.GetCurrentWeeklyReviewRequest
 	GetCurrentWeeklyReviewResponse = client.GetCurrentWeeklyReviewResponse
 	GetWeeklyReviewRequest         = client.GetWeeklyReviewRequest
 	GetWeeklyReviewResponse        = client.GetWeeklyReviewResponse
 	ListWeeklyReviewsRequest       = client.ListWeeklyReviewsRequest
 	ListWeeklyReviewsResponse      = client.ListWeeklyReviewsResponse
-	WeeklyReviewStreamChunk        = client.WeeklyReviewStreamChunk
+	PrepareWeeklyReviewRequest     = client.PrepareWeeklyReviewRequest
+	PrepareWeeklyReviewResponse    = client.PrepareWeeklyReviewResponse
+	SaveWeeklyReviewRequest        = client.SaveWeeklyReviewRequest
+	SaveWeeklyReviewResponse       = client.SaveWeeklyReviewResponse
 
 	WeeklyReviewService interface {
-		GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error)
-		StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (client.WeeklyReviewService_StreamWeeklyReviewClient, error)
+		PrepareWeeklyReview(ctx context.Context, in *PrepareWeeklyReviewRequest, opts ...grpc.CallOption) (*PrepareWeeklyReviewResponse, error)
+		SaveWeeklyReview(ctx context.Context, in *SaveWeeklyReviewRequest, opts ...grpc.CallOption) (*SaveWeeklyReviewResponse, error)
 		GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error)
 		GetCurrentWeeklyReview(ctx context.Context, in *GetCurrentWeeklyReviewRequest, opts ...grpc.CallOption) (*GetCurrentWeeklyReviewResponse, error)
 		ListWeeklyReviews(ctx context.Context, in *ListWeeklyReviewsRequest, opts ...grpc.CallOption) (*ListWeeklyReviewsResponse, error)
@@ -43,14 +44,14 @@ func NewWeeklyReviewService(cli zrpc.Client) WeeklyReviewService {
 	}
 }
 
-func (m *defaultWeeklyReviewService) GenerateWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (*GenerateWeeklyReviewResponse, error) {
+func (m *defaultWeeklyReviewService) PrepareWeeklyReview(ctx context.Context, in *PrepareWeeklyReviewRequest, opts ...grpc.CallOption) (*PrepareWeeklyReviewResponse, error) {
 	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
-	return client.GenerateWeeklyReview(ctx, in, opts...)
+	return client.PrepareWeeklyReview(ctx, in, opts...)
 }
 
-func (m *defaultWeeklyReviewService) StreamWeeklyReview(ctx context.Context, in *GenerateWeeklyReviewRequest, opts ...grpc.CallOption) (client.WeeklyReviewService_StreamWeeklyReviewClient, error) {
+func (m *defaultWeeklyReviewService) SaveWeeklyReview(ctx context.Context, in *SaveWeeklyReviewRequest, opts ...grpc.CallOption) (*SaveWeeklyReviewResponse, error) {
 	client := client.NewWeeklyReviewServiceClient(m.cli.Conn())
-	return client.StreamWeeklyReview(ctx, in, opts...)
+	return client.SaveWeeklyReview(ctx, in, opts...)
 }
 
 func (m *defaultWeeklyReviewService) GetWeeklyReview(ctx context.Context, in *GetWeeklyReviewRequest, opts ...grpc.CallOption) (*GetWeeklyReviewResponse, error) {

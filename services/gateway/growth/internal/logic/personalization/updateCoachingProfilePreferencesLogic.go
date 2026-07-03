@@ -37,7 +37,7 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	rpcResp, err := l.svcCtx.PersonalizationRpc.UpdateCoachingProfilePreferences(l.ctx, &clientpersonalization.UpdateCoachingProfilePreferencesRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.PersonalizationService.UpdateCoachingProfilePreferences(l.ctx, &clientpersonalization.UpdateCoachingProfilePreferencesRequest{
 		UserId:               principal.UserID,
 		AccountabilityStyle:  req.AccountabilityStyle,
 		PreferredTone:        req.PreferredTone,

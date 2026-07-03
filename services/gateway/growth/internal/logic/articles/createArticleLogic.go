@@ -59,7 +59,7 @@ func (l *CreateArticleLogic) CreateArticle(req *types.CreateArticleRequest, cove
 		CategoryId: req.CategoryId,
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.CreateArticle(l.ctx, rpcReq)
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.CreateArticle(l.ctx, rpcReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create article via rpc: %w", err)
 	}

@@ -34,7 +34,7 @@ func (l *GetSettingsLogic) GetSettings() (resp *types.SettingsResponse, err erro
 		return &types.SettingsResponse{Data: types.Settings{}}, nil
 	}
 
-	rpcResp, err := l.svcCtx.SettingsRpc.GetSettings(l.ctx, &clientsettings.GetSettingsRequest{})
+	rpcResp, err := l.svcCtx.ClientRpc.Settings.GetSettings(l.ctx, &clientsettings.GetSettingsRequest{})
 	if err != nil {
 		return nil, err
 	}

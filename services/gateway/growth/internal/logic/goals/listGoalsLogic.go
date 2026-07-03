@@ -33,7 +33,7 @@ func (l *ListGoalsLogic) ListGoals(req *types.PageRequest) (resp *types.GoalsRes
 	}
 	l.Infof("UserID: %v", p.UserID)
 
-	rpcResp, err := l.svcCtx.GoalsRpc.ListGoals(l.ctx, &clientgoals.ListGoalsRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.ListGoals(l.ctx, &clientgoals.ListGoalsRequest{
 		Page:  int32(req.Page),
 		Limit: int32(req.Limit),
 	})

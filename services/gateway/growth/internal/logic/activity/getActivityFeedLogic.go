@@ -38,7 +38,7 @@ func (l *GetActivityFeedLogic) GetActivityFeed(req *types.PageRequest) (resp *ty
 		offset = 0
 	}
 
-	rpcResp, err := l.svcCtx.ActivityRpc.GetActivityFeed(l.ctx, &client.GetActivityFeedRequest{
+	rpcResp, err := l.svcCtx.ClientRpc.Activity.GetActivityFeed(l.ctx, &client.GetActivityFeedRequest{
 		Limit:  limit,
 		Offset: offset,
 	})

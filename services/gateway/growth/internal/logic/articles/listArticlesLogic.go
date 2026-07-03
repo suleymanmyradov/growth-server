@@ -40,7 +40,7 @@ func (l *ListArticlesLogic) ListArticles(req *types.ListArticlesRequest) (resp *
 		rpcReq.UserId = p.UserID
 	}
 
-	rpcResp, err := l.svcCtx.ArticlesRpc.ListArticles(l.ctx, rpcReq)
+	rpcResp, err := l.svcCtx.ClientRpc.Articles.ListArticles(l.ctx, rpcReq)
 	if err != nil {
 		return nil, err
 	}

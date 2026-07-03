@@ -33,7 +33,7 @@ func (l *DeleteConversationLogic) DeleteConversation(req *types.ConversationRequ
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	_, err = l.svcCtx.ConversationRpc.DeleteConversation(l.ctx, &conversationservice.DeleteConversationRequest{
+	_, err = l.svcCtx.AICoachRpc.ConversationService.DeleteConversation(l.ctx, &conversationservice.DeleteConversationRequest{
 		ConversationId: req.Id,
 		UserId:         p.UserID,
 	})

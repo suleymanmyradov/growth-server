@@ -18,16 +18,12 @@ type (
 	ApplyPlanAdjustmentSuggestionResponse        = client.ApplyPlanAdjustmentSuggestionResponse
 	CreatePlanAdjustmentSuggestionRequest        = client.CreatePlanAdjustmentSuggestionRequest
 	CreatePlanAdjustmentSuggestionResponse       = client.CreatePlanAdjustmentSuggestionResponse
-	GeneratePersonalizedCoachingRequest          = client.GeneratePersonalizedCoachingRequest
-	GeneratePersonalizedCoachingResponse         = client.GeneratePersonalizedCoachingResponse
 	GetCoachingProfileRequest                    = client.GetCoachingProfileRequest
-	HistoryMessage                               = client.HistoryMessage
 	GetCoachingProfileResponse                   = client.GetCoachingProfileResponse
 	GetPersonalizationContextRequest             = client.GetPersonalizationContextRequest
 	GetPersonalizationContextResponse            = client.GetPersonalizationContextResponse
 	ListPendingPlanAdjustmentSuggestionsRequest  = client.ListPendingPlanAdjustmentSuggestionsRequest
 	ListPendingPlanAdjustmentSuggestionsResponse = client.ListPendingPlanAdjustmentSuggestionsResponse
-	PersonalizedCoachingStreamChunk              = client.PersonalizedCoachingStreamChunk
 	UpdateCoachingProfilePreferencesRequest      = client.UpdateCoachingProfilePreferencesRequest
 	UpdateCoachingProfilePreferencesResponse     = client.UpdateCoachingProfilePreferencesResponse
 	UpdatePlanAdjustmentSuggestionStatusRequest  = client.UpdatePlanAdjustmentSuggestionStatusRequest
@@ -44,8 +40,6 @@ type (
 		ListPendingPlanAdjustmentSuggestions(ctx context.Context, in *ListPendingPlanAdjustmentSuggestionsRequest, opts ...grpc.CallOption) (*ListPendingPlanAdjustmentSuggestionsResponse, error)
 		UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, in *UpdatePlanAdjustmentSuggestionStatusRequest, opts ...grpc.CallOption) (*UpdatePlanAdjustmentSuggestionStatusResponse, error)
 		ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error)
-		GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error)
-		StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (client.PersonalizationService_StreamPersonalizedCoachingClient, error)
 	}
 
 	defaultPersonalizationService struct {
@@ -97,14 +91,4 @@ func (m *defaultPersonalizationService) UpdatePlanAdjustmentSuggestionStatus(ctx
 func (m *defaultPersonalizationService) ApplyPlanAdjustmentSuggestion(ctx context.Context, in *ApplyPlanAdjustmentSuggestionRequest, opts ...grpc.CallOption) (*ApplyPlanAdjustmentSuggestionResponse, error) {
 	client := client.NewPersonalizationServiceClient(m.cli.Conn())
 	return client.ApplyPlanAdjustmentSuggestion(ctx, in, opts...)
-}
-
-func (m *defaultPersonalizationService) GeneratePersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (*GeneratePersonalizedCoachingResponse, error) {
-	client := client.NewPersonalizationServiceClient(m.cli.Conn())
-	return client.GeneratePersonalizedCoaching(ctx, in, opts...)
-}
-
-func (m *defaultPersonalizationService) StreamPersonalizedCoaching(ctx context.Context, in *GeneratePersonalizedCoachingRequest, opts ...grpc.CallOption) (client.PersonalizationService_StreamPersonalizedCoachingClient, error) {
-	client := client.NewPersonalizationServiceClient(m.cli.Conn())
-	return client.StreamPersonalizedCoaching(ctx, in, opts...)
 }
