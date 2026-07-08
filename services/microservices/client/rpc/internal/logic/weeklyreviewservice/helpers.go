@@ -1,6 +1,7 @@
 package weeklyreviewservicelogic
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/pkg/prompts"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -97,6 +97,38 @@ type weeklyStats struct {
 }
 
 type habitBreakdownDB struct {
+	HabitID        string  `json:"habit_id"`
+	HabitName      string  `json:"habit_name"`
+	Category       string  `json:"category"`
+	TotalCheckIns  int     `json:"total_check_ins"`
+	CompletedCount int     `json:"completed_count"`
+	MissedCount    int     `json:"missed_count"`
+	CompletionRate float64 `json:"completion_rate"`
+	LastCheckInAt  string  `json:"last_check_in_at,omitempty"`
+}
+
+// weeklyReviewAdjustmentDB is the DB-level JSON shape for the
+// suggested_adjustments column. Snake_case per DB convention.
+type weeklyReviewAdjustmentDB struct {
+	HabitID        string `json:"habit_id"`
+	HabitName      string `json:"habit_name"`
+	Reason         string `json:"reason"`
+	Suggestion     string `json:"suggestion"`
+	AdjustmentType string `json:"adjustment_type"`
+}
+
+// nextWeekPlanDB is the DB-level JSON shape for the next_week_plan column.
+// Snake_case per DB convention.
+type nextWeekPlanDB struct {
+	Focus           string   `json:"focus"`
+	Commitments     []string `json:"commitments"`
+	Risks           []string `json:"risks"`
+	RecoveryActions []string `json:"recovery_actions"`
+}
+
+// habitBreakdownDBLegacy mirrors the old camelCase JSON keys used before
+// the snake_case DB convention. Only used for backward-compatible reads.
+type habitBreakdownDBLegacy struct {
 	HabitID        string  `json:"habitId"`
 	HabitName      string  `json:"habitName"`
 	Category       string  `json:"category"`
@@ -275,7 +307,27 @@ func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 	}
 
 	var habitBreakdowns []habitBreakdownDB
-	_ = json.Unmarshal(r.HabitBreakdown, &habitBreakdowns)
+	// Detect legacy camelCase JSON rows (written before the snake_case DB
+	// convention) by checking for the old "habitId" key in the raw bytes.
+	if len(r.HabitBreakdown) > 0 && bytes.Contains(r.HabitBreakdown, []byte(`"habitId"`)) {
+		var legacy []habitBreakdownDBLegacy
+		_ = json.Unmarshal(r.HabitBreakdown, &legacy)
+		habitBreakdowns = make([]habitBreakdownDB, len(legacy))
+		for i, h := range legacy {
+			habitBreakdowns[i] = habitBreakdownDB{
+				HabitID:        h.HabitID,
+				HabitName:      h.HabitName,
+				Category:       h.Category,
+				TotalCheckIns:  h.TotalCheckIns,
+				CompletedCount: h.CompletedCount,
+				MissedCount:    h.MissedCount,
+				CompletionRate: h.CompletionRate,
+				LastCheckInAt:  h.LastCheckInAt,
+			}
+		}
+	} else {
+		_ = json.Unmarshal(r.HabitBreakdown, &habitBreakdowns)
+	}
 
 	protoHabits := make([]*client.WeeklyReviewHabitBreakdown, len(habitBreakdowns))
 	for i, h := range habitBreakdowns {
@@ -295,17 +347,13 @@ func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 		}
 	}
 
-	// Unmarshal adjustments using aicoachservice types for backward
-	// compatibility with existing DB rows (snake_case JSON keys).
-	var adjustments []*aicoachservice.WeeklyReviewAdjustment
+	// Unmarshal adjustments (snake_case DB JSON keys).
+	var adjustments []weeklyReviewAdjustmentDB
 	_ = json.Unmarshal(r.SuggestedAdjustments, &adjustments)
 	protoAdjustments := make([]*client.WeeklyReviewAdjustment, 0, len(adjustments))
 	for _, a := range adjustments {
-		if a == nil {
-			continue
-		}
 		protoAdjustments = append(protoAdjustments, &client.WeeklyReviewAdjustment{
-			HabitId:        a.HabitId,
+			HabitId:        a.HabitID,
 			HabitName:      a.HabitName,
 			Reason:         a.Reason,
 			Suggestion:     a.Suggestion,
@@ -313,7 +361,7 @@ func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 		})
 	}
 
-	var nextWeekPlan aicoachservice.NextWeekPlan
+	var nextWeekPlan nextWeekPlanDB
 	_ = json.Unmarshal(r.NextWeekPlan, &nextWeekPlan)
 	protoPlan := &client.WeeklyReviewNextWeekPlan{
 		Focus:           nextWeekPlan.Focus,

@@ -267,3 +267,6 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 		},
 	}, nil
 }
+
+// computeWeeklyStats is provided by the embedded weeklyStatsLogic.
+
