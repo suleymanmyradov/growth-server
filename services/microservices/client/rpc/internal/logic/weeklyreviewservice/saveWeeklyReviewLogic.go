@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -97,16 +96,14 @@ func (l *SaveWeeklyReviewLogic) SaveWeeklyReview(in *client.SaveWeeklyReviewRequ
 		}
 	}
 
-	// Convert to aicoachservice types for DB serialization (backward
-	// compatibility: existing DB rows use snake_case JSON keys from the
-	// aicoachservice proto types).
-	aiAdjustments := make([]*aicoachservice.WeeklyReviewAdjustment, 0, len(in.SuggestedAdjustments))
+	// Convert to DB-level types (snake_case JSON keys per DB convention).
+	aiAdjustments := make([]weeklyReviewAdjustmentDB, 0, len(in.SuggestedAdjustments))
 	for _, adj := range in.SuggestedAdjustments {
 		if adj == nil {
 			continue
 		}
-		aiAdjustments = append(aiAdjustments, &aicoachservice.WeeklyReviewAdjustment{
-			HabitId:        adj.HabitId,
+		aiAdjustments = append(aiAdjustments, weeklyReviewAdjustmentDB{
+			HabitID:        adj.HabitId,
 			HabitName:      adj.HabitName,
 			Reason:         adj.Reason,
 			Suggestion:     adj.Suggestion,
@@ -119,9 +116,9 @@ func (l *SaveWeeklyReviewLogic) SaveWeeklyReview(in *client.SaveWeeklyReviewRequ
 		return nil, status.Error(codes.Internal, "failed to serialize suggested adjustments")
 	}
 
-	var aiNextWeekPlan *aicoachservice.NextWeekPlan
+	var aiNextWeekPlan *nextWeekPlanDB
 	if in.NextWeekPlan != nil {
-		aiNextWeekPlan = &aicoachservice.NextWeekPlan{
+		aiNextWeekPlan = &nextWeekPlanDB{
 			Focus:           in.NextWeekPlan.Focus,
 			Commitments:     in.NextWeekPlan.Commitments,
 			Risks:           in.NextWeekPlan.Risks,

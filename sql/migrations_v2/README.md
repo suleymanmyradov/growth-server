@@ -28,6 +28,13 @@ tool can be adopted later without renaming.
   enqueue. Everything else (immutability rules, derived flags, counters) is
   application logic.
 - **No RLS** — authorization is enforced in the services.
+- **Planned: no cross-service foreign keys.** `user_id` FKs from non-auth
+  tables to `users` will be dropped (columns become plain `uuid NOT NULL`) so
+  each service's tables can move to its own database untouched. FKs stay only
+  *within* a service's own tables (e.g. `check_ins.habit_id → habits`,
+  `user_oauth_accounts → users`). Orphan cleanup on account deletion moves to
+  a `user_deleted` event consumed by every service — see
+  `docs/microservices-data-ownership-plan.md`.
 
 ## What changed vs the old schema
 

@@ -173,8 +173,8 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		// 60+ seconds with no output). This was previously in the client RPC.
 		heartbeatDone := make(chan struct{})
 		var heartbeatWG sync.WaitGroup
+		heartbeatWG.Add(1)
 		go func() {
-			heartbeatWG.Add(1)
 			defer heartbeatWG.Done()
 			ticker := time.NewTicker(15 * time.Second)
 			defer ticker.Stop()
