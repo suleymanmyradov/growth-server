@@ -5,6 +5,7 @@ logs/
 *.dll
 *.so
 *.dylib
+.DS_Store
 
 services/gateway/contract/swagger/gateway.swagger.json.json
 .idea
