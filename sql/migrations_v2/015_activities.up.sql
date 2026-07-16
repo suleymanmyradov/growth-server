@@ -1,7 +1,7 @@
 -- Append-only user activity feed.
 CREATE TABLE activities (
     id          uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL,
     type        text NOT NULL CHECK (type IN (
                     'habit_completed', 'goal_created', 'goal_completed',
                     'article_saved', 'check_in_completed', 'check_in_missed',

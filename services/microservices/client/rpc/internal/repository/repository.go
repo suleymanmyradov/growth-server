@@ -25,6 +25,7 @@ type IArticles interface {
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
 	CountArticles(ctx context.Context, status string) (int64, error)
 	CountArticlesByCategorySlug(ctx context.Context, slug string, status string) (int64, error)
+	CountArticlesByCategoryID(ctx context.Context, id uuid.UUID) (int64, error)
 	CountSearchArticles(ctx context.Context, query string, status string) (int64, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
 	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error)
@@ -83,12 +84,12 @@ type IActivities interface {
 	GetActivityCalendar(ctx context.Context, userID uuid.UUID, year, month int32) ([]db.GetActivityCalendarRow, error)
 }
 
-type IUserSettings interface {
-	GetUserSettings(ctx context.Context, userID uuid.UUID) (db.UserSetting, error)
-	CreateUserSettings(ctx context.Context, params db.CreateUserSettingsParams) (db.UserSetting, error)
-	UpdateUserSettings(ctx context.Context, params db.UpdateUserSettingsParams) (db.UserSetting, error)
-	UpdateOnboardingSettings(ctx context.Context, userID uuid.UUID, accountabilityStyle string, checkInTime pgtype.Time, onboardingCompleted bool) (db.UserSetting, error)
-	DeleteUserSettings(ctx context.Context, userID uuid.UUID) error
+type IUserPreferences interface {
+	GetUserPreferences(ctx context.Context, userID uuid.UUID) (db.UserPreference, error)
+	CreateUserPreferences(ctx context.Context, theme string, language string, timezone string, userID uuid.UUID) (db.UserPreference, error)
+	UpdateUserPreferences(ctx context.Context, userID uuid.UUID, theme string, language string, timezone string) (db.UserPreference, error)
+	UpdateOnboardingCompleted(ctx context.Context, userID uuid.UUID, checkInTime pgtype.Time, onboardingCompleted bool) (db.UserPreference, error)
+	DeleteUserPreferences(ctx context.Context, userID uuid.UUID) error
 }
 
 type IUsers interface {
@@ -96,16 +97,16 @@ type IUsers interface {
 }
 
 type IHabits interface {
-	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetHabitRow, error)
-	GetHabitByID(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error)
+	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32, timezone string) ([]db.GetHabitRow, error)
+	GetHabitByID(ctx context.Context, id uuid.UUID, timezone string) (db.GetHabitRow, error)
 	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error)
-	UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.GetHabitRow, error)
+	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.GetHabitRow, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
-	GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID) (int32, error)
-	GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]db.GetHabitStreaksRow, error)
-	ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error)
+	GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID, timezone string) (int32, error)
+	GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezone string) ([]db.GetHabitStreaksRow, error)
+	ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]db.ListHabitHistoryRow, error)
+	ListHabitHistory(ctx context.Context, userID uuid.UUID, timezone string) ([]db.ListHabitHistoryRow, error)
 }
 
 type IGoals interface {
@@ -117,6 +118,7 @@ type IGoals interface {
 	ToggleGoal(ctx context.Context, id uuid.UUID) (db.GetGoalRow, error)
 	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error)
 	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
@@ -131,18 +133,18 @@ type ICategories interface {
 	UpdateCategory(ctx context.Context, id uuid.UUID, name string, slug string, sortOrder int32) (db.Category, error)
 	DeleteCategory(ctx context.Context, id uuid.UUID) error
 	CountCategories(ctx context.Context) (int64, error)
-	CountArticlesByCategory(ctx context.Context, id uuid.UUID) (int64, error)
+	GetCategoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]db.Category, error)
 	ReorderCategories(ctx context.Context, ids []uuid.UUID, sortOrders []int32) error
 }
 
 type ICheckIns interface {
 	CreateCheckIn(ctx context.Context, params db.CreateCheckInParams) (db.CheckIn, error)
-	GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]db.CheckIn, error)
+	GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]db.CheckIn, error)
 	GetCheckInsByHabit(ctx context.Context, habitID, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInHistory(ctx context.Context, userID uuid.UUID, start, end time.Time, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, start, end time.Time) ([]db.CheckIn, error)
-	HasCheckedInToday(ctx context.Context, userID, habitID uuid.UUID) (bool, error)
+	HasCheckedInToday(ctx context.Context, userID, habitID uuid.UUID, timezone string) (bool, error)
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
 }
@@ -162,11 +164,11 @@ type IWeeklyReviews interface {
 
 type ICoachingProfiles interface {
 	GetCoachingProfile(ctx context.Context, userID uuid.UUID) (db.GetCoachingProfileRow, error)
-	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.GetCoachingProfileRow, error)
-	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, preferredTone string, difficultyPreference string) (db.GetCoachingProfileRow, error)
-	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.GetCoachingProfileRow, error)
-	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.GetCoachingProfileRow, error)
-	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.GetCoachingProfileRow, error)
+	UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.UpsertCoachingProfileRow, error)
+	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, preferredTone string, difficultyPreference string) (db.UpdateCoachingProfilePreferencesRow, error)
+	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.UpdateCoachingProfileBlockersRow, error)
+	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.UpdateCoachingProfileNotesRow, error)
+	UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.UpdateCoachingProfileContextRefreshRow, error)
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 }
 
@@ -179,9 +181,6 @@ type IBilling interface {
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error)
 	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.Subscription, error)
 	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error)
-	CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*EntitlementsResult, error)
 	IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error)
 	MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error
@@ -208,7 +207,7 @@ type Repository struct {
 	Tags                      ITags
 	SavedItems                ISavedItems
 	Activities                IActivities
-	UserSettings              IUserSettings
+	UserPreferences           IUserPreferences
 	Users                     IUsers
 	Habits                    IHabits
 	Goals                     IGoals
@@ -221,21 +220,24 @@ type Repository struct {
 }
 
 func NewRepository(db *db.Queries) *Repository {
+	habits := NewHabitsRepo(db)
+	goals := NewGoalsRepo(db)
+	planAdjustments := NewPlanAdjustmentSuggestionsRepo(db)
 
 	return &Repository{
 		Articles:                  NewArticlesRepo(db),
 		Tags:                      NewTagsRepo(db),
 		SavedItems:                NewSavedItemsRepo(db),
 		Activities:                NewActivitiesRepo(db),
-		UserSettings:              NewUserSettingsRepo(db),
+		UserPreferences:           NewUserPreferencesRepo(db),
 		Users:                     NewUsersRepo(db),
-		Habits:                    NewHabitsRepo(db),
-		Goals:                     NewGoalsRepo(db),
+		Habits:                    habits,
+		Goals:                     goals,
 		Categories:                NewCategoriesRepo(db),
 		CheckIns:                  NewCheckInsRepo(db),
 		WeeklyReviews:             NewWeeklyReviewsRepo(db),
 		CoachingProfiles:          NewCoachingProfilesRepo(db),
-		PlanAdjustmentSuggestions: NewPlanAdjustmentSuggestionsRepo(db),
-		Billing:                   NewBillingRepo(db),
+		PlanAdjustmentSuggestions: planAdjustments,
+		Billing:                   NewBillingRepo(db, habits, goals, planAdjustments),
 	}
 }

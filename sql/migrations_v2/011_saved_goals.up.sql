@@ -1,7 +1,7 @@
 CREATE TABLE saved_goals (
     id         uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
     goal_id    uuid NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
-    user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    uuid NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
 
     UNIQUE (goal_id, user_id)

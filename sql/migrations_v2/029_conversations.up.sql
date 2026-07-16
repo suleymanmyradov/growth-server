@@ -4,7 +4,7 @@
 
 CREATE TABLE conversations (
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id      uuid NOT NULL,
     title        varchar(255) NOT NULL DEFAULT '',
     type         varchar(50)  NOT NULL DEFAULT 'coach'
         CHECK (type IN ('coach', 'therapist')),

@@ -2,7 +2,7 @@
 -- (no updated_at on purpose).
 CREATE TABLE check_ins (
     id         uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    uuid NOT NULL,
     habit_id   uuid NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
     local_date date NOT NULL,
     status     text NOT NULL CHECK (status IN ('completed', 'missed')),

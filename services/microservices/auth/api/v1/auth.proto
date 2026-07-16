@@ -129,6 +129,10 @@ message GoogleLoginRequest {
 
 message EmptyResponse {}
 
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
 service AuthService {
   // Core authentication
   rpc Register(RegisterRequest) returns (RegisterResponse);
@@ -143,6 +147,7 @@ service AuthService {
   // Profile management
   rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
   rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (EmptyResponse);
 
   // Password management
   rpc ChangePassword(ChangePasswordRequest) returns (EmptyResponse);

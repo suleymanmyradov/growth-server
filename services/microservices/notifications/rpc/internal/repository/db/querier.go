@@ -12,20 +12,28 @@ import (
 )
 
 type Querier interface {
+	BumpCheckInCountToday(ctx context.Context, userID uuid.UUID) error
 	CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Date, column4 string) error
 	ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error)
+	DecrementHabitCount(ctx context.Context, userID uuid.UUID) error
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
+	DeleteNotificationPreferences(ctx context.Context, userID uuid.UUID) error
+	DeleteNotificationPreferencesByUser(ctx context.Context, userID uuid.UUID) error
+	// Bulk cleanup queries for user_deleted event consumers.
+	DeleteNotificationsByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteReminderState(ctx context.Context, userID uuid.UUID) error
+	DeleteRemindersByUser(ctx context.Context, userID uuid.UUID) error
 	// Reminders: sent_at IS NULL means pending.
 	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (Reminder, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
+	GetNotificationPreferences(ctx context.Context, userID uuid.UUID) (NotificationPreference, error)
 	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Reminder, error)
-	// Optimized: single scan of habits + one lookup of user_settings.
-	// Replaces correlated NOT EXISTS per-habit with a LEFT JOIN aggregate.
-	GetReminderContext(ctx context.Context, dollar_1 uuid.UUID) (GetReminderContextRow, error)
+	GetReminderState(ctx context.Context, userID uuid.UUID) (ReminderState, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
+	IncrementHabitCount(ctx context.Context, userID uuid.UUID) error
 	IsEventProcessed(ctx context.Context, eventID string) (bool, error)
 	ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error)
 	ListNotificationsByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]ListNotificationsByTypeRow, error)
@@ -41,6 +49,9 @@ type Querier interface {
 	MarkEventProcessed(ctx context.Context, eventID string) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
 	MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error)
+	SetOnboardingCompleted(ctx context.Context, userID uuid.UUID) error
+	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
+	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error
 }
 
 var _ Querier = (*Queries)(nil)

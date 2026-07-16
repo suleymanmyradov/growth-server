@@ -53,6 +53,7 @@ func (r *Repository) GetAccountabilityStyle(ctx context.Context, userID uuid.UUI
 		return "", fmt.Errorf("get accountability style: %w", err)
 	}
 	return s.AccountabilityStyle, nil
+
 }
 
 // IsProcessed checks if an event has already been processed.
@@ -66,4 +67,30 @@ func (r *Repository) IsProcessed(ctx context.Context, eventID uuid.UUID) (bool, 
 // MarkProcessed marks an event as processed for idempotency.
 func (r *Repository) MarkProcessed(ctx context.Context, eventID uuid.UUID) error {
 	return r.queries.MarkProcessed(ctx, eventID)
+}
+
+// DeleteAIFeedbackByUser removes all AI feedback rows for a user (used on account deletion).
+func (r *Repository) DeleteAIFeedbackByUser(ctx context.Context, userID uuid.UUID) error {
+	if r.queries == nil {
+		return nil
+	}
+	return r.queries.DeleteAIFeedbackByUser(ctx, userID)
+}
+
+// DeleteConversationsByUser removes all conversations for a user (used on account deletion).
+func (r *Repository) DeleteConversationsByUser(ctx context.Context, userID uuid.UUID) error {
+	if r.queries == nil {
+		return nil
+	}
+	return r.queries.DeleteConversationsByUser(ctx, userID)
+}
+
+// DeleteConversationMessagesByUser removes all conversation messages for a user
+// (used on account deletion). Must be called before DeleteConversationsByUser
+// since conversation_messages has an FK to conversations.
+func (r *Repository) DeleteConversationMessagesByUser(ctx context.Context, userID uuid.UUID) error {
+	if r.queries == nil {
+		return nil
+	}
+	return r.queries.DeleteConversationMessagesByUser(ctx, userID)
 }

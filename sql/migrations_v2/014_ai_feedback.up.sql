@@ -1,7 +1,7 @@
 -- AI-generated feedback for a check-in (at most one per check-in).
 CREATE TABLE ai_feedback (
     id          uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL,
     check_in_id uuid NOT NULL UNIQUE REFERENCES check_ins(id) ON DELETE CASCADE,
     habit_id    uuid NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
     content     text NOT NULL,

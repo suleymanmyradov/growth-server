@@ -20,6 +20,7 @@ type Querier interface {
 	// Creates a user with no local password (OAuth-only). email_verified is taken
 	// from the provider's verified claim.
 	CreateUserOAuth(ctx context.Context, username string, email string, fullName string, emailVerified bool) (User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetOAuthAccount(ctx context.Context, provider string, providerUid string) (UserOauthAccount, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)

@@ -161,6 +161,22 @@ func (h *EventsHandler) Consume(ctx context.Context, _ string, raw string) error
 		return nil
 	}
 
+	if events.EventType(env.EventType) == events.TypeUserDeleted {
+		logx.WithContext(ctx).Infof("processing user_deleted event: eventID=%s", env.EventID)
+		eventsConsumedTotal.WithLabelValues(env.EventType, "processing").Inc()
+		err = h.onUserDeleted(ctx, env)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("error processing user_deleted event: eventID=%s err=%v", env.EventID, err)
+			eventsConsumedTotal.WithLabelValues(env.EventType, "retry").Inc()
+			return err
+		}
+		eventsConsumedTotal.WithLabelValues(env.EventType, "success").Inc()
+		if err := h.repo.MarkProcessed(ctx, eventID); err != nil {
+			logx.WithContext(ctx).Errorf("mark processed: %v", err)
+		}
+		return nil
+	}
+
 	if events.EventType(env.EventType) != events.TypeCheckInCreated {
 		logx.WithContext(ctx).Infof("ignoring non-check-in event: type=%s eventID=%s", env.EventType, env.EventID)
 		eventsConsumedTotal.WithLabelValues(env.EventType, "ignored").Inc()
@@ -437,4 +453,32 @@ func (h *EventsHandler) sendToDLQ(ctx context.Context, env events.Envelope, raw,
 		logx.WithContext(ctx).Infof("message sent to DLQ: eventID=%s type=%s reason=%s permanent=%v", env.EventID, env.EventType, reason, permanent)
 		eventsDLQTotal.WithLabelValues(env.EventType, reason).Inc()
 	}
+}
+
+// onUserDeleted cleans up ai_feedback rows for a deleted user.
+func (h *EventsHandler) onUserDeleted(ctx context.Context, env events.Envelope) error {
+	var p events.UserDeleted
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal UserDeleted: %v", err)
+		return nil
+	}
+
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		return nil
+	}
+
+	logx.WithContext(ctx).Infof("cleaning up ai_feedback and conversations for user %s", userID)
+	if err := h.repo.DeleteAIFeedbackByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete ai_feedback: %w", err)
+	}
+	// Delete messages first (FK to conversations), then conversations.
+	if err := h.repo.DeleteConversationMessagesByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete conversation_messages: %w", err)
+	}
+	if err := h.repo.DeleteConversationsByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete conversations: %w", err)
+	}
+	return nil
 }

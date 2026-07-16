@@ -153,6 +153,9 @@ JOIN categories c ON a.category_id = c.id
 WHERE c.slug = $1
   AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
 
+-- name: CountArticlesByCategoryID :one
+SELECT COUNT(*) FROM articles WHERE category_id = $1;
+
 -- name: CountSearchArticles :one
 SELECT COUNT(*) FROM articles a
 WHERE a.search_vector @@ plainto_tsquery('english', $1)

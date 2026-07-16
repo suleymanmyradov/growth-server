@@ -101,9 +101,14 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	err = l.svcCtx.TxRunner.Run(ctx, userID.String(), func(tx pgx.Tx) error {
 		txRepo := l.svcCtx.WithTx(tx)
 
+		timezone := "UTC"
+		if prefs, pErr := txRepo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+			timezone = prefs.Timezone
+		}
+
 		// Verify the habit exists and belongs to the caller before creating a
 		// check-in. Prevents IDOR (checking in on another user's habit).
-		habit, err = txRepo.Habits.GetHabitByID(ctx, habitID)
+		habit, err = txRepo.Habits.GetHabitByID(ctx, habitID, timezone)
 		if err != nil {
 			return status.Error(codes.NotFound, "habit not found")
 		}
@@ -112,7 +117,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		}
 
 		// Check for duplicate check-in
-		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(ctx, userID, habitID)
+		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(ctx, userID, habitID, timezone)
 		if err != nil {
 			return fmt.Errorf("check existing check-in: %w", err)
 		}
@@ -124,6 +129,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		// the last line of defense against a concurrent duplicate; surface that
 		// race as AlreadyExists (409) instead of a generic Internal (500).
 		params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
+		params.Timezone = timezone
 		checkIn, err = txRepo.CheckIns.CreateCheckIn(ctx, params)
 		if err != nil {
 			var pgErr *pgconn.PgError
@@ -138,7 +144,7 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		// it here so the response and the published event carry the truthful
 		// value (e.g. a 'completed' check-in may start/extend a streak; a
 		// 'missed' check-in does not change today's streak).
-		if s, sErr := txRepo.Habits.GetHabitStreak(ctx, habitID, userID); sErr == nil {
+		if s, sErr := txRepo.Habits.GetHabitStreak(ctx, habitID, userID, timezone); sErr == nil {
 			streak = s
 		}
 

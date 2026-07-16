@@ -75,3 +75,10 @@ func (r *NotificationsRepo) GetUnreadCount(ctx context.Context, userID uuid.UUID
 	defer span.End()
 	return r.db.GetUnreadCount(ctx, userID)
 }
+
+// DeleteByUser removes all notifications for a user (used on account deletion).
+func (r *NotificationsRepo) DeleteByUser(ctx context.Context, userID uuid.UUID) error {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.DeleteByUser")
+	defer span.End()
+	return r.db.DeleteNotificationsByUser(ctx, userID)
+}

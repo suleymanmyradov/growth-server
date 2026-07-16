@@ -12,6 +12,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countActiveGoalsByUser = `-- name: CountActiveGoalsByUser :one
+SELECT COUNT(*) FROM goals WHERE user_id = $1 AND status != 'completed'
+`
+
+func (q *Queries) CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countActiveGoalsByUser, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countGoalsByUser = `-- name: CountGoalsByUser :one
 SELECT COUNT(*) FROM goals WHERE user_id = $1
 `

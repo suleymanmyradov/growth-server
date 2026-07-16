@@ -2,9 +2,11 @@ package habitslogic
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -63,6 +65,26 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
+	// Fire-and-forget publish habit_created event so notifications can update
+	// its local reminder_state read model (active_habit_count).
+	if l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeHabitCreated, events.HabitCreated{
+				UserID:  userID.String(),
+				HabitID: habit.ID.String(),
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish habit_created event: %v", err)
+			}
+		}()
+	}
 
 	return &client.CreateHabitResponse{
 		Habit: habitToProto(habit, 0, nil), // new habit has no check-ins → streak 0

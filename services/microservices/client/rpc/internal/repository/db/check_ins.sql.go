@@ -37,28 +37,24 @@ func (q *Queries) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (in
 }
 
 const createCheckIn = `-- name: CreateCheckIn :one
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
-        (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date)
+        (NOW() AT TIME ZONE $8::text)::date)
 RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
 `
 
 type CreateCheckInParams struct {
-	UserID  uuid.UUID `db:"user_id" json:"user_id"`
-	HabitID uuid.UUID `db:"habit_id" json:"habit_id"`
-	Status  string    `db:"status" json:"status"`
-	Mood    *string   `db:"mood" json:"mood"`
-	Energy  *string   `db:"energy" json:"energy"`
-	Blocker *string   `db:"blocker" json:"blocker"`
-	Note    *string   `db:"note" json:"note"`
+	UserID   uuid.UUID `db:"user_id" json:"user_id"`
+	HabitID  uuid.UUID `db:"habit_id" json:"habit_id"`
+	Status   string    `db:"status" json:"status"`
+	Mood     *string   `db:"mood" json:"mood"`
+	Energy   *string   `db:"energy" json:"energy"`
+	Blocker  *string   `db:"blocker" json:"blocker"`
+	Note     *string   `db:"note" json:"note"`
+	Timezone string    `db:"timezone" json:"timezone"`
 }
 
-// Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
+// Timezone is passed by the caller (fetched from UserPreferences interface).
 func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error) {
 	row := q.db.QueryRow(ctx, createCheckIn,
 		arg.UserID,
@@ -68,6 +64,7 @@ func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (C
 		arg.Energy,
 		arg.Blocker,
 		arg.Note,
+		arg.Timezone,
 	)
 	var i CheckIn
 	err := row.Scan(
@@ -305,20 +302,15 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, week
 }
 
 const getTodayCheckIns = `-- name: GetTodayCheckIns :many
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
 SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at
 FROM check_ins ci
 WHERE ci.user_id = $1
-  AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
+  AND ci.local_date = (NOW() AT TIME ZONE $2::text)::date
 `
 
-// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]CheckIn, error) {
-	rows, err := q.db.Query(ctx, getTodayCheckIns, userID)
+// Timezone is passed by the caller.
+func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]CheckIn, error) {
+	rows, err := q.db.Query(ctx, getTodayCheckIns, userID, timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -349,21 +341,16 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID) ([]Che
 }
 
 const hasCheckedInToday = `-- name: HasCheckedInToday :one
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
 SELECT EXISTS(
     SELECT 1 FROM check_ins ci
     WHERE ci.user_id = $1 AND ci.habit_id = $2
-      AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
+      AND ci.local_date = (NOW() AT TIME ZONE $3::text)::date
 ) AS exists
 `
 
-// Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-func (q *Queries) HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error) {
-	row := q.db.QueryRow(ctx, hasCheckedInToday, userID, habitID)
+// Timezone is passed by the caller.
+func (q *Queries) HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, timezone string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasCheckedInToday, userID, habitID, timezone)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

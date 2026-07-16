@@ -12,7 +12,6 @@ import (
 	billing "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/billing"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
 	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
-	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
 	notifications "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/notifications"
@@ -102,6 +101,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
+				Path:    "/auth/forgot-password",
+				Handler: auth.ForgotPasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/google",
+				Handler: auth.GoogleLoginHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/auth/login",
 				Handler: auth.LoginHandler(serverCtx),
 			},
@@ -117,28 +126,18 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/auth/verify-email",
-				Handler: auth.VerifyEmailHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/auth/resend-verification",
 				Handler: auth.ResendVerificationHandler(serverCtx),
 			},
 			{
 				Method:  http.MethodPost,
-				Path:    "/auth/google",
-				Handler: auth.GoogleLoginHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/auth/forgot-password",
-				Handler: auth.ForgotPasswordHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
 				Path:    "/auth/reset-password",
 				Handler: auth.ResetPasswordHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
+				Path:    "/auth/verify-email",
+				Handler: auth.VerifyEmailHandler(serverCtx),
 			},
 		},
 		rest.WithPrefix("/api/v1"),
@@ -409,6 +408,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: profile.UpdateProfileHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodDelete,
+					Path:    "/profile",
+					Handler: profile.DeleteAccountHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodGet,
 					Path:    "/profile/me",
 					Handler: profile.GetProfileHandler(serverCtx),
@@ -514,107 +518,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/weekly-reviews/generate",
 					Handler: weeklyreview.GenerateWeeklyReviewHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-	)
-
-	// SSE streaming route registered separately with rest.WithSSE() so go-zero
-	// clears the per-request write deadline (http.Server.WriteTimeout would
-	// otherwise kill long AI generations) and sets SSE headers automatically.
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodPost,
-					Path:    "/weekly-reviews/generate-stream",
-					Handler: weeklyreview.StreamWeeklyReviewHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-		rest.WithSSE(),
-	)
-
-	// SSE streaming route for personalized coaching (same pattern as weekly
-	// review streaming above).
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodPost,
-					Path:    "/personalization/coaching-stream",
-					Handler: personalization.StreamPersonalizedCoachingHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-		rest.WithSSE(),
-	)
-
-	// Onboarding habit generation (server-owned: client sends structured data
-	// only, never a prompt). Manually registered — re-add after make generate-api.
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodPost,
-					Path:    "/onboarding/generate-habits",
-					Handler: personalization.GenerateOnboardingHabitsHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-	)
-
-	// Conversations (AI coach chat history persistence)
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodPost,
-					Path:    "/conversations",
-					Handler: conversations.StartConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations",
-					Handler: conversations.ListConversationsHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations/:id",
-					Handler: conversations.GetConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodGet,
-					Path:    "/conversations/:id/messages",
-					Handler: conversations.GetMessagesHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPost,
-					Path:    "/conversations/:id/messages",
-					Handler: conversations.AppendMessageHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/conversations/:id/archive",
-					Handler: conversations.ArchiveConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodPut,
-					Path:    "/conversations/:id/unarchive",
-					Handler: conversations.UnarchiveConversationHandler(serverCtx),
-				},
-				{
-					Method:  http.MethodDelete,
-					Path:    "/conversations/:id",
-					Handler: conversations.DeleteConversationHandler(serverCtx),
 				},
 			}...,
 		),

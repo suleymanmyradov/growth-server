@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -87,16 +88,16 @@ func (h *ReminderDueHandler) Consume(ctx context.Context, _ string, raw string) 
 }
 
 func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	rc, err := h.repo.Reminders.GetContext(ctx, userID)
+	rs, err := h.repo.ReminderState.Get(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("get reminder context: %w", err)
+		return fmt.Errorf("get reminder state: %w", err)
 	}
 
-	if rc.ActiveHabitCount == 0 || !rc.HabitReminders {
+	if rs.ActiveHabitCount == 0 || !rs.HabitReminders {
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rc.ActiveHabitCount), "habit_reminder", userID)
+	_, err = h.repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -104,7 +105,7 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 	now := h.clock.Now()
 
 	// Enqueue tomorrow's habit_reminder at user's check_in_time.
-	next, err := scheduler.NextOccurrence(now, rc.Timezone, rc.CheckInTime)
+	next, err := scheduler.NextOccurrence(now, rs.Timezone, rs.CheckInTime)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("next occurrence: %v", err)
 	} else {
@@ -123,12 +124,13 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 }
 
 func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	rc, err := h.repo.Reminders.GetContext(ctx, userID)
+	rs, err := h.repo.ReminderState.Get(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("get reminder context: %w", err)
+		return fmt.Errorf("get reminder state: %w", err)
 	}
 
-	if rc.CheckedInToday {
+	// User checked in today if last_check_in_date is today (in their timezone).
+	if isCheckedInToday(rs, h.clock.Now()) {
 		return nil
 	}
 
@@ -147,12 +149,12 @@ func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, userID uuid.UUI
 	}
 
 	// Enqueue next Sunday 18:00 local.
-	rc, err := h.repo.Reminders.GetContext(ctx, userID)
+	rs, err := h.repo.ReminderState.Get(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("get context for weekly reschedule: %w", err)
+		return fmt.Errorf("get reminder state for weekly reschedule: %w", err)
 	}
 
-	nextSun, err := scheduler.NextWeekday(h.clock.Now(), rc.Timezone, time.Sunday, 18, 0)
+	nextSun, err := scheduler.NextWeekday(h.clock.Now(), rs.Timezone, time.Sunday, 18, 0)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("next weekday: %v", err)
 	} else {
@@ -162,6 +164,23 @@ func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, userID uuid.UUI
 	}
 
 	return nil
+}
+
+// isCheckedInToday returns true if the user has checked in today (in their timezone).
+func isCheckedInToday(rs db.ReminderState, now time.Time) bool {
+	if !rs.LastCheckInDate.Valid || rs.CheckedInCountToday == 0 {
+		return false
+	}
+	today := now.In(timezoneOrUTC(rs.Timezone)).Format("2006-01-02")
+	return rs.LastCheckInDate.Time.Format("2006-01-02") == today
+}
+
+func timezoneOrUTC(tz string) *time.Location {
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.UTC
+	}
+	return loc
 }
 
 func (h *ReminderDueHandler) onEncouragement(ctx context.Context, userID uuid.UUID, p events.ReminderDue) error {

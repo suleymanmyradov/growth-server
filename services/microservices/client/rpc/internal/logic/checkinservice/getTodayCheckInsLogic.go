@@ -36,7 +36,12 @@ func (l *GetTodayCheckInsLogic) GetTodayCheckIns(in *client.GetTodayCheckInsRequ
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	checkIns, err := l.svcCtx.Repo.CheckIns.GetTodayCheckIns(ctx, userID)
+	timezone := "UTC"
+	if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+		timezone = prefs.Timezone
+	}
+
+	checkIns, err := l.svcCtx.Repo.CheckIns.GetTodayCheckIns(ctx, userID, timezone)
 	if err != nil {
 		l.Errorf("Failed to get today's check-ins: %v", err)
 		return nil, status.Error(codes.Internal, "failed to get check-ins")

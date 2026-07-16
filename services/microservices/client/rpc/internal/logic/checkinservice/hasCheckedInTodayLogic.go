@@ -42,7 +42,12 @@ func (l *HasCheckedInTodayLogic) HasCheckedInToday(in *client.HasCheckedInTodayR
 		return nil, status.Error(codes.InvalidArgument, "invalid habit ID")
 	}
 
-	hasCheckedIn, err := l.svcCtx.Repo.CheckIns.HasCheckedInToday(ctx, userID, habitID)
+	timezone := "UTC"
+	if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+		timezone = prefs.Timezone
+	}
+
+	hasCheckedIn, err := l.svcCtx.Repo.CheckIns.HasCheckedInToday(ctx, userID, habitID, timezone)
 	if err != nil {
 		l.Errorf("Failed to check if user has checked in today: %v", err)
 		return nil, status.Error(codes.Internal, "failed to check check-in status")

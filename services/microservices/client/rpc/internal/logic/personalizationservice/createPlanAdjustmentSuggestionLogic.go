@@ -92,7 +92,11 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 
 	// Validate habit ownership if habit ID is provided
 	if habitID.Valid {
-		habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID.UUID)
+		timezone := "UTC"
+		if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+			timezone = prefs.Timezone
+		}
+		habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID.UUID, timezone)
 		if err != nil {
 			return nil, status.Error(codes.NotFound, "habit not found")
 		}

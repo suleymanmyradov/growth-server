@@ -195,7 +195,7 @@ const getCheckInStatsForWeek = `-- name: GetCheckInStatsForWeek :many
 SELECT
     h.id AS habit_id,
     h.name AS habit_name,
-    COALESCE(c.slug, '')::varchar AS habit_category,
+    h.category_id AS habit_category_id,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
@@ -208,26 +208,25 @@ SELECT
     )::numeric AS completion_rate,
     MAX(ci.created_at) AS last_check_in_at
 FROM habits h
-LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
    AND ci.local_date >= $2
    AND ci.local_date < $3
 WHERE h.user_id = $1
-GROUP BY h.id, h.name, c.slug, h.created_at
+GROUP BY h.id, h.name, h.category_id, h.created_at
 ORDER BY h.created_at DESC
 `
 
 type GetCheckInStatsForWeekRow struct {
-	HabitID        uuid.UUID      `db:"habit_id" json:"habit_id"`
-	HabitName      string         `db:"habit_name" json:"habit_name"`
-	HabitCategory  string         `db:"habit_category" json:"habit_category"`
-	TotalCheckIns  int64          `db:"total_check_ins" json:"total_check_ins"`
-	CompletedCount int64          `db:"completed_count" json:"completed_count"`
-	MissedCount    int64          `db:"missed_count" json:"missed_count"`
-	CompletionRate pgtype.Numeric `db:"completion_rate" json:"completion_rate"`
-	LastCheckInAt  interface{}    `db:"last_check_in_at" json:"last_check_in_at"`
+	HabitID         uuid.UUID      `db:"habit_id" json:"habit_id"`
+	HabitName       string         `db:"habit_name" json:"habit_name"`
+	HabitCategoryID uuid.NullUUID  `db:"habit_category_id" json:"habit_category_id"`
+	TotalCheckIns   int64          `db:"total_check_ins" json:"total_check_ins"`
+	CompletedCount  int64          `db:"completed_count" json:"completed_count"`
+	MissedCount     int64          `db:"missed_count" json:"missed_count"`
+	CompletionRate  pgtype.Numeric `db:"completion_rate" json:"completion_rate"`
+	LastCheckInAt   interface{}    `db:"last_check_in_at" json:"last_check_in_at"`
 }
 
 func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetCheckInStatsForWeekRow, error) {
@@ -242,7 +241,7 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, 
 		if err := rows.Scan(
 			&i.HabitID,
 			&i.HabitName,
-			&i.HabitCategory,
+			&i.HabitCategoryID,
 			&i.TotalCheckIns,
 			&i.CompletedCount,
 			&i.MissedCount,

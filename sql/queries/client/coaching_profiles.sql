@@ -1,16 +1,15 @@
--- Coaching preferences live on user_settings now (no separate profile table).
--- These queries keep the coaching-profile shape the AI coach expects.
+-- Coaching preferences live in their own table (owned by ai-coach).
 
 -- name: GetCoachingProfile :one
 SELECT user_id, accountability_style, coach_tone AS preferred_tone,
        difficulty AS difficulty_preference, primary_motivation,
        common_blockers, coaching_notes, last_context_refresh_at,
        created_at, updated_at
-FROM user_settings
+FROM coaching_profiles
 WHERE user_id = $1;
 
 -- name: UpsertCoachingProfile :one
-INSERT INTO user_settings (
+INSERT INTO coaching_profiles (
     user_id, accountability_style, coach_tone, difficulty,
     primary_motivation, common_blockers, coaching_notes, last_context_refresh_at
 )
@@ -30,7 +29,7 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           created_at, updated_at;
 
 -- name: UpdateCoachingProfilePreferences :one
-INSERT INTO user_settings (user_id, accountability_style, coach_tone, difficulty)
+INSERT INTO coaching_profiles (user_id, accountability_style, coach_tone, difficulty)
 VALUES ($1, $2, $3, $4)
 ON CONFLICT (user_id)
 DO UPDATE SET
@@ -43,7 +42,7 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           created_at, updated_at;
 
 -- name: UpdateCoachingProfileBlockers :one
-UPDATE user_settings
+UPDATE coaching_profiles
 SET common_blockers = $2
 WHERE user_id = $1
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
@@ -52,7 +51,7 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           created_at, updated_at;
 
 -- name: UpdateCoachingProfileNotes :one
-UPDATE user_settings
+UPDATE coaching_profiles
 SET coaching_notes = $2
 WHERE user_id = $1
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
@@ -61,7 +60,7 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           created_at, updated_at;
 
 -- name: UpdateCoachingProfileContextRefresh :one
-UPDATE user_settings
+UPDATE coaching_profiles
 SET last_context_refresh_at = now()
 WHERE user_id = $1
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
@@ -70,13 +69,4 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           created_at, updated_at;
 
 -- name: DeleteCoachingProfile :exec
--- Reset coaching fields to their defaults (settings row itself stays).
-UPDATE user_settings
-SET accountability_style = 'balanced',
-    coach_tone = 'supportive',
-    difficulty = 'adaptive',
-    primary_motivation = NULL,
-    common_blockers = '[]'::jsonb,
-    coaching_notes = '{}'::jsonb,
-    last_context_refresh_at = NULL
-WHERE user_id = $1;
+DELETE FROM coaching_profiles WHERE user_id = $1;

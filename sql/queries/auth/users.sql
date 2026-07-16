@@ -57,3 +57,6 @@ SET bio        = $2,
     avatar_url = $6
 WHERE id = $1
 RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified;
+
+-- name: DeleteUser :exec
+DELETE FROM users WHERE id = $1;

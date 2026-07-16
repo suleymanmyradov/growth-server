@@ -1,7 +1,7 @@
 -- Append-only funnel analytics for upgrade prompts and checkout.
 CREATE TABLE upgrade_events (
     id               uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id          uuid NOT NULL,
     plan_id          uuid REFERENCES plans(id) ON DELETE SET NULL,
     event_type       text NOT NULL CHECK (event_type IN (
                          'prompt_viewed', 'prompt_clicked', 'prompt_dismissed',

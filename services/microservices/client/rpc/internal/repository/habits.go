@@ -22,11 +22,11 @@ func (r *habitsRepo) WithTx(tx pgx.Tx) *habitsRepo {
 	return &habitsRepo{db: r.db.WithTx(tx)}
 }
 
-func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.GetHabitRow, error) {
+func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32, timezone string) ([]db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ListHabits")
 	defer span.End()
 
-	rows, err := r.db.ListHabits(ctx, userID, limit, offset)
+	rows, err := r.db.ListHabits(ctx, userID, limit, offset, timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -37,11 +37,11 @@ func (r *habitsRepo) ListHabits(ctx context.Context, userID uuid.UUID, limit, of
 	return out, nil
 }
 
-func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID) (db.GetHabitRow, error) {
+func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID, timezone string) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitByID")
 	defer span.End()
 
-	return r.db.GetHabit(ctx, id)
+	return r.db.GetHabit(ctx, id, timezone)
 }
 
 func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error) {
@@ -52,11 +52,11 @@ func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *
 	return db.GetHabitRow(row), err
 }
 
-func (r *habitsRepo) UpdateHabit(ctx context.Context, id uuid.UUID, name string, description *string, category string) (db.GetHabitRow, error) {
+func (r *habitsRepo) UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabit")
 	defer span.End()
 
-	row, err := r.db.UpdateHabit(ctx, id, name, description, category)
+	row, err := r.db.UpdateHabit(ctx, params)
 	return db.GetHabitRow(row), err
 }
 
@@ -67,25 +67,25 @@ func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {
 	return r.db.DeleteHabit(ctx, id)
 }
 
-func (r *habitsRepo) GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID) (int32, error) {
+func (r *habitsRepo) GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID, timezone string) (int32, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitStreak")
 	defer span.End()
 
-	return r.db.GetHabitStreak(ctx, habitID, userID)
+	return r.db.GetHabitStreak(ctx, habitID, userID, timezone)
 }
 
-func (r *habitsRepo) GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]db.GetHabitStreaksRow, error) {
+func (r *habitsRepo) GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezone string) ([]db.GetHabitStreaksRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitStreaks")
 	defer span.End()
 
-	return r.db.GetHabitStreaks(ctx, userID)
+	return r.db.GetHabitStreaks(ctx, userID, timezone)
 }
 
-func (r *habitsRepo) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {
+func (r *habitsRepo) ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ResetTodayHabits")
 	defer span.End()
 
-	return r.db.ResetTodayHabits(ctx, userID)
+	return r.db.ResetTodayHabits(ctx, userID, timezone)
 }
 
 func (r *habitsRepo) CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -95,9 +95,9 @@ func (r *habitsRepo) CountHabitsByUser(ctx context.Context, userID uuid.UUID) (i
 	return r.db.CountHabitsByUser(ctx, userID)
 }
 
-func (r *habitsRepo) ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]db.ListHabitHistoryRow, error) {
+func (r *habitsRepo) ListHabitHistory(ctx context.Context, userID uuid.UUID, timezone string) ([]db.ListHabitHistoryRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.ListHabitHistory")
 	defer span.End()
 
-	return r.db.ListHabitHistory(ctx, userID)
+	return r.db.ListHabitHistory(ctx, userID, timezone)
 }

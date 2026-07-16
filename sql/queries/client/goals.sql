@@ -88,6 +88,9 @@ WHERE g.id = ANY($1::uuid[]);
 -- name: CountGoalsByUser :one
 SELECT COUNT(*) FROM goals WHERE user_id = $1;
 
+-- name: CountActiveGoalsByUser :one
+SELECT COUNT(*) FROM goals WHERE user_id = $1 AND status != 'completed';
+
 -- name: ListGoalsKeyset :many
 -- Keyset pagination: pass last_created_at from the previous page (or NULL).
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,

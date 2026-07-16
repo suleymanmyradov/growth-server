@@ -71,18 +71,6 @@ SELECT ins.id, ins.user_id, ins.plan_id, ins.event_type, ins.surface, ins.trigge
 FROM ins
 LEFT JOIN plans p ON p.id = ins.plan_id;
 
--- name: CountActiveGoalsForUser :one
-SELECT COUNT(*) FROM goals
-WHERE user_id = $1 AND status != 'completed';
-
--- name: CountActiveHabitsForUser :one
-SELECT COUNT(*) FROM habits
-WHERE user_id = $1;
-
--- name: CountPendingPlanAdjustmentsForUser :one
-SELECT COUNT(*) FROM plan_adjustments
-WHERE user_id = $1 AND status = 'pending';
-
 -- name: GetUserSubscriptionByStripeCustomerID :one
 SELECT
     s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,

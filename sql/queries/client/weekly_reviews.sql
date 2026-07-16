@@ -69,7 +69,7 @@ WHERE user_id = $1;
 SELECT
     h.id AS habit_id,
     h.name AS habit_name,
-    COALESCE(c.slug, '')::varchar AS habit_category,
+    h.category_id AS habit_category_id,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
@@ -82,14 +82,13 @@ SELECT
     )::numeric AS completion_rate,
     MAX(ci.created_at) AS last_check_in_at
 FROM habits h
-LEFT JOIN categories c ON c.id = h.category_id
 LEFT JOIN check_ins ci
     ON ci.habit_id = h.id
    AND ci.user_id = h.user_id
    AND ci.local_date >= $2
    AND ci.local_date < $3
 WHERE h.user_id = $1
-GROUP BY h.id, h.name, c.slug, h.created_at
+GROUP BY h.id, h.name, h.category_id, h.created_at
 ORDER BY h.created_at DESC;
 
 -- name: GetDailyCheckInStatsForWeek :many

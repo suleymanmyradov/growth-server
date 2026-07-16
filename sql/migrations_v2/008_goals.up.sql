@@ -1,6 +1,6 @@
 CREATE TABLE goals (
     id          uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id     uuid NOT NULL,
     category_id uuid REFERENCES categories(id) ON DELETE SET NULL,
     title       varchar(200) NOT NULL CHECK (length(trim(title)) > 0),
     description text,

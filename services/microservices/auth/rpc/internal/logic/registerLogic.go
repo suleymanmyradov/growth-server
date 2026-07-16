@@ -119,6 +119,9 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 
 	l.Infof("Register successful for user %s (pending email verification)", user.ID)
 
+	// Publish so downstream services can seed their local user_profiles read model.
+	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
+
 	return &auth.RegisterResponse{
 		RequiresVerification: true,
 		Message:              "Account created. Check your email for a verification link to activate your account.",

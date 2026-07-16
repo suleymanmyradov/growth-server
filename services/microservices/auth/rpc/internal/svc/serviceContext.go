@@ -8,6 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/email"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
@@ -23,6 +24,7 @@ type ServiceContext struct {
 	TxRunner     *postgres.PgxTxRunner
 	RedisClient  *redis.Client
 	EmailSender  email.Sender
+	EventsPub    *events.Publisher
 	cancel       context.CancelFunc
 	pool         *pgxpool.Pool
 }
@@ -77,6 +79,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(err)
 	}
 
+	var eventsPub *events.Publisher
+	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
+		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+	}
+
 	return &ServiceContext{
 		Config:      c,
 		Repo:        repo,
@@ -84,6 +91,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TxRunner:    txRunner,
 		RedisClient: redisClient,
 		EmailSender: emailSender,
+		EventsPub:   eventsPub,
 		cancel:      cancel,
 		pool:        pool,
 	}
@@ -96,6 +104,9 @@ func (s *ServiceContext) Pool() *pgxpool.Pool {
 func (s *ServiceContext) Close() {
 	if s.cancel != nil {
 		s.cancel()
+	}
+	if s.EventsPub != nil {
+		_ = s.EventsPub.Close()
 	}
 	if s.RedisClient != nil {
 		_ = s.RedisClient.Close()

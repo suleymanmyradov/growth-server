@@ -33,3 +33,9 @@ SELECT id, user_id, type, scheduled_at, sent_at, metadata, created_at
 FROM reminders
 WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at;
+
+-- name: MarkReminderSent :one
+UPDATE reminders
+SET sent_at = now()
+WHERE id = $1
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at;

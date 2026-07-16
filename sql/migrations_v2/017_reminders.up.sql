@@ -1,7 +1,7 @@
 -- Scheduled reminder queue. sent_at IS NULL = pending.
 CREATE TABLE reminders (
     id           uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id      uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id      uuid NOT NULL,
     type         text NOT NULL CHECK (type IN (
                      'habit_reminder', 'missed_check_in', 'weekly_review', 'encouragement')),
     scheduled_at timestamptz NOT NULL,

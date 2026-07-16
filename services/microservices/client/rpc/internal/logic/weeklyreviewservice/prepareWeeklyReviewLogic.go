@@ -47,7 +47,7 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 	}
 
 	// Get user timezone
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
+	settings, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
 	if err != nil {
 		l.Infof("failed to get user settings, using UTC: %v", err)
 	}
@@ -60,6 +60,11 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 			l.Infof("invalid timezone %s, using UTC: %v", settings.Timezone, err)
 			loc = time.UTC
 		}
+	}
+
+	timezone := "UTC"
+	if settings.Timezone != "" {
+		timezone = settings.Timezone
 	}
 
 	weekStart, weekEnd, err := resolveWeekBounds(in.WeekStart, loc)
@@ -109,7 +114,7 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 	}
 
 	weekHabits, err := fetchAllPages(habitPageSize, func(limit, offset int32) ([]db.GetHabitRow, error) {
-		return l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset)
+		return l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset, timezone)
 	})
 	if err != nil {
 		l.Infof("failed to get all habits for pattern detection (using %d fetched): %v", len(weekHabits), err)
@@ -118,7 +123,7 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 		weekHabits = []db.GetHabitRow{}
 	}
 
-	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID, timezone)
 	if err != nil {
 		l.Infof("failed to get habit streaks: %v", err)
 		streakRows = []db.GetHabitStreaksRow{}
@@ -152,8 +157,8 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 	}
 
 	accountabilityStyle := "balanced"
-	if settings.AccountabilityStyle != "" {
-		accountabilityStyle = string(settings.AccountabilityStyle)
+	if coachingProfile.UserID != uuid.Nil && coachingProfile.AccountabilityStyle != "" {
+		accountabilityStyle = coachingProfile.AccountabilityStyle
 	}
 
 	goals, err := fetchAllPages(goalPageSize, func(limit, offset int32) ([]db.GetGoalRow, error) {

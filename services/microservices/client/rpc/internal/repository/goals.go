@@ -90,6 +90,13 @@ func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int
 	return r.db.CountGoalsByUser(ctx, userID)
 }
 
+func (r *goalsRepo) CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.CountActiveGoalsByUser")
+	defer span.End()
+
+	return r.db.CountActiveGoalsByUser(ctx, userID)
+}
+
 func (r *goalsRepo) ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalHabitIDs")
 	defer span.End()

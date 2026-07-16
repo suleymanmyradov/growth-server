@@ -76,6 +76,17 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
 
 	return &client.UpdateCoachingProfilePreferencesResponse{
-		Profile: dbCoachingProfileToProto(profile),
+		Profile: dbCoachingProfileToProto(coachingProfileData{
+			UserID:               profile.UserID,
+			AccountabilityStyle:  profile.AccountabilityStyle,
+			PreferredTone:        profile.PreferredTone,
+			DifficultyPreference: profile.DifficultyPreference,
+			PrimaryMotivation:    profile.PrimaryMotivation,
+			CommonBlockers:       profile.CommonBlockers,
+			CoachingNotes:        profile.CoachingNotes,
+			LastContextRefreshAt: profile.LastContextRefreshAt,
+			CreatedAt:            profile.CreatedAt,
+			UpdatedAt:            profile.UpdatedAt,
+		}),
 	}, nil
 }
