@@ -1,26 +1,16 @@
 -- name: CreateCheckIn :one
--- Optimized: CTE fetches timezone once; direct VALUES insert instead of INSERT...SELECT.
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
+-- Timezone is passed by the caller (fetched from UserPreferences interface).
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
-        (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date)
+        (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date)
 RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at;
 
 -- name: GetTodayCheckIns :many
--- Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
+-- Timezone is passed by the caller.
 SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at
 FROM check_ins ci
 WHERE ci.user_id = $1
-  AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date;
+  AND ci.local_date = (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date;
 
 -- name: GetCheckInsByHabit :many
 SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
@@ -54,16 +44,11 @@ WHERE user_id = $1
 ORDER BY created_at DESC;
 
 -- name: HasCheckedInToday :one
--- Optimized: CTE fetches timezone once; removed per-row LEFT JOIN.
-WITH user_tz AS (
-    SELECT COALESCE(timezone, 'UTC') AS tz
-    FROM user_settings
-    WHERE user_id = $1
-)
+-- Timezone is passed by the caller.
 SELECT EXISTS(
     SELECT 1 FROM check_ins ci
     WHERE ci.user_id = $1 AND ci.habit_id = $2
-      AND ci.local_date = (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date
+      AND ci.local_date = (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date
 ) AS exists;
 
 -- name: GetCheckInsByUserKeyset :many

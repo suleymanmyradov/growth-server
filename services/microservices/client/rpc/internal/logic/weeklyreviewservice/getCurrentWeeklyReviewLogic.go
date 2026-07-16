@@ -40,7 +40,7 @@ func (l *GetCurrentWeeklyReviewLogic) GetCurrentWeeklyReview(in *client.GetCurre
 	}
 
 	// Get user timezone
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
+	settings, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
 	if err != nil {
 		l.Infof("failed to get user settings, using UTC: %v", err)
 	}

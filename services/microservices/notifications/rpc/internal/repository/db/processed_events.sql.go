@@ -10,7 +10,7 @@ import (
 )
 
 const isEventProcessed = `-- name: IsEventProcessed :one
-SELECT EXISTS(SELECT 1 FROM processed_events WHERE event_id = $1)
+SELECT EXISTS(SELECT 1 FROM processed_events WHERE consumer = 'notifications' AND event_id = $1)
 `
 
 func (q *Queries) IsEventProcessed(ctx context.Context, eventID string) (bool, error) {
@@ -21,7 +21,8 @@ func (q *Queries) IsEventProcessed(ctx context.Context, eventID string) (bool, e
 }
 
 const markEventProcessed = `-- name: MarkEventProcessed :exec
-INSERT INTO processed_events (event_id) VALUES ($1)
+INSERT INTO processed_events (consumer, event_id)
+VALUES ('notifications', $1)
 ON CONFLICT DO NOTHING
 `
 

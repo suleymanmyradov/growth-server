@@ -66,6 +66,11 @@ func (s *AuthServiceServer) UpdateProfile(ctx context.Context, in *auth.UpdatePr
 	return l.UpdateProfile(in)
 }
 
+func (s *AuthServiceServer) DeleteUser(ctx context.Context, in *auth.DeleteUserRequest) (*auth.EmptyResponse, error) {
+	l := logic.NewDeleteUserLogic(ctx, s.svcCtx)
+	return l.DeleteUser(in)
+}
+
 // Password management
 func (s *AuthServiceServer) ChangePassword(ctx context.Context, in *auth.ChangePasswordRequest) (*auth.EmptyResponse, error) {
 	l := logic.NewChangePasswordLogic(ctx, s.svcCtx)

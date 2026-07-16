@@ -17,8 +17,9 @@ type Config struct {
 		ConnMaxLifetime time.Duration
 	}
 	Kafka struct {
-		Brokers     []string
-		EventsTopic string
+		Brokers       []string
+		EventsTopic   string
+		ConsumerGroup string `json:",optional"`
 	}
 	Billing        struct {
 		Mode                string `json:",optional"`

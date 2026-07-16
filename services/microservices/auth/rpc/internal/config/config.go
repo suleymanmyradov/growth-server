@@ -45,4 +45,8 @@ type Config struct {
 		// RedirectURI registered in Google Cloud Console for this client.
 		RedirectURI string `json:",optional"`
 	}
+	Kafka struct {
+		Brokers     []string `json:",optional"`
+		EventsTopic string   `json:",optional"`
+	}
 }

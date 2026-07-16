@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -52,58 +51,54 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		}
 	}
 
-	// Fetch current settings to get version for optimistic locking
-	_, err = l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
-	if err != nil {
-		l.Errorf("Failed to fetch user settings: %v", err)
-		return nil, status.Error(codes.Internal, "failed to fetch user settings")
-	}
-
-	// Handle onboarding settings update (accountability style, check-in time, onboarding flag)
+	// Handle onboarding settings update (check-in time, onboarding flag → user_preferences;
+	// accountability style → coaching_profiles).
 	if in.Settings != nil && (in.Settings.AccountabilityStyle != "" || in.Settings.CheckInTime != "" || in.Settings.OnboardingCompleted) {
-		style := in.Settings.AccountabilityStyle
-		if style == "" {
-			style = "balanced"
-		}
 		var checkInTime pgtype.Time
 		if in.Settings.CheckInTime != "" {
 			if t, err := time.Parse("15:04", in.Settings.CheckInTime); err == nil {
 				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
 			}
 		}
-		_, err = l.svcCtx.Repo.UserSettings.UpdateOnboardingSettings(ctx, userID, style, checkInTime, in.Settings.OnboardingCompleted)
+		_, err = l.svcCtx.Repo.UserPreferences.UpdateOnboardingCompleted(ctx, userID, checkInTime, in.Settings.OnboardingCompleted)
 		if err != nil {
 			l.Errorf("Failed to update onboarding settings: %v", err)
 			return nil, status.Error(codes.Internal, "failed to update onboarding settings")
 		}
+
+		// Update accountability style in coaching_profiles.
+		if in.Settings.AccountabilityStyle != "" {
+			_, err = l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(ctx, userID, in.Settings.AccountabilityStyle, "", "")
+			if err != nil {
+				l.Errorf("Failed to update coaching profile: %v", err)
+			}
+		}
 	}
 
-	params := db.UpdateUserSettingsParams{
-		UserID: userID,
-	}
-
-	if in.Settings != nil {
+	// General settings update (theme, language, timezone → user_preferences).
+	if in.Settings != nil && (in.Settings.Theme != "" || in.Settings.Language != "" || in.Settings.Timezone != "") {
+		// Fetch current preferences to preserve fields not being updated.
+		current, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
+		if err != nil {
+			l.Errorf("Failed to fetch user preferences: %v", err)
+			return nil, status.Error(codes.Internal, "failed to fetch user preferences")
+		}
+		theme := current.Theme
+		language := current.Language
+		timezone := current.Timezone
 		if in.Settings.Theme != "" {
-			params.Theme = (in.Settings.Theme)
+			theme = in.Settings.Theme
 		}
 		if in.Settings.Language != "" {
-			params.Language = in.Settings.Language
+			language = in.Settings.Language
 		}
 		if in.Settings.Timezone != "" {
-			params.Timezone = in.Settings.Timezone
+			timezone = in.Settings.Timezone
 		}
-		params.EmailNotifications = in.Settings.MarketingEmails
-		params.PushNotifications = true
-		params.HabitReminders = true
-		params.GoalReminders = true
-	}
-
-	// Only run general settings update if there are non-onboarding fields to update
-	if in.Settings != nil && (in.Settings.Theme != "" || in.Settings.Language != "" || in.Settings.Timezone != "") {
-		_, err = l.svcCtx.Repo.UserSettings.UpdateUserSettings(ctx, params)
+		_, err = l.svcCtx.Repo.UserPreferences.UpdateUserPreferences(ctx, userID, theme, language, timezone)
 		if err != nil {
-			l.Errorf("Failed to update user settings: %v", err)
-			return nil, status.Error(codes.Internal, "failed to update user settings")
+			l.Errorf("Failed to update user preferences: %v", err)
+			return nil, status.Error(codes.Internal, "failed to update user preferences")
 		}
 	}
 

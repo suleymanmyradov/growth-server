@@ -2,7 +2,7 @@
 -- (two nullable FKs + XOR check: real referential integrity, no polymorphic table).
 CREATE TABLE plan_adjustments (
     id              uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id         uuid NOT NULL,
     goal_id         uuid REFERENCES goals(id) ON DELETE CASCADE,
     habit_id        uuid REFERENCES habits(id) ON DELETE CASCADE,
     source          text NOT NULL CHECK (source IN (

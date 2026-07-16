@@ -24,6 +24,17 @@ func (q *Queries) CountArticles(ctx context.Context, status string) (int64, erro
 	return count, err
 }
 
+const countArticlesByCategoryID = `-- name: CountArticlesByCategoryID :one
+SELECT COUNT(*) FROM articles WHERE category_id = $1
+`
+
+func (q *Queries) CountArticlesByCategoryID(ctx context.Context, categoryID uuid.NullUUID) (int64, error) {
+	row := q.db.QueryRow(ctx, countArticlesByCategoryID, categoryID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countArticlesByCategorySlug = `-- name: CountArticlesByCategorySlug :one
 SELECT COUNT(*) FROM articles a
 JOIN categories c ON a.category_id = c.id

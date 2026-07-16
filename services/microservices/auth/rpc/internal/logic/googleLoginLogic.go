@@ -72,6 +72,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	}
 
 	var user db.User
+	var isNewUser bool
 	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
 		oauthRepo := l.svcCtx.Repo.Oauth
@@ -105,6 +106,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 		}
 
 		// 3. No existing user — create a new OAuth-only user.
+		isNewUser = true
 		username := deriveUsername(googleUser.Email, googleUser.Name)
 		// Ensure username uniqueness with a numeric suffix if needed.
 		for i := 0; ; i++ {
@@ -133,6 +135,11 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	// Only publish on new user creation; existing users don't change profile on login.
+	if isNewUser {
+		publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
 	}
 
 	sessionID := uuid.New()

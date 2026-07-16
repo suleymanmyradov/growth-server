@@ -2,7 +2,7 @@
 -- week is derivable (week_start + 6), so it is not stored.
 CREATE TABLE weekly_reviews (
     id                    uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id               uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id               uuid NOT NULL,
     week_start            date NOT NULL,
     total_habits          integer NOT NULL DEFAULT 0,
     completed_check_ins   integer NOT NULL DEFAULT 0,

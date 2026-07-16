@@ -12,16 +12,24 @@ import (
 )
 
 type billingRepo struct {
-	db *db.Queries
+	db              *db.Queries
+	habits          IHabits
+	goals           IGoals
+	planAdjustments IPlanAdjustmentSuggestions
 }
 
-func NewBillingRepo(queries *db.Queries) IBilling {
-	return &billingRepo{db: queries}
+func NewBillingRepo(queries *db.Queries, habits IHabits, goals IGoals, planAdjustments IPlanAdjustmentSuggestions) IBilling {
+	return &billingRepo{db: queries, habits: habits, goals: goals, planAdjustments: planAdjustments}
 }
 
 // WithTx returns a new billingRepo backed by the given transaction.
 func (r *billingRepo) WithTx(tx pgx.Tx) *billingRepo {
-	return &billingRepo{db: r.db.WithTx(tx)}
+	return &billingRepo{
+		db:              r.db.WithTx(tx),
+		habits:          r.habits,
+		goals:           r.goals,
+		planAdjustments: r.planAdjustments,
+	}
 }
 
 func (r *billingRepo) ListActivePlans(ctx context.Context) ([]db.Plan, error) {
@@ -92,27 +100,6 @@ func (r *billingRepo) CreateUpgradeEvent(ctx context.Context, params db.CreateUp
 	return r.db.CreateUpgradeEvent(ctx, params)
 }
 
-func (r *billingRepo) CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CountActiveGoalsForUser")
-	defer span.End()
-
-	return r.db.CountActiveGoalsForUser(ctx, userID)
-}
-
-func (r *billingRepo) CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CountActiveHabitsForUser")
-	defer span.End()
-
-	return r.db.CountActiveHabitsForUser(ctx, userID)
-}
-
-func (r *billingRepo) CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CountPendingPlanAdjustmentsForUser")
-	defer span.End()
-
-	return r.db.CountPendingPlanAdjustmentsForUser(ctx, userID)
-}
-
 // EntitlementsResult holds computed entitlements for a user.
 type EntitlementsResult struct {
 	PlanCode                   string
@@ -137,17 +124,17 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.ComputeEntitlements")
 	defer span.End()
 
-	activeGoals, err := r.CountActiveGoalsForUser(ctx, userID)
+	activeGoals, err := r.goals.CountActiveGoalsByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	activeHabits, err := r.CountActiveHabitsForUser(ctx, userID)
+	activeHabits, err := r.habits.CountHabitsByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
-	pendingAdjustments, err := r.CountPendingPlanAdjustmentsForUser(ctx, userID)
+	pendingAdjustments, err := r.planAdjustments.CountPendingPlanAdjustmentSuggestions(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

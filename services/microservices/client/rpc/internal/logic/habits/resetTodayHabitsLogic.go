@@ -41,13 +41,18 @@ func (l *ResetTodayHabitsLogic) ResetTodayHabits(in *client.ResetTodayHabitsRequ
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
+	timezone := "UTC"
+	if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+		timezone = prefs.Timezone
+	}
+
 	if l.svcCtx.Authz != nil {
 		if err := l.svcCtx.Authz.CheckPrincipal(ctx); err != nil {
 			return nil, err
 		}
 	}
 
-	count, err := l.svcCtx.Repo.Habits.ResetTodayHabits(ctx, userID)
+	count, err := l.svcCtx.Repo.Habits.ResetTodayHabits(ctx, userID, timezone)
 	if err != nil {
 		l.Errorf("Failed to reset today habits: %v", err)
 		return nil, status.Error(codes.Internal, "failed to reset today habits")

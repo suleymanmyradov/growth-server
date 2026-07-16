@@ -1266,6 +1266,50 @@ func (*EmptyResponse) Descriptor() ([]byte, []int) {
 	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{21}
 }
 
+type DeleteUserRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteUserRequest) Reset() {
+	*x = DeleteUserRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteUserRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteUserRequest) ProtoMessage() {}
+
+func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
+func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *DeleteUserRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
 var File_services_microservices_auth_api_v1_auth_proto protoreflect.FileDescriptor
 
 const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
@@ -1359,7 +1403,9 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x12GoogleLoginRequest\x12-\n" +
 	"\x12authorization_code\x18\x01 \x01(\tR\x11authorizationCode\x12!\n" +
 	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\"\x0f\n" +
-	"\rEmptyResponse2\xa2\a\n" +
+	"\rEmptyResponse\",\n" +
+	"\x11DeleteUserRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId2\xde\a\n" +
 	"\vAuthService\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12/\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x12.auth.AuthResponse\x128\n" +
@@ -1369,7 +1415,9 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x11VerifyAccessToken\x12\x1e.auth.VerifyAccessTokenRequest\x1a\x1f.auth.VerifyAccessTokenResponse\x12?\n" +
 	"\n" +
 	"GetProfile\x12\x17.auth.GetProfileRequest\x1a\x18.auth.GetProfileResponse\x12H\n" +
-	"\rUpdateProfile\x12\x1a.auth.UpdateProfileRequest\x1a\x1b.auth.UpdateProfileResponse\x12B\n" +
+	"\rUpdateProfile\x12\x1a.auth.UpdateProfileRequest\x1a\x1b.auth.UpdateProfileResponse\x12:\n" +
+	"\n" +
+	"DeleteUser\x12\x17.auth.DeleteUserRequest\x1a\x13.auth.EmptyResponse\x12B\n" +
 	"\x0eChangePassword\x12\x1b.auth.ChangePasswordRequest\x1a\x13.auth.EmptyResponse\x12B\n" +
 	"\x0eForgotPassword\x12\x1b.auth.ForgotPasswordRequest\x1a\x13.auth.EmptyResponse\x12@\n" +
 	"\rResetPassword\x12\x1a.auth.ResetPasswordRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
@@ -1389,7 +1437,7 @@ func file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP() []byte {
 	return file_services_microservices_auth_api_v1_auth_proto_rawDescData
 }
 
-var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),           // 0: auth.RegisterRequest
 	(*LoginRequest)(nil),              // 1: auth.LoginRequest
@@ -1413,6 +1461,7 @@ var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*ResendVerificationRequest)(nil), // 19: auth.ResendVerificationRequest
 	(*GoogleLoginRequest)(nil),        // 20: auth.GoogleLoginRequest
 	(*EmptyResponse)(nil),             // 21: auth.EmptyResponse
+	(*DeleteUserRequest)(nil),         // 22: auth.DeleteUserRequest
 }
 var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.AuthResponse.user:type_name -> auth.User
@@ -1426,28 +1475,30 @@ var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	8,  // 8: auth.AuthService.VerifyAccessToken:input_type -> auth.VerifyAccessTokenRequest
 	10, // 9: auth.AuthService.GetProfile:input_type -> auth.GetProfileRequest
 	12, // 10: auth.AuthService.UpdateProfile:input_type -> auth.UpdateProfileRequest
-	14, // 11: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
-	15, // 12: auth.AuthService.ForgotPassword:input_type -> auth.ForgotPasswordRequest
-	16, // 13: auth.AuthService.ResetPassword:input_type -> auth.ResetPasswordRequest
-	18, // 14: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
-	19, // 15: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
-	20, // 16: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
-	17, // 17: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	2,  // 18: auth.AuthService.Login:output_type -> auth.AuthResponse
-	2,  // 19: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
-	21, // 20: auth.AuthService.Logout:output_type -> auth.EmptyResponse
-	7,  // 21: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
-	9,  // 22: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
-	11, // 23: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
-	13, // 24: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
-	21, // 25: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
-	21, // 26: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
-	21, // 27: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
-	2,  // 28: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
-	21, // 29: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
-	2,  // 30: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
-	17, // [17:31] is the sub-list for method output_type
-	3,  // [3:17] is the sub-list for method input_type
+	22, // 11: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
+	14, // 12: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
+	15, // 13: auth.AuthService.ForgotPassword:input_type -> auth.ForgotPasswordRequest
+	16, // 14: auth.AuthService.ResetPassword:input_type -> auth.ResetPasswordRequest
+	18, // 15: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
+	19, // 16: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
+	20, // 17: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
+	17, // 18: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	2,  // 19: auth.AuthService.Login:output_type -> auth.AuthResponse
+	2,  // 20: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
+	21, // 21: auth.AuthService.Logout:output_type -> auth.EmptyResponse
+	7,  // 22: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
+	9,  // 23: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
+	11, // 24: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
+	13, // 25: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
+	21, // 26: auth.AuthService.DeleteUser:output_type -> auth.EmptyResponse
+	21, // 27: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
+	21, // 28: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
+	21, // 29: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
+	2,  // 30: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
+	21, // 31: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
+	2,  // 32: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
+	18, // [18:33] is the sub-list for method output_type
+	3,  // [3:18] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1464,7 +1515,7 @@ func file_services_microservices_auth_api_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_auth_api_v1_auth_proto_rawDesc), len(file_services_microservices_auth_api_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

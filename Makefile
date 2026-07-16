@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all tmux-start tmux-stop tmux-attach
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all tmux-start tmux-stop tmux-attach check-ownership
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -317,3 +317,7 @@ clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf bin
 	@rm -rf logs
+
+check-ownership:
+	@echo "Running table ownership check..."
+	@bash scripts/check-table-ownership.sh

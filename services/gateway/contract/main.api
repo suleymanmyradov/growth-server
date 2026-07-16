@@ -66,6 +66,9 @@ service growthapi {
 
 	@handler UpdateProfile
 	put /profile (UpdateProfileRequest) returns (ProfileResponse)
+
+	@handler DeleteAccount
+	delete /profile returns (EmptyResponse)
 }
 
 @server (

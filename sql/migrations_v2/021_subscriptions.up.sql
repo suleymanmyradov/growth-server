@@ -1,7 +1,7 @@
 -- One subscription row per user.
 CREATE TABLE subscriptions (
     id                     uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id                uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    user_id                uuid NOT NULL UNIQUE,
     plan_id                uuid NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
     status                 text NOT NULL DEFAULT 'free' CHECK (status IN (
                                'free', 'trialing', 'active', 'past_due', 'canceled', 'expired')),

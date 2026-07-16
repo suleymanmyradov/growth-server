@@ -12,42 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countActiveGoalsForUser = `-- name: CountActiveGoalsForUser :one
-SELECT COUNT(*) FROM goals
-WHERE user_id = $1 AND status != 'completed'
-`
-
-func (q *Queries) CountActiveGoalsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countActiveGoalsForUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countActiveHabitsForUser = `-- name: CountActiveHabitsForUser :one
-SELECT COUNT(*) FROM habits
-WHERE user_id = $1
-`
-
-func (q *Queries) CountActiveHabitsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countActiveHabitsForUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countPendingPlanAdjustmentsForUser = `-- name: CountPendingPlanAdjustmentsForUser :one
-SELECT COUNT(*) FROM plan_adjustments
-WHERE user_id = $1 AND status = 'pending'
-`
-
-func (q *Queries) CountPendingPlanAdjustmentsForUser(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countPendingPlanAdjustmentsForUser, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createDefaultFreeSubscription = `-- name: CreateDefaultFreeSubscription :one
 INSERT INTO subscriptions (user_id, plan_id, status)
 SELECT $1, p.id, 'free'

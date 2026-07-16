@@ -73,6 +73,9 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 
 	l.Infof("UpdateProfile successful for user %s", userID)
 
+	// Publish synchronously so broker issues are visible immediately in dev.
+	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
+
 	return &auth.UpdateProfileResponse{
 		User: toPbUser(user),
 	}, nil

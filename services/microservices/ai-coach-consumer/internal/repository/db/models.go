@@ -31,8 +31,8 @@ type CheckIn struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-// UserSetting represents the subset of user_settings needed by ai-coach.
-type UserSetting struct {
+// CoachingProfile represents the subset of coaching_profiles needed by ai-coach.
+type CoachingProfile struct {
 	UserID              uuid.UUID `db:"user_id" json:"user_id"`
 	AccountabilityStyle string    `db:"accountability_style" json:"accountability_style"`
 }

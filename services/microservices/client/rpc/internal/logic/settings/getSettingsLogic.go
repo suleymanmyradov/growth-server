@@ -2,10 +2,11 @@ package settingslogic
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -44,30 +45,34 @@ func (l *GetSettingsLogic) GetSettings(in *client.GetSettingsRequest) (*client.G
 		return nil, status.Error(codes.Internal, "invalid user ID")
 	}
 
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
+	prefs, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
 	if err != nil {
-		l.Errorf("failed to get user settings: %v", err)
+		l.Errorf("failed to get user preferences: %v", err)
 		return nil, status.Error(codes.NotFound, "user settings not found")
 	}
 
-	return &client.GetSettingsResponse{
-		Settings: convertDbUserSettingsToPb(settings),
-	}, nil
-}
-
-func convertDbUserSettingsToPb(s db.UserSetting) *client.UserSettings {
+	// Compose the combined settings response from user_preferences + coaching_profiles.
 	pb := &client.UserSettings{
-		UserId:              s.UserID.String(),
-		Language:            s.Language,
-		Theme:               string(s.Theme),
-		Timezone:            s.Timezone,
-		AccountabilityStyle: string(s.AccountabilityStyle),
-		OnboardingCompleted: s.OnboardingCompleted,
+		UserId:              prefs.UserID.String(),
+		Language:            prefs.Language,
+		Theme:               prefs.Theme,
+		Timezone:            prefs.Timezone,
+		OnboardingCompleted: prefs.OnboardingCompleted,
 	}
-	pb.MarketingEmails = s.EmailNotifications
-	if s.CheckInTime.Valid {
-		t := time.Unix(0, s.CheckInTime.Microseconds*1000)
+	if prefs.CheckInTime.Valid {
+		t := time.Unix(0, prefs.CheckInTime.Microseconds*1000)
 		pb.CheckInTime = t.Format("15:04")
 	}
-	return pb
+
+	// Coaching profile (accountability_style) is optional.
+	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
+	if err == nil {
+		pb.AccountabilityStyle = profile.AccountabilityStyle
+	} else if !errors.Is(err, pgx.ErrNoRows) {
+		l.Infof("failed to get coaching profile: %v", err)
+	}
+
+	return &client.GetSettingsResponse{
+		Settings: pb,
+	}, nil
 }

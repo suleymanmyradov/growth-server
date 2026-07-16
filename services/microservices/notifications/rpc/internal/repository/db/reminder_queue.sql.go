@@ -137,3 +137,25 @@ func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Rem
 	}
 	return items, nil
 }
+
+const markReminderSent = `-- name: MarkReminderSent :one
+UPDATE reminders
+SET sent_at = now()
+WHERE id = $1
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
+`
+
+func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error) {
+	row := q.db.QueryRow(ctx, markReminderSent, id)
+	var i Reminder
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.ScheduledAt,
+		&i.SentAt,
+		&i.Metadata,
+		&i.CreatedAt,
+	)
+	return i, err
+}

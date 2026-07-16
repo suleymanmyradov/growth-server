@@ -1,6 +1,6 @@
 CREATE TABLE notifications (
     id         uuid PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_id    uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id    uuid NOT NULL,
     type       text NOT NULL CHECK (type IN (
                    'habit_reminder', 'missed_check_in', 'goal_deadline',
                    'achievement', 'weekly_review', 'encouragement', 'system')),

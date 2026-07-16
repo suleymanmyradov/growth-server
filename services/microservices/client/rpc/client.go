@@ -45,6 +45,9 @@ func main() {
 	logx.Infof("starting client service with config: %+v", configsafe.MaskSecrets(c))
 	ctx := svc.NewServiceContext(c)
 
+	// Start Kafka consumers before RPC server.
+	cancelConsumers := ctx.StartConsumers()
+
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		client.RegisterActivityServer(grpcServer, activityServer.NewActivityServer(ctx))
 		client.RegisterReportServer(grpcServer, reportServer.NewReportServer(ctx))
@@ -82,6 +85,7 @@ func main() {
 		RPC: s,
 		OnShutdown: []func(context.Context) error{
 			func(_ context.Context) error {
+				cancelConsumers()
 				ctx.Close()
 				return nil
 			},

@@ -78,15 +78,6 @@ func (r *RemindersRepo) GetPendingByUser(ctx context.Context, userID uuid.UUID) 
 	return r.db.GetPendingByUser(ctx, userID)
 }
 
-// GetContext loads the user settings and habit/check-in state needed to decide
-// whether a reminder should fire.
-func (r *RemindersRepo) GetContext(ctx context.Context, userID uuid.UUID) (db.GetReminderContextRow, error) {
-	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.GetContext")
-	defer span.End()
-
-	return r.db.GetReminderContext(ctx, userID)
-}
-
 // MarkSent marks a single reminder as sent by ID.
 func (r *RemindersRepo) MarkSent(ctx context.Context, id uuid.UUID) (db.Reminder, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.MarkSent")
@@ -103,4 +94,11 @@ func (r *RemindersRepo) IsDuplicateEvent(ctx context.Context, eventID uuid.UUID)
 		return false
 	}
 	return processed
+}
+
+// DeleteByUser removes all reminders for a user (used on account deletion).
+func (r *RemindersRepo) DeleteByUser(ctx context.Context, userID uuid.UUID) error {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.DeleteByUser")
+	defer span.End()
+	return r.db.DeleteRemindersByUser(ctx, userID)
 }

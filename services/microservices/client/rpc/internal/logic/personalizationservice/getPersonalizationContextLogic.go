@@ -51,10 +51,11 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanUsePersonalizedAi {
 			// Return reduced/basic context for Free users
+			var profileData coachingProfileData
 			profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 			if err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
-					profile, _ = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
+					up, _ := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
 						UserID:              userID,
 						AccountabilityStyle: "balanced",
 						CoachTone:           "supportive",
@@ -62,6 +63,21 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 						CommonBlockers:      []byte("[]"),
 						CoachingNotes:       []byte("{}"),
 					})
+					profileData = coachingProfileData{
+						UserID: up.UserID, AccountabilityStyle: up.AccountabilityStyle,
+						PreferredTone: up.PreferredTone, DifficultyPreference: up.DifficultyPreference,
+						PrimaryMotivation: up.PrimaryMotivation, CommonBlockers: up.CommonBlockers,
+						CoachingNotes: up.CoachingNotes, LastContextRefreshAt: up.LastContextRefreshAt,
+						CreatedAt: up.CreatedAt, UpdatedAt: up.UpdatedAt,
+					}
+				}
+			} else {
+				profileData = coachingProfileData{
+					UserID: profile.UserID, AccountabilityStyle: profile.AccountabilityStyle,
+					PreferredTone: profile.PreferredTone, DifficultyPreference: profile.DifficultyPreference,
+					PrimaryMotivation: profile.PrimaryMotivation, CommonBlockers: profile.CommonBlockers,
+					CoachingNotes: profile.CoachingNotes, LastContextRefreshAt: profile.LastContextRefreshAt,
+					CreatedAt: profile.CreatedAt, UpdatedAt: profile.UpdatedAt,
 				}
 			}
 			// Even on Free, include the user's name/bio so the coach can
@@ -72,7 +88,7 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 			}
 			return &client.GetPersonalizationContextResponse{
 				Context: &client.PersonalizationContext{
-					Profile:            dbCoachingProfileToProto(profile),
+					Profile:            dbCoachingProfileToProto(profileData),
 					User:               dbUserProfileToProto(freeUserProfile),
 					ActiveGoals:        []*client.Goal{},
 					ActiveHabits:       []*client.Habit{},
@@ -138,11 +154,12 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 // timestamp on the coaching profile.
 func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context.Context, userID uuid.UUID, forceRefresh bool) (*client.PersonalizationContext, error) {
 	// Get or create coaching profile
+	var profileData coachingProfileData
 	profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
 	if err != nil {
 		// Create default profile if it doesn't exist
 		if errors.Is(err, sql.ErrNoRows) {
-			profile, err = l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
+			up, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
 				UserID:              userID,
 				AccountabilityStyle: "balanced",
 				CoachTone:           "supportive",
@@ -154,9 +171,24 @@ func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context
 				l.Errorf("failed to create default coaching profile: %v", err)
 				return nil, status.Error(codes.Internal, "failed to create coaching profile")
 			}
+			profileData = coachingProfileData{
+				UserID: up.UserID, AccountabilityStyle: up.AccountabilityStyle,
+				PreferredTone: up.PreferredTone, DifficultyPreference: up.DifficultyPreference,
+				PrimaryMotivation: up.PrimaryMotivation, CommonBlockers: up.CommonBlockers,
+				CoachingNotes: up.CoachingNotes, LastContextRefreshAt: up.LastContextRefreshAt,
+				CreatedAt: up.CreatedAt, UpdatedAt: up.UpdatedAt,
+			}
 		} else {
 			l.Errorf("failed to get coaching profile: %v", err)
 			return nil, status.Error(codes.Internal, "failed to get coaching profile")
+		}
+	} else {
+		profileData = coachingProfileData{
+			UserID: profile.UserID, AccountabilityStyle: profile.AccountabilityStyle,
+			PreferredTone: profile.PreferredTone, DifficultyPreference: profile.DifficultyPreference,
+			PrimaryMotivation: profile.PrimaryMotivation, CommonBlockers: profile.CommonBlockers,
+			CoachingNotes: profile.CoachingNotes, LastContextRefreshAt: profile.LastContextRefreshAt,
+			CreatedAt: profile.CreatedAt, UpdatedAt: profile.UpdatedAt,
 		}
 	}
 
@@ -176,14 +208,19 @@ func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context
 	}
 
 	// Get active habits
-	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, 50, 0)
+	timezone := "UTC"
+	prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
+	if pErr == nil && prefs.Timezone != "" {
+		timezone = prefs.Timezone
+	}
+	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, 50, 0, timezone)
 	if err != nil {
 		l.Infof("failed to get habits: %v", err)
 		habits = []db.GetHabitRow{}
 	}
 
 	// Streaks are derived from check_ins history (not stored on the habit).
-	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID, timezone)
 	if err != nil {
 		l.Infof("failed to get habit streaks: %v", err)
 		streakRows = []db.GetHabitStreaksRow{}
@@ -217,11 +254,10 @@ func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context
 
 	// Get user timezone for pattern detection
 	userLoc := time.UTC
-	settings, err := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID)
-	if err == nil && settings.Timezone != "" {
-		loc, err := time.LoadLocation(settings.Timezone)
+	if prefs.Timezone != "" {
+		loc, err := time.LoadLocation(prefs.Timezone)
 		if err != nil {
-			l.Infof("invalid timezone %s, using UTC: %v", settings.Timezone, err)
+			l.Infof("invalid timezone %s, using UTC: %v", prefs.Timezone, err)
 		} else {
 			userLoc = loc
 		}
@@ -258,7 +294,7 @@ func (l *GetPersonalizationContextLogic) buildPersonalizationContext(ctx context
 	}
 
 	// Build response
-	protoProfile := dbCoachingProfileToProto(profile)
+	protoProfile := dbCoachingProfileToProto(profileData)
 	protoGoals := make([]*client.Goal, len(goals))
 	for i, goal := range goals {
 		protoGoals[i] = dbGoalToProto(goal, habitsByGoal[goal.ID])

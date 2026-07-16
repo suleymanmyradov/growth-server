@@ -50,16 +50,16 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 }
 
 const getAccountabilityStyle = `SELECT user_id, accountability_style
-FROM user_settings
+FROM coaching_profiles
 WHERE user_id = $1`
 
-func (q *Queries) GetAccountabilityStyle(ctx context.Context, userID uuid.UUID) (UserSetting, error) {
-	var s UserSetting
+func (q *Queries) GetAccountabilityStyle(ctx context.Context, userID uuid.UUID) (CoachingProfile, error) {
+	var s CoachingProfile
 	err := q.db.QueryRow(ctx, getAccountabilityStyle, userID).Scan(
 		&s.UserID, &s.AccountabilityStyle,
 	)
 	if err != nil {
-		return UserSetting{}, fmt.Errorf("get accountability style: %w", err)
+		return CoachingProfile{}, fmt.Errorf("get accountability style: %w", err)
 	}
 	return s, nil
 }
@@ -67,6 +67,38 @@ func (q *Queries) GetAccountabilityStyle(ctx context.Context, userID uuid.UUID) 
 const markProcessed = `INSERT INTO processed_events (consumer, event_id)
 VALUES ('ai_coach', $1)
 ON CONFLICT DO NOTHING`
+
+const deleteAIFeedbackByUser = `DELETE FROM ai_feedback WHERE user_id = $1`
+
+func (q *Queries) DeleteAIFeedbackByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteAIFeedbackByUser, userID)
+	if err != nil {
+		return fmt.Errorf("delete ai_feedback by user: %w", err)
+	}
+	return nil
+}
+
+const deleteConversationMessagesByUser = `
+DELETE FROM conversation_messages
+WHERE conversation_id IN (SELECT id FROM conversations WHERE user_id = $1)`
+
+func (q *Queries) DeleteConversationMessagesByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteConversationMessagesByUser, userID)
+	if err != nil {
+		return fmt.Errorf("delete conversation_messages by user: %w", err)
+	}
+	return nil
+}
+
+const deleteConversationsByUser = `DELETE FROM conversations WHERE user_id = $1`
+
+func (q *Queries) DeleteConversationsByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteConversationsByUser, userID)
+	if err != nil {
+		return fmt.Errorf("delete conversations by user: %w", err)
+	}
+	return nil
+}
 
 func (q *Queries) MarkProcessed(ctx context.Context, eventID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, markProcessed, eventID.String())

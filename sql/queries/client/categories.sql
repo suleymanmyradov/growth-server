@@ -30,8 +30,10 @@ DELETE FROM categories WHERE id = $1;
 -- name: CountCategories :one
 SELECT COUNT(*) FROM categories;
 
--- name: CountArticlesByCategory :one
-SELECT COUNT(*) FROM articles WHERE category_id = $1;
+-- name: GetCategoriesByIDs :many
+SELECT id, name, slug, sort_order, created_at, updated_at
+FROM categories
+WHERE id = ANY($1::uuid[]);
 
 -- name: ReorderCategories :exec
 UPDATE categories

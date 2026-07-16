@@ -85,8 +85,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE $2::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -105,8 +104,8 @@ type GetHabitRow struct {
 	Completed   bool               `db:"completed" json:"completed"`
 }
 
-func (q *Queries) GetHabit(ctx context.Context, id uuid.UUID) (GetHabitRow, error) {
-	row := q.db.QueryRow(ctx, getHabit, id)
+func (q *Queries) GetHabit(ctx context.Context, iD uuid.UUID, timezone string) (GetHabitRow, error) {
+	row := q.db.QueryRow(ctx, getHabit, iD, timezone)
 	var i GetHabitRow
 	err := row.Scan(
 		&i.ID,
@@ -123,10 +122,8 @@ func (q *Queries) GetHabit(ctx context.Context, id uuid.UUID) (GetHabitRow, erro
 }
 
 const getHabitStreak = `-- name: GetHabitStreak :one
-WITH user_tz AS (
-    SELECT COALESCE(s.timezone, 'UTC') AS tz FROM user_settings s WHERE s.user_id = $2
-), today AS (
-    SELECT (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date AS d
+WITH today AS (
+    SELECT (NOW() AT TIME ZONE $3::text)::date AS d
 ), completed AS (
     SELECT ci.local_date
     FROM check_ins ci
@@ -145,18 +142,16 @@ FROM last_date ld CROSS JOIN today t
 `
 
 // Computes the current streak for a single habit (see GetHabitStreaks).
-func (q *Queries) GetHabitStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (int32, error) {
-	row := q.db.QueryRow(ctx, getHabitStreak, habitID, userID)
+func (q *Queries) GetHabitStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, timezone string) (int32, error) {
+	row := q.db.QueryRow(ctx, getHabitStreak, habitID, userID, timezone)
 	var streak int32
 	err := row.Scan(&streak)
 	return streak, err
 }
 
 const getHabitStreaks = `-- name: GetHabitStreaks :many
-WITH user_tz AS (
-    SELECT COALESCE(s.timezone, 'UTC') AS tz FROM user_settings s WHERE s.user_id = $1
-), today AS (
-    SELECT (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date AS d
+WITH today AS (
+    SELECT (NOW() AT TIME ZONE $2::text)::date AS d
 ), completed AS (
     SELECT ci.habit_id, ci.local_date
     FROM check_ins ci
@@ -191,8 +186,8 @@ type GetHabitStreaksRow struct {
 // (or there are no completions), the streak is 0. The streak is derived from
 // check_ins history rather than stored on the habit, so it is always truthful
 // and never needs to be mutated by completion/reset flows.
-func (q *Queries) GetHabitStreaks(ctx context.Context, userID uuid.UUID) ([]GetHabitStreaksRow, error) {
-	rows, err := q.db.Query(ctx, getHabitStreaks, userID)
+func (q *Queries) GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezone string) ([]GetHabitStreaksRow, error) {
+	rows, err := q.db.Query(ctx, getHabitStreaks, userID, timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -217,8 +212,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE $2::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -237,8 +231,8 @@ type GetHabitsByIDsRow struct {
 	Completed   bool               `db:"completed" json:"completed"`
 }
 
-func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetHabitsByIDsRow, error) {
-	rows, err := q.db.Query(ctx, getHabitsByIDs, dollar_1)
+func (q *Queries) GetHabitsByIDs(ctx context.Context, column1 []uuid.UUID, timezone string) ([]GetHabitsByIDsRow, error) {
+	rows, err := q.db.Query(ctx, getHabitsByIDs, column1, timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -270,8 +264,8 @@ func (q *Queries) GetHabitsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]G
 const listHabitHistory = `-- name: ListHabitHistory :many
 WITH bounds AS (
     SELECT
-        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date AS today,
-        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date - 27 AS start_date
+        (now() AT TIME ZONE $2::text)::date AS today,
+        (now() AT TIME ZONE $2::text)::date - 27 AS start_date
 )
 SELECT ci.habit_id, ci.local_date
 FROM check_ins ci, bounds b
@@ -290,8 +284,8 @@ type ListHabitHistoryRow struct {
 // Returns completed check-ins for a user's habits within the last 28 days
 // (in the owner's timezone). Used to render the per-habit 28-day contribution
 // graph on the habit card.
-func (q *Queries) ListHabitHistory(ctx context.Context, userID uuid.UUID) ([]ListHabitHistoryRow, error) {
-	rows, err := q.db.Query(ctx, listHabitHistory, userID)
+func (q *Queries) ListHabitHistory(ctx context.Context, userID uuid.UUID, timezone string) ([]ListHabitHistoryRow, error) {
+	rows, err := q.db.Query(ctx, listHabitHistory, userID, timezone)
 	if err != nil {
 		return nil, err
 	}
@@ -317,8 +311,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE $4::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -344,8 +337,16 @@ type ListHabitsRow struct {
 // owner's timezone). There is no stored boolean to keep in sync. The streak
 // is also derived (see GetHabitStreak/GetHabitStreaks); there is no stored
 // streak column.
-func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListHabitsRow, error) {
-	rows, err := q.db.Query(ctx, listHabits, userID, limit, offset)
+//
+// Timezone is passed as a parameter by the caller (fetched from
+// UserPreferences interface) — no cross-subservice subquery to user_preferences.
+func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32, offset int32, timezone string) ([]ListHabitsRow, error) {
+	rows, err := q.db.Query(ctx, listHabits,
+		userID,
+		limit,
+		offset,
+		timezone,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -380,8 +381,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE $4::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -404,8 +404,13 @@ type ListHabitsKeysetRow struct {
 }
 
 // Keyset pagination: pass last_created_at from the previous page (or NULL).
-func (q *Queries) ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListHabitsKeysetRow, error) {
-	rows, err := q.db.Query(ctx, listHabitsKeyset, userID, column2, limit)
+func (q *Queries) ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32, timezone string) ([]ListHabitsKeysetRow, error) {
+	rows, err := q.db.Query(ctx, listHabitsKeyset,
+		userID,
+		column2,
+		limit,
+		timezone,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -435,22 +440,18 @@ func (q *Queries) ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column
 }
 
 const resetTodayHabits = `-- name: ResetTodayHabits :execrows
-WITH today AS (
-    SELECT (now() AT TIME ZONE COALESCE(
-        (SELECT s.timezone FROM user_settings s WHERE s.user_id = $1), 'UTC'))::date AS d
-)
 DELETE FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.status = 'completed'
-  AND ci.local_date = (SELECT d FROM today)
+  AND ci.local_date = (now() AT TIME ZONE $2::text)::date
 `
 
 // "Uncompletes" all of today's habits by deleting today's completed check-ins.
 // The streak is derived from check_ins history, so it recomputes automatically
 // once today's completed check-in is gone; no streak mutation is needed here.
 // Returns the number of completed check-ins removed.
-func (q *Queries) ResetTodayHabits(ctx context.Context, userID uuid.UUID) (int64, error) {
-	result, err := q.db.Exec(ctx, resetTodayHabits, userID)
+func (q *Queries) ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error) {
+	result, err := q.db.Exec(ctx, resetTodayHabits, userID, timezone)
 	if err != nil {
 		return 0, err
 	}
@@ -470,12 +471,19 @@ SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.crea
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = upd.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = upd.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE $5::text)::date
        ) AS completed
 FROM upd
 LEFT JOIN categories c ON c.id = upd.category_id
 `
+
+type UpdateHabitParams struct {
+	ID          uuid.UUID `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Description *string   `db:"description" json:"description"`
+	Slug        string    `db:"slug" json:"slug"`
+	Timezone    string    `db:"timezone" json:"timezone"`
+}
 
 type UpdateHabitRow struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
@@ -489,12 +497,13 @@ type UpdateHabitRow struct {
 	Completed   bool               `db:"completed" json:"completed"`
 }
 
-func (q *Queries) UpdateHabit(ctx context.Context, iD uuid.UUID, name string, description *string, slug string) (UpdateHabitRow, error) {
+func (q *Queries) UpdateHabit(ctx context.Context, arg UpdateHabitParams) (UpdateHabitRow, error) {
 	row := q.db.QueryRow(ctx, updateHabit,
-		iD,
-		name,
-		description,
-		slug,
+		arg.ID,
+		arg.Name,
+		arg.Description,
+		arg.Slug,
+		arg.Timezone,
 	)
 	var i UpdateHabitRow
 	err := row.Scan(

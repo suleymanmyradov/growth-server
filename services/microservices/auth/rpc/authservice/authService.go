@@ -16,6 +16,7 @@ import (
 type (
 	AuthResponse              = auth.AuthResponse
 	ChangePasswordRequest     = auth.ChangePasswordRequest
+	DeleteUserRequest         = auth.DeleteUserRequest
 	EmptyResponse             = auth.EmptyResponse
 	ForgotPasswordRequest     = auth.ForgotPasswordRequest
 	GetProfileRequest         = auth.GetProfileRequest
@@ -49,6 +50,7 @@ type (
 		// Profile management
 		GetProfile(ctx context.Context, in *GetProfileRequest, opts ...grpc.CallOption) (*GetProfileResponse, error)
 		UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error)
+		DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		// Password management
 		ChangePassword(ctx context.Context, in *ChangePasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		ForgotPassword(ctx context.Context, in *ForgotPasswordRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
@@ -112,6 +114,11 @@ func (m *defaultAuthService) GetProfile(ctx context.Context, in *GetProfileReque
 func (m *defaultAuthService) UpdateProfile(ctx context.Context, in *UpdateProfileRequest, opts ...grpc.CallOption) (*UpdateProfileResponse, error) {
 	client := auth.NewAuthServiceClient(m.cli.Conn())
 	return client.UpdateProfile(ctx, in, opts...)
+}
+
+func (m *defaultAuthService) DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	client := auth.NewAuthServiceClient(m.cli.Conn())
+	return client.DeleteUser(ctx, in, opts...)
 }
 
 // Password management

@@ -141,6 +141,13 @@ func (r *ArticlesRepo) CountArticlesByCategorySlug(ctx context.Context, slug str
 	return r.db.CountArticlesByCategorySlug(ctx, slug, status)
 }
 
+func (r *ArticlesRepo) CountArticlesByCategoryID(ctx context.Context, id uuid.UUID) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CountArticlesByCategoryID")
+	defer span.End()
+
+	return r.db.CountArticlesByCategoryID(ctx, uuid.NullUUID{UUID: id, Valid: true})
+}
+
 func (r *ArticlesRepo) CountSearchArticles(ctx context.Context, query string, status string) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CountSearchArticles")
 	defer span.End()

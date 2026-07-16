@@ -149,6 +149,23 @@ func (l *weeklyStatsLogic) computeWeeklyStats(ctx context.Context, userID uuid.U
 		return stats, err
 	}
 
+	// Resolve category names via the Categories interface (no cross-subservice JOIN).
+	categoryIDs := make([]uuid.UUID, 0, len(habitStats))
+	for _, h := range habitStats {
+		if h.HabitCategoryID.Valid {
+			categoryIDs = append(categoryIDs, h.HabitCategoryID.UUID)
+		}
+	}
+	categoryMap := make(map[uuid.UUID]string)
+	if len(categoryIDs) > 0 {
+		cats, err := l.svcCtx.Repo.Categories.GetCategoriesByIDs(ctx, categoryIDs)
+		if err == nil {
+			for _, c := range cats {
+				categoryMap[c.ID] = c.Slug
+			}
+		}
+	}
+
 	stats.totalHabits = len(habitStats)
 	stats.habitBreakdowns = make([]prompts.HabitBreakdownInput, 0, len(habitStats))
 	stats.habitBreakdownsForDB = make([]habitBreakdownDB, 0, len(habitStats))
@@ -163,10 +180,15 @@ func (l *weeklyStatsLogic) computeWeeklyStats(ctx context.Context, userID uuid.U
 		stats.completedCheckIns += completed
 		stats.missedCheckIns += missed
 
+		category := ""
+		if h.HabitCategoryID.Valid {
+			category = categoryMap[h.HabitCategoryID.UUID]
+		}
+
 		stats.habitBreakdowns = append(stats.habitBreakdowns, prompts.HabitBreakdownInput{
 			HabitID:        h.HabitID.String(),
 			HabitName:      h.HabitName,
-			Category:       h.HabitCategory,
+			Category:       category,
 			CompletedCount: completed,
 			MissedCount:    missed,
 			CompletionRate: rate,
@@ -179,7 +201,7 @@ func (l *weeklyStatsLogic) computeWeeklyStats(ctx context.Context, userID uuid.U
 		stats.habitBreakdownsForDB = append(stats.habitBreakdownsForDB, habitBreakdownDB{
 			HabitID:        h.HabitID.String(),
 			HabitName:      h.HabitName,
-			Category:       h.HabitCategory,
+			Category:       category,
 			TotalCheckIns:  total,
 			CompletedCount: completed,
 			MissedCount:    missed,

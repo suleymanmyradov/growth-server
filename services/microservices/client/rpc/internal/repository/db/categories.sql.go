@@ -11,17 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const countArticlesByCategory = `-- name: CountArticlesByCategory :one
-SELECT COUNT(*) FROM articles WHERE category_id = $1
-`
-
-func (q *Queries) CountArticlesByCategory(ctx context.Context, categoryID uuid.NullUUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countArticlesByCategory, categoryID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countCategories = `-- name: CountCategories :one
 SELECT COUNT(*) FROM categories
 `
@@ -60,6 +49,39 @@ DELETE FROM categories WHERE id = $1
 func (q *Queries) DeleteCategory(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteCategory, id)
 	return err
+}
+
+const getCategoriesByIDs = `-- name: GetCategoriesByIDs :many
+SELECT id, name, slug, sort_order, created_at, updated_at
+FROM categories
+WHERE id = ANY($1::uuid[])
+`
+
+func (q *Queries) GetCategoriesByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getCategoriesByIDs, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Category{}
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCategory = `-- name: GetCategory :one

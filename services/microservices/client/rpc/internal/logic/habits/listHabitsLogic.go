@@ -50,7 +50,12 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 		offset = 0
 	}
 
-	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset)
+	timezone := "UTC"
+	if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+		timezone = prefs.Timezone
+	}
+
+	habits, err := l.svcCtx.Repo.Habits.ListHabits(ctx, userID, limit, offset, timezone)
 	if err != nil {
 		l.Errorf("Failed to list habits: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list habits")
@@ -64,7 +69,7 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 
 	// Streaks are derived from check_ins history (consecutive completed days),
 	// not the stored habit.streak counter. Fetch them in one set-based query.
-	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID)
+	streakRows, err := l.svcCtx.Repo.Habits.GetHabitStreaks(ctx, userID, timezone)
 	if err != nil {
 		l.Errorf("Failed to compute habit streaks: %v", err)
 		return nil, status.Error(codes.Internal, "failed to compute habit streaks")
@@ -76,7 +81,7 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 
 	// Fetch the last 28 days of completed check-ins (any habit) for the user
 	// and build a per-habit boolean history array for the contribution graph.
-	historyRows, err := l.svcCtx.Repo.Habits.ListHabitHistory(ctx, userID)
+	historyRows, err := l.svcCtx.Repo.Habits.ListHabitHistory(ctx, userID, timezone)
 	if err != nil {
 		l.Errorf("Failed to list habit history: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list habit history")
@@ -85,11 +90,7 @@ func (l *ListHabitsLogic) ListHabits(in *client.ListHabitsRequest) (*client.List
 	// linear per habit instead of rescanning the full history each time.
 	historyByHabit := bucketHabitHistory(historyRows)
 	// Use the user's configured timezone so "today" matches the SQL window.
-	tz := ""
-	if settings, sErr := l.svcCtx.Repo.UserSettings.GetUserSettings(ctx, userID); sErr == nil {
-		tz = settings.Timezone
-	}
-	today := userToday(tz)
+	today := userToday(timezone)
 
 	pbHabits := make([]*client.Habit, len(habits))
 	for i, h := range habits {

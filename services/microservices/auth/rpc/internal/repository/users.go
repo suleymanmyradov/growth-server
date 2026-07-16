@@ -77,3 +77,9 @@ func (r *UsersRepo) UpdateUserProfile(ctx context.Context, params db.UpdateUserP
 	defer span.End()
 	return r.db.UpdateUserProfile(ctx, params)
 }
+
+func (r *UsersRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.DeleteUser")
+	defer span.End()
+	return r.db.DeleteUser(ctx, id)
+}

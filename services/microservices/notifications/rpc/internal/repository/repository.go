@@ -8,6 +8,7 @@ type Repository struct {
 	Notifications   *NotificationsRepo
 	Reminders       *RemindersRepo
 	ProcessedEvents *ProcessedEventsRepo
+	ReminderState   *ReminderStateRepo
 }
 
 func NewRepository(q *db.Queries) *Repository {
@@ -15,5 +16,6 @@ func NewRepository(q *db.Queries) *Repository {
 		Notifications:   NewNotificationsRepo(q),
 		Reminders:       NewRemindersRepo(q),
 		ProcessedEvents: NewProcessedEventsRepo(q),
+		ReminderState:   NewReminderStateRepo(q),
 	}
 }

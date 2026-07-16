@@ -23,6 +23,10 @@ const (
 	TypeSettingsChanged          EventType = "settings_changed"
 	TypeReminderDue              EventType = "reminder_due"
 	TypeCheckInFeedbackGenerated EventType = "check_in_feedback_generated"
+	TypeHabitCreated             EventType = "habit_created"
+	TypeHabitDeleted             EventType = "habit_deleted"
+	TypeUserDeleted              EventType = "user_deleted"
+	TypeUserProfileUpdated       EventType = "user_profile_updated"
 )
 
 // Envelope wraps every event published to Kafka with stable metadata.
@@ -73,6 +77,41 @@ type ReminderDue struct {
 	Type        string `json:"type"`
 	ScheduledAt string `json:"scheduledAt"`
 	Metadata    string `json:"metadata,omitempty"`
+}
+
+// HabitCreated is the payload for TypeHabitCreated events.
+type HabitCreated struct {
+	UserID  string `json:"userId"`
+	HabitID string `json:"habitId"`
+}
+
+// HabitDeleted is the payload for TypeHabitDeleted events.
+type HabitDeleted struct {
+	UserID  string `json:"userId"`
+	HabitID string `json:"habitId"`
+}
+
+// UserDeleted is the payload for TypeUserDeleted events.
+// Published by auth when a user account is deleted; consumed by every service
+// that owns user-keyed tables to clean up local data.
+type UserDeleted struct {
+	UserID string `json:"userId"`
+}
+
+// UserProfileUpdated is the payload for TypeUserProfileUpdated events.
+// Published by auth on registration, Google OAuth signup, and profile updates;
+// consumed by services that maintain a local read model of user profiles.
+// All fields are populated so the consumer can fully sync its read model.
+type UserProfileUpdated struct {
+	UserID    string   `json:"userId"`
+	Username  string   `json:"username"`
+	Email     string   `json:"email"`
+	Name      string   `json:"name"`
+	Bio       string   `json:"bio,omitempty"`
+	Location  string   `json:"location,omitempty"`
+	Website   string   `json:"website,omitempty"`
+	Interests []string `json:"interests,omitempty"`
+	Avatar    string   `json:"avatar,omitempty"`
 }
 
 // NewEnvelope creates a new Envelope with a UUID v7 event ID, the given

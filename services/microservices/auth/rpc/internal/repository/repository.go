@@ -18,6 +18,7 @@ type IUsers interface {
 	UpdateUserFullName(ctx context.Context, id uuid.UUID, fullName string) (db.User, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) (db.User, error)
 	UpdateUserProfile(ctx context.Context, params db.UpdateUserProfileParams) (db.User, error)
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 // IOauth defines OAuth account linking operations.

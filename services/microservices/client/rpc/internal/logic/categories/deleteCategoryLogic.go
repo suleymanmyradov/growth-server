@@ -37,7 +37,7 @@ func (l *DeleteCategoryLogic) DeleteCategory(in *client.DeleteCategoryRequest) (
 
 	// Articles referencing this category have ON DELETE SET NULL, so deletion is
 	// safe, but we report how many articles would be un-categorized for visibility.
-	count, _ := l.svcCtx.Repo.Categories.CountArticlesByCategory(ctx, id)
+	count, _ := l.svcCtx.Repo.Articles.CountArticlesByCategoryID(ctx, id)
 
 	if err := l.svcCtx.Repo.Categories.DeleteCategory(ctx, id); err != nil {
 		l.Errorf("delete category failed: %v", err)

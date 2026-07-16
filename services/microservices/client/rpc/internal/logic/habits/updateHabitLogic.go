@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -42,9 +43,20 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		return nil, status.Error(codes.InvalidArgument, "invalid habit id")
 	}
 
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		l.Errorf("Invalid user ID: %v", err)
+		return nil, status.Error(codes.Internal, "invalid user id")
+	}
+
+	timezone := "UTC"
+	if prefs, pErr := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
+		timezone = prefs.Timezone
+	}
+
 	// Verify ownership before mutating. GetHabitByID returns NotFound on miss,
 	// and we re-check the owner against the principal to prevent IDOR.
-	existing, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID)
+	existing, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID, timezone)
 	if err != nil {
 		l.Errorf("Failed to get habit: %v", err)
 		return nil, status.Error(codes.NotFound, "habit not found")
@@ -58,14 +70,21 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		desc = &in.Description
 	}
 
-	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(ctx, habitID, in.Name, desc, in.Category)
+	params := db.UpdateHabitParams{
+		ID:          habitID,
+		Name:        in.Name,
+		Description: desc,
+		Slug:        in.Category,
+		Timezone:    timezone,
+	}
+	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(ctx, params)
 	if err != nil {
 		l.Errorf("Failed to update habit: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update habit")
 	}
 
 	// Streak is derived from check_ins history, not the stored counter.
-	streak, sErr := l.svcCtx.Repo.Habits.GetHabitStreak(ctx, habitID, habit.UserID)
+	streak, sErr := l.svcCtx.Repo.Habits.GetHabitStreak(ctx, habitID, habit.UserID, timezone)
 	if sErr != nil {
 		l.Errorf("Failed to compute habit streak: %v", sErr)
 		streak = 0

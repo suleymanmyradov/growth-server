@@ -3,6 +3,9 @@
 -- owner's timezone). There is no stored boolean to keep in sync. The streak
 -- is also derived (see GetHabitStreak/GetHabitStreaks); there is no stored
 -- streak column.
+--
+-- Timezone is passed as a parameter by the caller (fetched from
+-- UserPreferences interface) — no cross-subservice subquery to user_preferences.
 
 -- name: ListHabits :many
 SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
@@ -10,8 +13,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -25,8 +27,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -57,8 +58,7 @@ SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.crea
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = upd.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = upd.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date
        ) AS completed
 FROM upd
 LEFT JOIN categories c ON c.id = upd.category_id;
@@ -73,10 +73,8 @@ DELETE FROM habits WHERE id = $1;
 -- (or there are no completions), the streak is 0. The streak is derived from
 -- check_ins history rather than stored on the habit, so it is always truthful
 -- and never needs to be mutated by completion/reset flows.
-WITH user_tz AS (
-    SELECT COALESCE(s.timezone, 'UTC') AS tz FROM user_settings s WHERE s.user_id = $1
-), today AS (
-    SELECT (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date AS d
+WITH today AS (
+    SELECT (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date AS d
 ), completed AS (
     SELECT ci.habit_id, ci.local_date
     FROM check_ins ci
@@ -101,10 +99,8 @@ WHERE h.user_id = $1;
 
 -- name: GetHabitStreak :one
 -- Computes the current streak for a single habit (see GetHabitStreaks).
-WITH user_tz AS (
-    SELECT COALESCE(s.timezone, 'UTC') AS tz FROM user_settings s WHERE s.user_id = $2
-), today AS (
-    SELECT (NOW() AT TIME ZONE COALESCE((SELECT tz FROM user_tz), 'UTC'))::date AS d
+WITH today AS (
+    SELECT (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date AS d
 ), completed AS (
     SELECT ci.local_date
     FROM check_ins ci
@@ -126,14 +122,10 @@ FROM last_date ld CROSS JOIN today t;
 -- The streak is derived from check_ins history, so it recomputes automatically
 -- once today's completed check-in is gone; no streak mutation is needed here.
 -- Returns the number of completed check-ins removed.
-WITH today AS (
-    SELECT (now() AT TIME ZONE COALESCE(
-        (SELECT s.timezone FROM user_settings s WHERE s.user_id = $1), 'UTC'))::date AS d
-)
 DELETE FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.status = 'completed'
-  AND ci.local_date = (SELECT d FROM today);
+  AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date;
 
 -- name: GetHabitsByIDs :many
 SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
@@ -141,8 +133,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id
@@ -154,8 +145,8 @@ WHERE h.id = ANY($1::uuid[]);
 -- graph on the habit card.
 WITH bounds AS (
     SELECT
-        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date AS today,
-        (now() AT TIME ZONE COALESCE((SELECT timezone FROM user_settings WHERE user_id = $1), 'UTC'))::date - 27 AS start_date
+        (now() AT TIME ZONE sqlc.arg(timezone)::text)::date AS today,
+        (now() AT TIME ZONE sqlc.arg(timezone)::text)::date - 27 AS start_date
 )
 SELECT ci.habit_id, ci.local_date
 FROM check_ins ci, bounds b
@@ -175,8 +166,7 @@ SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.up
        EXISTS (
            SELECT 1 FROM check_ins ci
            WHERE ci.habit_id = h.id AND ci.status = 'completed'
-             AND ci.local_date = (now() AT TIME ZONE COALESCE(
-                 (SELECT s.timezone FROM user_settings s WHERE s.user_id = h.user_id), 'UTC'))::date
+             AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date
        ) AS completed
 FROM habits h
 LEFT JOIN categories c ON c.id = h.category_id

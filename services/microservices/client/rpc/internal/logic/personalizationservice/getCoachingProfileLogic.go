@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -16,6 +16,20 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+// coachingProfileData is the common shape shared by all coaching profile row types.
+type coachingProfileData struct {
+	UserID               uuid.UUID
+	AccountabilityStyle  string
+	PreferredTone        string
+	DifficultyPreference string
+	PrimaryMotivation    *string
+	CommonBlockers       []byte
+	CoachingNotes        []byte
+	LastContextRefreshAt pgtype.Timestamptz
+	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
+}
 
 type GetCoachingProfileLogic struct {
 	ctx    context.Context
@@ -60,11 +74,22 @@ func (l *GetCoachingProfileLogic) GetCoachingProfile(in *client.GetCoachingProfi
 	}
 
 	return &client.GetCoachingProfileResponse{
-		Profile: dbCoachingProfileToProto(profile),
+		Profile: dbCoachingProfileToProto(coachingProfileData{
+			UserID:               profile.UserID,
+			AccountabilityStyle:  profile.AccountabilityStyle,
+			PreferredTone:        profile.PreferredTone,
+			DifficultyPreference: profile.DifficultyPreference,
+			PrimaryMotivation:    profile.PrimaryMotivation,
+			CommonBlockers:       profile.CommonBlockers,
+			CoachingNotes:        profile.CoachingNotes,
+			LastContextRefreshAt: profile.LastContextRefreshAt,
+			CreatedAt:            profile.CreatedAt,
+			UpdatedAt:            profile.UpdatedAt,
+		}),
 	}, nil
 }
 
-func dbCoachingProfileToProto(profile db.GetCoachingProfileRow) *client.CoachingProfile {
+func dbCoachingProfileToProto(profile coachingProfileData) *client.CoachingProfile {
 	var commonBlockers []string
 	if profile.CommonBlockers != nil {
 		if err := json.Unmarshal(profile.CommonBlockers, &commonBlockers); err != nil {

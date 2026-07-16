@@ -15,8 +15,8 @@ type CoachingProfilesRepo struct {
 }
 
 // NewCoachingProfilesRepo creates a new CoachingProfilesRepo instance
-func NewCoachingProfilesRepo(db *db.Queries) *CoachingProfilesRepo {
-	return &CoachingProfilesRepo{db: db}
+func NewCoachingProfilesRepo(dbq *db.Queries) *CoachingProfilesRepo {
+	return &CoachingProfilesRepo{db: dbq}
 }
 
 // WithTx returns a new CoachingProfilesRepo backed by the given transaction.
@@ -31,44 +31,39 @@ func (r *CoachingProfilesRepo) GetCoachingProfile(ctx context.Context, userID uu
 	return r.db.GetCoachingProfile(ctx, userID)
 }
 
-func (r *CoachingProfilesRepo) UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.GetCoachingProfileRow, error) {
+func (r *CoachingProfilesRepo) UpsertCoachingProfile(ctx context.Context, params db.UpsertCoachingProfileParams) (db.UpsertCoachingProfileRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CoachingProfilesRepo.UpsertCoachingProfile")
 	defer span.End()
 
-	row, err := r.db.UpsertCoachingProfile(ctx, params)
-	return db.GetCoachingProfileRow(row), err
+	return r.db.UpsertCoachingProfile(ctx, params)
 }
 
-func (r *CoachingProfilesRepo) UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, preferredTone string, difficultyPreference string) (db.GetCoachingProfileRow, error) {
+func (r *CoachingProfilesRepo) UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, preferredTone string, difficultyPreference string) (db.UpdateCoachingProfilePreferencesRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CoachingProfilesRepo.UpdateCoachingProfilePreferences")
 	defer span.End()
 
-	row, err := r.db.UpdateCoachingProfilePreferences(ctx, userID, accountabilityStyle, preferredTone, difficultyPreference)
-	return db.GetCoachingProfileRow(row), err
+	return r.db.UpdateCoachingProfilePreferences(ctx, userID, accountabilityStyle, preferredTone, difficultyPreference)
 }
 
-func (r *CoachingProfilesRepo) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.GetCoachingProfileRow, error) {
+func (r *CoachingProfilesRepo) UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (db.UpdateCoachingProfileBlockersRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CoachingProfilesRepo.UpdateCoachingProfileBlockers")
 	defer span.End()
 
-	row, err := r.db.UpdateCoachingProfileBlockers(ctx, userID, commonBlockers)
-	return db.GetCoachingProfileRow(row), err
+	return r.db.UpdateCoachingProfileBlockers(ctx, userID, commonBlockers)
 }
 
-func (r *CoachingProfilesRepo) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.GetCoachingProfileRow, error) {
+func (r *CoachingProfilesRepo) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (db.UpdateCoachingProfileNotesRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CoachingProfilesRepo.UpdateCoachingProfileNotes")
 	defer span.End()
 
-	row, err := r.db.UpdateCoachingProfileNotes(ctx, userID, coachingNotes)
-	return db.GetCoachingProfileRow(row), err
+	return r.db.UpdateCoachingProfileNotes(ctx, userID, coachingNotes)
 }
 
-func (r *CoachingProfilesRepo) UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.GetCoachingProfileRow, error) {
+func (r *CoachingProfilesRepo) UpdateCoachingProfileContextRefresh(ctx context.Context, userID uuid.UUID) (db.UpdateCoachingProfileContextRefreshRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CoachingProfilesRepo.UpdateCoachingProfileContextRefresh")
 	defer span.End()
 
-	row, err := r.db.UpdateCoachingProfileContextRefresh(ctx, userID)
-	return db.GetCoachingProfileRow(row), err
+	return r.db.UpdateCoachingProfileContextRefresh(ctx, userID)
 }
 
 func (r *CoachingProfilesRepo) DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error {
