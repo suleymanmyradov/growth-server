@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	commonlogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/common"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -43,17 +44,24 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	// Check plan limit enforcement (auto-create free subscription if missing)
+	// Check plan limit enforcement (auto-create free subscription if missing).
+	// Users who haven't completed onboarding are exempt — they must always be
+	// able to create their initial habits, even if a previous partial onboarding
+	// attempt left leftover habits that would otherwise trip the Free plan limit.
 	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
 		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanCreateHabit {
-			st := status.New(codes.FailedPrecondition, "plan limit reached")
-			st, _ = st.WithDetails(&client.PlanLimitDetail{
-				Limit:          "active_habits",
-				UpgradeTrigger: "habit_limit",
-			})
-			return nil, st.Err()
+			if !commonlogic.IsOnboardingComplete(ctx, l.svcCtx, userID) {
+				l.Infof("CreateHabit: bypassing plan limit for user %s (onboarding not complete)", userID)
+			} else {
+				st := status.New(codes.FailedPrecondition, "plan limit reached")
+				st, _ = st.WithDetails(&client.PlanLimitDetail{
+					Limit:          "active_habits",
+					UpgradeTrigger: "habit_limit",
+				})
+				return nil, st.Err()
+			}
 		}
 	}
 

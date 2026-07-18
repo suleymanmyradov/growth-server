@@ -73,6 +73,11 @@ func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse,
 		filters = append(filters, `category = "`+cat+`"`)
 	}
 
+	// Status filter (e.g. only published articles for admin search)
+	if st := strings.TrimSpace(req.Status); st != "" {
+		filters = append(filters, `status = "`+st+`"`)
+	}
+
 	searchReq := &meilisearch.SearchRequest{
 		Offset: int64(offset),
 		Limit:  int64(limit),

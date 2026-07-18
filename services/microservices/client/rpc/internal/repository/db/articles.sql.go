@@ -49,19 +49,6 @@ func (q *Queries) CountArticlesByCategorySlug(ctx context.Context, slug string, 
 	return count, err
 }
 
-const countSearchArticles = `-- name: CountSearchArticles :one
-SELECT COUNT(*) FROM articles a
-WHERE a.search_vector @@ plainto_tsquery('english', $1)
-  AND ($2::text = '' OR a.status = $2::text)
-`
-
-func (q *Queries) CountSearchArticles(ctx context.Context, plaintoTsquery string, status string) (int64, error) {
-	row := q.db.QueryRow(ctx, countSearchArticles, plaintoTsquery, status)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createArticle = `-- name: CreateArticle :one
 INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author, status)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -905,79 +892,6 @@ func (q *Queries) ListTags(ctx context.Context) ([]ListTagsRow, error) {
 	for rows.Next() {
 		var i ListTagsRow
 		if err := rows.Scan(&i.ID, &i.Name, &i.Slug); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const searchArticles = `-- name: SearchArticles :many
-SELECT
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at, a.status,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
-FROM articles a
-LEFT JOIN categories c ON a.category_id = c.id
-WHERE a.search_vector @@ plainto_tsquery('english', $1)
-  AND ($4::text = '' OR a.status = $4::text)
-ORDER BY a.published_at DESC
-LIMIT $2 OFFSET $3
-`
-
-type SearchArticlesRow struct {
-	ID           uuid.UUID          `db:"id" json:"id"`
-	Title        string             `db:"title" json:"title"`
-	Excerpt      *string            `db:"excerpt" json:"excerpt"`
-	Content      string             `db:"content" json:"content"`
-	ReadTime     int32              `db:"read_time" json:"read_time"`
-	ImageUrl     *string            `db:"image_url" json:"image_url"`
-	Author       string             `db:"author" json:"author"`
-	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Status       string             `db:"status" json:"status"`
-	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
-	CategoryName *string            `db:"category_name" json:"category_name"`
-	CategorySlug *string            `db:"category_slug" json:"category_slug"`
-	LikeCount    int64              `db:"like_count" json:"like_count"`
-}
-
-func (q *Queries) SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32, status string) ([]SearchArticlesRow, error) {
-	rows, err := q.db.Query(ctx, searchArticles,
-		plaintoTsquery,
-		limit,
-		offset,
-		status,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []SearchArticlesRow{}
-	for rows.Next() {
-		var i SearchArticlesRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Title,
-			&i.Excerpt,
-			&i.Content,
-			&i.ReadTime,
-			&i.ImageUrl,
-			&i.Author,
-			&i.PublishedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Status,
-			&i.CategoryID,
-			&i.CategoryName,
-			&i.CategorySlug,
-			&i.LikeCount,
-		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

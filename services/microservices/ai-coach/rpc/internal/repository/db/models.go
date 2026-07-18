@@ -42,7 +42,6 @@ type Article struct {
 	PublishedAt     pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	SearchVector    string             `db:"search_vector" json:"search_vector"`
 	Status          string             `db:"status" json:"status"`
 }
 
@@ -86,6 +85,19 @@ type CheckIn struct {
 	Blocker   *string            `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type CoachingProfile struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
+	CoachTone            string             `db:"coach_tone" json:"coach_tone"`
+	Difficulty           string             `db:"difficulty" json:"difficulty"`
+	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
+	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
+	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
+	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
+	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Conversation struct {
@@ -156,6 +168,16 @@ type Notification struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type NotificationPreference struct {
+	UserID             uuid.UUID          `db:"user_id" json:"user_id"`
+	EmailNotifications bool               `db:"email_notifications" json:"email_notifications"`
+	PushNotifications  bool               `db:"push_notifications" json:"push_notifications"`
+	HabitReminders     bool               `db:"habit_reminders" json:"habit_reminders"`
+	GoalReminders      bool               `db:"goal_reminders" json:"goal_reminders"`
+	CreatedAt          pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type Plan struct {
 	ID                       uuid.UUID          `db:"id" json:"id"`
 	Code                     string             `db:"code" json:"code"`
@@ -206,6 +228,18 @@ type Reminder struct {
 	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type ReminderState struct {
+	UserID              uuid.UUID          `db:"user_id" json:"user_id"`
+	Timezone            string             `db:"timezone" json:"timezone"`
+	CheckInTime         pgtype.Time        `db:"check_in_time" json:"check_in_time"`
+	HabitReminders      bool               `db:"habit_reminders" json:"habit_reminders"`
+	OnboardingCompleted bool               `db:"onboarding_completed" json:"onboarding_completed"`
+	ActiveHabitCount    int32              `db:"active_habit_count" json:"active_habit_count"`
+	LastCheckInDate     pgtype.Date        `db:"last_check_in_date" json:"last_check_in_date"`
+	CheckedInCountToday int32              `db:"checked_in_count_today" json:"checked_in_count_today"`
+	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type SavedArticle struct {
@@ -278,40 +312,52 @@ type UpgradeEvent struct {
 }
 
 type User struct {
-	ID           uuid.UUID          `db:"id" json:"id"`
-	Username     string             `db:"username" json:"username"`
-	Email        string             `db:"email" json:"email"`
-	PasswordHash string             `db:"password_hash" json:"password_hash"`
-	FullName     string             `db:"full_name" json:"full_name"`
-	Bio          *string            `db:"bio" json:"bio"`
-	Location     *string            `db:"location" json:"location"`
-	Website      *string            `db:"website" json:"website"`
-	Interests    []string           `db:"interests" json:"interests"`
-	AvatarUrl    *string            `db:"avatar_url" json:"avatar_url"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID            uuid.UUID          `db:"id" json:"id"`
+	Username      string             `db:"username" json:"username"`
+	Email         string             `db:"email" json:"email"`
+	PasswordHash  *string            `db:"password_hash" json:"password_hash"`
+	FullName      string             `db:"full_name" json:"full_name"`
+	Bio           *string            `db:"bio" json:"bio"`
+	Location      *string            `db:"location" json:"location"`
+	Website       *string            `db:"website" json:"website"`
+	Interests     []string           `db:"interests" json:"interests"`
+	AvatarUrl     *string            `db:"avatar_url" json:"avatar_url"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	EmailVerified bool               `db:"email_verified" json:"email_verified"`
 }
 
-type UserSetting struct {
-	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
-	Theme                string             `db:"theme" json:"theme"`
-	Language             string             `db:"language" json:"language"`
-	Timezone             string             `db:"timezone" json:"timezone"`
-	EmailNotifications   bool               `db:"email_notifications" json:"email_notifications"`
-	PushNotifications    bool               `db:"push_notifications" json:"push_notifications"`
-	HabitReminders       bool               `db:"habit_reminders" json:"habit_reminders"`
-	GoalReminders        bool               `db:"goal_reminders" json:"goal_reminders"`
-	CheckInTime          pgtype.Time        `db:"check_in_time" json:"check_in_time"`
-	OnboardingCompleted  bool               `db:"onboarding_completed" json:"onboarding_completed"`
-	AccountabilityStyle  string             `db:"accountability_style" json:"accountability_style"`
-	CoachTone            string             `db:"coach_tone" json:"coach_tone"`
-	Difficulty           string             `db:"difficulty" json:"difficulty"`
-	PrimaryMotivation    *string            `db:"primary_motivation" json:"primary_motivation"`
-	CommonBlockers       []byte             `db:"common_blockers" json:"common_blockers"`
-	CoachingNotes        []byte             `db:"coaching_notes" json:"coaching_notes"`
-	LastContextRefreshAt pgtype.Timestamptz `db:"last_context_refresh_at" json:"last_context_refresh_at"`
-	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+type UserOauthAccount struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Provider    string             `db:"provider" json:"provider"`
+	ProviderUid string             `db:"provider_uid" json:"provider_uid"`
+	Email       *string            `db:"email" json:"email"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type UserPreference struct {
+	UserID              uuid.UUID          `db:"user_id" json:"user_id"`
+	Theme               string             `db:"theme" json:"theme"`
+	Language            string             `db:"language" json:"language"`
+	Timezone            string             `db:"timezone" json:"timezone"`
+	CheckInTime         pgtype.Time        `db:"check_in_time" json:"check_in_time"`
+	OnboardingCompleted bool               `db:"onboarding_completed" json:"onboarding_completed"`
+	CreatedAt           pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type UserProfile struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	Username  string             `db:"username" json:"username"`
+	FullName  string             `db:"full_name" json:"full_name"`
+	Bio       *string            `db:"bio" json:"bio"`
+	Location  *string            `db:"location" json:"location"`
+	Website   *string            `db:"website" json:"website"`
+	Interests []string           `db:"interests" json:"interests"`
+	AvatarUrl *string            `db:"avatar_url" json:"avatar_url"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type WeeklyReview struct {

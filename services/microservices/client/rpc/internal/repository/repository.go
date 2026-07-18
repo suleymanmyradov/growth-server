@@ -16,7 +16,7 @@ type IArticles interface {
 	ListArticlesByCategorySlugWithSaved(ctx context.Context, slug string, status string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByCategorySlugWithSavedRow, error)
 	ListArticlesByAuthor(ctx context.Context, author string, status string, limit, offset int32) ([]db.ListArticlesByAuthorRow, error)
 	ListArticlesByAuthorWithSaved(ctx context.Context, author string, status string, limit, offset int32, userID uuid.UUID) ([]db.ListArticlesByAuthorWithSavedRow, error)
-	SearchArticles(ctx context.Context, query string, status string, limit, offset int32) ([]db.SearchArticlesRow, error)
+	GetArticlesByIDs(ctx context.Context, ids []uuid.UUID) ([]db.GetArticlesByIDsRow, error)
 	GetArticleByID(ctx context.Context, id uuid.UUID, status string) (db.GetArticleRow, error)
 	GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID, status string) (db.GetArticleWithSavedRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (db.GetArticleByTitleRow, error)
@@ -26,7 +26,6 @@ type IArticles interface {
 	CountArticles(ctx context.Context, status string) (int64, error)
 	CountArticlesByCategorySlug(ctx context.Context, slug string, status string) (int64, error)
 	CountArticlesByCategoryID(ctx context.Context, id uuid.UUID) (int64, error)
-	CountSearchArticles(ctx context.Context, query string, status string) (int64, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
 	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error)
 	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error

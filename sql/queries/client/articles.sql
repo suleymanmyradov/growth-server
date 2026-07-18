@@ -81,19 +81,6 @@ WHERE a.author = $1
 ORDER BY a.published_at DESC
 LIMIT $2 OFFSET $3;
 
--- name: SearchArticles :many
-SELECT
-    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
-    a.published_at, a.created_at, a.updated_at, a.status,
-    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
-    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
-FROM articles a
-LEFT JOIN categories c ON a.category_id = c.id
-WHERE a.search_vector @@ plainto_tsquery('english', $1)
-  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text)
-ORDER BY a.published_at DESC
-LIMIT $2 OFFSET $3;
-
 -- name: GetArticle :one
 SELECT
     a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
@@ -155,11 +142,6 @@ WHERE c.slug = $1
 
 -- name: CountArticlesByCategoryID :one
 SELECT COUNT(*) FROM articles WHERE category_id = $1;
-
--- name: CountSearchArticles :one
-SELECT COUNT(*) FROM articles a
-WHERE a.search_vector @@ plainto_tsquery('english', $1)
-  AND (sqlc.arg(status)::text = '' OR a.status = sqlc.arg(status)::text);
 
 
 -- name: GetArticlesByIDs :many

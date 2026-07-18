@@ -14,6 +14,7 @@ SERVICES=(
   "ai-coach-rpc:aicoach.yaml"
   "ai-coach-consumer:ai-coach.yaml"
   "search-sync:search-sync.yaml"
+  "filemanager:filemanager.yaml"
   "gateway:growthapi.yaml"
   "adminway:adminapi.yaml"
 )

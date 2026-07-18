@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
@@ -19,9 +20,11 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/queue"
+	"github.com/zeromicro/go-zero/zrpc"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -43,8 +46,11 @@ type ServiceContext struct {
 	WeeklyReviewSF singleflight.Group
 	// AuthEventsQ consumes user_deleted events to clean up client-owned tables.
 	AuthEventsQ queue.MessageQueue
-	pool         *pgxpool.Pool
-	redis        *redis.Client
+	// SearchRpc is the Meilisearch-backed search microservice client, used for
+	// full-text article search (admin article list search).
+	SearchRpc searchservice.SearchService
+	pool      *pgxpool.Pool
+	redis     *redis.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -122,7 +128,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TxRunner:         txRunner,
 		Authz:            authzChecker,
 		Cache:            appCache,
-		AuthEventsQ:     authEventsQ,
+		AuthEventsQ:      authEventsQ,
+		SearchRpc:        searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret})))),
 		pool:             pool,
 		redis:            redisClient,
 	}

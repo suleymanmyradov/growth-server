@@ -1,7 +1,7 @@
 //go:build integration
 
-// Integration tests for the search-sync OutboxRepository memory getters and
-// the migration 032 triggers. Requires the dev Postgres on localhost:5434.
+// Integration tests for the search-sync repository and the migration 036
+// pg_notify triggers. Requires the dev Postgres on localhost:5434.
 //
 // Run with:
 //
@@ -10,11 +10,10 @@ package repository
 
 import (
 	"context"
-	"fmt"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -29,13 +28,13 @@ func setupPool(t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-// TestMemoryGetters verifies the three new getters return correctly-shaped
+// TestMemoryGetters verifies the three memory getters return correctly-shaped
 // user_memory docs (id scheme, user_id, entity_type, content, metadata).
 func TestMemoryGetters(t *testing.T) {
 	pool := setupPool(t)
 	defer pool.Close()
 	ctx := context.Background()
-	repo := NewOutboxRepository(pool)
+	repo := NewRepository(pool)
 
 	// Pick existing user + habit to satisfy FKs.
 	var userID, habitID uuid.UUID
@@ -98,7 +97,7 @@ func TestMemoryGetters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetCheckIn: %v", err)
 	}
-	if ci["id"] != fmt.Sprintf("check_in_%s", checkInID) {
+	if ci["id"] != "check_in_"+checkInID.String() {
 		t.Errorf("check_in id = %v", ci["id"])
 	}
 	if ci["entity_type"] != "check_in" || ci["user_id"] != userID.String() {
@@ -112,7 +111,7 @@ func TestMemoryGetters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetMessage: %v", err)
 	}
-	if msg["id"] != fmt.Sprintf("conversation_message_%s", msgID) {
+	if msg["id"] != "conversation_message_"+msgID.String() {
 		t.Errorf("message id = %v", msg["id"])
 	}
 	if msg["entity_type"] != "conversation_message" || msg["user_id"] != userID.String() {
@@ -126,7 +125,7 @@ func TestMemoryGetters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetWeeklyReview: %v", err)
 	}
-	if wr["id"] != fmt.Sprintf("weekly_review_%s", reviewID) {
+	if wr["id"] != "weekly_review_"+reviewID.String() {
 		t.Errorf("review id = %v", wr["id"])
 	}
 	if wr["entity_type"] != "weekly_review" || wr["user_id"] != userID.String() {
@@ -137,10 +136,10 @@ func TestMemoryGetters(t *testing.T) {
 	}
 }
 
-// TestMemoryTriggersEnqueue verifies migration 032 triggers enqueue the right
-// outbox rows: note-bearing check_in upserts (empty note skipped), message
-// upsert, weekly_review upsert, and cascade/per-row deletes.
-func TestMemoryTriggersEnqueue(t *testing.T) {
+// TestNotifyTriggers verifies migration 036 triggers fire pg_notify on the
+// 'search_sync' channel: note-bearing check_in upserts (empty note skipped),
+// message upsert, weekly_review upsert, and cascade/per-row deletes.
+func TestNotifyTriggers(t *testing.T) {
 	pool := setupPool(t)
 	defer pool.Close()
 	ctx := context.Background()
@@ -153,122 +152,139 @@ func TestMemoryTriggersEnqueue(t *testing.T) {
 		t.Skipf("no user+habit fixture: %v", err)
 	}
 
+	// Acquire a dedicated connection and LISTEN before making changes.
+	listenConn, err := pool.Acquire(ctx)
+	if err != nil {
+		t.Fatalf("acquire listen conn: %v", err)
+	}
+	defer listenConn.Release()
+	if _, err := listenConn.Exec(ctx, "LISTEN search_sync"); err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		t.Fatalf("begin: %v", err)
 	}
 	defer tx.Rollback(ctx)
 
-	if _, err := tx.Exec(ctx, `DELETE FROM search_outbox`); err != nil {
-		t.Fatalf("clear outbox: %v", err)
-	}
-
-	// note-bearing check_in -> upsert
-	if _, err := tx.Exec(ctx,
+	// note-bearing check_in -> upsert notification
+	var checkInID uuid.UUID
+	if err := tx.QueryRow(ctx,
 		`INSERT INTO check_ins (user_id, habit_id, local_date, status, note)
-		 VALUES ($1, $2, '2002-01-01', 'completed', 'note here')`, userID, habitID); err != nil {
+		 VALUES ($1, $2, '2002-01-01', 'completed', 'note here') RETURNING id`,
+		userID, habitID).Scan(&checkInID); err != nil {
 		t.Fatalf("insert check_in: %v", err)
 	}
-	// empty-note check_in -> NOT enqueued
+	// empty-note check_in -> NOT notified
 	if _, err := tx.Exec(ctx,
 		`INSERT INTO check_ins (user_id, habit_id, local_date, status, note)
 		 VALUES ($1, $2, '2002-01-02', 'completed', '')`, userID, habitID); err != nil {
 		t.Fatalf("insert empty check_in: %v", err)
 	}
-	// conversation + message -> upsert
+	// conversation + message -> upsert notification
 	var convID uuid.UUID
-	err = tx.QueryRow(ctx,
+	if err := tx.QueryRow(ctx,
 		`INSERT INTO conversations (user_id, title) VALUES ($1, 'trig') RETURNING id`,
-		userID).Scan(&convID)
-	if err != nil {
+		userID).Scan(&convID); err != nil {
 		t.Fatalf("insert conversation: %v", err)
 	}
-	if _, err := tx.Exec(ctx,
+	var msgID uuid.UUID
+	if err := tx.QueryRow(ctx,
 		`INSERT INTO conversation_messages (conversation_id, role, content)
-		 VALUES ($1, 'user', 'hello')`, convID); err != nil {
+		 VALUES ($1, 'user', 'hello') RETURNING id`, convID).Scan(&msgID); err != nil {
 		t.Fatalf("insert message: %v", err)
 	}
-	// weekly_review -> upsert
+	// weekly_review -> upsert notification
 	if _, err := tx.Exec(ctx,
 		`INSERT INTO weekly_reviews (user_id, week_start, ai_summary)
 		 VALUES ($1, '2002-01-06', 'summary')`, userID); err != nil {
 		t.Fatalf("insert weekly_review: %v", err)
 	}
 
-	got := outboxCounts(t, tx)
-	if got["check_in"] != 1 || got["conversation_message"] != 1 || got["weekly_review"] != 1 {
-		t.Errorf("after inserts, outbox = %+v (want 1/1/1, empty-note skipped)", got)
+	if err := tx.Commit(ctx); err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+	defer cleanupMemoryRows(t, pool, checkInID, msgID, uuid.Nil, convID)
+
+	// Collect notifications. pg_notify fires on commit, so they should be
+	// available now. Drain with a short timeout.
+	notifs := drainNotifications(t, ctx, listenConn, 3, 2*time.Second)
+	if notifs["check_in:upsert"] < 1 {
+		t.Errorf("expected >=1 check_in:upsert, got %d", notifs["check_in:upsert"])
+	}
+	if notifs["conversation_message:upsert"] < 1 {
+		t.Errorf("expected >=1 conversation_message:upsert, got %d", notifs["conversation_message:upsert"])
+	}
+	if notifs["weekly_review:upsert"] < 1 {
+		t.Errorf("expected >=1 weekly_review:upsert, got %d", notifs["weekly_review:upsert"])
 	}
 
-	// cascade delete conversation -> message delete
-	if _, err := tx.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, convID); err != nil {
+	// Now test deletes: cascade delete conversation -> message delete notification.
+	// Delete check_ins -> check_in delete notifications.
+	delTx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatalf("begin del: %v", err)
+	}
+	defer delTx.Rollback(ctx)
+
+	if _, err := delTx.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, convID); err != nil {
 		t.Fatalf("delete conversation: %v", err)
 	}
-	// delete check_ins -> check_in deletes (both rows; empty-note delete is a no-op index delete)
-	if _, err := tx.Exec(ctx,
+	if _, err := delTx.Exec(ctx,
 		`DELETE FROM check_ins WHERE user_id = $1 AND local_date IN ('2002-01-01','2002-01-02')`,
 		userID); err != nil {
 		t.Fatalf("delete check_ins: %v", err)
 	}
 
-	del := outboxOps(t, tx)
-	if del["conversation_message:delete"] != 1 {
-		t.Errorf("expected 1 conversation_message delete, got %+v", del)
+	if err := delTx.Commit(ctx); err != nil {
+		t.Fatalf("commit del: %v", err)
 	}
-	if del["check_in:delete"] != 2 {
-		t.Errorf("expected 2 check_in deletes, got %+v", del)
+
+	delNotifs := drainNotifications(t, ctx, listenConn, 3, 2*time.Second)
+	if delNotifs["conversation_message:delete"] < 1 {
+		t.Errorf("expected >=1 conversation_message:delete, got %d", delNotifs["conversation_message:delete"])
+	}
+	if delNotifs["check_in:delete"] < 2 {
+		t.Errorf("expected >=2 check_in:delete, got %d", delNotifs["check_in:delete"])
 	}
 }
 
-// outboxCounts counts outbox rows per entity_type within the transaction.
-func outboxCounts(t *testing.T, tx pgx.Tx) map[string]int {
+// drainNotifications reads up to max notifications within the timeout and
+// returns a count map keyed by "entity_type:operation".
+func drainNotifications(t *testing.T, ctx context.Context, conn *pgxpool.Conn, max int, timeout time.Duration) map[string]int {
 	t.Helper()
-	rows, err := tx.Query(context.Background(),
-		`SELECT entity_type, count(*) FROM search_outbox GROUP BY entity_type`)
-	if err != nil {
-		t.Fatalf("query outbox counts: %v", err)
-	}
-	defer rows.Close()
-	out := map[string]int{}
-	for rows.Next() {
-		var et string
-		var n int
-		if err := rows.Scan(&et, &n); err != nil {
-			t.Fatalf("scan: %v", err)
+	result := map[string]int{}
+	deadline := time.Now().Add(timeout)
+	for i := 0; i < max; i++ {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			break
 		}
-		out[et] = n
-	}
-	return out
-}
-
-// outboxOps counts outbox rows by "entity_type:operation" within the tx.
-func outboxOps(t *testing.T, tx pgx.Tx) map[string]int {
-	t.Helper()
-	rows, err := tx.Query(context.Background(),
-		`SELECT entity_type, operation, count(*) FROM search_outbox GROUP BY entity_type, operation`)
-	if err != nil {
-		t.Fatalf("query outbox ops: %v", err)
-	}
-	defer rows.Close()
-	out := map[string]int{}
-	for rows.Next() {
-		var et, op string
-		var n int
-		if err := rows.Scan(&et, &op, &n); err != nil {
-			t.Fatalf("scan: %v", err)
+		notifCtx, cancel := context.WithTimeout(ctx, remaining)
+		notification, err := conn.Conn().WaitForNotification(notifCtx)
+		cancel()
+		if err != nil {
+			break
 		}
-		out[et+":"+op] = n
+		n, err := parseNotification(notification.Payload)
+		if err != nil {
+			continue
+		}
+		result[n.EntityType+":"+n.Operation]++
 	}
-	return out
+	return result
 }
 
 func cleanupMemoryRows(t *testing.T, pool *pgxpool.Pool, checkInID, msgID, reviewID, convID uuid.UUID) {
-	t.Helper()
 	ctx := context.Background()
-	// Deleting the conversation cascades to its messages.
-	_, _ = pool.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, convID)
-	_, _ = pool.Exec(ctx, `DELETE FROM check_ins WHERE id = $1`, checkInID)
-	_, _ = pool.Exec(ctx, `DELETE FROM weekly_reviews WHERE id = $1`, reviewID)
-	// Best-effort cleanup of any stragglers by id.
-	_, _ = pool.Exec(ctx, `DELETE FROM conversation_messages WHERE id = $1`, msgID)
+	if convID != uuid.Nil {
+		_, _ = pool.Exec(ctx, `DELETE FROM conversations WHERE id = $1`, convID)
+	}
+	if checkInID != uuid.Nil {
+		_, _ = pool.Exec(ctx, `DELETE FROM check_ins WHERE id = $1`, checkInID)
+	}
+	if reviewID != uuid.Nil {
+		_, _ = pool.Exec(ctx, `DELETE FROM weekly_reviews WHERE id = $1`, reviewID)
+	}
 }

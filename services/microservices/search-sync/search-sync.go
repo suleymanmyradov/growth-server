@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -30,20 +29,11 @@ func main() {
 	logx.Infof("starting search-sync with config: %+v", configsafe.MaskSecrets(c))
 
 	// Set defaults
-	if c.Sync.PollInterval == 0 {
-		c.Sync.PollInterval = 5 * time.Second
+	if c.Sync.ReconcileInterval == 0 {
+		c.Sync.ReconcileInterval = 2 * time.Minute
 	}
-	if c.Sync.BatchSize == 0 {
-		c.Sync.BatchSize = 100
-	}
-	if c.Sync.LockTimeout == 0 {
-		c.Sync.LockTimeout = 2 * time.Minute
-	}
-	if c.Sync.MaxAttempts == 0 {
-		c.Sync.MaxAttempts = 5
-	}
-	if c.Sync.WorkerID == "" {
-		c.Sync.WorkerID = fmt.Sprintf("search-sync-%d", os.Getpid())
+	if c.Sync.FullReconcileInterval == 0 {
+		c.Sync.FullReconcileInterval = 24 * time.Hour
 	}
 	if c.Meili.Index == "" {
 		c.Meili.Index = "growth_search"
@@ -52,15 +42,13 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 	defer ctx.Close()
 
-	repo := repository.NewOutboxRepository(ctx.Pool)
+	repo := repository.NewRepository(ctx.Pool)
 	idx := indexer.NewMeiliIndexer(ctx.Index, ctx.MemoryIndex)
 	sync := syncer.NewSyncer(repo, idx, c)
 
 	if c.Backfill {
-		logx.Info("running backfill...")
-		if err := sync.Backfill(context.Background()); err != nil {
-			logx.Must(fmt.Errorf("backfill failed: %w", err))
-		}
+		logx.Info("running full reconcile (backfill mode)...")
+		sync.ReconcileFull(context.Background())
 		logx.Info("backfill complete")
 		return
 	}

@@ -75,10 +75,9 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	var isNewUser bool
 	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
-		oauthRepo := l.svcCtx.Repo.Oauth
 
 		// 1. Already linked?
-		acc, err := oauthRepo.GetOAuthAccount(ctx, googleProvider, googleUser.Subject)
+		acc, err := q.GetOAuthAccount(ctx, googleProvider, googleUser.Subject)
 		if err == nil {
 			row, gerr := q.GetUserByID(ctx, acc.UserID)
 			if gerr != nil {
@@ -93,7 +92,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 		if err == nil {
 			user = db.User(row)
 			emailPtr := &googleUser.Email
-			if _, lerr := oauthRepo.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
 				var pgErr *pgconn.PgError
 				if errors.As(lerr, &pgErr) && pgErr.Code == "23505" {
 					// Race: another request linked it. Treat as already linked.
@@ -126,7 +125,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 			}
 			user = db.User(oauthRow)
 			emailPtr := &googleUser.Email
-			if _, lerr := oauthRepo.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
 				l.Errorf("GoogleLogin: create oauth account failed: %v", lerr)
 				return status.Error(codes.Internal, "failed to link Google account")
 			}

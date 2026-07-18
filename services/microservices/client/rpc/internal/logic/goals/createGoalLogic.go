@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	commonlogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/common"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -41,17 +42,24 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	// Check plan limit enforcement (auto-create free subscription if missing)
+	// Check plan limit enforcement (auto-create free subscription if missing).
+	// Users who haven't completed onboarding are exempt — they must always be
+	// able to create their initial goal, even if a previous partial onboarding
+	// attempt left leftover goals that would otherwise trip the Free plan limit.
 	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
 	if subErr == nil {
 		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
 		if computeErr == nil && !entitlements.CanCreateGoal {
-			st := status.New(codes.FailedPrecondition, "plan limit reached")
-			st, _ = st.WithDetails(&client.PlanLimitDetail{
-				Limit:          "active_goals",
-				UpgradeTrigger: "goal_limit",
-			})
-			return nil, st.Err()
+			if !commonlogic.IsOnboardingComplete(ctx, l.svcCtx, userID) {
+				l.Infof("CreateGoal: bypassing plan limit for user %s (onboarding not complete)", userID)
+			} else {
+				st := status.New(codes.FailedPrecondition, "plan limit reached")
+				st, _ = st.WithDetails(&client.PlanLimitDetail{
+					Limit:          "active_goals",
+					UpgradeTrigger: "goal_limit",
+				})
+				return nil, st.Err()
+			}
 		}
 	}
 
