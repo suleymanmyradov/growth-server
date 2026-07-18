@@ -35,7 +35,6 @@ type Querier interface {
 	CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountSearchArticles(ctx context.Context, plaintoTsquery string, status string) (int64, error)
 	CountTagUsage(ctx context.Context, tagID uuid.UUID) (int64, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
@@ -236,7 +235,6 @@ type Querier interface {
 	// once today's completed check-in is gone; no streak mutation is needed here.
 	// Returns the number of completed check-ins removed.
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error)
-	SearchArticles(ctx context.Context, plaintoTsquery string, limit int32, offset int32, status string) ([]SearchArticlesRow, error)
 	ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error)
 	// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error

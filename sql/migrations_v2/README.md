@@ -24,9 +24,9 @@ tool can be adopted later without renaming.
   reference it with `category_id ... ON DELETE SET NULL`.
 - **Minimal indexes.** Roughly one per real query pattern, usually
   `(user_id, created_at DESC)`. Add more only when a slow query proves the need.
-- **Triggers kept to two jobs only:** `set_updated_at` and the search outbox
-  enqueue. Everything else (immutability rules, derived flags, counters) is
-  application logic.
+- **Triggers kept to two jobs only:** `set_updated_at` and the search sync
+  `pg_notify`. Everything else (immutability rules, derived flags, counters)
+  is application logic.
 - **No RLS** — authorization is enforced in the services.
 - **Planned: no cross-service foreign keys.** `user_id` FKs from non-auth
   tables to `users` will be dropped (columns become plain `uuid NOT NULL`) so
@@ -52,7 +52,7 @@ tool can be adopted later without renaming.
 | `weekly_reviews.week_end` | derive as `week_start + 6` |
 | `reminder_queue.sent` bool + `sent_at` | `sent_at IS NULL` = pending; table renamed `reminders` |
 | `processed_events` + `ai_coach_processed_events` + `processed_stripe_events` | one `processed_events (consumer, event_id)` |
-| outbox with status/locking/coalescing upsert | insert-only `search_outbox`; worker deletes processed rows |
+| outbox with status/locking/coalescing upsert | `pg_notify('search_sync', ...)` from triggers; search-sync LISTENs and reconciles periodically |
 | trigram / jsonb GIN / duplicate & low-selectivity indexes | removed |
 | `upgrade_events.trigger` | renamed `trigger_source` |
 
@@ -70,6 +70,6 @@ tool can be adopted later without renaming.
   `goal_habit_relations` → `goal_habits`, `user_subscriptions` → `subscriptions`,
   `reminder_queue` → `reminders`, `activities.item_type` → `type`,
   `notifications.item_type` → `type`, `read_time` → `read_time_minutes`).
-- Update the search-sync worker to the new outbox contract (read by `id`,
-  delete on success) and the per-consumer `processed_events` key.
+- Update the search-sync worker to the new pg_notify + reconciliation model
+  (LISTEN for real-time, periodic reconcile for correctness).
 - Drop the legacy `SavedItemsRepo` methods that touched `saved_items`.

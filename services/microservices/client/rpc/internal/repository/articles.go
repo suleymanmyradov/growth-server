@@ -78,11 +78,11 @@ func (r *ArticlesRepo) ListArticlesByAuthorWithSaved(ctx context.Context, author
 	})
 }
 
-func (r *ArticlesRepo) SearchArticles(ctx context.Context, query string, status string, limit, offset int32) ([]db.SearchArticlesRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.SearchArticles")
+func (r *ArticlesRepo) GetArticlesByIDs(ctx context.Context, ids []uuid.UUID) ([]db.GetArticlesByIDsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.GetArticlesByIDs")
 	defer span.End()
 
-	return r.db.SearchArticles(ctx, query, limit, offset, status)
+	return r.db.GetArticlesByIDs(ctx, ids)
 }
 
 func (r *ArticlesRepo) GetArticleByID(ctx context.Context, id uuid.UUID, status string) (db.GetArticleRow, error) {
@@ -146,13 +146,6 @@ func (r *ArticlesRepo) CountArticlesByCategoryID(ctx context.Context, id uuid.UU
 	defer span.End()
 
 	return r.db.CountArticlesByCategoryID(ctx, uuid.NullUUID{UUID: id, Valid: true})
-}
-
-func (r *ArticlesRepo) CountSearchArticles(ctx context.Context, query string, status string) (int64, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CountSearchArticles")
-	defer span.End()
-
-	return r.db.CountSearchArticles(ctx, query, status)
 }
 
 func (r *ArticlesRepo) CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error) {

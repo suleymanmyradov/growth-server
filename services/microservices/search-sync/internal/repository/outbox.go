@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,99 +11,104 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type OutboxRow struct {
-	ID          int64
-	EntityType  string
-	EntityID    uuid.UUID
-	Operation   string
-	Attempts    int
-	LastError   *string
-	AvailableAt time.Time
-	CreatedAt   time.Time
+// Notification is the parsed payload from a pg_notify('search_sync', ...) call.
+// Triggers fire: {"e":"<entity_type>","id":"<uuid>","op":"upsert"|"delete"}
+type Notification struct {
+	EntityType string
+	EntityID   uuid.UUID
+	Operation  string // "upsert" or "delete"
 }
 
-type OutboxRepository struct {
+type Repository struct {
 	pool *pgxpool.Pool
 }
 
-func NewOutboxRepository(pool *pgxpool.Pool) *OutboxRepository {
-	return &OutboxRepository{pool: pool}
+func NewRepository(pool *pgxpool.Pool) *Repository {
+	return &Repository{pool: pool}
 }
 
-// LockPending claims a batch using a visibility timeout: attempts is bumped
-// and available_at pushed lockTimeout into the future, so a crashed worker's
-// rows simply reappear once the timeout passes. workerID is kept for the
-// call signature but no longer stored.
-func (r *OutboxRepository) LockPending(ctx context.Context, batchSize int, workerID string, lockTimeout time.Duration) ([]OutboxRow, error) {
-	_ = workerID
-	query := `
-		WITH next AS (
-			SELECT id
-			FROM search_outbox
-			WHERE available_at <= now()
-			ORDER BY id
-			LIMIT $1
-			FOR UPDATE SKIP LOCKED
-		)
-		UPDATE search_outbox o
-		SET attempts = attempts + 1,
-		    available_at = now() + $2::interval
-		FROM next
-		WHERE o.id = next.id
-		RETURNING o.id, o.entity_type, o.entity_id, o.operation, o.attempts, o.last_error, o.available_at, o.created_at`
+// Listen starts a dedicated connection in LISTEN search_sync mode and returns
+// a channel of parsed notifications. The connection is held for the lifetime
+// of the channel; it is released when ctx is cancelled. If the connection
+// drops, the goroutine reconnects and re-LISTENs automatically.
+func (r *Repository) Listen(ctx context.Context) (<-chan Notification, error) {
+	ch := make(chan Notification, 64)
 
-	rows, err := r.pool.Query(ctx, query, batchSize, lockTimeout)
+	conn, err := r.pool.Acquire(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("lock pending: %w", err)
+		return nil, fmt.Errorf("acquire conn for listen: %w", err)
 	}
-	defer rows.Close()
+	if _, err := conn.Exec(ctx, "LISTEN search_sync"); err != nil {
+		conn.Release()
+		return nil, fmt.Errorf("listen search_sync: %w", err)
+	}
 
-	var result []OutboxRow
-	for rows.Next() {
-		var row OutboxRow
-		err := rows.Scan(
-			&row.ID, &row.EntityType, &row.EntityID, &row.Operation,
-			&row.Attempts, &row.LastError, &row.AvailableAt, &row.CreatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("scan outbox row: %w", err)
+	go func() {
+		defer conn.Release()
+		defer close(ch)
+		for {
+			notification, err := conn.Conn().WaitForNotification(ctx)
+			if err != nil {
+				if ctx.Err() != nil {
+					return
+				}
+				// Connection dropped; try to re-acquire and re-listen.
+				conn.Release()
+				time.Sleep(time.Second)
+				newConn, err := r.pool.Acquire(ctx)
+				if err != nil {
+					if ctx.Err() != nil {
+						return
+					}
+					continue
+				}
+				conn = newConn
+				if _, err := conn.Exec(ctx, "LISTEN search_sync"); err != nil {
+					conn.Release()
+					continue
+				}
+				continue
+			}
+
+			n, err := parseNotification(notification.Payload)
+			if err != nil {
+				continue
+			}
+			select {
+			case ch <- n:
+			case <-ctx.Done():
+				return
+			default:
+			}
 		}
-		result = append(result, row)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate outbox rows: %w", err)
-	}
-	return result, nil
+	}()
+
+	return ch, nil
 }
 
-// MarkProcessed removes the row: the outbox is insert-only and processed
-// rows have no further use.
-func (r *OutboxRepository) MarkProcessed(ctx context.Context, id int64) error {
-	_, err := r.pool.Exec(ctx, `DELETE FROM search_outbox WHERE id = $1`, id)
+func parseNotification(payload string) (Notification, error) {
+	var raw struct {
+		E  string `json:"e"`
+		ID string `json:"id"`
+		OP string `json:"op"`
+	}
+	if err := json.Unmarshal([]byte(payload), &raw); err != nil {
+		return Notification{}, fmt.Errorf("parse notification payload: %w", err)
+	}
+	id, err := uuid.Parse(raw.ID)
 	if err != nil {
-		return fmt.Errorf("mark processed: %w", err)
+		return Notification{}, fmt.Errorf("parse entity id: %w", err)
 	}
-	return nil
+	return Notification{EntityType: raw.E, EntityID: id, Operation: raw.OP}, nil
 }
 
-func (r *OutboxRepository) MarkFailed(ctx context.Context, id int64, errMsg string, availableAt time.Time) error {
-	_, err := r.pool.Exec(ctx,
-		`UPDATE search_outbox SET last_error = $2, available_at = $3 WHERE id = $1`,
-		id, errMsg, availableAt,
-	)
-	if err != nil {
-		return fmt.Errorf("mark failed: %w", err)
-	}
-	return nil
-}
+// ---------------------------------------------------------------------------
+// Document getters — fetch the full row from Postgres and shape it as a
+// Meilisearch document. Used by both the notification handler and the
+// reconciliation loop.
+// ---------------------------------------------------------------------------
 
-// ReleaseStaleLocks is a no-op under the visibility-timeout scheme: claimed
-// rows become visible again automatically when available_at passes.
-func (r *OutboxRepository) ReleaseStaleLocks(ctx context.Context, lockTimeout time.Duration) error {
-	return nil
-}
-
-func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetArticle(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `
 		SELECT
 			a.id,
@@ -110,6 +116,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 			a.excerpt,
 			a.content,
 			a.author,
+			a.status,
 			a.published_at,
 			a.created_at,
 			a.updated_at,
@@ -125,6 +132,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 		Excerpt      *string   `json:"excerpt"`
 		Content      string    `json:"content"`
 		Author       string    `json:"author"`
+		Status       string    `json:"status"`
 		PublishedAt  time.Time `json:"published_at"`
 		CreatedAt    time.Time `json:"created_at"`
 		UpdatedAt    time.Time `json:"updated_at"`
@@ -133,7 +141,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 	}
 
 	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&doc.ID, &doc.Title, &doc.Excerpt, &doc.Content, &doc.Author,
+		&doc.ID, &doc.Title, &doc.Excerpt, &doc.Content, &doc.Author, &doc.Status,
 		&doc.PublishedAt, &doc.CreatedAt, &doc.UpdatedAt, &doc.CategoryName, &doc.CategorySlug,
 	)
 	if err != nil {
@@ -151,6 +159,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 		"category":      nil,
 		"category_slug": nil,
 		"author":        doc.Author,
+		"status":        doc.Status,
 		"created_at":    doc.CreatedAt.Unix(),
 		"updated_at":    doc.UpdatedAt.Unix(),
 		"url":           fmt.Sprintf("/article/%s", doc.ID.String()),
@@ -166,7 +175,7 @@ func (r *OutboxRepository) GetArticle(ctx context.Context, id uuid.UUID) (map[st
 	return result, nil
 }
 
-func (r *OutboxRepository) GetGoal(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetGoal(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `SELECT g.id, g.user_id, g.title, g.description, COALESCE(c.slug, '') AS category, g.status, g.created_at, g.updated_at
 	FROM goals g LEFT JOIN categories c ON c.id = g.category_id
 	WHERE g.id = $1`
@@ -208,7 +217,7 @@ func (r *OutboxRepository) GetGoal(ctx context.Context, id uuid.UUID) (map[strin
 	return result, nil
 }
 
-func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetHabit(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `SELECT h.id, h.user_id, h.name, h.description, COALESCE(c.slug, '') AS category, h.created_at, h.updated_at
 	FROM habits h LEFT JOIN categories c ON c.id = h.category_id
 	WHERE h.id = $1`
@@ -250,9 +259,9 @@ func (r *OutboxRepository) GetHabit(ctx context.Context, id uuid.UUID) (map[stri
 }
 
 // GetCheckIn returns a user_memory doc for a check-in note. The insert trigger
-// only enqueues rows with a non-empty note, so content is the note text.
+// only fires for rows with a non-empty note, so content is the note text.
 // habit_name is carried as light metadata so the coach can attribute a snippet.
-func (r *OutboxRepository) GetCheckIn(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetCheckIn(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `SELECT c.id, c.user_id, c.note, c.local_date, c.created_at, COALESCE(h.name, '') AS habit_name
 		FROM check_ins c
 		LEFT JOIN habits h ON h.id = c.habit_id
@@ -292,7 +301,7 @@ func (r *OutboxRepository) GetCheckIn(ctx context.Context, id uuid.UUID) (map[st
 
 // GetMessage returns a user_memory doc for a conversation message. user_id is
 // joined from the parent conversation. role is carried as light metadata.
-func (r *OutboxRepository) GetMessage(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetMessage(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `SELECT m.id, conv.user_id, m.role, m.content, m.created_at
 		FROM conversation_messages m
 		JOIN conversations conv ON conv.id = m.conversation_id
@@ -326,7 +335,7 @@ func (r *OutboxRepository) GetMessage(ctx context.Context, id uuid.UUID) (map[st
 
 // GetWeeklyReview returns a user_memory doc for a weekly review's ai_summary.
 // The upsert trigger only fires when ai_summary is non-empty.
-func (r *OutboxRepository) GetWeeklyReview(ctx context.Context, id uuid.UUID) (map[string]any, error) {
+func (r *Repository) GetWeeklyReview(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `SELECT w.id, w.user_id, w.ai_summary, w.week_start, w.created_at
 		FROM weekly_reviews w
 		WHERE w.id = $1`
@@ -361,78 +370,103 @@ func (r *OutboxRepository) GetWeeklyReview(ctx context.Context, id uuid.UUID) (m
 	}, nil
 }
 
-func (r *OutboxRepository) Backfill(ctx context.Context) error {
-	queries := []string{
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'article', id, 'upsert' FROM articles
-		 ON CONFLICT DO NOTHING`,
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'goal', id, 'upsert' FROM goals
-		 ON CONFLICT DO NOTHING`,
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'habit', id, 'upsert' FROM habits
-		 ON CONFLICT DO NOTHING`,
-		// Private memory index sources. check_ins only where a note exists; the
-		// insert trigger has the same guard, so this matches steady-state.
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'check_in', id, 'upsert' FROM check_ins
-		 WHERE note IS NOT NULL AND note <> ''
-		 ON CONFLICT DO NOTHING`,
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'conversation_message', id, 'upsert' FROM conversation_messages
-		 ON CONFLICT DO NOTHING`,
-		`INSERT INTO search_outbox (entity_type, entity_id, operation)
-		 SELECT 'weekly_review', id, 'upsert' FROM weekly_reviews
-		 WHERE ai_summary IS NOT NULL AND ai_summary <> ''
-		 ON CONFLICT DO NOTHING`,
-	}
+// ---------------------------------------------------------------------------
+// Reconciliation queries — used by the periodic reconcile loop to detect and
+// repair drift between Postgres and Meilisearch.
+// ---------------------------------------------------------------------------
 
-	for _, q := range queries {
-		if _, err := r.pool.Exec(ctx, q); err != nil {
-			return fmt.Errorf("backfill: %w", err)
-		}
-	}
-	return nil
+// EntitySpec describes one entity type for reconciliation: which table to scan
+// and which doc IDs the syncer expects for rows in that table.
+type EntitySpec struct {
+	EntityType string
+	// ListIDs returns all entity IDs that should exist in the search index.
+	ListIDs func(ctx context.Context) ([]uuid.UUID, error)
 }
 
-func (r *OutboxRepository) ListenNotify(ctx context.Context) (chan struct{}, error) {
-	conn, err := r.pool.Acquire(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("acquire conn for listen: %w", err)
-	}
+// ListArticleIDs returns all article IDs.
+func (r *Repository) ListArticleIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM articles`)
+}
 
-	_, err = conn.Exec(ctx, "LISTEN search_sync")
-	if err != nil {
-		conn.Release()
-		return nil, fmt.Errorf("listen search_sync: %w", err)
-	}
+// ListGoalIDs returns all goal IDs.
+func (r *Repository) ListGoalIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM goals`)
+}
 
-	ch := make(chan struct{}, 1)
-	go func() {
-		defer conn.Release()
-		for {
-			select {
-			case <-ctx.Done():
-				close(ch)
-				return
-			default:
-			}
-			_, err := conn.Conn().WaitForNotification(ctx)
-			if err != nil {
-				if ctx.Err() != nil {
-					close(ch)
-					return
-				}
-				continue
-			}
-			select {
-			case ch <- struct{}{}:
-			default:
-			}
+// ListHabitIDs returns all habit IDs.
+func (r *Repository) ListHabitIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM habits`)
+}
+
+// ListCheckInIDs returns IDs of check_ins that carry a non-empty note (the
+// same guard as the insert trigger).
+func (r *Repository) ListCheckInIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM check_ins WHERE note IS NOT NULL AND note <> ''`)
+}
+
+// ListMessageIDs returns all conversation_message IDs.
+func (r *Repository) ListMessageIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM conversation_messages`)
+}
+
+// ListWeeklyReviewIDs returns IDs of weekly_reviews with a non-empty ai_summary
+// (the same guard as the upsert trigger).
+func (r *Repository) ListWeeklyReviewIDs(ctx context.Context) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM weekly_reviews WHERE ai_summary IS NOT NULL AND ai_summary <> ''`)
+}
+
+// ListRecentArticleIDs returns article IDs updated since the given time.
+func (r *Repository) ListRecentArticleIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM articles WHERE updated_at >= $1`, since)
+}
+
+// ListRecentGoalIDs returns goal IDs updated since the given time.
+func (r *Repository) ListRecentGoalIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM goals WHERE updated_at >= $1`, since)
+}
+
+// ListRecentHabitIDs returns habit IDs updated since the given time.
+func (r *Repository) ListRecentHabitIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM habits WHERE updated_at >= $1`, since)
+}
+
+// ListRecentCheckInIDs returns check_in IDs created since the given time that
+// carry a non-empty note.
+func (r *Repository) ListRecentCheckInIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM check_ins WHERE created_at >= $1 AND note IS NOT NULL AND note <> ''`, since)
+}
+
+// ListRecentMessageIDs returns conversation_message IDs created since the given
+// time.
+func (r *Repository) ListRecentMessageIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM conversation_messages WHERE created_at >= $1`, since)
+}
+
+// ListRecentWeeklyReviewIDs returns weekly_review IDs updated since the given
+// time that carry a non-empty ai_summary.
+func (r *Repository) ListRecentWeeklyReviewIDs(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	return r.listIDs(ctx, `SELECT id FROM weekly_reviews WHERE updated_at >= $1 AND ai_summary IS NOT NULL AND ai_summary <> ''`, since)
+}
+
+func (r *Repository) listIDs(ctx context.Context, query string, args ...any) ([]uuid.UUID, error) {
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list ids: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan id: %w", err)
 		}
-	}()
-
-	return ch, nil
+		ids = append(ids, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate ids: %w", err)
+	}
+	return ids, nil
 }
 
 func IsNoRows(err error) bool {
@@ -445,4 +479,9 @@ func IsNoRows(err error) bool {
 // the getters (upsert) and the syncer (delete).
 func docID(entityType string, id uuid.UUID) string {
 	return fmt.Sprintf("%s_%s", entityType, id.String())
+}
+
+// DocID is the exported version of docID for use by the syncer's delete path.
+func DocID(entityType string, id uuid.UUID) string {
+	return docID(entityType, id)
 }

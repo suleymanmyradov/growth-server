@@ -20,9 +20,6 @@ sql:
         query_parameter_limit: 4
         json_tags_case_style: snake
         overrides:
-          - column: "articles.search_vector"
-            go_type:
-              type: "string"
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"

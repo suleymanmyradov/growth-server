@@ -89,3 +89,46 @@ func (i *MeiliIndexer) DeleteMemory(ctx context.Context, docID string) error {
 func (i *MeiliIndexer) HasMemoryIndex() bool {
 	return i.memoryIndex != nil
 }
+
+// ListDocIDs returns all document primary-key IDs from the public catalog
+// index, paginating through the full set. Used by the reconciliation loop to
+// detect orphaned docs that no longer have a corresponding Postgres row.
+func (i *MeiliIndexer) ListDocIDs(ctx context.Context) ([]string, error) {
+	return listDocIDs(ctx, i.index)
+}
+
+// ListMemoryDocIDs returns all document IDs from the private memory index.
+// Returns nil (no error) when the memory index is not configured.
+func (i *MeiliIndexer) ListMemoryDocIDs(ctx context.Context) ([]string, error) {
+	if i.memoryIndex == nil {
+		return nil, nil
+	}
+	return listDocIDs(ctx, i.memoryIndex)
+}
+
+const docIDPageSize = 1000
+
+func listDocIDs(ctx context.Context, idx meilisearch.IndexManager) ([]string, error) {
+	var allIDs []string
+	var offset int64
+	for {
+		var resp meilisearch.DocumentsResult
+		if err := idx.GetDocumentsWithContext(ctx, &meilisearch.DocumentsQuery{
+			Offset: offset,
+			Limit:  docIDPageSize,
+			Fields: []string{"id"},
+		}, &resp); err != nil {
+			return nil, fmt.Errorf("list docs (offset %d): %w", offset, err)
+		}
+		for _, doc := range resp.Results {
+			if id, ok := doc["id"].(string); ok {
+				allIDs = append(allIDs, id)
+			}
+		}
+		if int64(len(resp.Results)) < docIDPageSize {
+			break
+		}
+		offset += docIDPageSize
+	}
+	return allIDs, nil
+}

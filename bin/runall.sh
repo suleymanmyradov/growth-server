@@ -32,6 +32,7 @@ start_service notifications-rpc "${BINDIR}/notifications" "${ROOT}/services/micr
 start_service ai-coach-rpc "${BINDIR}/ai-coach" "${ROOT}/services/microservices/ai-coach/rpc/etc/aicoach.yaml"
 start_service ai-coach-consumer "${BINDIR}/ai-coach-consumer" "${ROOT}/services/microservices/ai-coach-consumer/etc/ai-coach.yaml"
 start_service search-sync "${BINDIR}/search-sync" "${ROOT}/services/microservices/search-sync/etc/search-sync.yaml"
+start_service filemanager-rpc "${BINDIR}/filemanager" "${ROOT}/services/microservices/filemanager/rpc/etc/filemanager.yaml"
 
 # Start gateway
 start_service gateway "${BINDIR}/gateway" "${CONFIGDIR}/growthapi.yaml"

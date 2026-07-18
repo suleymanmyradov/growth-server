@@ -29,7 +29,7 @@ cd "$(dirname "$0")/.."
 get_allowed_tables() {
     case "$1" in
         auth)          echo "users user_oauth_accounts" ;;
-        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events search_outbox processed_events user_profiles" ;;
+        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events processed_events user_profiles" ;;
         notifications) echo "notifications reminders notification_preferences reminder_state processed_events" ;;
         adminway)      echo "internal_users" ;;
         conversations) echo "conversations conversation_messages" ;;

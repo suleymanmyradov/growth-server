@@ -323,7 +323,7 @@ func convertGetWithSavedRowToPbArticle(a db.GetArticleWithSavedRow) *client.Arti
 	return pb
 }
 
-func convertSearchRowToPbArticle(a db.SearchArticlesRow) *client.Article {
+func convertGetArticlesByIDsRowToPbArticle(a db.GetArticlesByIDsRow) *client.Article {
 	pb := &client.Article{
 		Id:          a.ID.String(),
 		Title:       a.Title,

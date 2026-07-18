@@ -60,6 +60,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		"visibility",
 		"category",
 		"category_slug",
+		"status",
 	})
 	if err != nil {
 		logx.Must(fmt.Errorf("update filterable attributes: %w", err))

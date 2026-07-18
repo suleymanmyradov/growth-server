@@ -42,7 +42,6 @@ type Article struct {
 	PublishedAt     pgtype.Timestamptz `db:"published_at" json:"published_at"`
 	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	SearchVector    string             `db:"search_vector" json:"search_vector"`
 	Status          string             `db:"status" json:"status"`
 }
 
@@ -262,17 +261,6 @@ type SavedHabit struct {
 	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-}
-
-type SearchOutbox struct {
-	ID          int64              `db:"id" json:"id"`
-	EntityType  string             `db:"entity_type" json:"entity_type"`
-	EntityID    uuid.UUID          `db:"entity_id" json:"entity_id"`
-	Operation   string             `db:"operation" json:"operation"`
-	Attempts    int32              `db:"attempts" json:"attempts"`
-	LastError   *string            `db:"last_error" json:"last_error"`
-	AvailableAt pgtype.Timestamptz `db:"available_at" json:"available_at"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Subscription struct {

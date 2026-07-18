@@ -31,12 +31,17 @@ type Config struct {
 		Embedder EmbedderConfig `json:",optional"`
 	}
 	Sync struct {
-		PollInterval time.Duration
-		BatchSize    int
-		LockTimeout  time.Duration
-		MaxAttempts  int
-		WorkerID     string
+		// ReconcileInterval is how often the incremental reconciliation loop
+		// runs. It catches any notifications lost while the LISTEN connection
+		// was briefly down. Default 2m.
+		ReconcileInterval time.Duration
+		// FullReconcileInterval is how often the full reconciliation loop runs
+		// (upsert all rows + delete orphans). A full reconcile also runs on
+		// startup. Default 24h.
+		FullReconcileInterval time.Duration
 	}
+	// Backfill, when true, runs a single full reconciliation and exits. Used
+	// for one-off re-indexing via `search-sync -backfill`.
 	Backfill bool
 }
 
