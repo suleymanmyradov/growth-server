@@ -2,13 +2,13 @@ package svc
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
@@ -20,11 +20,9 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-queue/kq"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/queue"
-	"github.com/zeromicro/go-zero/zrpc"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -46,11 +44,8 @@ type ServiceContext struct {
 	WeeklyReviewSF singleflight.Group
 	// AuthEventsQ consumes user_deleted events to clean up client-owned tables.
 	AuthEventsQ queue.MessageQueue
-	// SearchRpc is the Meilisearch-backed search microservice client, used for
-	// full-text article search (admin article list search).
-	SearchRpc searchservice.SearchService
-	pool      *pgxpool.Pool
-	redis     *redis.Client
+	pool        *pgxpool.Pool
+	redis       *redis.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -82,11 +77,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		} else {
 			redisClient = client
 			authzChecker = authz.NewChecker(authz.NewRedisCache(redisClient), func(ctx context.Context, userID uuid.UUID) (authz.UserStatus, error) {
-				// Use user_preferences as a proxy for user existence in the client service.
+				// Use the user_profiles read model (fed by auth events, cleaned up on
+				// user_deleted) as a proxy for user existence in the client service.
 				// The auth service is the canonical source of truth for user status.
-				_, err := repo.UserPreferences.GetUserPreferences(ctx, userID)
+				_, err := repo.Users.GetUserProfileByID(ctx, userID)
 				if err != nil {
-					return authz.StatusNotFound, nil
+					if errors.Is(err, pgx.ErrNoRows) {
+						return authz.StatusNotFound, nil
+					}
+					return authz.StatusUnknown, err
 				}
 				return authz.StatusActive, nil
 			})
@@ -109,11 +108,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		if group == "" {
 			group = "client"
 		}
+		// Consumers/Processors must be set explicitly: their `default=8` tags
+		// only apply when the KqConf is loaded via conf.Load, not for struct
+		// literals. With zero values kq starts no goroutines and the consumer
+		// exits immediately ("Consumer  is closed"). Offset "first" so a fresh
+		// consumer group backfills the read model from retained events.
 		authEventsQ = kq.MustNewQueue(
 			kq.KqConf{
-				Brokers: c.Kafka.Brokers,
-				Group:   group + ".user-deleted",
-				Topic:   c.Kafka.EventsTopic,
+				Brokers:    c.Kafka.Brokers,
+				Group:      group + ".user-deleted",
+				Topic:      c.Kafka.EventsTopic,
+				Offset:     "first",
+				Consumers:  8,
+				Processors: 8,
 			},
 			kq.WithHandle(handler.Consume),
 		)
@@ -129,7 +136,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Authz:            authzChecker,
 		Cache:            appCache,
 		AuthEventsQ:      authEventsQ,
-		SearchRpc:        searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2s.Config{Secret: c.ServiceAuth.Secret})))),
 		pool:             pool,
 		redis:            redisClient,
 	}

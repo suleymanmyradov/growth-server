@@ -73,7 +73,7 @@ func (l *UpdateArticleLogic) UpdateArticle(req *types.UpdateArticleRequest) (res
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
 		IsSaved:     rpcArticle.IsSaved,
-		Tags:        rpcArticle.Tags,
+		Tags:        nonNilTags(rpcArticle.Tags),
 	}
 
 	return &types.ArticleResponse{

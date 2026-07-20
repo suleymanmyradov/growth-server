@@ -106,6 +106,13 @@ func (r *ArticlesRepo) GetArticleByTitle(ctx context.Context, title string) (db.
 	return r.db.GetArticleByTitle(ctx, title)
 }
 
+func (r *ArticlesRepo) GetFeaturedArticle(ctx context.Context) (db.GetFeaturedArticleRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.GetFeaturedArticle")
+	defer span.End()
+
+	return r.db.GetFeaturedArticle(ctx)
+}
+
 func (r *ArticlesRepo) CreateArticle(ctx context.Context, params db.CreateArticleParams) (db.CreateArticleRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CreateArticle")
 	defer span.End()

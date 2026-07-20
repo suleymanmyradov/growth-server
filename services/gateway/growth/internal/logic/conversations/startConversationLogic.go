@@ -33,7 +33,7 @@ func (l *StartConversationLogic) StartConversation(req *types.StartConversationR
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	convType := req.Type
+	convType := req.ConversationType
 	if convType == "" {
 		convType = "coach"
 	}
@@ -52,7 +52,7 @@ func (l *StartConversationLogic) StartConversation(req *types.StartConversationR
 		Data: types.Conversation{
 			Id:          rpcResp.Conversation.Id,
 			Title:       rpcResp.Conversation.Title,
-			Type:        rpcResp.Conversation.Type,
+			ConversationType: rpcResp.Conversation.Type,
 			LastMessage: rpcResp.Conversation.LastMessage,
 			UserId:      rpcResp.Conversation.UserId,
 			Archived:    rpcResp.Conversation.Archived,

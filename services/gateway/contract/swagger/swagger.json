@@ -182,13 +182,16 @@
                       "title",
                       "excerpt",
                       "content",
+                      "category",
                       "readTime",
                       "imageUrl",
                       "author",
                       "publishedAt",
                       "createdAt",
                       "updatedAt",
-                      "isSaved"
+                      "isSaved",
+                      "likeCount",
+                      "isLiked"
                     ],
                     "properties": {
                       "author": {
@@ -237,8 +240,14 @@
                         "type": "string",
                         "example": "https://example.com/article.jpg"
                       },
+                      "isLiked": {
+                        "type": "boolean"
+                      },
                       "isSaved": {
                         "type": "boolean"
+                      },
+                      "likeCount": {
+                        "type": "integer"
                       },
                       "publishedAt": {
                         "type": "string",
@@ -247,6 +256,12 @@
                       "readTime": {
                         "type": "integer",
                         "example": 5
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       },
                       "title": {
                         "type": "string",
@@ -283,6 +298,181 @@
                     "totalPages": {
                       "type": "integer",
                       "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "CreateArticle",
+        "operationId": "articlesCreateArticle",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "title",
+                "content",
+                "authorId",
+                "readTime"
+              ],
+              "properties": {
+                "authorId": {
+                  "type": "string",
+                  "example": "user-123"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "example": "cat-123"
+                },
+                "content": {
+                  "type": "string",
+                  "example": "Full article content here..."
+                },
+                "coverImage": {
+                  "type": "string",
+                  "example": "https://example.com/article.jpg"
+                },
+                "readTime": {
+                  "type": "integer",
+                  "example": 5
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "title": {
+                  "type": "string",
+                  "example": "10 Habits for Personal Growth"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "excerpt",
+                    "content",
+                    "category",
+                    "readTime",
+                    "imageUrl",
+                    "author",
+                    "publishedAt",
+                    "createdAt",
+                    "updatedAt",
+                    "isSaved",
+                    "likeCount",
+                    "isLiked"
+                  ],
+                  "properties": {
+                    "author": {
+                      "type": "string",
+                      "example": "John Smith"
+                    },
+                    "category": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "slug"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "cat-123"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Personal Development"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "example": "personal-development"
+                        }
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "example": "Full article content here..."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "excerpt": {
+                      "type": "string",
+                      "example": "Discover the top habits that can transform your life..."
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "article-123"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://example.com/article.jpg"
+                    },
+                    "isLiked": {
+                      "type": "boolean"
+                    },
+                    "isSaved": {
+                      "type": "boolean"
+                    },
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "readTime": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "10 Habits for Personal Growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
                     }
                   }
                 }
@@ -344,13 +534,16 @@
                       "title",
                       "excerpt",
                       "content",
+                      "category",
                       "readTime",
                       "imageUrl",
                       "author",
                       "publishedAt",
                       "createdAt",
                       "updatedAt",
-                      "isSaved"
+                      "isSaved",
+                      "likeCount",
+                      "isLiked"
                     ],
                     "properties": {
                       "author": {
@@ -399,8 +592,14 @@
                         "type": "string",
                         "example": "https://example.com/article.jpg"
                       },
+                      "isLiked": {
+                        "type": "boolean"
+                      },
                       "isSaved": {
                         "type": "boolean"
+                      },
+                      "likeCount": {
+                        "type": "integer"
                       },
                       "publishedAt": {
                         "type": "string",
@@ -409,6 +608,12 @@
                       "readTime": {
                         "type": "integer",
                         "example": 5
+                      },
+                      "tags": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       },
                       "title": {
                         "type": "string",
@@ -454,7 +659,7 @@
         }
       }
     },
-    "/api/v1/articles/{id}": {
+    "/api/v1/articles/featured": {
       "get": {
         "produces": [
           "application/json"
@@ -465,16 +670,8 @@
         "tags": [
           "Articles"
         ],
-        "summary": "GetArticle",
-        "operationId": "articlesGetArticle",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
+        "summary": "GetFeaturedArticle",
+        "operationId": "articlesGetFeaturedArticle",
         "responses": {
           "200": {
             "description": "",
@@ -488,13 +685,16 @@
                     "title",
                     "excerpt",
                     "content",
+                    "category",
                     "readTime",
                     "imageUrl",
                     "author",
                     "publishedAt",
                     "createdAt",
                     "updatedAt",
-                    "isSaved"
+                    "isSaved",
+                    "likeCount",
+                    "isLiked"
                   ],
                   "properties": {
                     "author": {
@@ -543,8 +743,14 @@
                       "type": "string",
                       "example": "https://example.com/article.jpg"
                     },
+                    "isLiked": {
+                      "type": "boolean"
+                    },
                     "isSaved": {
                       "type": "boolean"
+                    },
+                    "likeCount": {
+                      "type": "integer"
                     },
                     "publishedAt": {
                       "type": "string",
@@ -553,6 +759,12 @@
                     "readTime": {
                       "type": "integer",
                       "example": 5
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
                     },
                     "title": {
                       "type": "string",
@@ -565,6 +777,338 @@
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/articles/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "GetArticle",
+        "operationId": "articlesGetArticle",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "excerpt",
+                    "content",
+                    "category",
+                    "readTime",
+                    "imageUrl",
+                    "author",
+                    "publishedAt",
+                    "createdAt",
+                    "updatedAt",
+                    "isSaved",
+                    "likeCount",
+                    "isLiked"
+                  ],
+                  "properties": {
+                    "author": {
+                      "type": "string",
+                      "example": "John Smith"
+                    },
+                    "category": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "slug"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "cat-123"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Personal Development"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "example": "personal-development"
+                        }
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "example": "Full article content here..."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "excerpt": {
+                      "type": "string",
+                      "example": "Discover the top habits that can transform your life..."
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "article-123"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://example.com/article.jpg"
+                    },
+                    "isLiked": {
+                      "type": "boolean"
+                    },
+                    "isSaved": {
+                      "type": "boolean"
+                    },
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "readTime": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "10 Habits for Personal Growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "UpdateArticle",
+        "operationId": "articlesUpdateArticle",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "authorId": {
+                  "type": "string"
+                },
+                "categoryId": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "coverImage": {
+                  "type": "string"
+                },
+                "readTime": {
+                  "type": "integer"
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "title": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "excerpt",
+                    "content",
+                    "category",
+                    "readTime",
+                    "imageUrl",
+                    "author",
+                    "publishedAt",
+                    "createdAt",
+                    "updatedAt",
+                    "isSaved",
+                    "likeCount",
+                    "isLiked"
+                  ],
+                  "properties": {
+                    "author": {
+                      "type": "string",
+                      "example": "John Smith"
+                    },
+                    "category": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "slug"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "cat-123"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Personal Development"
+                        },
+                        "slug": {
+                          "type": "string",
+                          "example": "personal-development"
+                        }
+                      }
+                    },
+                    "content": {
+                      "type": "string",
+                      "example": "Full article content here..."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "excerpt": {
+                      "type": "string",
+                      "example": "Discover the top habits that can transform your life..."
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "article-123"
+                    },
+                    "imageUrl": {
+                      "type": "string",
+                      "example": "https://example.com/article.jpg"
+                    },
+                    "isLiked": {
+                      "type": "boolean"
+                    },
+                    "isSaved": {
+                      "type": "boolean"
+                    },
+                    "likeCount": {
+                      "type": "integer"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "readTime": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "title": {
+                      "type": "string",
+                      "example": "10 Habits for Personal Growth"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Articles"
+        ],
+        "summary": "DeleteArticle",
+        "operationId": "articlesDeleteArticle",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
             }
           }
         }
@@ -600,6 +1144,9 @@
             "schema": {
               "type": "object",
               "properties": {
+                "isLiked": {
+                  "type": "boolean"
+                },
                 "newLikeCount": {
                   "type": "integer"
                 },
@@ -660,6 +1207,179 @@
               "properties": {
                 "success": {
                   "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "ForgotPassword",
+        "operationId": "authForgotPassword",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "email"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "john@example.com"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "GoogleLogin",
+        "operationId": "authGoogleLogin",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "authorizationCode"
+              ],
+              "properties": {
+                "authorizationCode": {
+                  "type": "string",
+                  "example": "4/0AX4Xf..."
+                },
+                "redirectUri": {
+                  "type": "string",
+                  "example": "https://app.example.com/auth/callback/google"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "expiresIn": {
+                  "type": "integer",
+                  "example": 3600
+                },
+                "refreshToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "user": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "fullName",
+                    "username",
+                    "email",
+                    "createdAt",
+                    "updatedAt",
+                    "emailVerified"
+                  ],
+                  "properties": {
+                    "avatarUrl": {
+                      "type": "string",
+                      "example": "https://example.com/avatar.jpg"
+                    },
+                    "bio": {
+                      "type": "string",
+                      "example": "Passionate about personal growth"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fullName": {
+                      "type": "string",
+                      "example": "John Doe"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "user-123"
+                    },
+                    "interests": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": "[\"fitness\""
+                    },
+                    "location": {
+                      "type": "string",
+                      "example": "San Francisco"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "website": {
+                      "type": "string",
+                      "example": "https://johndoe.com"
+                    }
+                  }
                 }
               }
             }
@@ -739,7 +1459,8 @@
                     "username",
                     "email",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "emailVerified"
                   ],
                   "properties": {
                     "avatarUrl": {
@@ -757,6 +1478,10 @@
                     "email": {
                       "type": "string",
                       "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
                     },
                     "fullName": {
                       "type": "string",
@@ -881,7 +1606,8 @@
                     "username",
                     "email",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "emailVerified"
                   ],
                   "properties": {
                     "avatarUrl": {
@@ -899,6 +1625,10 @@
                     "email": {
                       "type": "string",
                       "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
                     },
                     "fullName": {
                       "type": "string",
@@ -1001,6 +1731,156 @@
             "schema": {
               "type": "object",
               "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Check your email for a verification link."
+                },
+                "requiresVerification": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "ResendVerification",
+        "operationId": "authResendVerification",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "email"
+              ],
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "john@example.com"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "ResetPassword",
+        "operationId": "authResetPassword",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "token",
+                "newPassword"
+              ],
+              "properties": {
+                "newPassword": {
+                  "type": "string",
+                  "example": "securePassword123"
+                },
+                "token": {
+                  "type": "string",
+                  "example": "9f8e..."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "VerifyEmail",
+        "operationId": "authVerifyEmail",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "token"
+              ],
+              "properties": {
+                "token": {
+                  "type": "string",
+                  "example": "9f8e..."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
                 "accessToken": {
                   "type": "string",
                   "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
@@ -1021,7 +1901,8 @@
                     "username",
                     "email",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "emailVerified"
                   ],
                   "properties": {
                     "avatarUrl": {
@@ -1039,6 +1920,10 @@
                     "email": {
                       "type": "string",
                       "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
                     },
                     "fullName": {
                       "type": "string",
@@ -1768,6 +2653,12 @@
                       "type": "string",
                       "example": "Morning Exercise"
                     },
+                    "recentHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
                     "streak": {
                       "type": "integer",
                       "example": 7
@@ -2000,6 +2891,788 @@
                       "userId": {
                         "type": "string",
                         "example": "user-123"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ListConversations",
+        "operationId": "conversationsListConversations",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "type",
+            "in": "query",
+            "allowEmptyValue": true
+          },
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 20,
+            "example": 20,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "type",
+                      "lastMessage",
+                      "userId",
+                      "archived",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "archived": {
+                        "type": "boolean"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "lastMessage": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      },
+                      "userId": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "StartConversation",
+        "operationId": "conversationsStartConversation",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "initialMessage": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "type": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "lastMessage",
+                    "userId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastMessage": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "initialMessage": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "conversationId",
+                    "role",
+                    "content",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "GetConversation",
+        "operationId": "conversationsGetConversation",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "lastMessage",
+                    "userId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastMessage": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "DeleteConversation",
+        "operationId": "conversationsDeleteConversation",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/archive": {
+      "put": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ArchiveConversation",
+        "operationId": "conversationsArchiveConversation",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "lastMessage",
+                    "userId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastMessage": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/messages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "GetMessages",
+        "operationId": "conversationsGetMessages",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 50,
+            "example": 50,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "conversationId",
+                      "role",
+                      "content",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "content": {
+                        "type": "string"
+                      },
+                      "conversationId": {
+                        "type": "string"
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "AppendMessage",
+        "operationId": "conversationsAppendMessage",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "content"
+              ],
+              "properties": {
+                "content": {
+                  "type": "string"
+                },
+                "role": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "conversation": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "lastMessage",
+                    "userId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastMessage": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "conversationId",
+                    "role",
+                    "content",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "content": {
+                      "type": "string"
+                    },
+                    "conversationId": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "role": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/unarchive": {
+      "put": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "UnarchiveConversation",
+        "operationId": "conversationsUnarchiveConversation",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "title",
+                    "type",
+                    "lastMessage",
+                    "userId",
+                    "archived",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "archived": {
+                      "type": "boolean"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "lastMessage": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "updatedAt": {
+                      "type": "string"
+                    },
+                    "userId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/goal-templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Goal Templates"
+        ],
+        "summary": "ListGoalTemplates",
+        "operationId": "goaltemplatesListGoalTemplates",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "sortOrder",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "category": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "sortOrder": {
+                        "type": "integer"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "updatedAt": {
+                        "type": "string"
                       }
                     }
                   }
@@ -2387,6 +4060,12 @@
         "operationId": "goalsUpdateGoal",
         "parameters": [
           {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
             "name": "body",
             "in": "body",
             "required": true,
@@ -2736,6 +4415,78 @@
         }
       }
     },
+    "/api/v1/habit-templates": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Habit Templates"
+        ],
+        "summary": "ListHabitTemplates",
+        "operationId": "habittemplatesListHabitTemplates",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "name",
+                      "sortOrder",
+                      "createdAt",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "category": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "sortOrder": {
+                        "type": "integer"
+                      },
+                      "updatedAt": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/habits": {
       "get": {
         "produces": [
@@ -2812,6 +4563,12 @@
                       "name": {
                         "type": "string",
                         "example": "Morning Exercise"
+                      },
+                      "recentHistory": {
+                        "type": "array",
+                        "items": {
+                          "type": "boolean"
+                        }
                       },
                       "streak": {
                         "type": "integer",
@@ -2948,6 +4705,12 @@
                       "type": "string",
                       "example": "Morning Exercise"
                     },
+                    "recentHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
                     "streak": {
                       "type": "integer",
                       "example": 7
@@ -3056,6 +4819,12 @@
                       "type": "string",
                       "example": "Morning Exercise"
                     },
+                    "recentHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
                     "streak": {
                       "type": "integer",
                       "example": 7
@@ -3091,6 +4860,12 @@
         "summary": "UpdateHabit",
         "operationId": "habitsUpdateHabit",
         "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
           {
             "name": "body",
             "in": "body",
@@ -3155,6 +4930,12 @@
                       "type": "string",
                       "example": "Morning Exercise"
                     },
+                    "recentHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
                     "streak": {
                       "type": "integer",
                       "example": 7
@@ -3202,94 +4983,6 @@
             "description": "",
             "schema": {
               "type": "object"
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/habits/{id}/toggle": {
-      "post": {
-        "consumes": [
-          "application/x-www-form-urlencoded"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "Habits"
-        ],
-        "summary": "ToggleHabit",
-        "operationId": "habitsToggleHabit",
-        "parameters": [
-          {
-            "type": "string",
-            "name": "id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "data": {
-                  "type": "object",
-                  "required": [
-                    "id",
-                    "name",
-                    "description",
-                    "streak",
-                    "completed",
-                    "category",
-                    "userId",
-                    "createdAt",
-                    "updatedAt"
-                  ],
-                  "properties": {
-                    "category": {
-                      "type": "string",
-                      "example": "fitness"
-                    },
-                    "completed": {
-                      "type": "boolean",
-                      "example": false
-                    },
-                    "createdAt": {
-                      "type": "string",
-                      "example": "2024-01-01T00:00:00Z"
-                    },
-                    "description": {
-                      "type": "string",
-                      "example": "30 minutes of cardio every morning"
-                    },
-                    "id": {
-                      "type": "string",
-                      "example": "habit-123"
-                    },
-                    "name": {
-                      "type": "string",
-                      "example": "Morning Exercise"
-                    },
-                    "streak": {
-                      "type": "integer",
-                      "example": 7
-                    },
-                    "updatedAt": {
-                      "type": "string",
-                      "example": "2024-01-15T00:00:00Z"
-                    },
-                    "userId": {
-                      "type": "string",
-                      "example": "user-123"
-                    }
-                  }
-                }
-              }
             }
           }
         }
@@ -3497,6 +5190,9 @@
                 "context": {
                   "type": "string",
                   "example": "User has been struggling with motivation"
+                },
+                "conversationId": {
+                  "type": "string"
                 },
                 "userMessage": {
                   "type": "string",
@@ -3860,6 +5556,68 @@
         }
       }
     },
+    "/api/v1/personalization/coaching-stream": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "StreamPersonalizedCoaching",
+        "operationId": "personalizationStreamPersonalizedCoaching",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "userMessage"
+              ],
+              "properties": {
+                "context": {
+                  "type": "string",
+                  "example": "User has been struggling with motivation"
+                },
+                "conversationId": {
+                  "type": "string"
+                },
+                "userMessage": {
+                  "type": "string",
+                  "example": "User missed 3 consecutive check-ins"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "coachingResponse": {
+                  "type": "string",
+                  "example": "I noticed you've missed a few check-ins lately..."
+                },
+                "context": {
+                  "type": "string",
+                  "example": "User has been struggling with motivation"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/personalization/context": {
       "get": {
         "produces": [
@@ -4004,6 +5762,12 @@
                           "name": {
                             "type": "string",
                             "example": "Morning Exercise"
+                          },
+                          "recentHistory": {
+                            "type": "array",
+                            "items": {
+                              "type": "boolean"
+                            }
                           },
                           "streak": {
                             "type": "integer",
@@ -4379,6 +6143,94 @@
                             "example": "user-123"
                           }
                         }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/personalization/onboarding-habits": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GenerateOnboardingHabits",
+        "operationId": "personalizationGenerateOnboardingHabits",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "goalTitle",
+                "dailyMinutes"
+              ],
+              "properties": {
+                "accountabilityStyle": {
+                  "type": "string",
+                  "example": "balanced"
+                },
+                "blocker": {
+                  "type": "string",
+                  "example": "Lack of time in the morning"
+                },
+                "dailyMinutes": {
+                  "type": "integer",
+                  "maximum": 600,
+                  "minimum": 1,
+                  "example": 30
+                },
+                "goalCategory": {
+                  "type": "string",
+                  "example": "fitness"
+                },
+                "goalTitle": {
+                  "type": "string",
+                  "example": "Run a 5k"
+                },
+                "motivation": {
+                  "type": "string",
+                  "example": "Improve my health and energy"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "name",
+                      "description"
+                    ],
+                    "properties": {
+                      "description": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
                       }
                     }
                   }
@@ -4891,7 +6743,8 @@
                     "username",
                     "email",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "emailVerified"
                   ],
                   "properties": {
                     "avatarUrl": {
@@ -4909,6 +6762,10 @@
                     "email": {
                       "type": "string",
                       "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
                     },
                     "fullName": {
                       "type": "string",
@@ -4947,6 +6804,27 @@
             }
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Profile"
+        ],
+        "summary": "DeleteAccount",
+        "operationId": "profileDeleteAccount",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
       }
     },
     "/api/v1/profile/me": {
@@ -4976,7 +6854,8 @@
                     "username",
                     "email",
                     "createdAt",
-                    "updatedAt"
+                    "updatedAt",
+                    "emailVerified"
                   ],
                   "properties": {
                     "avatarUrl": {
@@ -4994,6 +6873,10 @@
                     "email": {
                       "type": "string",
                       "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
                     },
                     "fullName": {
                       "type": "string",
@@ -5313,7 +7196,10 @@
                       "itemType",
                       "itemId",
                       "userId",
-                      "createdAt"
+                      "createdAt",
+                      "article",
+                      "habit",
+                      "goal"
                     ],
                     "properties": {
                       "article": {
@@ -5323,13 +7209,16 @@
                           "title",
                           "excerpt",
                           "content",
+                          "category",
                           "readTime",
                           "imageUrl",
                           "author",
                           "publishedAt",
                           "createdAt",
                           "updatedAt",
-                          "isSaved"
+                          "isSaved",
+                          "likeCount",
+                          "isLiked"
                         ],
                         "properties": {
                           "author": {
@@ -5378,8 +7267,14 @@
                             "type": "string",
                             "example": "https://example.com/article.jpg"
                           },
+                          "isLiked": {
+                            "type": "boolean"
+                          },
                           "isSaved": {
                             "type": "boolean"
+                          },
+                          "likeCount": {
+                            "type": "integer"
                           },
                           "publishedAt": {
                             "type": "string",
@@ -5388,6 +7283,12 @@
                           "readTime": {
                             "type": "integer",
                             "example": 5
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           },
                           "title": {
                             "type": "string",
@@ -5502,6 +7403,12 @@
                           "name": {
                             "type": "string",
                             "example": "Morning Exercise"
+                          },
+                          "recentHistory": {
+                            "type": "array",
+                            "items": {
+                              "type": "boolean"
+                            }
                           },
                           "streak": {
                             "type": "integer",
@@ -5955,6 +7862,56 @@
                     "userId": {
                       "type": "string",
                       "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/site-settings": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Site Settings"
+        ],
+        "summary": "ListSiteSettings",
+        "operationId": "sitesettingsListSiteSettings",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "key",
+                      "value",
+                      "updatedAt"
+                    ],
+                    "properties": {
+                      "key": {
+                        "type": "string",
+                        "example": "explore.header"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "example": "2024-01-15T00:00:00Z"
+                      },
+                      "value": {
+                        "type": "string",
+                        "example": "{\"title\":\"Explore\"}"
+                      }
                     }
                   }
                 }
@@ -6627,6 +8584,225 @@
         }
       }
     },
+    "/api/v1/weekly-reviews/generate-stream": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "StreamWeeklyReview",
+        "operationId": "weeklyreviewStreamWeeklyReview",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "forceRegenerate": {
+                  "type": "boolean"
+                },
+                "weekStart": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "userId",
+                    "weekStart",
+                    "weekEnd",
+                    "totalHabits",
+                    "completedCheckIns",
+                    "missedCheckIns",
+                    "completionRate",
+                    "moodSummary",
+                    "energySummary",
+                    "habitBreakdown",
+                    "suggestedAdjustments",
+                    "nextWeekPlan",
+                    "generatedAt"
+                  ],
+                  "properties": {
+                    "aiSummary": {
+                      "type": "string"
+                    },
+                    "bestDay": {
+                      "type": "string"
+                    },
+                    "completedCheckIns": {
+                      "type": "integer"
+                    },
+                    "completionRate": {
+                      "type": "number"
+                    },
+                    "energySummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "generatedAt": {
+                      "type": "string"
+                    },
+                    "habitBreakdown": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitId",
+                          "habitName",
+                          "totalCheckIns",
+                          "completedCount",
+                          "missedCount",
+                          "completionRate"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string"
+                          },
+                          "completedCount": {
+                            "type": "integer"
+                          },
+                          "completionRate": {
+                            "type": "number"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "lastCheckInAt": {
+                            "type": "string"
+                          },
+                          "missedCount": {
+                            "type": "integer"
+                          },
+                          "totalCheckIns": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    },
+                    "hardestDay": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "missedCheckIns": {
+                      "type": "integer"
+                    },
+                    "moodSummary": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "integer"
+                      }
+                    },
+                    "nextWeekPlan": {
+                      "type": "object",
+                      "required": [
+                        "focus",
+                        "commitments",
+                        "risks",
+                        "recoveryActions"
+                      ],
+                      "properties": {
+                        "commitments": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "focus": {
+                          "type": "string"
+                        },
+                        "recoveryActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "risks": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "suggestedAdjustments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "habitName",
+                          "adjustmentType",
+                          "reason",
+                          "suggestion"
+                        ],
+                        "properties": {
+                          "adjustmentType": {
+                            "type": "string"
+                          },
+                          "habitId": {
+                            "type": "string"
+                          },
+                          "habitName": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "suggestion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "topBlocker": {
+                      "type": "string"
+                    },
+                    "totalHabits": {
+                      "type": "integer"
+                    },
+                    "userId": {
+                      "type": "string"
+                    },
+                    "weekEnd": {
+                      "type": "string"
+                    },
+                    "weekStart": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/weekly-reviews/{weekStart}": {
       "get": {
         "produces": [
@@ -6826,7 +9002,7 @@
       }
     }
   },
-  "x-date": "2026-06-04 12:07:07",
+  "x-date": "2026-07-18 16:34:13",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

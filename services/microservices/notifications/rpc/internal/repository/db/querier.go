@@ -17,6 +17,9 @@ type Querier interface {
 	ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error)
+	// Batch insert the same notification for many users (admin broadcast).
+	// Uses unnest to fan out a single INSERT...SELECT over the uuid array.
+	CreateNotificationsForUsers(ctx context.Context, title string, message string, type_ string, column4 []uuid.UUID) (int64, error)
 	DecrementHabitCount(ctx context.Context, userID uuid.UUID) error
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error

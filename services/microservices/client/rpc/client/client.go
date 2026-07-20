@@ -1,20 +1,23 @@
 package client
 
 import (
-	"github.com/zeromicro/go-zero/zrpc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/categories"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goaltemplates"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/report"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/sitesettings"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/tags"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 // Service aggregates every sub-service client exposed by the client RPC into a
@@ -26,12 +29,15 @@ type Service struct {
 	BillingService         billingservice.BillingService
 	Categories             categories.Categories
 	CheckInService         checkinservice.CheckInService
+	GoalTemplates          goaltemplates.GoalTemplates
 	Goals                  goals.Goals
+	HabitTemplates         habittemplates.HabitTemplates
 	Habits                 habits.Habits
 	PersonalizationService personalizationservice.PersonalizationService
 	Report                 report.Report
 	Saved                  saved.Saved
 	Settings               settings.Settings
+	SiteSettings           sitesettings.SiteSettings
 	Tags                   tags.Tags
 	WeeklyReviewService    weeklyreviewservice.WeeklyReviewService
 }
@@ -46,12 +52,15 @@ func NewClientService(cli zrpc.Client) *Service {
 		BillingService:         billingservice.NewBillingService(cli),
 		Categories:             categories.NewCategories(cli),
 		CheckInService:         checkinservice.NewCheckInService(cli),
+		GoalTemplates:          goaltemplates.NewGoalTemplates(cli),
 		Goals:                  goals.NewGoals(cli),
+		HabitTemplates:         habittemplates.NewHabitTemplates(cli),
 		Habits:                 habits.NewHabits(cli),
 		PersonalizationService: personalizationservice.NewPersonalizationService(cli),
 		Report:                 report.NewReport(cli),
 		Saved:                  saved.NewSaved(cli),
 		Settings:               settings.NewSettings(cli),
+		SiteSettings:           sitesettings.NewSiteSettings(cli),
 		Tags:                   tags.NewTags(cli),
 		WeeklyReviewService:    weeklyreviewservice.NewWeeklyReviewService(cli),
 	}

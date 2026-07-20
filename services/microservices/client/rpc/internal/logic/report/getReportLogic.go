@@ -3,6 +3,10 @@ package reportlogic
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -28,11 +32,17 @@ func (l *GetReportLogic) GetReport(in *client.GetReportRequest) (*client.GetRepo
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetReportLogic.GetReport")
 	defer span.End()
 
-	logx.WithContext(ctx).Infof("Getting report %s", in.ReportId)
+	id, err := uuid.Parse(in.ReportId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid reportId")
+	}
+
+	report, err := l.svcCtx.Repo.Reports.GetReportByID(ctx, id)
+	if err != nil {
+		return nil, status.Error(codes.NotFound, "report not found")
+	}
 
 	return &client.GetReportResponse{
-		Report: &client.ReportItem{
-			Id: in.ReportId,
-		},
+		Report: reportToPb(report),
 	}, nil
 }

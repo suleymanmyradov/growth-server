@@ -84,7 +84,7 @@ func (l *CreateArticleLogic) CreateArticle(req *types.CreateArticleRequest, cove
 		CreatedAt:   formatTime(rpcArticle.CreatedAt),
 		UpdatedAt:   formatTime(rpcArticle.UpdatedAt),
 		IsSaved:     rpcArticle.IsSaved,
-		Tags:        rpcArticle.Tags,
+		Tags:        nonNilTags(rpcArticle.Tags),
 	}
 
 	return &types.ArticleResponse{

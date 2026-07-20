@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all tmux-start tmux-stop tmux-attach check-ownership
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -16,8 +16,11 @@ help:
 	@echo "  run-search-sync     - Run search-sync worker locally"
 	@echo "  run-gateway         - Run API gateway locally"
 	@echo "  run-adminway        - Run admin API locally"
-	@echo "  run-all             - Run all services locally"
-	@echo "  tmux-start          - Start all services in a tmux session (no binaries)"
+	@echo "  run-all             - Run all services locally (background, no live logs)"
+	@echo "  dev-<svc>           - Hot-reload a single service with air (foreground)"
+	@echo "                        e.g. make dev-auth, make dev-gateway, make dev-aicoach"
+	@echo "  dev-all             - Start all services in a tmux session, each hot-reloaded by air"
+	@echo "  tmux-start          - Alias for dev-all"
 	@echo "  tmux-stop           - Stop the tmux session"
 	@echo "  tmux-attach         - Attach to the running tmux session"
 	@echo "  migrate-up          - Run database migrations"
@@ -144,8 +147,7 @@ run-all: build
 	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|filemanager|gateway|notifications|search-sync)'"
 
 # Start all services in a tmux session and attach automatically
-tmux-start:
-	@./scripts/start-services.sh
+tmux-start: dev-all
 
 # Stop the tmux session
 tmux-stop:
@@ -154,6 +156,50 @@ tmux-stop:
 # Attach to the running tmux session
 tmux-attach:
 	@tmux attach -t growth
+
+# --- Hot-reload dev workflow (air-verse/air) ---------------------------------
+# Each `dev-<svc>` target runs air in the foreground with a per-service config
+# at .air/<svc>.toml. air watches only that service's source tree (plus the
+# shared pkg/) and rebuilds + restarts on save. Run one when iterating on a
+# single service; run `make dev-all` to bring up everything under tmux.
+AIR ?= air
+air-install:
+	@if ! command -v $(AIR) >/dev/null 2>&1; then \
+		echo "Installing air (air-verse/air)..."; \
+		go install github.com/air-verse/air@latest; \
+	else \
+		echo "air already installed: $$(command -v $(AIR))"; \
+	fi
+
+dev-auth: air-install
+	@$(AIR) -c .air/auth.toml
+dev-client: air-install
+	@$(AIR) -c .air/client.toml
+dev-search: air-install
+	@$(AIR) -c .air/search.toml
+dev-notifications: air-install
+	@$(AIR) -c .air/notifications.toml
+dev-aicoach: air-install
+	@$(AIR) -c .air/ai-coach.toml
+dev-ai-coach-consumer: air-install
+	@$(AIR) -c .air/ai-coach-consumer.toml
+dev-filemanager: air-install
+	@$(AIR) -c .air/filemanager.toml
+dev-search-sync: air-install
+	@$(AIR) -c .air/search-sync.toml
+dev-gateway: air-install
+	@$(AIR) -c .air/gateway.toml
+dev-adminway: air-install
+	@$(AIR) -c .air/adminway.toml
+# billing-reconciler is a one-shot CLI; air will re-run it on each save.
+dev-billing-reconciler: air-install
+	@$(AIR) -c .air/billing-reconciler.toml
+
+# Start all long-running services in a tmux session, each hot-reloaded by air.
+dev-all:
+	@./scripts/start-services.sh
+	@echo ""
+	@echo "Tip: run 'make tmux-attach' to view logs. Each window is one service."
 
 # Run database migrations up
 migrate-up:

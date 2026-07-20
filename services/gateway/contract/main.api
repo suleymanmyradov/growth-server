@@ -140,6 +140,9 @@ service growthapi {
 
 	@handler GetAuthorArticles
 	get /articles/author/:authorId (GetAuthorArticlesRequest) returns (ArticlesResponse)
+
+	@handler GetFeaturedArticle
+	get /articles/featured returns (ArticleResponse)
 }
 
 @server (
@@ -309,6 +312,36 @@ service growthapi {
 }
 
 @server (
+	prefix: /api/v1
+	group:  sitesettings
+	tags:   "Site Settings"
+)
+service growthapi {
+	@handler ListSiteSettings
+	get /site-settings returns (SiteSettingsResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  habittemplates
+	tags:   "Habit Templates"
+)
+service growthapi {
+	@handler ListHabitTemplates
+	get /habit-templates returns (HabitTemplatesResponse)
+}
+
+@server (
+	prefix: /api/v1
+	group:  goaltemplates
+	tags:   "Goal Templates"
+)
+service growthapi {
+	@handler ListGoalTemplates
+	get /goal-templates returns (GoalTemplatesResponse)
+}
+
+@server (
 	prefix:     /api/v1
 	group:      weeklyreview
 	middleware: Auth
@@ -326,6 +359,18 @@ service growthapi {
 
 	@handler GetWeeklyReview
 	get /weekly-reviews/:weekStart returns (WeeklyReviewResponse)
+}
+
+@server (
+	sse:        true
+	prefix:     /api/v1
+	group:      weeklyreview
+	middleware: Auth
+	tags:       "Weekly Review"
+)
+service growthapi {
+	@handler StreamWeeklyReview
+	post /weekly-reviews/generate-stream (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
 }
 
 @server (
@@ -361,5 +406,52 @@ service growthapi {
 
 	@handler ApplyPlanAdjustmentSuggestion
 	post /personalization/plan-adjustments/:id/apply returns (PlanAdjustmentSuggestionResponse)
+
+	@handler GenerateOnboardingHabits
+	post /personalization/onboarding-habits (GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse)
+}
+
+@server (
+	sse:        true
+	prefix:     /api/v1
+	group:      personalization
+	middleware: Auth
+	tags:       "Personalization"
+)
+service growthapi {
+	@handler StreamPersonalizedCoaching
+	post /personalization/coaching-stream (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      conversations
+	middleware: Auth
+	tags:       "Conversations"
+)
+service growthapi {
+	@handler ListConversations
+	get /conversations (ListConversationsRequest) returns (ListConversationsResponse)
+
+	@handler StartConversation
+	post /conversations (StartConversationRequest) returns (StartConversationResponse)
+
+	@handler GetConversation
+	get /conversations/:id (ConversationRequest) returns (GetConversationResponse)
+
+	@handler GetMessages
+	get /conversations/:id/messages (GetMessagesRequest) returns (GetMessagesResponse)
+
+	@handler AppendMessage
+	post /conversations/:id/messages (AppendMessageRequest) returns (AppendMessageResponse)
+
+	@handler ArchiveConversation
+	put /conversations/:id/archive (ConversationRequest) returns (GetConversationResponse)
+
+	@handler UnarchiveConversation
+	put /conversations/:id/unarchive (ConversationRequest) returns (GetConversationResponse)
+
+	@handler DeleteConversation
+	delete /conversations/:id (ConversationRequest) returns (DeleteConversationResponse)
 }
 

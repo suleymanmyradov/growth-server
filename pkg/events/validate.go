@@ -12,7 +12,12 @@ func ValidEventType(t EventType) bool {
 		TypeUserOnboarded,
 		TypeSettingsChanged,
 		TypeReminderDue,
-		TypeCheckInFeedbackGenerated:
+		TypeCheckInFeedbackGenerated,
+		TypeHabitCreated,
+		TypeHabitDeleted,
+		TypeUserDeleted,
+		TypeUserProfileUpdated,
+		TypeBroadcastNotificationRequested:
 		return true
 	}
 	return false

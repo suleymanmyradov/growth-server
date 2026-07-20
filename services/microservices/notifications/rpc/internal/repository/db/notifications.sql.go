@@ -59,6 +59,26 @@ func (q *Queries) CreateNotification(ctx context.Context, title string, message 
 	return i, err
 }
 
+const createNotificationsForUsers = `-- name: CreateNotificationsForUsers :execrows
+INSERT INTO notifications (title, message, type, user_id)
+SELECT $1, $2, $3, user_id FROM unnest($4::uuid[]) AS t(user_id)
+`
+
+// Batch insert the same notification for many users (admin broadcast).
+// Uses unnest to fan out a single INSERT...SELECT over the uuid array.
+func (q *Queries) CreateNotificationsForUsers(ctx context.Context, title string, message string, type_ string, column4 []uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, createNotificationsForUsers,
+		title,
+		message,
+		type_,
+		column4,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteAllNotificationsByUser = `-- name: DeleteAllNotificationsByUser :exec
 DELETE FROM notifications WHERE user_id = $1
 `

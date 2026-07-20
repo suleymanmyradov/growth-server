@@ -27,6 +27,11 @@ const (
 	TypeHabitDeleted             EventType = "habit_deleted"
 	TypeUserDeleted              EventType = "user_deleted"
 	TypeUserProfileUpdated       EventType = "user_profile_updated"
+	// TypeBroadcastNotificationRequested is published by adminway when an admin
+	// sends a notification to a (segmented) audience. Payload: BroadcastNotificationRequested.
+	// The notifications consumer fan-outs the notification to each user id in the
+	// payload by batch-inserting rows into the notifications table.
+	TypeBroadcastNotificationRequested EventType = "broadcast_notification_requested"
 )
 
 // Envelope wraps every event published to Kafka with stable metadata.
@@ -112,6 +117,25 @@ type UserProfileUpdated struct {
 	Website   string   `json:"website,omitempty"`
 	Interests []string `json:"interests,omitempty"`
 	Avatar    string   `json:"avatar,omitempty"`
+}
+
+// BroadcastNotificationRequested is the payload for
+// TypeBroadcastNotificationRequested events. Adminway resolves the audience
+// (all / premium / free) into a concrete list of user ids, chunks it to keep
+// the Kafka message small, and publishes one event per chunk. The
+// notifications consumer batch-inserts a notification row for every user id.
+//
+// BroadcastId is a client-generated UUID shared by all chunks of the same
+// broadcast so the consumer can dedupe / group them. ChunkIndex + ChunkTotal
+// are 1-based for observability.
+type BroadcastNotificationRequested struct {
+	BroadcastID string   `json:"broadcastId"`
+	ChunkIndex  int      `json:"chunkIndex"`
+	ChunkTotal  int      `json:"chunkTotal"`
+	Title       string   `json:"title"`
+	Message     string   `json:"message"`
+	Type        string   `json:"type"`
+	UserIDs     []string `json:"userIds"`
 }
 
 // NewEnvelope creates a new Envelope with a UUID v7 event ID, the given

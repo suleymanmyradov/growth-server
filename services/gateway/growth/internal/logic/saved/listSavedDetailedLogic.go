@@ -127,7 +127,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 					PublishedAt: formatUnix(a.PublishedAt),
 					CreatedAt:   formatUnix(a.CreatedAt),
 					UpdatedAt:   formatUnix(a.UpdatedAt),
-					Tags:        a.Tags,
+					Tags:        nonNilTags(a.Tags),
 				}
 				if a.Category != nil {
 					article.Category = &types.ArticleCategory{
@@ -201,4 +201,14 @@ func nonNilHabitIds(ids []string) []string {
 		return []string{}
 	}
 	return ids
+}
+
+// nonNilTags returns a non-nil empty slice when tags is nil. Protobuf3 does not
+// transmit empty repeated fields, so a nil slice on the receiving end would
+// otherwise serialize to JSON as null instead of [].
+func nonNilTags(tags []string) []string {
+	if tags == nil {
+		return []string{}
+	}
+	return tags
 }

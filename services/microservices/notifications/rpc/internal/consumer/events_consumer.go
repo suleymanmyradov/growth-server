@@ -84,6 +84,8 @@ func (h *EventsHandler) Consume(ctx context.Context, _ string, raw string) error
 		handlerErr = h.onHabitDeleted(ctx, env)
 	case events.TypeUserDeleted:
 		handlerErr = h.onUserDeleted(ctx, env)
+	case events.TypeBroadcastNotificationRequested:
+		handlerErr = h.onBroadcastNotificationRequested(ctx, env)
 	default:
 		logx.WithContext(ctx).Infof("unhandled event type %s", env.EventType)
 		return nil
@@ -193,7 +195,7 @@ func (h *EventsHandler) onSettingsChanged(ctx context.Context, env events.Envelo
 		var checkInTime pgtype.Time
 		if p.CheckInTime != "" {
 			if t, err := time.Parse("15:04", p.CheckInTime); err == nil {
-				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
+				checkInTime = pgtype.Time{Microseconds: (int64(t.Hour())*3600 + int64(t.Minute())*60) * 1_000_000, Valid: true}
 			}
 		}
 		timezone := p.Timezone
@@ -344,5 +346,67 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, userID u
 		}
 	}
 
+	return nil
+}
+
+// allowedBroadcastTypes mirrors the notifications.type CHECK constraint.
+var allowedBroadcastTypes = map[string]bool{
+	"habit_reminder":  true,
+	"missed_check_in": true,
+	"goal_deadline":   true,
+	"achievement":     true,
+	"weekly_review":   true,
+	"encouragement":   true,
+	"system":          true,
+	"ai_feedback":     true,
+}
+
+// onBroadcastNotificationRequested handles admin broadcasts: batch-inserts the
+// notification for every user id in the chunk. adminway has already resolved
+// the audience and chunked the ids, so the consumer only owns the insert
+// (notifications table is owned by this service). Errors are returned so kq
+// retries the chunk; duplicate delivery is acceptable (idempotency at the
+// notification level is not enforced — a retry may create duplicate rows, which
+// is an acceptable trade-off for broadcasts vs. tracking a processed_events
+// entry per chunk).
+func (h *EventsHandler) onBroadcastNotificationRequested(ctx context.Context, env events.Envelope) error {
+	var p events.BroadcastNotificationRequested
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal BroadcastNotificationRequested: %v", err)
+		return nil
+	}
+
+	if p.Title == "" || p.Message == "" {
+		logx.WithContext(ctx).Errorf("broadcast %s: empty title or message", p.BroadcastID)
+		return nil
+	}
+	if !allowedBroadcastTypes[p.Type] {
+		logx.WithContext(ctx).Errorf("broadcast %s: invalid type %q", p.BroadcastID, p.Type)
+		return nil
+	}
+	if len(p.UserIDs) == 0 {
+		return nil
+	}
+
+	userIDs := make([]uuid.UUID, 0, len(p.UserIDs))
+	for _, idStr := range p.UserIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("broadcast %s: invalid userId %q: %v", p.BroadcastID, idStr, err)
+			continue
+		}
+		userIDs = append(userIDs, id)
+	}
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	inserted, err := h.repo.Notifications.CreateNotificationsForUsers(ctx, p.Title, p.Message, p.Type, userIDs)
+	if err != nil {
+		return fmt.Errorf("batch insert broadcast %s chunk %d/%d: %w", p.BroadcastID, p.ChunkIndex, p.ChunkTotal, err)
+	}
+
+	logx.WithContext(ctx).Infof("broadcast %s chunk %d/%d: inserted %d/%d notifications",
+		p.BroadcastID, p.ChunkIndex, p.ChunkTotal, inserted, len(userIDs))
 	return nil
 }

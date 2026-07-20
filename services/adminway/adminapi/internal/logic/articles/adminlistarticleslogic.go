@@ -7,6 +7,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -28,10 +29,14 @@ func NewAdminListArticlesLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 func (l *AdminListArticlesLogic) AdminListArticles(req *types.ListArticlesRequest) (resp *types.ArticlesResponse, err error) {
 	offset := (req.Page - 1) * req.Limit
 
-	// Server-side full-text search takes precedence when a search term is provided.
+	// Server-side full-text search takes precedence when a search term is
+	// provided. Composition happens here at the REST layer: the search
+	// service returns relevance-ordered article IDs, and the client service
+	// hydrates them into full articles (RPC services never call each other).
 	if req.Search != "" {
-		rpcResp, err := l.svcCtx.ArticlesRpc.SearchArticles(l.ctx, &clientarticles.SearchArticlesRequest{
+		searchResp, err := l.svcCtx.SearchRpc.Search(l.ctx, &searchservice.SearchRequest{
 			Query:  req.Search,
+			Types:  []string{"article"},
 			Status: req.Status,
 			Limit:  int32(req.Limit),
 			Offset: int32(offset),
@@ -40,16 +45,26 @@ func (l *AdminListArticlesLogic) AdminListArticles(req *types.ListArticlesReques
 			return nil, err
 		}
 
-		articles := mapRpcArticles(rpcResp.Articles)
-		totalPages := totalPages(int(rpcResp.TotalCount), req.Limit)
+		articles := []types.Article{}
+		if len(searchResp.Results) > 0 {
+			ids := make([]string, 0, len(searchResp.Results))
+			for _, r := range searchResp.Results {
+				ids = append(ids, r.Id)
+			}
+			rpcResp, err := l.svcCtx.ArticlesRpc.GetArticlesByIds(l.ctx, &clientarticles.GetArticlesByIdsRequest{Ids: ids})
+			if err != nil {
+				return nil, err
+			}
+			articles = mapRpcArticles(rpcResp.Articles)
+		}
 
 		return &types.ArticlesResponse{
 			Data: articles,
 			Page: types.PageResponse{
-				Total:      int64(rpcResp.TotalCount),
+				Total:      int64(searchResp.Total),
 				Page:       req.Page,
 				Limit:      req.Limit,
-				TotalPages: totalPages,
+				TotalPages: totalPages(int(searchResp.Total), req.Limit),
 			},
 		}, nil
 	}

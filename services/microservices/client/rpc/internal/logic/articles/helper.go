@@ -69,6 +69,45 @@ func convertGetRowToPbArticle(a db.GetArticleRow) *client.Article {
 	return pb
 }
 
+// convertFeaturedRowToPbArticle mirrors convertGetRowToPbArticle but for the
+// GetFeaturedArticleRow shape (identical fields to GetArticleRow).
+func convertFeaturedRowToPbArticle(a db.GetFeaturedArticleRow) *client.Article {
+	pb := &client.Article{
+		Id:          a.ID.String(),
+		Title:       a.Title,
+		Content:     a.Content,
+		AuthorId:    a.Author,
+		ReadTime:    a.ReadTime,
+		PublishedAt: a.PublishedAt.Time.Unix(),
+		CreatedAt:   a.CreatedAt.Time.Unix(),
+		UpdatedAt:   a.UpdatedAt.Time.Unix(),
+		Likes:       int32(a.LikeCount),
+	}
+	pb.Status = a.Status
+	if a.Excerpt != nil {
+		pb.Summary = *a.Excerpt
+	}
+	if a.ImageUrl != nil {
+		pb.CoverImage = *a.ImageUrl
+	}
+	if a.CategoryID.Valid && a.CategoryID.UUID != uuid.Nil {
+		categoryName := ""
+		if a.CategoryName != nil {
+			categoryName = *a.CategoryName
+		}
+		categorySlug := ""
+		if a.CategorySlug != nil {
+			categorySlug = *a.CategorySlug
+		}
+		pb.Category = &client.ArticleCategory{
+			Id:   a.CategoryID.UUID.String(),
+			Name: categoryName,
+			Slug: categorySlug,
+		}
+	}
+	return pb
+}
+
 func convertAuthorRowToPbArticle(a db.ListArticlesByAuthorRow) *client.Article {
 	pb := &client.Article{
 		Id:          a.ID.String(),

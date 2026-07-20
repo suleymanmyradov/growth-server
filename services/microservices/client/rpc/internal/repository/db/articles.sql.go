@@ -357,6 +357,68 @@ func (q *Queries) GetArticlesByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([
 	return items, nil
 }
 
+const getFeaturedArticle = `-- name: GetFeaturedArticle :one
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.status = 'published'
+  AND a.published_at >= now() - interval '30 days'
+ORDER BY (
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) * 3
+    + (SELECT COUNT(*) FROM saved_articles sa WHERE sa.article_id = a.id) * 2
+    + (SELECT COUNT(*) FROM article_shares ash WHERE ash.article_id = a.id)
+) DESC, a.published_at DESC
+LIMIT 1
+`
+
+type GetFeaturedArticleRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Excerpt      *string            `db:"excerpt" json:"excerpt"`
+	Content      string             `db:"content" json:"content"`
+	ReadTime     int32              `db:"read_time" json:"read_time"`
+	ImageUrl     *string            `db:"image_url" json:"image_url"`
+	Author       string             `db:"author" json:"author"`
+	PublishedAt  pgtype.Timestamptz `db:"published_at" json:"published_at"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	CategoryName *string            `db:"category_name" json:"category_name"`
+	CategorySlug *string            `db:"category_slug" json:"category_slug"`
+	LikeCount    int64              `db:"like_count" json:"like_count"`
+}
+
+// Returns the most "popular" published article from the last 30 days, scored
+// by a weighted sum of likes (x3), saves (x2) and shares (x1). Falls back to
+// most recent when engagement counts tie or are all zero.
+func (q *Queries) GetFeaturedArticle(ctx context.Context) (GetFeaturedArticleRow, error) {
+	row := q.db.QueryRow(ctx, getFeaturedArticle)
+	var i GetFeaturedArticleRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Excerpt,
+		&i.Content,
+		&i.ReadTime,
+		&i.ImageUrl,
+		&i.Author,
+		&i.PublishedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.CategoryID,
+		&i.CategoryName,
+		&i.CategorySlug,
+		&i.LikeCount,
+	)
+	return i, err
+}
+
 const getTagsByArticleIDs = `-- name: GetTagsByArticleIDs :many
 SELECT at.article_id, t.name, t.slug
 FROM article_tags at

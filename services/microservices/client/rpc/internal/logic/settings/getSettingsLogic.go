@@ -3,7 +3,7 @@ package settingslogic
 import (
 	"context"
 	"errors"
-	"time"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -47,8 +47,21 @@ func (l *GetSettingsLogic) GetSettings(in *client.GetSettingsRequest) (*client.G
 
 	prefs, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
 	if err != nil {
-		l.Errorf("failed to get user preferences: %v", err)
-		return nil, status.Error(codes.NotFound, "user settings not found")
+		if !errors.Is(err, pgx.ErrNoRows) {
+			l.Errorf("failed to get user preferences: %v", err)
+			return nil, status.Error(codes.Internal, "failed to get user settings")
+		}
+		// No preferences row yet (row is created lazily on first settings write):
+		// fall back to the schema defaults instead of failing.
+		return &client.GetSettingsResponse{
+			Settings: &client.UserSettings{
+				UserId:      userID.String(),
+				Language:    "en",
+				Theme:       "system",
+				Timezone:    "UTC",
+				CheckInTime: "09:00",
+			},
+		}, nil
 	}
 
 	// Compose the combined settings response from user_preferences + coaching_profiles.
@@ -60,8 +73,10 @@ func (l *GetSettingsLogic) GetSettings(in *client.GetSettingsRequest) (*client.G
 		OnboardingCompleted: prefs.OnboardingCompleted,
 	}
 	if prefs.CheckInTime.Valid {
-		t := time.Unix(0, prefs.CheckInTime.Microseconds*1000)
-		pb.CheckInTime = t.Format("15:04")
+		// pgtype.Time is microseconds since midnight; format as HH:MM without
+		// involving time.Unix (which would apply the local timezone).
+		secs := prefs.CheckInTime.Microseconds / 1_000_000
+		pb.CheckInTime = fmt.Sprintf("%02d:%02d", secs/3600, (secs%3600)/60)
 	}
 
 	// Coaching profile (accountability_style) is optional.

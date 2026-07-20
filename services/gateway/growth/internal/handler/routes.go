@@ -12,8 +12,11 @@ import (
 	billing "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/billing"
 	categories "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/categories"
 	checkin "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/checkin"
+	conversations "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/conversations"
 	goals "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goals"
+	goaltemplates "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/goaltemplates"
 	habits "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habits"
+	habittemplates "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/habittemplates"
 	notifications "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/notifications"
 	personalization "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/personalization"
 	profile "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/profile"
@@ -21,6 +24,7 @@ import (
 	saved "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/saved"
 	search "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/search"
 	settings "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/settings"
+	sitesettings "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/sitesettings"
 	weeklyreview "github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/handler/weeklyreview"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 
@@ -58,6 +62,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodGet,
 				Path:    "/articles/author/:authorId",
 				Handler: articles.GetAuthorArticlesHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/articles/featured",
+				Handler: articles.GetFeaturedArticleHandler(serverCtx),
 			},
 		},
 		rest.WithPrefix("/api/v1"),
@@ -243,6 +252,55 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
+					Path:    "/conversations",
+					Handler: conversations.ListConversationsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/conversations",
+					Handler: conversations.StartConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/conversations/:id",
+					Handler: conversations.GetConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/conversations/:id",
+					Handler: conversations.DeleteConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/conversations/:id/archive",
+					Handler: conversations.ArchiveConversationHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/conversations/:id/messages",
+					Handler: conversations.GetMessagesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/conversations/:id/messages",
+					Handler: conversations.AppendMessageHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/conversations/:id/unarchive",
+					Handler: conversations.UnarchiveConversationHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
 					Path:    "/goals",
 					Handler: goals.ListGoalsHandler(serverCtx),
 				},
@@ -282,6 +340,17 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/goal-templates",
+				Handler: goaltemplates.ListGoalTemplatesHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.Auth},
 			[]rest.Route{
@@ -317,6 +386,17 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				},
 			}...,
 		),
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/habit-templates",
+				Handler: habittemplates.ListHabitTemplatesHandler(serverCtx),
+			},
+		},
 		rest.WithPrefix("/api/v1"),
 	)
 
@@ -374,6 +454,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: personalization.GetPersonalizationContextHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/onboarding-habits",
+					Handler: personalization.GenerateOnboardingHabitsHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodGet,
 					Path:    "/personalization/plan-adjustments",
 					Handler: personalization.ListPendingPlanAdjustmentSuggestionsHandler(serverCtx),
@@ -396,6 +481,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/personalization/coaching-stream",
+					Handler: personalization.StreamPersonalizedCoachingHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+		rest.WithSSE(),
 	)
 
 	server.AddRoutes(
@@ -496,6 +596,17 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 	)
 
 	server.AddRoutes(
+		[]rest.Route{
+			{
+				Method:  http.MethodGet,
+				Path:    "/site-settings",
+				Handler: sitesettings.ListSiteSettingsHandler(serverCtx),
+			},
+		},
+		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.Auth},
 			[]rest.Route{
@@ -522,5 +633,20 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/weekly-reviews/generate-stream",
+					Handler: weeklyreview.StreamWeeklyReviewHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1"),
+		rest.WithSSE(),
 	)
 }

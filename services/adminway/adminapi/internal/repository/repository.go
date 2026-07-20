@@ -16,11 +16,15 @@ type IInternalUsers interface {
 }
 
 type Repository struct {
-	InternalUsers IInternalUsers
+	InternalUsers  IInternalUsers
+	HabitTemplates IHabitTemplates
+	GoalTemplates  IGoalTemplates
 }
 
 func NewRepository(dbq *db.Queries) *Repository {
 	return &Repository{
-		InternalUsers: NewInternalUsersRepo(dbq),
+		InternalUsers:  NewInternalUsersRepo(dbq),
+		HabitTemplates: NewHabitTemplatesRepo(dbq),
+		GoalTemplates:  NewGoalTemplatesRepo(dbq),
 	}
 }

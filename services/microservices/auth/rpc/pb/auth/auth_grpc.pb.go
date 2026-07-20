@@ -34,6 +34,7 @@ const (
 	AuthService_VerifyEmail_FullMethodName        = "/auth.AuthService/VerifyEmail"
 	AuthService_ResendVerification_FullMethodName = "/auth.AuthService/ResendVerification"
 	AuthService_GoogleLogin_FullMethodName        = "/auth.AuthService/GoogleLogin"
+	AuthService_ListUserIds_FullMethodName        = "/auth.AuthService/ListUserIds"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -61,6 +62,8 @@ type AuthServiceClient interface {
 	ResendVerification(ctx context.Context, in *ResendVerificationRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	// OAuth
 	GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	// Admin / internal: enumerate user ids (used by adminway for broadcasts).
+	ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error)
 }
 
 type authServiceClient struct {
@@ -221,6 +224,16 @@ func (c *authServiceClient) GoogleLogin(ctx context.Context, in *GoogleLoginRequ
 	return out, nil
 }
 
+func (c *authServiceClient) ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserIdsResponse)
+	err := c.cc.Invoke(ctx, AuthService_ListUserIds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -246,6 +259,8 @@ type AuthServiceServer interface {
 	ResendVerification(context.Context, *ResendVerificationRequest) (*EmptyResponse, error)
 	// OAuth
 	GoogleLogin(context.Context, *GoogleLoginRequest) (*AuthResponse, error)
+	// Admin / internal: enumerate user ids (used by adminway for broadcasts).
+	ListUserIds(context.Context, *ListUserIdsRequest) (*ListUserIdsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -300,6 +315,9 @@ func (UnimplementedAuthServiceServer) ResendVerification(context.Context, *Resen
 }
 func (UnimplementedAuthServiceServer) GoogleLogin(context.Context, *GoogleLoginRequest) (*AuthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GoogleLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) ListUserIds(context.Context, *ListUserIdsRequest) (*ListUserIdsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUserIds not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -592,6 +610,24 @@ func _AuthService_GoogleLogin_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_ListUserIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserIdsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).ListUserIds(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_ListUserIds_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).ListUserIds(ctx, req.(*ListUserIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -658,6 +694,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GoogleLogin",
 			Handler:    _AuthService_GoogleLogin_Handler,
+		},
+		{
+			MethodName: "ListUserIds",
+			Handler:    _AuthService_ListUserIds_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

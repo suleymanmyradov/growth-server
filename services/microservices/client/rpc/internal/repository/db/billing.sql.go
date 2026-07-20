@@ -417,6 +417,42 @@ func (q *Queries) ListExpiredActiveSubscriptions(ctx context.Context, limit int3
 	return items, nil
 }
 
+const listSubscriptionStatuses = `-- name: ListSubscriptionStatuses :many
+SELECT s.user_id, p.code AS plan_code, s.status
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+ORDER BY s.user_id
+`
+
+type ListSubscriptionStatusesRow struct {
+	UserID   uuid.UUID `db:"user_id" json:"user_id"`
+	PlanCode string    `db:"plan_code" json:"plan_code"`
+	Status   string    `db:"status" json:"status"`
+}
+
+// Admin broadcast audience segmentation: returns every user's plan code +
+// subscription status. adminway classifies users as premium (status in
+// active/trialing AND plan_code != 'free') vs free (everyone else).
+func (q *Queries) ListSubscriptionStatuses(ctx context.Context) ([]ListSubscriptionStatusesRow, error) {
+	rows, err := q.db.Query(ctx, listSubscriptionStatuses)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListSubscriptionStatusesRow{}
+	for rows.Next() {
+		var i ListSubscriptionStatusesRow
+		if err := rows.Scan(&i.UserID, &i.PlanCode, &i.Status); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const markStripeEventProcessed = `-- name: MarkStripeEventProcessed :exec
 INSERT INTO processed_events (consumer, event_id)
 VALUES ('stripe_webhooks', $1)

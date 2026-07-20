@@ -70,7 +70,7 @@ func (l *GetAuthorArticlesLogic) GetAuthorArticles(req *types.GetAuthorArticlesR
 			CreatedAt:   formatTime(a.CreatedAt),
 			UpdatedAt:   formatTime(a.UpdatedAt),
 			IsSaved:     a.IsSaved,
-			Tags:        a.Tags,
+			Tags:        nonNilTags(a.Tags),
 		})
 	}
 
@@ -95,4 +95,14 @@ func formatTime(unix int64) string {
 		return ""
 	}
 	return time.Unix(unix, 0).Format(time.RFC3339)
+}
+
+// nonNilTags returns a non-nil empty slice when tags is nil. Protobuf3 does not
+// transmit empty repeated fields, so a nil slice on the receiving end would
+// otherwise serialize to JSON as `null` instead of `[]`.
+func nonNilTags(tags []string) []string {
+	if tags == nil {
+		return []string{}
+	}
+	return tags
 }

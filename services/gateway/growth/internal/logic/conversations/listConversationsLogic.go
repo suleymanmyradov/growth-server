@@ -44,7 +44,7 @@ func (l *ListConversationsLogic) ListConversations(req *types.ListConversationsR
 
 	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.ListConversations(l.ctx, &conversationservice.ListConversationsRequest{
 		UserId: p.UserID,
-		Type:   req.Type,
+		Type:   req.ConversationType,
 		Page:   int32(page),
 		Limit:  int32(limit),
 	})
@@ -57,7 +57,7 @@ func (l *ListConversationsLogic) ListConversations(req *types.ListConversationsR
 		convs = append(convs, types.Conversation{
 			Id:          c.Id,
 			Title:       c.Title,
-			Type:        c.Type,
+			ConversationType: c.Type,
 			LastMessage: c.LastMessage,
 			UserId:      c.UserId,
 			Archived:    c.Archived,

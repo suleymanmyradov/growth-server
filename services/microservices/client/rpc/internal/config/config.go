@@ -29,7 +29,6 @@ type Config struct {
 	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`
-	SearchRpc   zrpc.RpcClientConf
 	AppRedis    struct {
 		Addr     string
 		Password string `json:",optional" secret:"true"`

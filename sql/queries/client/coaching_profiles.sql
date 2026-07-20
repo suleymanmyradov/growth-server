@@ -30,12 +30,17 @@ RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
 
 -- name: UpdateCoachingProfilePreferences :one
 INSERT INTO coaching_profiles (user_id, accountability_style, coach_tone, difficulty)
-VALUES ($1, $2, $3, $4)
+VALUES (
+    sqlc.arg(user_id),
+    COALESCE(NULLIF(sqlc.arg(accountability_style)::text, ''), 'balanced'),
+    COALESCE(NULLIF(sqlc.arg(coach_tone)::text, ''), 'supportive'),
+    COALESCE(NULLIF(sqlc.arg(difficulty)::text, ''), 'adaptive')
+)
 ON CONFLICT (user_id)
 DO UPDATE SET
-    accountability_style = EXCLUDED.accountability_style,
-    coach_tone = EXCLUDED.coach_tone,
-    difficulty = EXCLUDED.difficulty
+    accountability_style = COALESCE(NULLIF(sqlc.arg(accountability_style)::text, ''), coaching_profiles.accountability_style),
+    coach_tone = COALESCE(NULLIF(sqlc.arg(coach_tone)::text, ''), coaching_profiles.coach_tone),
+    difficulty = COALESCE(NULLIF(sqlc.arg(difficulty)::text, ''), coaching_profiles.difficulty)
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           difficulty AS difficulty_preference, primary_motivation,
           common_blockers, coaching_notes, last_context_refresh_at,

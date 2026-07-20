@@ -112,3 +112,12 @@ WHERE s.status IN ('active', 'trialing')
   AND s.cancel_at_period_end = true
   AND s.current_period_end < NOW()
 LIMIT $1;
+
+-- name: ListSubscriptionStatuses :many
+-- Admin broadcast audience segmentation: returns every user's plan code +
+-- subscription status. adminway classifies users as premium (status in
+-- active/trialing AND plan_code != 'free') vs free (everyone else).
+SELECT s.user_id, p.code AS plan_code, s.status
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+ORDER BY s.user_id;

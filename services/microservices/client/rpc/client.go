@@ -17,11 +17,14 @@ import (
 	categoriesServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/categories"
 	checkInServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/checkinservice"
 	goalsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/goals"
+	goalTemplatesServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/goaltemplates"
 	habitsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/habits"
+	habitTemplatesServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/habittemplates"
 	personalizationServiceServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/personalizationservice"
 	reportServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/report"
 	savedServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/saved"
 	settingsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/settings"
+	siteSettingsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/sitesettings"
 	tagsServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/tags"
 	weeklyReviewServer "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/server/weeklyreviewservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -62,6 +65,9 @@ func main() {
 		client.RegisterWeeklyReviewServiceServer(grpcServer, weeklyReviewServer.NewWeeklyReviewServiceServer(ctx))
 		client.RegisterPersonalizationServiceServer(grpcServer, personalizationServiceServer.NewPersonalizationServiceServer(ctx))
 		client.RegisterBillingServiceServer(grpcServer, billingServiceServer.NewBillingServiceServer(ctx))
+		client.RegisterSiteSettingsServer(grpcServer, siteSettingsServer.NewSiteSettingsServer(ctx))
+		client.RegisterHabitTemplatesServer(grpcServer, habitTemplatesServer.NewHabitTemplatesServer(ctx))
+		client.RegisterGoalTemplatesServer(grpcServer, goalTemplatesServer.NewGoalTemplatesServer(ctx))
 
 		if c.Mode == service.DevMode || c.Mode == service.TestMode {
 			reflection.Register(grpcServer)

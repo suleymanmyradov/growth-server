@@ -83,3 +83,12 @@ func (r *UsersRepo) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	defer span.End()
 	return r.db.DeleteUser(ctx, id)
 }
+
+// ListUserIds returns one page of user ids ordered by id ascending. Pass
+// uuid.Nil for the cursor to fetch the first page; pass the last id of the
+// previous page to fetch the next. limit is capped by the caller.
+func (r *UsersRepo) ListUserIds(ctx context.Context, cursor uuid.UUID, limit int32) ([]uuid.UUID, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "UsersRepo.ListUserIds")
+	defer span.End()
+	return r.db.ListUserIds(ctx, cursor, limit)
+}

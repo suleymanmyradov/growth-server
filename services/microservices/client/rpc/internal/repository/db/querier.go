@@ -16,6 +16,7 @@ type Querier interface {
 	BatchCreateSavedArticles(ctx context.Context, arg []BatchCreateSavedArticlesParams) (int64, error)
 	BatchCreateSavedGoals(ctx context.Context, arg []BatchCreateSavedGoalsParams) (int64, error)
 	BatchCreateSavedHabits(ctx context.Context, arg []BatchCreateSavedHabitsParams) (int64, error)
+	CloseReport(ctx context.Context, iD uuid.UUID, closeReason *string, adminNotes *string) (Report, error)
 	CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error)
@@ -32,6 +33,7 @@ type Querier interface {
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
+	CountReports(ctx context.Context, status string, category string, reporterID uuid.UUID) (int64, error)
 	CountSavedArticlesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountSavedHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -48,6 +50,8 @@ type Querier interface {
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateGoalRow, error)
 	CreateHabit(ctx context.Context, name string, description *string, slug string, userID uuid.UUID) (CreateHabitRow, error)
 	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustment, error)
+	CreateReport(ctx context.Context, arg CreateReportParams) (Report, error)
+	CreateReportComment(ctx context.Context, reportID uuid.UUID, userID uuid.UUID, comment string, isAdmin bool) (ReportComment, error)
 	CreateSavedArticle(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (CreateSavedArticleRow, error)
 	CreateSavedGoal(ctx context.Context, goalID uuid.UUID, userID uuid.UUID) (CreateSavedGoalRow, error)
 	CreateSavedHabit(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (CreateSavedHabitRow, error)
@@ -83,6 +87,7 @@ type Querier interface {
 	DeleteSavedGoalsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteSavedHabit(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error
 	DeleteSavedHabitsByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteSiteSetting(ctx context.Context, key string) error
 	DeleteSubscriptionsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteTag(ctx context.Context, id uuid.UUID) error
 	DeleteUpgradeEventsByUser(ctx context.Context, userID uuid.UUID) error
@@ -120,6 +125,10 @@ type Querier interface {
 	GetCurrentWeeklyReview(ctx context.Context, userID uuid.UUID) (GetCurrentWeeklyReviewRow, error)
 	GetDailyCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetDailyCheckInStatsForWeekRow, error)
 	GetEnergyStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetEnergyStatsForWeekRow, error)
+	// Returns the most "popular" published article from the last 30 days, scored
+	// by a weighted sum of likes (x3), saves (x2) and shares (x1). Falls back to
+	// most recent when engagement counts tie or are all zero.
+	GetFeaturedArticle(ctx context.Context) (GetFeaturedArticleRow, error)
 	GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error)
 	GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGoalsByIDsRow, error)
 	GetHabit(ctx context.Context, iD uuid.UUID, timezone string) (GetHabitRow, error)
@@ -136,6 +145,9 @@ type Querier interface {
 	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetMoodStatsForWeekRow, error)
 	GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error)
 	GetPlanByCode(ctx context.Context, code string) (Plan, error)
+	GetReportByID(ctx context.Context, id uuid.UUID) (Report, error)
+	GetReportStatus(ctx context.Context, id uuid.UUID) (GetReportStatusRow, error)
+	GetSiteSetting(ctx context.Context, key string) (SiteSetting, error)
 	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
@@ -178,6 +190,7 @@ type Querier interface {
 	// Optimized: push LIMIT into each UNION ALL arm so PostgreSQL only sorts at most 3*LIMIT rows
 	// instead of all saved items. Any item in the top N overall must be in the top N of its table.
 	ListAllSavedItemsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListAllSavedItemsByUserRow, error)
+	ListAllSiteSettings(ctx context.Context) ([]SiteSetting, error)
 	ListArticleShares(ctx context.Context, limit int32, offset int32) ([]ArticleShare, error)
 	ListArticleSharesByArticle(ctx context.Context, articleID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
 	ListArticleSharesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ArticleShare, error)
@@ -195,6 +208,7 @@ type Querier interface {
 	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]ListGoalHabitIDsRow, error)
 	// Fetch habit IDs linked to a single goal.
 	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
+	ListGoalTemplates(ctx context.Context) ([]ListGoalTemplatesRow, error)
 	// Goal rows are returned with a resolved category slug and a derived
 	// `completed` flag so callers never deal with category_id directly.
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error)
@@ -204,6 +218,7 @@ type Querier interface {
 	// (in the owner's timezone). Used to render the per-habit 28-day contribution
 	// graph on the habit card.
 	ListHabitHistory(ctx context.Context, userID uuid.UUID, timezone string) ([]ListHabitHistoryRow, error)
+	ListHabitTemplates(ctx context.Context) ([]ListHabitTemplatesRow, error)
 	// Habit rows carry a resolved category slug and a derived `completed` flag:
 	// completed = a 'completed' check-in exists for the habit today (in the
 	// owner's timezone). There is no stored boolean to keep in sync. The streak
@@ -218,12 +233,19 @@ type Querier interface {
 	ListPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]PlanAdjustment, error)
 	ListPlanAdjustmentSuggestionsByGoal(ctx context.Context, userID uuid.UUID, goalID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustment, error)
 	ListPlanAdjustmentSuggestionsByHabit(ctx context.Context, userID uuid.UUID, habitID uuid.NullUUID, limit int32, offset int32) ([]PlanAdjustment, error)
+	ListReportComments(ctx context.Context, reportID uuid.UUID) ([]ReportComment, error)
+	ListReports(ctx context.Context, arg ListReportsParams) ([]Report, error)
 	ListSavedArticlesByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedArticlesByUserRow, error)
 	ListSavedArticlesByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedArticlesByUserKeysetRow, error)
 	ListSavedGoalsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedGoalsByUserRow, error)
 	ListSavedGoalsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedGoalsByUserKeysetRow, error)
 	ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error)
 	ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedHabitsByUserKeysetRow, error)
+	ListSiteSettings(ctx context.Context, dollar_1 []string) ([]SiteSetting, error)
+	// Admin broadcast audience segmentation: returns every user's plan code +
+	// subscription status. adminway classifies users as premium (status in
+	// active/trialing AND plan_code != 'free') vs free (everyone else).
+	ListSubscriptionStatuses(ctx context.Context) ([]ListSubscriptionStatusesRow, error)
 	ListTags(ctx context.Context) ([]ListTagsRow, error)
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListWeeklyReviewsRow, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
@@ -250,9 +272,11 @@ type Querier interface {
 	UpdateOnboardingCompleted(ctx context.Context, userID uuid.UUID, checkInTime pgtype.Time, onboardingCompleted bool) (UserPreference, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustment, error)
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (PlanAdjustment, error)
+	UpdateReportStatus(ctx context.Context, iD uuid.UUID, status string, adminNotes *string) (Report, error)
 	UpdateTag(ctx context.Context, iD uuid.UUID, name string, slug string) (Tag, error)
 	UpdateUserPreferences(ctx context.Context, userID uuid.UUID, theme string, language string, timezone string) (UserPreference, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error)
+	UpsertSiteSetting(ctx context.Context, key string, value []byte) (SiteSetting, error)
 	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)
 	// Event-fed read model for user profiles (V3).
 	UpsertUserProfile(ctx context.Context, arg UpsertUserProfileParams) error

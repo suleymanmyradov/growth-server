@@ -232,7 +232,7 @@ type (
 		title       string           `json:"title,example=10 Habits for Personal Growth"`
 		excerpt     string           `json:"excerpt,example=Discover the top habits that can transform your life..."`
 		content     string           `json:"content,example=Full article content here..."`
-		category    *ArticleCategory `json:"category,optional"`
+		category    *ArticleCategory `json:"category,omitempty"`
 		readTime    int              `json:"readTime,example=5"`
 		imageUrl    string           `json:"imageUrl,example=https://example.com/article.jpg"`
 		author      string           `json:"author,example=John Smith"`
@@ -324,9 +324,9 @@ type (
 		itemId    string   `json:"itemId"`
 		userId    string   `json:"userId"`
 		createdAt string   `json:"createdAt"`
-		article   *Article `json:"article,optional"`
-		habit     *Habit   `json:"habit,optional"`
-		goal      *Goal    `json:"goal,optional"`
+		article   *Article `json:"article,omitempty"`
+		habit     *Habit   `json:"habit,omitempty"`
+		goal      *Goal    `json:"goal,omitempty"`
 	}
 	SavedItemsDetailedResponse {
 		data []SavedItemDetailed `json:"data"`
@@ -574,8 +574,9 @@ type (
 		forceRefresh bool `form:"forceRefresh,default=false,example=false"`
 	}
 	GeneratePersonalizedCoachingRequest {
-		userMessage string `json:"userMessage,example=User missed 3 consecutive check-ins"`
-		context     string `json:"context,optional,example=User has been struggling with motivation"`
+		userMessage    string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+		context        string `json:"context,optional,example=User has been struggling with motivation"`
+		conversationId string `json:"conversationId,optional"`
 	}
 	GeneratePersonalizedCoachingResponse {
 		coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
@@ -617,6 +618,85 @@ type (
 	ApplyPlanAdjustmentSuggestionRequest {
 		id string `path:"id"`
 	}
+	GenerateOnboardingHabitsRequest {
+		goalTitle           string `json:"goalTitle,example=Run a 5k"`
+		goalCategory        string `json:"goalCategory,optional,example=fitness"`
+		motivation          string `json:"motivation,optional,example=Improve my health and energy"`
+		blocker             string `json:"blocker,optional,example=Lack of time in the morning"`
+		dailyMinutes        int32  `json:"dailyMinutes,range=[1:600],example=30"`
+		accountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
+	}
+	OnboardingHabitSuggestion {
+		name        string `json:"name"`
+		description string `json:"description"`
+	}
+	GenerateOnboardingHabitsResponse {
+		data []OnboardingHabitSuggestion `json:"data"`
+	}
+)
+
+// Conversation types
+type (
+	Conversation {
+		id          string `json:"id"`
+		title       string `json:"title"`
+		conversationType string `json:"type"`
+		lastMessage string `json:"lastMessage"`
+		userId      string `json:"userId,omitempty"`
+		archived    bool   `json:"archived"`
+		createdAt   string `json:"createdAt"`
+		updatedAt   string `json:"updatedAt"`
+	}
+	ConversationMessage {
+		id             string `json:"id"`
+		conversationId string `json:"conversationId"`
+		role           string `json:"role"`
+		content        string `json:"content"`
+		createdAt      string `json:"createdAt"`
+	}
+	StartConversationRequest {
+		conversationType string `json:"type,optional"`
+		title            string `json:"title,optional"`
+		initialMessage   string `json:"initialMessage,optional"`
+	}
+	StartConversationResponse {
+		data           Conversation          `json:"data"`
+		initialMessage *ConversationMessage  `json:"initialMessage,omitempty"`
+	}
+	ListConversationsRequest {
+		conversationType string `form:"type,optional"`
+		page             int    `form:"page,default=1"`
+		limit            int    `form:"limit,default=20"`
+	}
+	ListConversationsResponse {
+		data []Conversation `json:"data"`
+		page PageResponse   `json:"page"`
+	}
+	GetConversationResponse {
+		data Conversation `json:"data"`
+	}
+	ConversationRequest {
+		id string `path:"id"`
+	}
+	GetMessagesRequest {
+		id    string `path:"id"`
+		page  int    `form:"page,default=1"`
+		limit int    `form:"limit,default=50"`
+	}
+	GetMessagesResponse {
+		data []ConversationMessage `json:"data"`
+		page PageResponse          `json:"page"`
+	}
+	AppendMessageRequest {
+		id      string `path:"id"`
+		content string `json:"content"`
+		role    string `json:"role,optional"`
+	}
+	AppendMessageResponse {
+		data         ConversationMessage `json:"data"`
+		conversation Conversation         `json:"conversation"`
+	}
+	DeleteConversationResponse {}
 )
 
 // Billing types
@@ -703,6 +783,56 @@ type (
 	}
 	StripeWebhookResponse {
 		processed bool `json:"processed,example=true"`
+	}
+)
+
+// SiteSettings types — public, admin-managed key/value store for site-wide config.
+type (
+	SiteSettingItem {
+		key       string `json:"key,example=explore.header"`
+		value     string `json:"value,example={\"title\":\"Explore\"}"`
+		updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
+
+	SiteSettingsResponse {
+		data []SiteSettingItem `json:"data"`
+	}
+)
+
+// Habit & Goal Template types — admin-managed suggestion library shown on the explore page.
+type (
+	TemplateCategory {
+		id   string `json:"id,optional"`
+		name string `json:"name,optional"`
+		slug string `json:"slug,optional"`
+	}
+
+	HabitTemplateItem {
+		id          string            `json:"id"`
+		name        string            `json:"name"`
+		description string            `json:"description,optional"`
+		category    *TemplateCategory `json:"category,optional"`
+		sortOrder   int32             `json:"sortOrder"`
+		createdAt   string            `json:"createdAt"`
+		updatedAt   string            `json:"updatedAt"`
+	}
+
+	HabitTemplatesResponse {
+		data []HabitTemplateItem `json:"data"`
+	}
+
+	GoalTemplateItem {
+		id          string            `json:"id"`
+		title       string            `json:"title"`
+		description string            `json:"description,optional"`
+		category    *TemplateCategory `json:"category,optional"`
+		sortOrder   int32             `json:"sortOrder"`
+		createdAt   string            `json:"createdAt"`
+		updatedAt   string            `json:"updatedAt"`
+	}
+
+	GoalTemplatesResponse {
+		data []GoalTemplateItem `json:"data"`
 	}
 )
 

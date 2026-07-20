@@ -60,3 +60,13 @@ RETURNING id, username, email, password_hash, full_name, bio, location, website,
 
 -- name: DeleteUser :exec
 DELETE FROM users WHERE id = $1;
+
+-- name: ListUserIds :many
+-- Cursor-paginated enumeration of all user ids (admin broadcast audience
+-- resolution). ids are uuid v7 (time-ordered), so cursoring on id alone yields
+-- stable ascending traversal. Pass uuid.Nil ('000...0') for the first page;
+-- every real uuid v7 is greater than uuid.Nil.
+SELECT id FROM users
+WHERE id > $1
+ORDER BY id ASC
+LIMIT $2;

@@ -25,6 +25,11 @@ type Querier interface {
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
+	// Cursor-paginated enumeration of all user ids (admin broadcast audience
+	// resolution). ids are uuid v7 (time-ordered), so cursoring on id alone yields
+	// stable ascending traversal. Pass uuid.Nil ('000...0') for the first page;
+	// every real uuid v7 is greater than uuid.Nil.
+	ListUserIds(ctx context.Context, iD uuid.UUID, limit int32) ([]uuid.UUID, error)
 	SetEmailVerified(ctx context.Context, id uuid.UUID) (User, error)
 	UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error)
 	UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash *string) (User, error)

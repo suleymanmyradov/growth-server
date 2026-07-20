@@ -14,26 +14,28 @@ import (
 )
 
 type (
-	CreateArticleRequest      = client.CreateArticleRequest
-	CreateArticleResponse     = client.CreateArticleResponse
-	DeleteArticleRequest      = client.DeleteArticleRequest
-	DeleteArticleResponse     = client.DeleteArticleResponse
-	GetArticleRequest         = client.GetArticleRequest
-	GetArticleResponse        = client.GetArticleResponse
-	GetAuthorArticlesRequest  = client.GetAuthorArticlesRequest
-	GetAuthorArticlesResponse = client.GetAuthorArticlesResponse
-	LikeArticleRequest        = client.LikeArticleRequest
-	LikeArticleResponse       = client.LikeArticleResponse
-	ListArticlesRequest       = client.ListArticlesRequest
-	ListArticlesResponse      = client.ListArticlesResponse
-	ListTagsRequest           = client.ListTagsRequest
-	ListTagsResponse          = client.ListTagsResponse
-	SearchArticlesRequest     = client.SearchArticlesRequest
-	SearchArticlesResponse    = client.SearchArticlesResponse
-	ShareArticleRequest       = client.ShareArticleRequest
-	ShareArticleResponse      = client.ShareArticleResponse
-	UpdateArticleRequest      = client.UpdateArticleRequest
-	UpdateArticleResponse     = client.UpdateArticleResponse
+	CreateArticleRequest       = client.CreateArticleRequest
+	CreateArticleResponse      = client.CreateArticleResponse
+	DeleteArticleRequest       = client.DeleteArticleRequest
+	DeleteArticleResponse      = client.DeleteArticleResponse
+	GetArticleRequest          = client.GetArticleRequest
+	GetArticleResponse         = client.GetArticleResponse
+	GetArticlesByIdsRequest    = client.GetArticlesByIdsRequest
+	GetArticlesByIdsResponse   = client.GetArticlesByIdsResponse
+	GetAuthorArticlesRequest   = client.GetAuthorArticlesRequest
+	GetAuthorArticlesResponse  = client.GetAuthorArticlesResponse
+	GetFeaturedArticleRequest  = client.GetFeaturedArticleRequest
+	GetFeaturedArticleResponse = client.GetFeaturedArticleResponse
+	LikeArticleRequest         = client.LikeArticleRequest
+	LikeArticleResponse        = client.LikeArticleResponse
+	ListArticlesRequest        = client.ListArticlesRequest
+	ListArticlesResponse       = client.ListArticlesResponse
+	ListTagsRequest            = client.ListTagsRequest
+	ListTagsResponse           = client.ListTagsResponse
+	ShareArticleRequest        = client.ShareArticleRequest
+	ShareArticleResponse       = client.ShareArticleResponse
+	UpdateArticleRequest       = client.UpdateArticleRequest
+	UpdateArticleResponse      = client.UpdateArticleResponse
 
 	Articles interface {
 		ListArticles(ctx context.Context, in *ListArticlesRequest, opts ...grpc.CallOption) (*ListArticlesResponse, error)
@@ -45,7 +47,8 @@ type (
 		ShareArticle(ctx context.Context, in *ShareArticleRequest, opts ...grpc.CallOption) (*ShareArticleResponse, error)
 		GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error)
 		ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error)
-		SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error)
+		GetArticlesByIds(ctx context.Context, in *GetArticlesByIdsRequest, opts ...grpc.CallOption) (*GetArticlesByIdsResponse, error)
+		GetFeaturedArticle(ctx context.Context, in *GetFeaturedArticleRequest, opts ...grpc.CallOption) (*GetFeaturedArticleResponse, error)
 	}
 
 	defaultArticles struct {
@@ -104,7 +107,12 @@ func (m *defaultArticles) ListTags(ctx context.Context, in *ListTagsRequest, opt
 	return client.ListTags(ctx, in, opts...)
 }
 
-func (m *defaultArticles) SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error) {
+func (m *defaultArticles) GetArticlesByIds(ctx context.Context, in *GetArticlesByIdsRequest, opts ...grpc.CallOption) (*GetArticlesByIdsResponse, error) {
 	client := client.NewArticlesClient(m.cli.Conn())
-	return client.SearchArticles(ctx, in, opts...)
+	return client.GetArticlesByIds(ctx, in, opts...)
+}
+
+func (m *defaultArticles) GetFeaturedArticle(ctx context.Context, in *GetFeaturedArticleRequest, opts ...grpc.CallOption) (*GetFeaturedArticleResponse, error) {
+	client := client.NewArticlesClient(m.cli.Conn())
+	return client.GetFeaturedArticle(ctx, in, opts...)
 }

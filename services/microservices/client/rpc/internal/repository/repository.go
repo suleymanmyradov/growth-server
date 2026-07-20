@@ -20,6 +20,7 @@ type IArticles interface {
 	GetArticleByID(ctx context.Context, id uuid.UUID, status string) (db.GetArticleRow, error)
 	GetArticleByIDWithSaved(ctx context.Context, id uuid.UUID, userID uuid.UUID, status string) (db.GetArticleWithSavedRow, error)
 	GetArticleByTitle(ctx context.Context, title string) (db.GetArticleByTitleRow, error)
+	GetFeaturedArticle(ctx context.Context) (db.GetFeaturedArticleRow, error)
 	CreateArticle(ctx context.Context, params db.CreateArticleParams) (db.CreateArticleRow, error)
 	UpdateArticle(ctx context.Context, params db.UpdateArticleParams) (db.UpdateArticleRow, error)
 	DeleteArticle(ctx context.Context, id uuid.UUID) error
@@ -184,6 +185,7 @@ type IBilling interface {
 	IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error)
 	MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error
 	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error)
+	ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error)
 }
 
 type IPlanAdjustmentSuggestions interface {
@@ -201,6 +203,34 @@ type IPlanAdjustmentSuggestions interface {
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, id uuid.UUID, userID uuid.UUID) (db.PlanAdjustment, error)
 }
 
+type ISiteSettings interface {
+	GetSiteSetting(ctx context.Context, key string) (db.SiteSetting, error)
+	ListSiteSettings(ctx context.Context, keys []string) ([]db.SiteSetting, error)
+	ListAllSiteSettings(ctx context.Context) ([]db.SiteSetting, error)
+	UpsertSiteSetting(ctx context.Context, key string, value []byte) (db.SiteSetting, error)
+	DeleteSiteSetting(ctx context.Context, key string) error
+}
+
+type IHabitTemplates interface {
+	ListHabitTemplates(ctx context.Context) ([]db.ListHabitTemplatesRow, error)
+}
+
+type IGoalTemplates interface {
+	ListGoalTemplates(ctx context.Context) ([]db.ListGoalTemplatesRow, error)
+}
+
+type IReports interface {
+	CreateReport(ctx context.Context, params db.CreateReportParams) (db.Report, error)
+	GetReportByID(ctx context.Context, id uuid.UUID) (db.Report, error)
+	GetReportStatus(ctx context.Context, id uuid.UUID) (db.GetReportStatusRow, error)
+	ListReports(ctx context.Context, params db.ListReportsParams) ([]db.Report, error)
+	CountReports(ctx context.Context, status, category string, reporterID uuid.UUID) (int64, error)
+	UpdateReportStatus(ctx context.Context, id uuid.UUID, status string, adminNotes *string) (db.Report, error)
+	CloseReport(ctx context.Context, id uuid.UUID, closeReason *string, adminNotes *string) (db.Report, error)
+	CreateReportComment(ctx context.Context, reportID, userID uuid.UUID, comment string, isAdmin bool) (db.ReportComment, error)
+	ListReportComments(ctx context.Context, reportID uuid.UUID) ([]db.ReportComment, error)
+}
+
 type Repository struct {
 	Articles                  IArticles
 	Tags                      ITags
@@ -216,6 +246,10 @@ type Repository struct {
 	CoachingProfiles          ICoachingProfiles
 	PlanAdjustmentSuggestions IPlanAdjustmentSuggestions
 	Billing                   IBilling
+	SiteSettings              ISiteSettings
+	HabitTemplates            IHabitTemplates
+	GoalTemplates             IGoalTemplates
+	Reports                   IReports
 }
 
 func NewRepository(db *db.Queries) *Repository {
@@ -238,5 +272,9 @@ func NewRepository(db *db.Queries) *Repository {
 		CoachingProfiles:          NewCoachingProfilesRepo(db),
 		PlanAdjustmentSuggestions: planAdjustments,
 		Billing:                   NewBillingRepo(db, habits, goals, planAdjustments),
+		SiteSettings:              NewSiteSettingsRepo(db),
+		HabitTemplates:            NewHabitTemplatesRepo(db),
+		GoalTemplates:             NewGoalTemplatesRepo(db),
+		Reports:                   NewReportsRepo(db),
 	}
 }

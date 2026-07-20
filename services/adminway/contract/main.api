@@ -113,3 +113,106 @@ service adminapi {
 	post /auth/refresh (RefreshTokenRequest) returns (AuthResponse)
 }
 
+@server (
+	prefix:     /api/v1/admin
+	group:      sitesettings
+	middleware: Auth,AdminAuth
+	tags:       "Admin Site Settings"
+)
+service adminapi {
+	@handler AdminListSiteSettings
+	get /site-settings returns (SiteSettingsResponse)
+
+	@handler AdminGetSiteSetting
+	get /site-settings/:key (DeleteSiteSettingRequest) returns (SiteSettingResponse)
+
+	@handler AdminUpsertSiteSetting
+	put /site-settings (UpsertSiteSettingRequest) returns (SiteSettingResponse)
+
+	@handler AdminDeleteSiteSetting
+	delete /site-settings/:key (DeleteSiteSettingRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      habittemplates
+	middleware: Auth,AdminAuth
+	tags:       "Admin Habit Templates"
+)
+service adminapi {
+	@handler AdminListHabitTemplates
+	get /habit-templates returns (HabitTemplatesResponse)
+
+	@handler AdminGetHabitTemplate
+	get /habit-templates/:id (GetHabitTemplateRequest) returns (HabitTemplateResponse)
+
+	@handler AdminCreateHabitTemplate
+	post /habit-templates (CreateHabitTemplateRequest) returns (HabitTemplateResponse)
+
+	@handler AdminUpdateHabitTemplate
+	put /habit-templates/:id (UpdateHabitTemplateRequest) returns (HabitTemplateResponse)
+
+	@handler AdminDeleteHabitTemplate
+	delete /habit-templates/:id (DeleteHabitTemplateRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      goaltemplates
+	middleware: Auth,AdminAuth
+	tags:       "Admin Goal Templates"
+)
+service adminapi {
+	@handler AdminListGoalTemplates
+	get /goal-templates returns (GoalTemplatesResponse)
+
+	@handler AdminGetGoalTemplate
+	get /goal-templates/:id (GetGoalTemplateRequest) returns (GoalTemplateResponse)
+
+	@handler AdminCreateGoalTemplate
+	post /goal-templates (CreateGoalTemplateRequest) returns (GoalTemplateResponse)
+
+	@handler AdminUpdateGoalTemplate
+	put /goal-templates/:id (UpdateGoalTemplateRequest) returns (GoalTemplateResponse)
+
+	@handler AdminDeleteGoalTemplate
+	delete /goal-templates/:id (DeleteGoalTemplateRequest) returns (EmptyResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      reports
+	middleware: Auth,AdminAuth
+	tags:       "Admin Reports"
+)
+service adminapi {
+	@handler AdminListReports
+	get /reports (ListReportsRequest) returns (ReportsResponse)
+
+	@handler AdminGetReport
+	get /reports/:id (ReportIdRequest) returns (ReportResponse)
+
+	@handler AdminUpdateReport
+	put /reports/:id (UpdateReportRequest) returns (ReportResponse)
+
+	@handler AdminCloseReport
+	post /reports/:id/close (CloseReportRequest) returns (ReportResponse)
+
+	@handler AdminListReportComments
+	get /reports/:id/comments (ReportIdRequest) returns (ReportCommentsResponse)
+
+	@handler AdminAddReportComment
+	post /reports/:id/comments (AddReportCommentRequest) returns (AddReportCommentResponse)
+}
+
+@server (
+	prefix:     /api/v1/admin
+	group:      notifications
+	middleware: Auth,AdminAuth
+	tags:       "Admin Notifications"
+)
+service adminapi {
+	@handler AdminBroadcastNotification
+	post /notifications/broadcast (BroadcastNotificationRequest) returns (BroadcastNotificationResponse)
+}
+

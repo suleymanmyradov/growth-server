@@ -72,10 +72,11 @@ func (q *Queries) GetUserPreferences(ctx context.Context, userID uuid.UUID) (Use
 }
 
 const updateOnboardingCompleted = `-- name: UpdateOnboardingCompleted :one
-UPDATE user_preferences
-SET check_in_time = $2,
+INSERT INTO user_preferences (user_id, check_in_time, onboarding_completed)
+VALUES ($1, COALESCE($2::time, '09:00'::time), $3)
+ON CONFLICT (user_id) DO UPDATE
+SET check_in_time = COALESCE($2::time, user_preferences.check_in_time),
     onboarding_completed = $3
-WHERE user_id = $1
 RETURNING user_id, theme, language, timezone, check_in_time, onboarding_completed, created_at, updated_at
 `
 
@@ -96,9 +97,10 @@ func (q *Queries) UpdateOnboardingCompleted(ctx context.Context, userID uuid.UUI
 }
 
 const updateUserPreferences = `-- name: UpdateUserPreferences :one
-UPDATE user_preferences
-SET theme = $2, language = $3, timezone = $4
-WHERE user_id = $1
+INSERT INTO user_preferences (user_id, theme, language, timezone)
+VALUES ($1, $2, $3, $4)
+ON CONFLICT (user_id) DO UPDATE
+SET theme = EXCLUDED.theme, language = EXCLUDED.language, timezone = EXCLUDED.timezone
 RETURNING user_id, theme, language, timezone, check_in_time, onboarding_completed, created_at, updated_at
 `
 

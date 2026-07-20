@@ -188,12 +188,17 @@ func (q *Queries) UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UU
 
 const updateCoachingProfilePreferences = `-- name: UpdateCoachingProfilePreferences :one
 INSERT INTO coaching_profiles (user_id, accountability_style, coach_tone, difficulty)
-VALUES ($1, $2, $3, $4)
+VALUES (
+    $1,
+    COALESCE(NULLIF($2::text, ''), 'balanced'),
+    COALESCE(NULLIF($3::text, ''), 'supportive'),
+    COALESCE(NULLIF($4::text, ''), 'adaptive')
+)
 ON CONFLICT (user_id)
 DO UPDATE SET
-    accountability_style = EXCLUDED.accountability_style,
-    coach_tone = EXCLUDED.coach_tone,
-    difficulty = EXCLUDED.difficulty
+    accountability_style = COALESCE(NULLIF($2::text, ''), coaching_profiles.accountability_style),
+    coach_tone = COALESCE(NULLIF($3::text, ''), coaching_profiles.coach_tone),
+    difficulty = COALESCE(NULLIF($4::text, ''), coaching_profiles.difficulty)
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           difficulty AS difficulty_preference, primary_motivation,
           common_blockers, coaching_notes, last_context_refresh_at,

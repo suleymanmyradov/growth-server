@@ -2,9 +2,11 @@ package settingslogic
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -57,7 +59,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		var checkInTime pgtype.Time
 		if in.Settings.CheckInTime != "" {
 			if t, err := time.Parse("15:04", in.Settings.CheckInTime); err == nil {
-				checkInTime = pgtype.Time{Microseconds: int64(t.Hour()*3600000 + t.Minute()*60000), Valid: true}
+				checkInTime = pgtype.Time{Microseconds: (int64(t.Hour())*3600 + int64(t.Minute())*60) * 1_000_000, Valid: true}
 			}
 		}
 		_, err = l.svcCtx.Repo.UserPreferences.UpdateOnboardingCompleted(ctx, userID, checkInTime, in.Settings.OnboardingCompleted)
@@ -78,14 +80,16 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 	// General settings update (theme, language, timezone → user_preferences).
 	if in.Settings != nil && (in.Settings.Theme != "" || in.Settings.Language != "" || in.Settings.Timezone != "") {
 		// Fetch current preferences to preserve fields not being updated.
+		// No row yet means the schema defaults are in effect (the upsert below
+		// creates the row).
+		theme, language, timezone := "system", "en", "UTC"
 		current, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID)
-		if err != nil {
+		if err == nil {
+			theme, language, timezone = current.Theme, current.Language, current.Timezone
+		} else if !errors.Is(err, pgx.ErrNoRows) {
 			l.Errorf("Failed to fetch user preferences: %v", err)
 			return nil, status.Error(codes.Internal, "failed to fetch user preferences")
 		}
-		theme := current.Theme
-		language := current.Language
-		timezone := current.Timezone
 		if in.Settings.Theme != "" {
 			theme = in.Settings.Theme
 		}
