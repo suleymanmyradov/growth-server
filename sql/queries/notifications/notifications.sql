@@ -73,3 +73,9 @@ SELECT COUNT(*) FROM notifications WHERE user_id = $1;
 -- name: GetUnreadCount :one
 SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false;
 
+-- name: CreateNotificationsForUsers :execrows
+-- Batch insert the same notification for many users (admin broadcast).
+-- Uses unnest to fan out a single INSERT...SELECT over the uuid array.
+INSERT INTO notifications (title, message, type, user_id)
+SELECT $1, $2, $3, user_id FROM unnest($4::uuid[]) AS t(user_id);
+

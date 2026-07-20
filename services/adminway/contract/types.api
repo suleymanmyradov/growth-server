@@ -186,4 +186,222 @@ type (
 	}
 )
 
+// SiteSettings types — admin-managed key/value store for site-wide config.
+type (
+	SiteSettingItem {
+		key       string `json:"key,example=explore.header"`
+		value     string `json:"value,example={\"title\":\"Explore\"}"`
+		updatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	}
 
+	SiteSettingResponse {
+		data SiteSettingItem `json:"data"`
+	}
+
+	SiteSettingsResponse {
+		data []SiteSettingItem `json:"data"`
+	}
+
+	UpsertSiteSettingRequest {
+		key   string `json:"key,example=explore.header"`
+		value string `json:"value,example={\"title\":\"Explore\"}"`
+	}
+
+	DeleteSiteSettingRequest {
+		key string `path:"key"`
+	}
+)
+
+// Habit & Goal Template types — admin-managed suggestion library shown on the explore page.
+type (
+	TemplateCategory {
+		id   string `json:"id,optional"`
+		name string `json:"name,optional"`
+		slug string `json:"slug,optional"`
+	}
+
+	HabitTemplateItem {
+		id          string            `json:"id"`
+		name        string            `json:"name"`
+		description string            `json:"description,optional"`
+		category    *TemplateCategory `json:"category,optional"`
+		sortOrder   int32             `json:"sortOrder"`
+		isActive    bool              `json:"isActive"`
+		createdAt   string            `json:"createdAt"`
+		updatedAt   string            `json:"updatedAt"`
+	}
+
+	HabitTemplateResponse {
+		data HabitTemplateItem `json:"data"`
+	}
+
+	HabitTemplatesResponse {
+		data []HabitTemplateItem `json:"data"`
+	}
+
+	GetHabitTemplateRequest {
+		id string `path:"id"`
+	}
+
+	CreateHabitTemplateRequest {
+		name        string  `json:"name"`
+		description string  `json:"description,optional"`
+		categoryId  *string `json:"categoryId,optional"`
+		sortOrder   int32   `json:"sortOrder,optional"`
+		isActive    bool    `json:"isActive,optional"`
+	}
+
+	UpdateHabitTemplateRequest {
+		id          string  `path:"id"`
+		name        string  `json:"name"`
+		description string  `json:"description,optional"`
+		categoryId  *string `json:"categoryId,optional"`
+		sortOrder   int32   `json:"sortOrder,optional"`
+		isActive    bool    `json:"isActive,optional"`
+	}
+
+	DeleteHabitTemplateRequest {
+		id string `path:"id"`
+	}
+
+	GoalTemplateItem {
+		id          string            `json:"id"`
+		title       string            `json:"title"`
+		description string            `json:"description,optional"`
+		category    *TemplateCategory `json:"category,optional"`
+		sortOrder   int32             `json:"sortOrder"`
+		isActive    bool              `json:"isActive"`
+		createdAt   string            `json:"createdAt"`
+		updatedAt   string            `json:"updatedAt"`
+	}
+
+	GoalTemplateResponse {
+		data GoalTemplateItem `json:"data"`
+	}
+
+	GoalTemplatesResponse {
+		data []GoalTemplateItem `json:"data"`
+	}
+
+	GetGoalTemplateRequest {
+		id string `path:"id"`
+	}
+
+	CreateGoalTemplateRequest {
+		title       string  `json:"title"`
+		description string  `json:"description,optional"`
+		categoryId  *string `json:"categoryId,optional"`
+		sortOrder   int32   `json:"sortOrder,optional"`
+		isActive    bool    `json:"isActive,optional"`
+	}
+
+	UpdateGoalTemplateRequest {
+		id          string  `path:"id"`
+		title       string  `json:"title"`
+		description string  `json:"description,optional"`
+		categoryId  *string `json:"categoryId,optional"`
+		sortOrder   int32   `json:"sortOrder,optional"`
+		isActive    bool    `json:"isActive,optional"`
+	}
+
+	DeleteGoalTemplateRequest {
+		id string `path:"id"`
+	}
+)
+
+// Report types — admin-managed user-submitted reports (bugs, feedback, abuse).
+type (
+	ReportItem {
+		id          string `json:"id"`
+		reporterId  string `json:"reporterId"`
+		targetId    string `json:"targetId,optional"`
+		targetType  string `json:"targetType"`
+		category    string `json:"category"`
+		title       string `json:"title"`
+		description string `json:"description"`
+		email       string `json:"email,optional"`
+		status      string `json:"status"`
+		adminNotes  string `json:"adminNotes,optional"`
+		closeReason string `json:"closeReason,optional"`
+		attachments []string `json:"attachments,optional"`
+		createdAt   string `json:"createdAt"`
+		updatedAt   string `json:"updatedAt"`
+	}
+
+	ReportCommentItem {
+		id        string `json:"id"`
+		reportId  string `json:"reportId"`
+		userId    string `json:"userId"`
+		comment   string `json:"comment"`
+		isAdmin   bool   `json:"isAdmin"`
+		createdAt string `json:"createdAt"`
+	}
+
+	ReportsResponse {
+		data []ReportItem  `json:"data"`
+		page PageResponse  `json:"page"`
+	}
+
+	ReportResponse {
+		data ReportItem `json:"data"`
+	}
+
+	ReportCommentsResponse {
+		data []ReportCommentItem `json:"data"`
+	}
+
+	ListReportsRequest {
+		status   string `form:"status,optional"`
+		category string `form:"category,optional"`
+		page     int    `form:"page,default=1"`
+		limit    int    `form:"limit,default=20"`
+	}
+
+	ReportIdRequest {
+		id string `path:"id"`
+	}
+
+	UpdateReportRequest {
+		id         string `path:"id"`
+		status     string `json:"status"`
+		adminNotes string `json:"adminNotes,optional"`
+	}
+
+	CloseReportRequest {
+		id     string `path:"id"`
+		reason string `json:"reason,optional"`
+	}
+
+	AddReportCommentRequest {
+		id      string `path:"id"`
+		comment string `json:"comment"`
+	}
+
+	AddReportCommentResponse {
+		data ReportCommentItem `json:"data"`
+	}
+)
+
+
+
+// Admin Notifications — broadcast a notification to a segmented audience.
+type (
+	// BroadcastNotificationRequest sends a notification to a user segment.
+	// segment: "all" | "premium" | "free". Delivery is asynchronous via Kafka;
+	// the response returns the resolved audience size and chunk count, not a
+	// per-user delivery confirmation.
+	BroadcastNotificationRequest {
+		title    string `json:"title,example=New feature available"`
+		message  string `json:"message,example=Weekly reviews now support..."`
+		// itemType must be one of the notifications table allowed types; broadcasts
+		// typically use "system".
+		itemType string `json:"itemType,example=system"`
+		segment  string `json:"segment,example=all"`
+	}
+
+	BroadcastNotificationResponse {
+		broadcastID  string `json:"broadcastId"`
+		audienceSize int    `json:"audienceSize"`
+		chunks       int    `json:"chunks"`
+	}
+)

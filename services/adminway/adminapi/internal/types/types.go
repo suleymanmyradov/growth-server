@@ -3,6 +3,15 @@
 
 package types
 
+type AddReportCommentRequest struct {
+	Id      string `path:"id"`
+	Comment string `json:"comment"`
+}
+
+type AddReportCommentResponse struct {
+	Data ReportCommentItem `json:"data"`
+}
+
 type Article struct {
 	Id          string           `json:"id,example=article-123"`
 	Title       string           `json:"title,example=10 Habits for Personal Growth"`
@@ -47,6 +56,19 @@ type AuthResponse struct {
 	User         UserInfo `json:"user"`
 }
 
+type BroadcastNotificationRequest struct {
+	Title    string `json:"title,example=New feature available"`
+	Message  string `json:"message,example=Weekly reviews now support..."`
+	ItemType string `json:"itemType,example=system"`
+	Segment  string `json:"segment,example=all"`
+}
+
+type BroadcastNotificationResponse struct {
+	BroadcastID  string `json:"broadcastId"`
+	AudienceSize int    `json:"audienceSize"`
+	Chunks       int    `json:"chunks"`
+}
+
 type CategoriesResponse struct {
 	Data []Category `json:"data"`
 }
@@ -62,6 +84,11 @@ type Category struct {
 
 type CategoryResponse struct {
 	Data Category `json:"data"`
+}
+
+type CloseReportRequest struct {
+	Id     string `path:"id"`
+	Reason string `json:"reason,optional"`
 }
 
 type CreateArticleRequest struct {
@@ -82,12 +109,86 @@ type CreateCategoryRequest struct {
 	SortOrder int    `json:"sortOrder,optional"`
 }
 
+type CreateGoalTemplateRequest struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description,optional"`
+	CategoryId  *string `json:"categoryId,optional"`
+	SortOrder   int32   `json:"sortOrder,optional"`
+	IsActive    bool    `json:"isActive,optional"`
+}
+
+type CreateHabitTemplateRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description,optional"`
+	CategoryId  *string `json:"categoryId,optional"`
+	SortOrder   int32   `json:"sortOrder,optional"`
+	IsActive    bool    `json:"isActive,optional"`
+}
+
 type CreateTagRequest struct {
 	Name string `json:"name,example=productivity"`
 	Slug string `json:"slug,optional,example=productivity"`
 }
 
+type DeleteGoalTemplateRequest struct {
+	Id string `path:"id"`
+}
+
+type DeleteHabitTemplateRequest struct {
+	Id string `path:"id"`
+}
+
+type DeleteSiteSettingRequest struct {
+	Key string `path:"key"`
+}
+
 type EmptyResponse struct {
+}
+
+type GetGoalTemplateRequest struct {
+	Id string `path:"id"`
+}
+
+type GetHabitTemplateRequest struct {
+	Id string `path:"id"`
+}
+
+type GoalTemplateItem struct {
+	Id          string            `json:"id"`
+	Title       string            `json:"title"`
+	Description string            `json:"description,optional"`
+	Category    *TemplateCategory `json:"category,optional"`
+	SortOrder   int32             `json:"sortOrder"`
+	IsActive    bool              `json:"isActive"`
+	CreatedAt   string            `json:"createdAt"`
+	UpdatedAt   string            `json:"updatedAt"`
+}
+
+type GoalTemplateResponse struct {
+	Data GoalTemplateItem `json:"data"`
+}
+
+type GoalTemplatesResponse struct {
+	Data []GoalTemplateItem `json:"data"`
+}
+
+type HabitTemplateItem struct {
+	Id          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,optional"`
+	Category    *TemplateCategory `json:"category,optional"`
+	SortOrder   int32             `json:"sortOrder"`
+	IsActive    bool              `json:"isActive"`
+	CreatedAt   string            `json:"createdAt"`
+	UpdatedAt   string            `json:"updatedAt"`
+}
+
+type HabitTemplateResponse struct {
+	Data HabitTemplateItem `json:"data"`
+}
+
+type HabitTemplatesResponse struct {
+	Data []HabitTemplateItem `json:"data"`
 }
 
 type ListArticlesRequest struct {
@@ -100,6 +201,13 @@ type ListArticlesRequest struct {
 
 type ListCategoriesRequest struct {
 	EntityType string `form:"entityType,optional"`
+}
+
+type ListReportsRequest struct {
+	Status   string `form:"status,optional"`
+	Category string `form:"category,optional"`
+	Page     int    `form:"page,default=1"`
+	Limit    int    `form:"limit,default=20"`
 }
 
 type LoginRequest struct {
@@ -130,6 +238,63 @@ type ReorderCategoriesRequest struct {
 	SortOrders []int    `json:"sortOrders"`
 }
 
+type ReportCommentItem struct {
+	Id        string `json:"id"`
+	ReportId  string `json:"reportId"`
+	UserId    string `json:"userId"`
+	Comment   string `json:"comment"`
+	IsAdmin   bool   `json:"isAdmin"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type ReportCommentsResponse struct {
+	Data []ReportCommentItem `json:"data"`
+}
+
+type ReportIdRequest struct {
+	Id string `path:"id"`
+}
+
+type ReportItem struct {
+	Id          string   `json:"id"`
+	ReporterId  string   `json:"reporterId"`
+	TargetId    string   `json:"targetId,optional"`
+	TargetType  string   `json:"targetType"`
+	Category    string   `json:"category"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Email       string   `json:"email,optional"`
+	Status      string   `json:"status"`
+	AdminNotes  string   `json:"adminNotes,optional"`
+	CloseReason string   `json:"closeReason,optional"`
+	Attachments []string `json:"attachments,optional"`
+	CreatedAt   string   `json:"createdAt"`
+	UpdatedAt   string   `json:"updatedAt"`
+}
+
+type ReportResponse struct {
+	Data ReportItem `json:"data"`
+}
+
+type ReportsResponse struct {
+	Data []ReportItem `json:"data"`
+	Page PageResponse `json:"page"`
+}
+
+type SiteSettingItem struct {
+	Key       string `json:"key,example=explore.header"`
+	Value     string `json:"value,example={\"title\":\"Explore\"}"`
+	UpdatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type SiteSettingResponse struct {
+	Data SiteSettingItem `json:"data"`
+}
+
+type SiteSettingsResponse struct {
+	Data []SiteSettingItem `json:"data"`
+}
+
 type Tag struct {
 	Id   string `json:"id,example=tag-123"`
 	Name string `json:"name,example=productivity"`
@@ -142,6 +307,12 @@ type TagResponse struct {
 
 type TagsResponse struct {
 	Data []Tag `json:"data"`
+}
+
+type TemplateCategory struct {
+	Id   string `json:"id,optional"`
+	Name string `json:"name,optional"`
+	Slug string `json:"slug,optional"`
 }
 
 type UpdateArticleRequest struct {
@@ -164,6 +335,30 @@ type UpdateCategoryRequest struct {
 	SortOrder int    `json:"sortOrder,optional"`
 }
 
+type UpdateGoalTemplateRequest struct {
+	Id          string  `path:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description,optional"`
+	CategoryId  *string `json:"categoryId,optional"`
+	SortOrder   int32   `json:"sortOrder,optional"`
+	IsActive    bool    `json:"isActive,optional"`
+}
+
+type UpdateHabitTemplateRequest struct {
+	Id          string  `path:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description,optional"`
+	CategoryId  *string `json:"categoryId,optional"`
+	SortOrder   int32   `json:"sortOrder,optional"`
+	IsActive    bool    `json:"isActive,optional"`
+}
+
+type UpdateReportRequest struct {
+	Id         string `path:"id"`
+	Status     string `json:"status"`
+	AdminNotes string `json:"adminNotes,optional"`
+}
+
 type UpdateTagRequest struct {
 	Id   string `path:"id"`
 	Name string `json:"name,example=productivity"`
@@ -176,6 +371,11 @@ type UploadImageRequest struct {
 type UploadImageResponse struct {
 	Url string `json:"url"`
 	Key string `json:"key"`
+}
+
+type UpsertSiteSettingRequest struct {
+	Key   string `json:"key,example=explore.header"`
+	Value string `json:"value,example={\"title\":\"Explore\"}"`
 }
 
 type UserInfo struct {

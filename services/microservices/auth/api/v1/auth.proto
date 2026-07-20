@@ -133,6 +133,18 @@ message DeleteUserRequest {
   string user_id = 1;
 }
 
+// ListUserIdsRequest is used by admin tooling (e.g. broadcast notifications) to
+// enumerate every user id. Pagination is cursor-based on created_at + id.
+message ListUserIdsRequest {
+  int32 limit = 1;        // page size, capped server-side
+  string cursor = 2;      // opaque cursor (empty = first page)
+}
+
+message ListUserIdsResponse {
+  repeated string user_ids = 1;
+  string next_cursor = 2;  // empty when no more pages
+}
+
 service AuthService {
   // Core authentication
   rpc Register(RegisterRequest) returns (RegisterResponse);
@@ -160,4 +172,7 @@ service AuthService {
 
   // OAuth
   rpc GoogleLogin(GoogleLoginRequest) returns (AuthResponse);
+
+  // Admin / internal: enumerate user ids (used by adminway for broadcasts).
+  rpc ListUserIds(ListUserIdsRequest) returns (ListUserIdsResponse);
 }

@@ -9,6 +9,11 @@ import (
 	articles "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/articles"
 	auth "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/auth"
 	categories "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/categories"
+	goaltemplates "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/goaltemplates"
+	habittemplates "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/habittemplates"
+	notifications "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/notifications"
+	reports "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/reports"
+	sitesettings "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/sitesettings"
 	tags "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/tags"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 
@@ -127,6 +132,156 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/categories/reorder",
 					Handler: categories.AdminReorderCategoriesHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/goal-templates",
+					Handler: goaltemplates.AdminListGoalTemplatesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/goal-templates",
+					Handler: goaltemplates.AdminCreateGoalTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/goal-templates/:id",
+					Handler: goaltemplates.AdminGetGoalTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/goal-templates/:id",
+					Handler: goaltemplates.AdminUpdateGoalTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/goal-templates/:id",
+					Handler: goaltemplates.AdminDeleteGoalTemplateHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/habit-templates",
+					Handler: habittemplates.AdminListHabitTemplatesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/habit-templates",
+					Handler: habittemplates.AdminCreateHabitTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/habit-templates/:id",
+					Handler: habittemplates.AdminGetHabitTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/habit-templates/:id",
+					Handler: habittemplates.AdminUpdateHabitTemplateHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/habit-templates/:id",
+					Handler: habittemplates.AdminDeleteHabitTemplateHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/notifications/broadcast",
+					Handler: notifications.AdminBroadcastNotificationHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/reports",
+					Handler: reports.AdminListReportsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/reports/:id",
+					Handler: reports.AdminGetReportHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/reports/:id",
+					Handler: reports.AdminUpdateReportHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/reports/:id/close",
+					Handler: reports.AdminCloseReportHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/reports/:id/comments",
+					Handler: reports.AdminListReportCommentsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/reports/:id/comments",
+					Handler: reports.AdminAddReportCommentHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/site-settings",
+					Handler: sitesettings.AdminListSiteSettingsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/site-settings",
+					Handler: sitesettings.AdminUpsertSiteSettingHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/site-settings/:key",
+					Handler: sitesettings.AdminGetSiteSettingHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/site-settings/:key",
+					Handler: sitesettings.AdminDeleteSiteSettingHandler(serverCtx),
 				},
 			}...,
 		),

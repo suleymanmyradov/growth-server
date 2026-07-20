@@ -138,12 +138,34 @@ type GoalHabit struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type GoalTemplate struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	SortOrder   int32              `db:"sort_order" json:"sort_order"`
+	IsActive    bool               `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type Habit struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Name        string             `db:"name" json:"name"`
 	Description *string            `db:"description" json:"description"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type HabitTemplate struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Name        string             `db:"name" json:"name"`
+	Description *string            `db:"description" json:"description"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	SortOrder   int32              `db:"sort_order" json:"sort_order"`
+	IsActive    bool               `db:"is_active" json:"is_active"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
@@ -242,6 +264,32 @@ type ReminderState struct {
 	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
+type Report struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	ReporterID  uuid.UUID          `db:"reporter_id" json:"reporter_id"`
+	TargetID    *string            `db:"target_id" json:"target_id"`
+	TargetType  string             `db:"target_type" json:"target_type"`
+	Category    string             `db:"category" json:"category"`
+	Title       string             `db:"title" json:"title"`
+	Description string             `db:"description" json:"description"`
+	Email       *string            `db:"email" json:"email"`
+	Status      string             `db:"status" json:"status"`
+	AdminNotes  *string            `db:"admin_notes" json:"admin_notes"`
+	CloseReason *string            `db:"close_reason" json:"close_reason"`
+	Attachments []string           `db:"attachments" json:"attachments"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type ReportComment struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ReportID  uuid.UUID          `db:"report_id" json:"report_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Comment   string             `db:"comment" json:"comment"`
+	IsAdmin   bool               `db:"is_admin" json:"is_admin"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 type SavedArticle struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
@@ -261,6 +309,13 @@ type SavedHabit struct {
 	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type SiteSetting struct {
+	Key       string             `db:"key" json:"key"`
+	Value     []byte             `db:"value" json:"value"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Subscription struct {

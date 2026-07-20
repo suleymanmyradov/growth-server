@@ -18,6 +18,17 @@ type ActivityResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type AppendMessageRequest struct {
+	Id      string `path:"id"`
+	Content string `json:"content"`
+	Role    string `json:"role,optional"`
+}
+
+type AppendMessageResponse struct {
+	Data         ConversationMessage `json:"data"`
+	Conversation Conversation        `json:"conversation"`
+}
+
 type ApplyPlanAdjustmentSuggestionRequest struct {
 	Id string `path:"id"`
 }
@@ -27,7 +38,7 @@ type Article struct {
 	Title       string           `json:"title,example=10 Habits for Personal Growth"`
 	Excerpt     string           `json:"excerpt,example=Discover the top habits that can transform your life..."`
 	Content     string           `json:"content,example=Full article content here..."`
-	Category    *ArticleCategory `json:"category,optional"`
+	Category    *ArticleCategory `json:"category,omitempty"`
 	ReadTime    int              `json:"readTime,example=5"`
 	ImageUrl    string           `json:"imageUrl,example=https://example.com/article.jpg"`
 	Author      string           `json:"author,example=John Smith"`
@@ -121,6 +132,29 @@ type CoachingProfileResponse struct {
 	Data CoachingProfile `json:"data"`
 }
 
+type Conversation struct {
+	Id               string `json:"id"`
+	Title            string `json:"title"`
+	ConversationType string `json:"type"`
+	LastMessage      string `json:"lastMessage"`
+	UserId           string `json:"userId,omitempty"`
+	Archived         bool   `json:"archived"`
+	CreatedAt        string `json:"createdAt"`
+	UpdatedAt        string `json:"updatedAt"`
+}
+
+type ConversationMessage struct {
+	Id             string `json:"id"`
+	ConversationId string `json:"conversationId"`
+	Role           string `json:"role"`
+	Content        string `json:"content"`
+	CreatedAt      string `json:"createdAt"`
+}
+
+type ConversationRequest struct {
+	Id string `path:"id"`
+}
+
 type CreateArticleRequest struct {
 	Title      string   `json:"title,example=10 Habits for Personal Growth"`
 	Content    string   `json:"content,example=Full article content here..."`
@@ -185,6 +219,9 @@ type CreatePlanAdjustmentSuggestionRequest struct {
 	Metadata       map[string]string `json:"metadata,optional"`
 }
 
+type DeleteConversationResponse struct {
+}
+
 type EmptyResponse struct {
 }
 
@@ -206,10 +243,27 @@ type Entitlements struct {
 	CurrentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
 }
 
+type ForgotPasswordRequest struct {
+	Email string `json:"email,example=john@example.com"`
+}
+
+type GenerateOnboardingHabitsRequest struct {
+	GoalTitle           string `json:"goalTitle,example=Run a 5k"`
+	GoalCategory        string `json:"goalCategory,optional,example=fitness"`
+	Motivation          string `json:"motivation,optional,example=Improve my health and energy"`
+	Blocker             string `json:"blocker,optional,example=Lack of time in the morning"`
+	DailyMinutes        int32  `json:"dailyMinutes,range=[1:600],example=30"`
+	AccountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
+}
+
+type GenerateOnboardingHabitsResponse struct {
+	Data []OnboardingHabitSuggestion `json:"data"`
+}
+
 type GeneratePersonalizedCoachingRequest struct {
-	UserMessage     string `json:"userMessage,example=User missed 3 consecutive check-ins"`
-	Context         string `json:"context,optional,example=User has been struggling with motivation"`
-	ConversationId  string `json:"conversationId,optional"`
+	UserMessage    string `json:"userMessage,example=User missed 3 consecutive check-ins"`
+	Context        string `json:"context,optional,example=User has been struggling with motivation"`
+	ConversationId string `json:"conversationId,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {
@@ -237,6 +291,21 @@ type GetCheckInHistoryRequest struct {
 type GetCheckInHistoryResponse struct {
 	CheckIns []CheckIn `json:"checkIns"`
 	Total    int       `json:"total,example=10"`
+}
+
+type GetConversationResponse struct {
+	Data Conversation `json:"data"`
+}
+
+type GetMessagesRequest struct {
+	Id    string `path:"id"`
+	Page  int    `form:"page,default=1"`
+	Limit int    `form:"limit,default=50"`
+}
+
+type GetMessagesResponse struct {
+	Data []ConversationMessage `json:"data"`
+	Page PageResponse          `json:"page"`
 }
 
 type GetPersonalizationContextRequest struct {
@@ -276,9 +345,28 @@ type GoalResponse struct {
 	Data Goal `json:"data"`
 }
 
+type GoalTemplateItem struct {
+	Id          string            `json:"id"`
+	Title       string            `json:"title"`
+	Description string            `json:"description,optional"`
+	Category    *TemplateCategory `json:"category,optional"`
+	SortOrder   int32             `json:"sortOrder"`
+	CreatedAt   string            `json:"createdAt"`
+	UpdatedAt   string            `json:"updatedAt"`
+}
+
+type GoalTemplatesResponse struct {
+	Data []GoalTemplateItem `json:"data"`
+}
+
 type GoalsResponse struct {
 	Data []Goal       `json:"data"`
 	Page PageResponse `json:"page"`
+}
+
+type GoogleLoginRequest struct {
+	AuthorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
+	RedirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
 }
 
 type Habit struct {
@@ -300,6 +388,20 @@ type HabitRequest struct {
 
 type HabitResponse struct {
 	Data Habit `json:"data"`
+}
+
+type HabitTemplateItem struct {
+	Id          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description,optional"`
+	Category    *TemplateCategory `json:"category,optional"`
+	SortOrder   int32             `json:"sortOrder"`
+	CreatedAt   string            `json:"createdAt"`
+	UpdatedAt   string            `json:"updatedAt"`
+}
+
+type HabitTemplatesResponse struct {
+	Data []HabitTemplateItem `json:"data"`
 }
 
 type HabitsResponse struct {
@@ -335,6 +437,17 @@ type ListCategoriesRequest struct {
 	EntityType string `form:"entityType,example=habit"`
 }
 
+type ListConversationsRequest struct {
+	ConversationType string `form:"type,optional"`
+	Page             int    `form:"page,default=1"`
+	Limit            int    `form:"limit,default=20"`
+}
+
+type ListConversationsResponse struct {
+	Data []Conversation `json:"data"`
+	Page PageResponse   `json:"page"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email,example=john@example.com"`
 	Password string `json:"password,example=securePassword123"`
@@ -358,6 +471,11 @@ type NotificationRequest struct {
 type NotificationsResponse struct {
 	Data []Notification `json:"data"`
 	Page PageResponse   `json:"page"`
+}
+
+type OnboardingHabitSuggestion struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 type PageRequest struct {
@@ -460,33 +578,20 @@ type RegisterResponse struct {
 	Message              string `json:"message,example=Check your email for a verification link."`
 }
 
-type VerifyEmailRequest struct {
-	Token string `json:"token,example=9f8e..."`
+type ReportRequest struct {
+	ItemType    string `json:"type"` // "bug", "feedback", "abuse"
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Email       string `json:"email,optional"`
 }
 
 type ResendVerificationRequest struct {
 	Email string `json:"email,example=john@example.com"`
 }
 
-type GoogleLoginRequest struct {
-	AuthorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
-	RedirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
-}
-
-type ForgotPasswordRequest struct {
-	Email string `json:"email,example=john@example.com"`
-}
-
 type ResetPasswordRequest struct {
 	Token       string `json:"token,example=9f8e..."`
 	NewPassword string `json:"newPassword,example=securePassword123"`
-}
-
-type ReportRequest struct {
-	ItemType    string `json:"type"` // "bug", "feedback", "abuse"
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Email       string `json:"email,optional"`
 }
 
 type SaveItemRequest struct {
@@ -508,9 +613,9 @@ type SavedItemDetailed struct {
 	ItemId    string   `json:"itemId"`
 	UserId    string   `json:"userId"`
 	CreatedAt string   `json:"createdAt"`
-	Article   *Article `json:"article,optional"`
-	Habit     *Habit   `json:"habit,optional"`
-	Goal      *Goal    `json:"goal,optional"`
+	Article   *Article `json:"article,omitempty"`
+	Habit     *Habit   `json:"habit,omitempty"`
+	Goal      *Goal    `json:"goal,omitempty"`
 }
 
 type SavedItemRequest struct {
@@ -582,6 +687,27 @@ type ShareArticleResponse struct {
 	Success bool `json:"success"`
 }
 
+type SiteSettingItem struct {
+	Key       string `json:"key,example=explore.header"`
+	Value     string `json:"value,example={\"title\":\"Explore\"}"`
+	UpdatedAt string `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type SiteSettingsResponse struct {
+	Data []SiteSettingItem `json:"data"`
+}
+
+type StartConversationRequest struct {
+	ConversationType string `json:"type,optional"`
+	Title            string `json:"title,optional"`
+	InitialMessage   string `json:"initialMessage,optional"`
+}
+
+type StartConversationResponse struct {
+	Data           Conversation         `json:"data"`
+	InitialMessage *ConversationMessage `json:"initialMessage,omitempty"`
+}
+
 type StripeWebhookRequest struct {
 	EventType   string `json:"eventType,example=checkout.session.completed"`
 	PayloadJson string `json:"payloadJson"`
@@ -589,6 +715,12 @@ type StripeWebhookRequest struct {
 
 type StripeWebhookResponse struct {
 	Processed bool `json:"processed,example=true"`
+}
+
+type TemplateCategory struct {
+	Id   string `json:"id,optional"`
+	Name string `json:"name,optional"`
+	Slug string `json:"slug,optional"`
 }
 
 type TrackUpgradeEventRequest struct {
@@ -696,6 +828,10 @@ type UserSubscription struct {
 	StripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token,example=9f8e..."`
+}
+
 type WeeklyReview struct {
 	Id                   string                       `json:"id"`
 	UserId               string                       `json:"userId"`
@@ -750,102 +886,4 @@ type WeeklyReviewResponse struct {
 type WeeklyReviewsResponse struct {
 	Data []WeeklyReview `json:"data"`
 	Page PageResponse   `json:"page"`
-}
-
-// ============================================
-// Conversations
-// ============================================
-
-type Conversation struct {
-	Id          string `json:"id"`
-	Title       string `json:"title"`
-	Type        string `json:"type"`
-	LastMessage string `json:"lastMessage"`
-	UserId      string `json:"userId,omitempty"`
-	Archived    bool   `json:"archived"`
-	CreatedAt   string `json:"createdAt"`
-	UpdatedAt   string `json:"updatedAt"`
-}
-
-type ConversationMessage struct {
-	Id             string `json:"id"`
-	ConversationId string `json:"conversationId"`
-	Role           string `json:"role"`
-	Content        string `json:"content"`
-	CreatedAt      string `json:"createdAt"`
-}
-
-type StartConversationRequest struct {
-	Type           string `json:"type,optional"`
-	Title          string `json:"title,optional"`
-	InitialMessage string `json:"initialMessage,optional"`
-}
-
-type StartConversationResponse struct {
-	Data             Conversation         `json:"data"`
-	InitialMessage   *ConversationMessage `json:"initialMessage,omitempty"`
-}
-
-type ListConversationsRequest struct {
-	Type  string `form:"type,optional"`
-	Page  int    `form:"page,default=1"`
-	Limit int    `form:"limit,default=20"`
-}
-
-type ListConversationsResponse struct {
-	Data []Conversation `json:"data"`
-	Page PageResponse   `json:"page"`
-}
-
-type GetConversationResponse struct {
-	Data Conversation `json:"data"`
-}
-
-type ConversationRequest struct {
-	Id string `path:"id"`
-}
-
-type GetMessagesRequest struct {
-	Id    string `path:"id"`
-	Page  int    `form:"page,default=1"`
-	Limit int    `form:"limit,default=50"`
-}
-
-type GetMessagesResponse struct {
-	Data []ConversationMessage `json:"data"`
-	Page PageResponse          `json:"page"`
-}
-
-type AppendMessageRequest struct {
-	Id      string `path:"id"`
-	Content string `json:"content"`
-	Role    string `json:"role,optional"`
-}
-
-type AppendMessageResponse struct {
-	Data         ConversationMessage `json:"data"`
-	Conversation Conversation         `json:"conversation"`
-}
-
-type DeleteConversationResponse struct{}
-
-// Onboarding habit generation (manually added — not in the .api contract).
-// The endpoint is server-owned: the client sends only structured onboarding
-// data, never a prompt. See handler/personalization/generateOnboardingHabitsHandler.go.
-type GenerateOnboardingHabitsRequest struct {
-	GoalTitle          string `json:"goalTitle,example=Run a 5k"`
-	GoalCategory       string `json:"goalCategory,optional,example=fitness"`
-	Motivation         string `json:"motivation,optional,example=Improve my health and energy"`
-	Blocker            string `json:"blocker,optional,example=Lack of time in the morning"`
-	DailyMinutes       int32  `json:"dailyMinutes,range=[1:600],example=30"`
-	AccountabilityStyle string `json:"accountabilityStyle,optional,example=balanced"`
-}
-
-type OnboardingHabitSuggestion struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
-type GenerateOnboardingHabitsResponse struct {
-	Data []OnboardingHabitSuggestion `json:"data"`
 }

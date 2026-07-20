@@ -1605,16 +1605,17 @@ var Settings_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Articles_ListArticles_FullMethodName      = "/client.Articles/ListArticles"
-	Articles_GetArticle_FullMethodName        = "/client.Articles/GetArticle"
-	Articles_CreateArticle_FullMethodName     = "/client.Articles/CreateArticle"
-	Articles_UpdateArticle_FullMethodName     = "/client.Articles/UpdateArticle"
-	Articles_DeleteArticle_FullMethodName     = "/client.Articles/DeleteArticle"
-	Articles_LikeArticle_FullMethodName       = "/client.Articles/LikeArticle"
-	Articles_ShareArticle_FullMethodName      = "/client.Articles/ShareArticle"
-	Articles_GetAuthorArticles_FullMethodName = "/client.Articles/GetAuthorArticles"
-	Articles_ListTags_FullMethodName          = "/client.Articles/ListTags"
-	Articles_SearchArticles_FullMethodName    = "/client.Articles/SearchArticles"
+	Articles_ListArticles_FullMethodName       = "/client.Articles/ListArticles"
+	Articles_GetArticle_FullMethodName         = "/client.Articles/GetArticle"
+	Articles_CreateArticle_FullMethodName      = "/client.Articles/CreateArticle"
+	Articles_UpdateArticle_FullMethodName      = "/client.Articles/UpdateArticle"
+	Articles_DeleteArticle_FullMethodName      = "/client.Articles/DeleteArticle"
+	Articles_LikeArticle_FullMethodName        = "/client.Articles/LikeArticle"
+	Articles_ShareArticle_FullMethodName       = "/client.Articles/ShareArticle"
+	Articles_GetAuthorArticles_FullMethodName  = "/client.Articles/GetAuthorArticles"
+	Articles_ListTags_FullMethodName           = "/client.Articles/ListTags"
+	Articles_GetArticlesByIds_FullMethodName   = "/client.Articles/GetArticlesByIds"
+	Articles_GetFeaturedArticle_FullMethodName = "/client.Articles/GetFeaturedArticle"
 )
 
 // ArticlesClient is the client API for Articles service.
@@ -1630,7 +1631,8 @@ type ArticlesClient interface {
 	ShareArticle(ctx context.Context, in *ShareArticleRequest, opts ...grpc.CallOption) (*ShareArticleResponse, error)
 	GetAuthorArticles(ctx context.Context, in *GetAuthorArticlesRequest, opts ...grpc.CallOption) (*GetAuthorArticlesResponse, error)
 	ListTags(ctx context.Context, in *ListTagsRequest, opts ...grpc.CallOption) (*ListTagsResponse, error)
-	SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error)
+	GetArticlesByIds(ctx context.Context, in *GetArticlesByIdsRequest, opts ...grpc.CallOption) (*GetArticlesByIdsResponse, error)
+	GetFeaturedArticle(ctx context.Context, in *GetFeaturedArticleRequest, opts ...grpc.CallOption) (*GetFeaturedArticleResponse, error)
 }
 
 type articlesClient struct {
@@ -1731,10 +1733,20 @@ func (c *articlesClient) ListTags(ctx context.Context, in *ListTagsRequest, opts
 	return out, nil
 }
 
-func (c *articlesClient) SearchArticles(ctx context.Context, in *SearchArticlesRequest, opts ...grpc.CallOption) (*SearchArticlesResponse, error) {
+func (c *articlesClient) GetArticlesByIds(ctx context.Context, in *GetArticlesByIdsRequest, opts ...grpc.CallOption) (*GetArticlesByIdsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SearchArticlesResponse)
-	err := c.cc.Invoke(ctx, Articles_SearchArticles_FullMethodName, in, out, cOpts...)
+	out := new(GetArticlesByIdsResponse)
+	err := c.cc.Invoke(ctx, Articles_GetArticlesByIds_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *articlesClient) GetFeaturedArticle(ctx context.Context, in *GetFeaturedArticleRequest, opts ...grpc.CallOption) (*GetFeaturedArticleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetFeaturedArticleResponse)
+	err := c.cc.Invoke(ctx, Articles_GetFeaturedArticle_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1754,7 +1766,8 @@ type ArticlesServer interface {
 	ShareArticle(context.Context, *ShareArticleRequest) (*ShareArticleResponse, error)
 	GetAuthorArticles(context.Context, *GetAuthorArticlesRequest) (*GetAuthorArticlesResponse, error)
 	ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error)
-	SearchArticles(context.Context, *SearchArticlesRequest) (*SearchArticlesResponse, error)
+	GetArticlesByIds(context.Context, *GetArticlesByIdsRequest) (*GetArticlesByIdsResponse, error)
+	GetFeaturedArticle(context.Context, *GetFeaturedArticleRequest) (*GetFeaturedArticleResponse, error)
 	mustEmbedUnimplementedArticlesServer()
 }
 
@@ -1792,8 +1805,11 @@ func (UnimplementedArticlesServer) GetAuthorArticles(context.Context, *GetAuthor
 func (UnimplementedArticlesServer) ListTags(context.Context, *ListTagsRequest) (*ListTagsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListTags not implemented")
 }
-func (UnimplementedArticlesServer) SearchArticles(context.Context, *SearchArticlesRequest) (*SearchArticlesResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SearchArticles not implemented")
+func (UnimplementedArticlesServer) GetArticlesByIds(context.Context, *GetArticlesByIdsRequest) (*GetArticlesByIdsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetArticlesByIds not implemented")
+}
+func (UnimplementedArticlesServer) GetFeaturedArticle(context.Context, *GetFeaturedArticleRequest) (*GetFeaturedArticleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetFeaturedArticle not implemented")
 }
 func (UnimplementedArticlesServer) mustEmbedUnimplementedArticlesServer() {}
 func (UnimplementedArticlesServer) testEmbeddedByValue()                  {}
@@ -1978,20 +1994,38 @@ func _Articles_ListTags_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Articles_SearchArticles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SearchArticlesRequest)
+func _Articles_GetArticlesByIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetArticlesByIdsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ArticlesServer).SearchArticles(ctx, in)
+		return srv.(ArticlesServer).GetArticlesByIds(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Articles_SearchArticles_FullMethodName,
+		FullMethod: Articles_GetArticlesByIds_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ArticlesServer).SearchArticles(ctx, req.(*SearchArticlesRequest))
+		return srv.(ArticlesServer).GetArticlesByIds(ctx, req.(*GetArticlesByIdsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Articles_GetFeaturedArticle_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetFeaturedArticleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ArticlesServer).GetFeaturedArticle(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Articles_GetFeaturedArticle_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ArticlesServer).GetFeaturedArticle(ctx, req.(*GetFeaturedArticleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2040,8 +2074,12 @@ var Articles_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Articles_ListTags_Handler,
 		},
 		{
-			MethodName: "SearchArticles",
-			Handler:    _Articles_SearchArticles_Handler,
+			MethodName: "GetArticlesByIds",
+			Handler:    _Articles_GetArticlesByIds_Handler,
+		},
+		{
+			MethodName: "GetFeaturedArticle",
+			Handler:    _Articles_GetFeaturedArticle_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -3985,6 +4023,7 @@ const (
 	BillingService_CreateCheckoutSession_FullMethodName       = "/client.BillingService/CreateCheckoutSession"
 	BillingService_CreateCustomerPortalSession_FullMethodName = "/client.BillingService/CreateCustomerPortalSession"
 	BillingService_HandleStripeWebhook_FullMethodName         = "/client.BillingService/HandleStripeWebhook"
+	BillingService_ListSubscriptionStatuses_FullMethodName    = "/client.BillingService/ListSubscriptionStatuses"
 )
 
 // BillingServiceClient is the client API for BillingService service.
@@ -3996,6 +4035,9 @@ type BillingServiceClient interface {
 	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
+	// Admin: list every user's subscription plan code + status. Used by adminway
+	// to segment broadcast notifications into premium / free audiences.
+	ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
 }
 
 type billingServiceClient struct {
@@ -4056,6 +4098,16 @@ func (c *billingServiceClient) HandleStripeWebhook(ctx context.Context, in *Hand
 	return out, nil
 }
 
+func (c *billingServiceClient) ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSubscriptionStatusesResponse)
+	err := c.cc.Invoke(ctx, BillingService_ListSubscriptionStatuses_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BillingServiceServer is the server API for BillingService service.
 // All implementations must embed UnimplementedBillingServiceServer
 // for forward compatibility.
@@ -4065,6 +4117,9 @@ type BillingServiceServer interface {
 	CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error)
+	// Admin: list every user's subscription plan code + status. Used by adminway
+	// to segment broadcast notifications into premium / free audiences.
+	ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error)
 	mustEmbedUnimplementedBillingServiceServer()
 }
 
@@ -4089,6 +4144,9 @@ func (UnimplementedBillingServiceServer) CreateCustomerPortalSession(context.Con
 }
 func (UnimplementedBillingServiceServer) HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HandleStripeWebhook not implemented")
+}
+func (UnimplementedBillingServiceServer) ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSubscriptionStatuses not implemented")
 }
 func (UnimplementedBillingServiceServer) mustEmbedUnimplementedBillingServiceServer() {}
 func (UnimplementedBillingServiceServer) testEmbeddedByValue()                        {}
@@ -4201,6 +4259,24 @@ func _BillingService_HandleStripeWebhook_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingService_ListSubscriptionStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSubscriptionStatusesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).ListSubscriptionStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_ListSubscriptionStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).ListSubscriptionStatuses(ctx, req.(*ListSubscriptionStatusesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BillingService_ServiceDesc is the grpc.ServiceDesc for BillingService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4227,6 +4303,468 @@ var BillingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandleStripeWebhook",
 			Handler:    _BillingService_HandleStripeWebhook_Handler,
+		},
+		{
+			MethodName: "ListSubscriptionStatuses",
+			Handler:    _BillingService_ListSubscriptionStatuses_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}
+
+const (
+	SiteSettings_GetSiteSetting_FullMethodName      = "/client.SiteSettings/GetSiteSetting"
+	SiteSettings_ListSiteSettings_FullMethodName    = "/client.SiteSettings/ListSiteSettings"
+	SiteSettings_ListAllSiteSettings_FullMethodName = "/client.SiteSettings/ListAllSiteSettings"
+	SiteSettings_UpsertSiteSetting_FullMethodName   = "/client.SiteSettings/UpsertSiteSetting"
+	SiteSettings_DeleteSiteSetting_FullMethodName   = "/client.SiteSettings/DeleteSiteSetting"
+)
+
+// SiteSettingsClient is the client API for SiteSettings service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type SiteSettingsClient interface {
+	GetSiteSetting(ctx context.Context, in *GetSiteSettingRequest, opts ...grpc.CallOption) (*GetSiteSettingResponse, error)
+	ListSiteSettings(ctx context.Context, in *ListSiteSettingsRequest, opts ...grpc.CallOption) (*ListSiteSettingsResponse, error)
+	ListAllSiteSettings(ctx context.Context, in *ListAllSiteSettingsRequest, opts ...grpc.CallOption) (*ListAllSiteSettingsResponse, error)
+	UpsertSiteSetting(ctx context.Context, in *UpsertSiteSettingRequest, opts ...grpc.CallOption) (*UpsertSiteSettingResponse, error)
+	DeleteSiteSetting(ctx context.Context, in *DeleteSiteSettingRequest, opts ...grpc.CallOption) (*DeleteSiteSettingResponse, error)
+}
+
+type siteSettingsClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewSiteSettingsClient(cc grpc.ClientConnInterface) SiteSettingsClient {
+	return &siteSettingsClient{cc}
+}
+
+func (c *siteSettingsClient) GetSiteSetting(ctx context.Context, in *GetSiteSettingRequest, opts ...grpc.CallOption) (*GetSiteSettingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSiteSettingResponse)
+	err := c.cc.Invoke(ctx, SiteSettings_GetSiteSetting_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *siteSettingsClient) ListSiteSettings(ctx context.Context, in *ListSiteSettingsRequest, opts ...grpc.CallOption) (*ListSiteSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSiteSettingsResponse)
+	err := c.cc.Invoke(ctx, SiteSettings_ListSiteSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *siteSettingsClient) ListAllSiteSettings(ctx context.Context, in *ListAllSiteSettingsRequest, opts ...grpc.CallOption) (*ListAllSiteSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAllSiteSettingsResponse)
+	err := c.cc.Invoke(ctx, SiteSettings_ListAllSiteSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *siteSettingsClient) UpsertSiteSetting(ctx context.Context, in *UpsertSiteSettingRequest, opts ...grpc.CallOption) (*UpsertSiteSettingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpsertSiteSettingResponse)
+	err := c.cc.Invoke(ctx, SiteSettings_UpsertSiteSetting_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *siteSettingsClient) DeleteSiteSetting(ctx context.Context, in *DeleteSiteSettingRequest, opts ...grpc.CallOption) (*DeleteSiteSettingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSiteSettingResponse)
+	err := c.cc.Invoke(ctx, SiteSettings_DeleteSiteSetting_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// SiteSettingsServer is the server API for SiteSettings service.
+// All implementations must embed UnimplementedSiteSettingsServer
+// for forward compatibility.
+type SiteSettingsServer interface {
+	GetSiteSetting(context.Context, *GetSiteSettingRequest) (*GetSiteSettingResponse, error)
+	ListSiteSettings(context.Context, *ListSiteSettingsRequest) (*ListSiteSettingsResponse, error)
+	ListAllSiteSettings(context.Context, *ListAllSiteSettingsRequest) (*ListAllSiteSettingsResponse, error)
+	UpsertSiteSetting(context.Context, *UpsertSiteSettingRequest) (*UpsertSiteSettingResponse, error)
+	DeleteSiteSetting(context.Context, *DeleteSiteSettingRequest) (*DeleteSiteSettingResponse, error)
+	mustEmbedUnimplementedSiteSettingsServer()
+}
+
+// UnimplementedSiteSettingsServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedSiteSettingsServer struct{}
+
+func (UnimplementedSiteSettingsServer) GetSiteSetting(context.Context, *GetSiteSettingRequest) (*GetSiteSettingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSiteSetting not implemented")
+}
+func (UnimplementedSiteSettingsServer) ListSiteSettings(context.Context, *ListSiteSettingsRequest) (*ListSiteSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSiteSettings not implemented")
+}
+func (UnimplementedSiteSettingsServer) ListAllSiteSettings(context.Context, *ListAllSiteSettingsRequest) (*ListAllSiteSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAllSiteSettings not implemented")
+}
+func (UnimplementedSiteSettingsServer) UpsertSiteSetting(context.Context, *UpsertSiteSettingRequest) (*UpsertSiteSettingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpsertSiteSetting not implemented")
+}
+func (UnimplementedSiteSettingsServer) DeleteSiteSetting(context.Context, *DeleteSiteSettingRequest) (*DeleteSiteSettingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSiteSetting not implemented")
+}
+func (UnimplementedSiteSettingsServer) mustEmbedUnimplementedSiteSettingsServer() {}
+func (UnimplementedSiteSettingsServer) testEmbeddedByValue()                      {}
+
+// UnsafeSiteSettingsServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to SiteSettingsServer will
+// result in compilation errors.
+type UnsafeSiteSettingsServer interface {
+	mustEmbedUnimplementedSiteSettingsServer()
+}
+
+func RegisterSiteSettingsServer(s grpc.ServiceRegistrar, srv SiteSettingsServer) {
+	// If the following call panics, it indicates UnimplementedSiteSettingsServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&SiteSettings_ServiceDesc, srv)
+}
+
+func _SiteSettings_GetSiteSetting_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSiteSettingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SiteSettingsServer).GetSiteSetting(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SiteSettings_GetSiteSetting_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SiteSettingsServer).GetSiteSetting(ctx, req.(*GetSiteSettingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SiteSettings_ListSiteSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSiteSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SiteSettingsServer).ListSiteSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SiteSettings_ListSiteSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SiteSettingsServer).ListSiteSettings(ctx, req.(*ListSiteSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SiteSettings_ListAllSiteSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAllSiteSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SiteSettingsServer).ListAllSiteSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SiteSettings_ListAllSiteSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SiteSettingsServer).ListAllSiteSettings(ctx, req.(*ListAllSiteSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SiteSettings_UpsertSiteSetting_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpsertSiteSettingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SiteSettingsServer).UpsertSiteSetting(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SiteSettings_UpsertSiteSetting_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SiteSettingsServer).UpsertSiteSetting(ctx, req.(*UpsertSiteSettingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _SiteSettings_DeleteSiteSetting_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSiteSettingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SiteSettingsServer).DeleteSiteSetting(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SiteSettings_DeleteSiteSetting_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SiteSettingsServer).DeleteSiteSetting(ctx, req.(*DeleteSiteSettingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// SiteSettings_ServiceDesc is the grpc.ServiceDesc for SiteSettings service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var SiteSettings_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.SiteSettings",
+	HandlerType: (*SiteSettingsServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetSiteSetting",
+			Handler:    _SiteSettings_GetSiteSetting_Handler,
+		},
+		{
+			MethodName: "ListSiteSettings",
+			Handler:    _SiteSettings_ListSiteSettings_Handler,
+		},
+		{
+			MethodName: "ListAllSiteSettings",
+			Handler:    _SiteSettings_ListAllSiteSettings_Handler,
+		},
+		{
+			MethodName: "UpsertSiteSetting",
+			Handler:    _SiteSettings_UpsertSiteSetting_Handler,
+		},
+		{
+			MethodName: "DeleteSiteSetting",
+			Handler:    _SiteSettings_DeleteSiteSetting_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}
+
+const (
+	HabitTemplates_ListHabitTemplates_FullMethodName = "/client.HabitTemplates/ListHabitTemplates"
+)
+
+// HabitTemplatesClient is the client API for HabitTemplates service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type HabitTemplatesClient interface {
+	ListHabitTemplates(ctx context.Context, in *ListHabitTemplatesRequest, opts ...grpc.CallOption) (*ListHabitTemplatesResponse, error)
+}
+
+type habitTemplatesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewHabitTemplatesClient(cc grpc.ClientConnInterface) HabitTemplatesClient {
+	return &habitTemplatesClient{cc}
+}
+
+func (c *habitTemplatesClient) ListHabitTemplates(ctx context.Context, in *ListHabitTemplatesRequest, opts ...grpc.CallOption) (*ListHabitTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListHabitTemplatesResponse)
+	err := c.cc.Invoke(ctx, HabitTemplates_ListHabitTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// HabitTemplatesServer is the server API for HabitTemplates service.
+// All implementations must embed UnimplementedHabitTemplatesServer
+// for forward compatibility.
+type HabitTemplatesServer interface {
+	ListHabitTemplates(context.Context, *ListHabitTemplatesRequest) (*ListHabitTemplatesResponse, error)
+	mustEmbedUnimplementedHabitTemplatesServer()
+}
+
+// UnimplementedHabitTemplatesServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedHabitTemplatesServer struct{}
+
+func (UnimplementedHabitTemplatesServer) ListHabitTemplates(context.Context, *ListHabitTemplatesRequest) (*ListHabitTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListHabitTemplates not implemented")
+}
+func (UnimplementedHabitTemplatesServer) mustEmbedUnimplementedHabitTemplatesServer() {}
+func (UnimplementedHabitTemplatesServer) testEmbeddedByValue()                        {}
+
+// UnsafeHabitTemplatesServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to HabitTemplatesServer will
+// result in compilation errors.
+type UnsafeHabitTemplatesServer interface {
+	mustEmbedUnimplementedHabitTemplatesServer()
+}
+
+func RegisterHabitTemplatesServer(s grpc.ServiceRegistrar, srv HabitTemplatesServer) {
+	// If the following call panics, it indicates UnimplementedHabitTemplatesServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&HabitTemplates_ServiceDesc, srv)
+}
+
+func _HabitTemplates_ListHabitTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListHabitTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).ListHabitTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_ListHabitTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).ListHabitTemplates(ctx, req.(*ListHabitTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// HabitTemplates_ServiceDesc is the grpc.ServiceDesc for HabitTemplates service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var HabitTemplates_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.HabitTemplates",
+	HandlerType: (*HabitTemplatesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListHabitTemplates",
+			Handler:    _HabitTemplates_ListHabitTemplates_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "services/microservices/client/api/v1/client.proto",
+}
+
+const (
+	GoalTemplates_ListGoalTemplates_FullMethodName = "/client.GoalTemplates/ListGoalTemplates"
+)
+
+// GoalTemplatesClient is the client API for GoalTemplates service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type GoalTemplatesClient interface {
+	ListGoalTemplates(ctx context.Context, in *ListGoalTemplatesRequest, opts ...grpc.CallOption) (*ListGoalTemplatesResponse, error)
+}
+
+type goalTemplatesClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewGoalTemplatesClient(cc grpc.ClientConnInterface) GoalTemplatesClient {
+	return &goalTemplatesClient{cc}
+}
+
+func (c *goalTemplatesClient) ListGoalTemplates(ctx context.Context, in *ListGoalTemplatesRequest, opts ...grpc.CallOption) (*ListGoalTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGoalTemplatesResponse)
+	err := c.cc.Invoke(ctx, GoalTemplates_ListGoalTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GoalTemplatesServer is the server API for GoalTemplates service.
+// All implementations must embed UnimplementedGoalTemplatesServer
+// for forward compatibility.
+type GoalTemplatesServer interface {
+	ListGoalTemplates(context.Context, *ListGoalTemplatesRequest) (*ListGoalTemplatesResponse, error)
+	mustEmbedUnimplementedGoalTemplatesServer()
+}
+
+// UnimplementedGoalTemplatesServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedGoalTemplatesServer struct{}
+
+func (UnimplementedGoalTemplatesServer) ListGoalTemplates(context.Context, *ListGoalTemplatesRequest) (*ListGoalTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListGoalTemplates not implemented")
+}
+func (UnimplementedGoalTemplatesServer) mustEmbedUnimplementedGoalTemplatesServer() {}
+func (UnimplementedGoalTemplatesServer) testEmbeddedByValue()                       {}
+
+// UnsafeGoalTemplatesServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GoalTemplatesServer will
+// result in compilation errors.
+type UnsafeGoalTemplatesServer interface {
+	mustEmbedUnimplementedGoalTemplatesServer()
+}
+
+func RegisterGoalTemplatesServer(s grpc.ServiceRegistrar, srv GoalTemplatesServer) {
+	// If the following call panics, it indicates UnimplementedGoalTemplatesServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&GoalTemplates_ServiceDesc, srv)
+}
+
+func _GoalTemplates_ListGoalTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGoalTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).ListGoalTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_ListGoalTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).ListGoalTemplates(ctx, req.(*ListGoalTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// GoalTemplates_ServiceDesc is the grpc.ServiceDesc for GoalTemplates service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var GoalTemplates_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "client.GoalTemplates",
+	HandlerType: (*GoalTemplatesServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListGoalTemplates",
+			Handler:    _GoalTemplates_ListGoalTemplates_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -17,7 +17,13 @@ type Config struct {
 	}
 	ClientRpc      zrpc.RpcClientConf
 	FileManagerRpc zrpc.RpcClientConf
-	Auth           struct {
+	SearchRpc      zrpc.RpcClientConf
+	AuthRpc        zrpc.RpcClientConf `json:",optional"`
+	Kafka          struct {
+		Brokers     []string `json:",optional"`
+		EventsTopic string   `json:",optional"`
+	} `json:",optional"`
+	Auth struct {
 		Secret                string        `json:",optional" secret:"true"`
 		Issuer                string        `json:",optional"`
 		Audience              string        `json:",optional"`

@@ -36,9 +36,11 @@ func (l *SubmitReportLogic) SubmitReport(req *types.ReportRequest) (resp *types.
 
 	_, err = l.svcCtx.ClientRpc.Report.SubmitReport(l.ctx, &clientreport.SubmitReportRequest{
 		ReporterId:  p.UserID,
-		TargetType:  req.ItemType,
+		TargetType:  "general",
 		Category:    req.ItemType,
+		Title:       req.Title,
 		Description: req.Description,
+		Email:       req.Email,
 	})
 	if err != nil {
 		return nil, err

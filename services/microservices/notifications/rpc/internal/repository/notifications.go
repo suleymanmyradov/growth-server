@@ -46,6 +46,14 @@ func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, messa
 	return r.db.CreateNotification(ctx, title, message, itemType, userID)
 }
 
+// CreateNotificationsForUsers batch-inserts the same notification for every
+// user id in userIDs (admin broadcast). Returns the number of rows inserted.
+func (r *NotificationsRepo) CreateNotificationsForUsers(ctx context.Context, title, message, itemType string, userIDs []uuid.UUID) (int64, error) {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.CreateNotificationsForUsers")
+	defer span.End()
+	return r.db.CreateNotificationsForUsers(ctx, title, message, itemType, userIDs)
+}
+
 func (r *NotificationsRepo) MarkNotificationRead(ctx context.Context, id uuid.UUID) (db.MarkNotificationReadRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.MarkNotificationRead")
 	defer span.End()

@@ -108,6 +108,10 @@ message ReportItem {
   int64 createdAt = 8;
   int64 updatedAt = 9;
   repeated string attachments = 10;
+  string title = 11;
+  string email = 12;
+  string adminNotes = 13;
+  string closeReason = 14;
 }
 
 message SubmitReportRequest {
@@ -117,6 +121,8 @@ message SubmitReportRequest {
   string category = 4;
   string description = 5;
   repeated string attachments = 6;
+  string title = 7;
+  string email = 8;
 }
 
 message SubmitReportResponse {
@@ -136,6 +142,7 @@ message ListReportsRequest {
   string status = 2;
   int32 limit = 3;
   int32 offset = 4;
+  string category = 5;
 }
 
 message ListReportsResponse {
@@ -187,6 +194,7 @@ message AddReportCommentRequest {
   string reportId = 1;
   string userId = 2;
   string comment = 3;
+  bool isAdmin = 4;
 }
 
 message AddReportCommentResponse {
@@ -199,6 +207,7 @@ message ReportComment {
   string userId = 3;
   string comment = 4;
   int64 createdAt = 5;
+  bool isAdmin = 6;
 }
 
 message GetReportCommentsRequest {
@@ -616,16 +625,21 @@ message ListTagsResponse {
   repeated Tag tags = 1;
 }
 
-message SearchArticlesRequest {
-  string query = 1;
-  int32 limit = 2;
-  int32 offset = 3;
-  string status = 4;
+// GetArticlesByIds hydrates a list of article IDs (e.g. relevance-ordered IDs
+// from the search service) into full Article protos. Articles are returned in
+// the order of the requested IDs; unknown/deleted IDs are silently skipped.
+message GetArticlesByIdsRequest {
+  repeated string ids = 1;
 }
 
-message SearchArticlesResponse {
+message GetArticlesByIdsResponse {
   repeated Article articles = 1;
-  int32 totalCount = 2;
+}
+
+message GetFeaturedArticleRequest {}
+
+message GetFeaturedArticleResponse {
+  Article article = 1;
 }
 
 service Articles {
@@ -638,7 +652,8 @@ service Articles {
   rpc ShareArticle(ShareArticleRequest) returns (ShareArticleResponse);
   rpc GetAuthorArticles(GetAuthorArticlesRequest) returns (GetAuthorArticlesResponse);
   rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
-  rpc SearchArticles(SearchArticlesRequest) returns (SearchArticlesResponse);
+  rpc GetArticlesByIds(GetArticlesByIdsRequest) returns (GetArticlesByIdsResponse);
+  rpc GetFeaturedArticle(GetFeaturedArticleRequest) returns (GetFeaturedArticleResponse);
 }
 
 // Tags Service (admin tag management)
@@ -1419,5 +1434,125 @@ service BillingService {
   rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
   rpc CreateCustomerPortalSession(CreateCustomerPortalSessionRequest) returns (CreateCustomerPortalSessionResponse);
   rpc HandleStripeWebhook(HandleStripeWebhookRequest) returns (HandleStripeWebhookResponse);
+  // Admin: list every user's subscription plan code + status. Used by adminway
+  // to segment broadcast notifications into premium / free audiences.
+  rpc ListSubscriptionStatuses(ListSubscriptionStatusesRequest) returns (ListSubscriptionStatusesResponse);
+}
+
+message SubscriptionStatus {
+  string userId = 1;
+  string planCode = 2;
+  string status = 3;
+}
+
+message ListSubscriptionStatusesRequest {}
+
+message ListSubscriptionStatusesResponse {
+  repeated SubscriptionStatus statuses = 1;
+}
+
+// SiteSettings Service — admin-managed key/value store for site-wide config
+// (explore header, community card, tab order, etc.).
+message SiteSetting {
+  string key = 1;
+  bytes value = 2;  // raw JSONB payload
+  int64 createdAt = 3;
+  int64 updatedAt = 4;
+}
+
+message GetSiteSettingRequest {
+  string key = 1;
+}
+
+message GetSiteSettingResponse {
+  SiteSetting setting = 1;
+}
+
+message ListSiteSettingsRequest {
+  repeated string keys = 1;
+}
+
+message ListSiteSettingsResponse {
+  repeated SiteSetting settings = 1;
+}
+
+message ListAllSiteSettingsRequest {}
+
+message ListAllSiteSettingsResponse {
+  repeated SiteSetting settings = 1;
+}
+
+message UpsertSiteSettingRequest {
+  string key = 1;
+  bytes value = 2;
+}
+
+message UpsertSiteSettingResponse {
+  SiteSetting setting = 1;
+}
+
+message DeleteSiteSettingRequest {
+  string key = 1;
+}
+
+message DeleteSiteSettingResponse {
+  bool success = 1;
+}
+
+service SiteSettings {
+  rpc GetSiteSetting(GetSiteSettingRequest) returns (GetSiteSettingResponse);
+  rpc ListSiteSettings(ListSiteSettingsRequest) returns (ListSiteSettingsResponse);
+  rpc ListAllSiteSettings(ListAllSiteSettingsRequest) returns (ListAllSiteSettingsResponse);
+  rpc UpsertSiteSetting(UpsertSiteSettingRequest) returns (UpsertSiteSettingResponse);
+  rpc DeleteSiteSetting(DeleteSiteSettingRequest) returns (DeleteSiteSettingResponse);
+}
+
+// Habit & Goal Templates Service — admin-managed suggestion library shown on
+// the explore page. Only List RPCs are exposed to the gateway; CRUD is handled
+// by adminway via direct DB access (adminway has its own sqlc queries).
+message TemplateCategory {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+}
+
+message HabitTemplate {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  TemplateCategory category = 4;
+  int32 sortOrder = 5;
+  int64 createdAt = 6;
+  int64 updatedAt = 7;
+}
+
+message GoalTemplate {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  TemplateCategory category = 4;
+  int32 sortOrder = 5;
+  int64 createdAt = 6;
+  int64 updatedAt = 7;
+}
+
+message ListHabitTemplatesRequest {}
+
+message ListHabitTemplatesResponse {
+  repeated HabitTemplate templates = 1;
+}
+
+message ListGoalTemplatesRequest {}
+
+message ListGoalTemplatesResponse {
+  repeated GoalTemplate templates = 1;
+}
+
+service HabitTemplates {
+  rpc ListHabitTemplates(ListHabitTemplatesRequest) returns (ListHabitTemplatesResponse);
+}
+
+service GoalTemplates {
+  rpc ListGoalTemplates(ListGoalTemplatesRequest) returns (ListGoalTemplatesResponse);
 }
 

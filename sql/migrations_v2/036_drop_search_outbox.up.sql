@@ -32,7 +32,13 @@ BEGIN
 
     payload := json_build_object('e', TG_ARGV[0], 'id', row_id, 'op', op);
     PERFORM pg_notify('search_sync', payload::text);
-    RETURN row_id;  -- RETURN OLD or NEW depending on TG_OP; row_id is the same
+    -- A trigger function must return the row (OLD for DELETE, NEW for
+    -- INSERT/UPDATE), not the scalar id. Returning row_id (a uuid) raises
+    -- "cannot return non-composite value from function returning composite type".
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
+    RETURN NEW;
 END;
 $$;
 

@@ -181,6 +181,37 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (User,
 	return i, err
 }
 
+const listUserIds = `-- name: ListUserIds :many
+SELECT id FROM users
+WHERE id > $1
+ORDER BY id ASC
+LIMIT $2
+`
+
+// Cursor-paginated enumeration of all user ids (admin broadcast audience
+// resolution). ids are uuid v7 (time-ordered), so cursoring on id alone yields
+// stable ascending traversal. Pass uuid.Nil ('000...0') for the first page;
+// every real uuid v7 is greater than uuid.Nil.
+func (q *Queries) ListUserIds(ctx context.Context, iD uuid.UUID, limit int32) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listUserIds, iD, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setEmailVerified = `-- name: SetEmailVerified :one
 UPDATE users
 SET email_verified = true

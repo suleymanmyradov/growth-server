@@ -115,6 +115,26 @@ FROM articles a
 LEFT JOIN categories c ON a.category_id = c.id
 WHERE a.title = $1;
 
+-- name: GetFeaturedArticle :one
+-- Returns the most "popular" published article from the last 30 days, scored
+-- by a weighted sum of likes (x3), saves (x2) and shares (x1). Falls back to
+-- most recent when engagement counts tie or are all zero.
+SELECT
+    a.id, a.title, a.excerpt, a.content, a.read_time_minutes AS read_time, a.image_url, a.author,
+    a.published_at, a.created_at, a.updated_at, a.status,
+    c.id AS category_id, c.name AS category_name, c.slug AS category_slug,
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) AS like_count
+FROM articles a
+LEFT JOIN categories c ON a.category_id = c.id
+WHERE a.status = 'published'
+  AND a.published_at >= now() - interval '30 days'
+ORDER BY (
+    (SELECT COUNT(*) FROM article_likes al WHERE al.article_id = a.id) * 3
+    + (SELECT COUNT(*) FROM saved_articles sa WHERE sa.article_id = a.id) * 2
+    + (SELECT COUNT(*) FROM article_shares ash WHERE ash.article_id = a.id)
+) DESC, a.published_at DESC
+LIMIT 1;
+
 -- name: CreateArticle :one
 INSERT INTO articles (title, excerpt, content, category_id, read_time_minutes, image_url, author, status)
 VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.arg(status))

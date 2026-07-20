@@ -1310,6 +1310,112 @@ func (x *DeleteUserRequest) GetUserId() string {
 	return ""
 }
 
+// ListUserIdsRequest is used by admin tooling (e.g. broadcast notifications) to
+// enumerate every user id. Pagination is cursor-based on created_at + id.
+type ListUserIdsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Limit         int32                  `protobuf:"varint,1,opt,name=limit,proto3" json:"limit,omitempty"`  // page size, capped server-side
+	Cursor        string                 `protobuf:"bytes,2,opt,name=cursor,proto3" json:"cursor,omitempty"` // opaque cursor (empty = first page)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserIdsRequest) Reset() {
+	*x = ListUserIdsRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserIdsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserIdsRequest) ProtoMessage() {}
+
+func (x *ListUserIdsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserIdsRequest.ProtoReflect.Descriptor instead.
+func (*ListUserIdsRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ListUserIdsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListUserIdsRequest) GetCursor() string {
+	if x != nil {
+		return x.Cursor
+	}
+	return ""
+}
+
+type ListUserIdsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserIds       []string               `protobuf:"bytes,1,rep,name=user_ids,json=userIds,proto3" json:"user_ids,omitempty"`
+	NextCursor    string                 `protobuf:"bytes,2,opt,name=next_cursor,json=nextCursor,proto3" json:"next_cursor,omitempty"` // empty when no more pages
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUserIdsResponse) Reset() {
+	*x = ListUserIdsResponse{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUserIdsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUserIdsResponse) ProtoMessage() {}
+
+func (x *ListUserIdsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUserIdsResponse.ProtoReflect.Descriptor instead.
+func (*ListUserIdsResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ListUserIdsResponse) GetUserIds() []string {
+	if x != nil {
+		return x.UserIds
+	}
+	return nil
+}
+
+func (x *ListUserIdsResponse) GetNextCursor() string {
+	if x != nil {
+		return x.NextCursor
+	}
+	return ""
+}
+
 var File_services_microservices_auth_api_v1_auth_proto protoreflect.FileDescriptor
 
 const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
@@ -1405,7 +1511,14 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\"\x0f\n" +
 	"\rEmptyResponse\",\n" +
 	"\x11DeleteUserRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId2\xde\a\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\"B\n" +
+	"\x12ListUserIdsRequest\x12\x14\n" +
+	"\x05limit\x18\x01 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06cursor\x18\x02 \x01(\tR\x06cursor\"Q\n" +
+	"\x13ListUserIdsResponse\x12\x19\n" +
+	"\buser_ids\x18\x01 \x03(\tR\auserIds\x12\x1f\n" +
+	"\vnext_cursor\x18\x02 \x01(\tR\n" +
+	"nextCursor2\xa2\b\n" +
 	"\vAuthService\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12/\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x12.auth.AuthResponse\x128\n" +
@@ -1423,7 +1536,8 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\rResetPassword\x12\x1a.auth.ResetPasswordRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
 	"\vVerifyEmail\x12\x18.auth.VerifyEmailRequest\x1a\x12.auth.AuthResponse\x12J\n" +
 	"\x12ResendVerification\x12\x1f.auth.ResendVerificationRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
-	"\vGoogleLogin\x12\x18.auth.GoogleLoginRequest\x1a\x12.auth.AuthResponseB\bZ\x06./authb\x06proto3"
+	"\vGoogleLogin\x12\x18.auth.GoogleLoginRequest\x1a\x12.auth.AuthResponse\x12B\n" +
+	"\vListUserIds\x12\x18.auth.ListUserIdsRequest\x1a\x19.auth.ListUserIdsResponseB\bZ\x06./authb\x06proto3"
 
 var (
 	file_services_microservices_auth_api_v1_auth_proto_rawDescOnce sync.Once
@@ -1437,7 +1551,7 @@ func file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP() []byte {
 	return file_services_microservices_auth_api_v1_auth_proto_rawDescData
 }
 
-var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),           // 0: auth.RegisterRequest
 	(*LoginRequest)(nil),              // 1: auth.LoginRequest
@@ -1462,6 +1576,8 @@ var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*GoogleLoginRequest)(nil),        // 20: auth.GoogleLoginRequest
 	(*EmptyResponse)(nil),             // 21: auth.EmptyResponse
 	(*DeleteUserRequest)(nil),         // 22: auth.DeleteUserRequest
+	(*ListUserIdsRequest)(nil),        // 23: auth.ListUserIdsRequest
+	(*ListUserIdsResponse)(nil),       // 24: auth.ListUserIdsResponse
 }
 var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.AuthResponse.user:type_name -> auth.User
@@ -1482,23 +1598,25 @@ var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	18, // 15: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
 	19, // 16: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
 	20, // 17: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
-	17, // 18: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	2,  // 19: auth.AuthService.Login:output_type -> auth.AuthResponse
-	2,  // 20: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
-	21, // 21: auth.AuthService.Logout:output_type -> auth.EmptyResponse
-	7,  // 22: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
-	9,  // 23: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
-	11, // 24: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
-	13, // 25: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
-	21, // 26: auth.AuthService.DeleteUser:output_type -> auth.EmptyResponse
-	21, // 27: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
-	21, // 28: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
-	21, // 29: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
-	2,  // 30: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
-	21, // 31: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
-	2,  // 32: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
-	18, // [18:33] is the sub-list for method output_type
-	3,  // [3:18] is the sub-list for method input_type
+	23, // 18: auth.AuthService.ListUserIds:input_type -> auth.ListUserIdsRequest
+	17, // 19: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	2,  // 20: auth.AuthService.Login:output_type -> auth.AuthResponse
+	2,  // 21: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
+	21, // 22: auth.AuthService.Logout:output_type -> auth.EmptyResponse
+	7,  // 23: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
+	9,  // 24: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
+	11, // 25: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
+	13, // 26: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
+	21, // 27: auth.AuthService.DeleteUser:output_type -> auth.EmptyResponse
+	21, // 28: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
+	21, // 29: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
+	21, // 30: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
+	2,  // 31: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
+	21, // 32: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
+	2,  // 33: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
+	24, // 34: auth.AuthService.ListUserIds:output_type -> auth.ListUserIdsResponse
+	19, // [19:35] is the sub-list for method output_type
+	3,  // [3:19] is the sub-list for method input_type
 	3,  // [3:3] is the sub-list for extension type_name
 	3,  // [3:3] is the sub-list for extension extendee
 	0,  // [0:3] is the sub-list for field type_name
@@ -1515,7 +1633,7 @@ func file_services_microservices_auth_api_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_auth_api_v1_auth_proto_rawDesc), len(file_services_microservices_auth_api_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

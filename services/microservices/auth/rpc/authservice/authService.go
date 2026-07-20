@@ -22,6 +22,8 @@ type (
 	GetProfileRequest         = auth.GetProfileRequest
 	GetProfileResponse        = auth.GetProfileResponse
 	GoogleLoginRequest        = auth.GoogleLoginRequest
+	ListUserIdsRequest        = auth.ListUserIdsRequest
+	ListUserIdsResponse       = auth.ListUserIdsResponse
 	LoginRequest              = auth.LoginRequest
 	LogoutRequest             = auth.LogoutRequest
 	RefreshRequest            = auth.RefreshRequest
@@ -60,6 +62,8 @@ type (
 		ResendVerification(ctx context.Context, in *ResendVerificationRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		// OAuth
 		GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+		// Admin / internal: enumerate user ids (used by adminway for broadcasts).
+		ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error)
 	}
 
 	defaultAuthService struct {
@@ -152,4 +156,10 @@ func (m *defaultAuthService) ResendVerification(ctx context.Context, in *ResendV
 func (m *defaultAuthService) GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
 	client := auth.NewAuthServiceClient(m.cli.Conn())
 	return client.GoogleLogin(ctx, in, opts...)
+}
+
+// Admin / internal: enumerate user ids (used by adminway for broadcasts).
+func (m *defaultAuthService) ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error) {
+	client := auth.NewAuthServiceClient(m.cli.Conn())
+	return client.ListUserIds(ctx, in, opts...)
 }

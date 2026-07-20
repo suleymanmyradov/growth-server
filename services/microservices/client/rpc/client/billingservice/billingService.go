@@ -22,6 +22,8 @@ type (
 	GetBillingOverviewResponse          = client.GetBillingOverviewResponse
 	HandleStripeWebhookRequest          = client.HandleStripeWebhookRequest
 	HandleStripeWebhookResponse         = client.HandleStripeWebhookResponse
+	ListSubscriptionStatusesRequest     = client.ListSubscriptionStatusesRequest
+	ListSubscriptionStatusesResponse    = client.ListSubscriptionStatusesResponse
 	TrackUpgradeEventRequest            = client.TrackUpgradeEventRequest
 	TrackUpgradeEventResponse           = client.TrackUpgradeEventResponse
 
@@ -31,6 +33,8 @@ type (
 		CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
 		CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
 		HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
+		// Admin: list every user's subscription plan code + status. Used by adminway
+		ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
 	}
 
 	defaultBillingService struct {
@@ -67,4 +71,10 @@ func (m *defaultBillingService) CreateCustomerPortalSession(ctx context.Context,
 func (m *defaultBillingService) HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error) {
 	client := client.NewBillingServiceClient(m.cli.Conn())
 	return client.HandleStripeWebhook(ctx, in, opts...)
+}
+
+// Admin: list every user's subscription plan code + status. Used by adminway
+func (m *defaultBillingService) ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error) {
+	client := client.NewBillingServiceClient(m.cli.Conn())
+	return client.ListSubscriptionStatuses(ctx, in, opts...)
 }

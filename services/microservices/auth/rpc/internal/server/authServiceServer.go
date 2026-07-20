@@ -103,3 +103,9 @@ func (s *AuthServiceServer) GoogleLogin(ctx context.Context, in *auth.GoogleLogi
 	l := logic.NewGoogleLoginLogic(ctx, s.svcCtx)
 	return l.GoogleLogin(in)
 }
+
+// Admin / internal: enumerate user ids (used by adminway for broadcasts).
+func (s *AuthServiceServer) ListUserIds(ctx context.Context, in *auth.ListUserIdsRequest) (*auth.ListUserIdsResponse, error) {
+	l := logic.NewListUserIdsLogic(ctx, s.svcCtx)
+	return l.ListUserIds(in)
+}

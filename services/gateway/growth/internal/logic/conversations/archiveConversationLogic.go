@@ -43,14 +43,14 @@ func (l *ArchiveConversationLogic) ArchiveConversation(req *types.ConversationRe
 
 	return &types.GetConversationResponse{
 		Data: types.Conversation{
-			Id:          rpcResp.Conversation.Id,
-			Title:       rpcResp.Conversation.Title,
-			Type:        rpcResp.Conversation.Type,
-			LastMessage: rpcResp.Conversation.LastMessage,
-			UserId:      rpcResp.Conversation.UserId,
-			Archived:    rpcResp.Conversation.Archived,
-			CreatedAt:   formatTime(rpcResp.Conversation.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Conversation.UpdatedAt),
+			Id:               rpcResp.Conversation.Id,
+			Title:            rpcResp.Conversation.Title,
+			ConversationType: rpcResp.Conversation.Type,
+			LastMessage:      rpcResp.Conversation.LastMessage,
+			UserId:           rpcResp.Conversation.UserId,
+			Archived:         rpcResp.Conversation.Archived,
+			CreatedAt:        formatTime(rpcResp.Conversation.CreatedAt),
+			UpdatedAt:        formatTime(rpcResp.Conversation.UpdatedAt),
 		},
 	}, nil
 }

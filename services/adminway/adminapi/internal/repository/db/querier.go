@@ -11,6 +11,16 @@ import (
 )
 
 type Querier interface {
+	AdminCreateGoalTemplate(ctx context.Context, arg AdminCreateGoalTemplateParams) (GoalTemplate, error)
+	AdminCreateHabitTemplate(ctx context.Context, arg AdminCreateHabitTemplateParams) (HabitTemplate, error)
+	AdminDeleteGoalTemplate(ctx context.Context, id uuid.UUID) error
+	AdminDeleteHabitTemplate(ctx context.Context, id uuid.UUID) error
+	AdminGetGoalTemplate(ctx context.Context, id uuid.UUID) (AdminGetGoalTemplateRow, error)
+	AdminGetHabitTemplate(ctx context.Context, id uuid.UUID) (AdminGetHabitTemplateRow, error)
+	AdminListGoalTemplates(ctx context.Context) ([]AdminListGoalTemplatesRow, error)
+	AdminListHabitTemplates(ctx context.Context) ([]AdminListHabitTemplatesRow, error)
+	AdminUpdateGoalTemplate(ctx context.Context, arg AdminUpdateGoalTemplateParams) (GoalTemplate, error)
+	AdminUpdateHabitTemplate(ctx context.Context, arg AdminUpdateHabitTemplateParams) (HabitTemplate, error)
 	CreateInternalUser(ctx context.Context, email string, passwordHash string, fullName string, role string) (InternalUser, error)
 	GetInternalUserByEmail(ctx context.Context, email string) (InternalUser, error)
 	GetInternalUserByID(ctx context.Context, id uuid.UUID) (InternalUser, error)

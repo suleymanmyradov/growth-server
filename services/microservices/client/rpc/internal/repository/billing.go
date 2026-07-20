@@ -39,6 +39,13 @@ func (r *billingRepo) ListActivePlans(ctx context.Context) ([]db.Plan, error) {
 	return r.db.ListActivePlans(ctx)
 }
 
+func (r *billingRepo) ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.ListSubscriptionStatuses")
+	defer span.End()
+
+	return r.db.ListSubscriptionStatuses(ctx)
+}
+
 func (r *billingRepo) GetPlanByCode(ctx context.Context, code string) (db.Plan, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetPlanByCode")
 	defer span.End()

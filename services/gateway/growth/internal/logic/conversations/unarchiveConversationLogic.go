@@ -45,7 +45,7 @@ func (l *UnarchiveConversationLogic) UnarchiveConversation(req *types.Conversati
 		Data: types.Conversation{
 			Id:          rpcResp.Conversation.Id,
 			Title:       rpcResp.Conversation.Title,
-			Type:        rpcResp.Conversation.Type,
+			ConversationType: rpcResp.Conversation.Type,
 			LastMessage: rpcResp.Conversation.LastMessage,
 			UserId:      rpcResp.Conversation.UserId,
 			Archived:    rpcResp.Conversation.Archived,

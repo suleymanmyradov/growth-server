@@ -68,7 +68,12 @@ func (s *ArticlesServer) ListTags(ctx context.Context, in *client.ListTagsReques
 	return l.ListTags(in)
 }
 
-func (s *ArticlesServer) SearchArticles(ctx context.Context, in *client.SearchArticlesRequest) (*client.SearchArticlesResponse, error) {
-	l := articleslogic.NewSearchArticlesLogic(ctx, s.svcCtx)
-	return l.SearchArticles(in)
+func (s *ArticlesServer) GetArticlesByIds(ctx context.Context, in *client.GetArticlesByIdsRequest) (*client.GetArticlesByIdsResponse, error) {
+	l := articleslogic.NewGetArticlesByIdsLogic(ctx, s.svcCtx)
+	return l.GetArticlesByIds(in)
+}
+
+func (s *ArticlesServer) GetFeaturedArticle(ctx context.Context, in *client.GetFeaturedArticleRequest) (*client.GetFeaturedArticleResponse, error) {
+	l := articleslogic.NewGetFeaturedArticleLogic(ctx, s.svcCtx)
+	return l.GetFeaturedArticle(in)
 }

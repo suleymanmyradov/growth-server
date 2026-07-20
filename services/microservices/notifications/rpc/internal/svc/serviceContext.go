@@ -64,20 +64,29 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil)
 	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil)
 
+	// Consumers/Processors must be set explicitly: their `default=8` tags only
+	// apply when the KqConf is loaded via conf.Load, not for struct literals.
+	// With zero values kq starts no goroutines and the consumer exits immediately.
 	eventsQ := kq.MustNewQueue(
 		kq.KqConf{
-			Brokers: c.Kafka.Brokers,
-			Group:   c.Kafka.ConsumerGroup + ".events",
-			Topic:   c.Kafka.EventsTopic,
+			Brokers:    c.Kafka.Brokers,
+			Group:      c.Kafka.ConsumerGroup + ".events",
+			Topic:      c.Kafka.EventsTopic,
+			Offset:     "first",
+			Consumers:  8,
+			Processors: 8,
 		},
 		kq.WithHandle(eventsHandler.Consume),
 	)
 
 	reminderDueQ := kq.MustNewQueue(
 		kq.KqConf{
-			Brokers: c.Kafka.Brokers,
-			Group:   c.Kafka.ConsumerGroup + ".reminders",
-			Topic:   c.Kafka.ReminderDueTopic,
+			Brokers:    c.Kafka.Brokers,
+			Group:      c.Kafka.ConsumerGroup + ".reminders",
+			Topic:      c.Kafka.ReminderDueTopic,
+			Offset:     "first",
+			Consumers:  8,
+			Processors: 8,
 		},
 		kq.WithHandle(reminderDueHandler.Consume),
 	)

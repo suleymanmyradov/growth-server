@@ -24,13 +24,19 @@ func NewGetReportCategoriesLogic(ctx context.Context, svcCtx *svc.ServiceContext
 	}
 }
 
-func (l *GetReportCategoriesLogic) GetReportCategories(in *client.GetReportCategoriesRequest) (*client.GetReportCategoriesResponse, error) {
-	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetReportCategoriesLogic.GetReportCategories")
+// reportCategories is the fixed set of report categories. The frontend maps
+// its UI labels onto these slugs (bug, feedback, abuse).
+var reportCategories = []*client.ReportCategory{
+	{Id: "bug", Name: "Bug", Description: "Something isn't working as expected"},
+	{Id: "feedback", Name: "Feedback", Description: "A suggestion or idea to improve the app"},
+	{Id: "abuse", Name: "Abuse / Spam", Description: "Inappropriate or abusive content"},
+}
+
+func (l *GetReportCategoriesLogic) GetReportCategories(_ *client.GetReportCategoriesRequest) (*client.GetReportCategoriesResponse, error) {
+	_, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GetReportCategoriesLogic.GetReportCategories")
 	defer span.End()
 
-	logx.WithContext(ctx).Infof("Getting report categories")
-
 	return &client.GetReportCategoriesResponse{
-		Categories: []*client.ReportCategory{},
+		Categories: reportCategories,
 	}, nil
 }
