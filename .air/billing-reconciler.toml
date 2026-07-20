@@ -1,0 +1,22 @@
+root = "."
+tmp_dir = "tmp/air-billing-reconciler"
+
+# NOTE: billing-reconciler is a one-shot CLI (calls os.Exit(0)), not a
+# long-running service. It is intentionally excluded from `make dev-all` /
+# the tmux session. Run `make dev-billing-reconciler` ad-hoc to re-run it
+# on every save while you iterate on reconciliation logic.
+[build]
+cmd = "go build -o ./bin/billing-reconciler ./services/microservices/billing-reconciler"
+entrypoint = ["./bin/billing-reconciler", "-f", "services/microservices/billing-reconciler/etc/billing-reconciler.yaml"]
+include_ext = ["go", "yaml", "yml", "tpl", "tmpl", "html"]
+include_dir = ["services/microservices/billing-reconciler", "pkg"]
+exclude_dir = ["tmp", "bin", "logs", "deploy", "docs", "sql", "scripts", "vendor", "testdata", "node_modules"]
+exclude_regex = ["_test\\.go"]
+delay = 1000
+stop_on_error = true
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true

@@ -1,0 +1,18 @@
+root = "."
+tmp_dir = "tmp/air-ai-coach"
+
+[build]
+cmd = "go build -o ./bin/ai-coach ./services/microservices/ai-coach/rpc"
+entrypoint = ["./bin/ai-coach", "-f", "services/microservices/ai-coach/rpc/etc/aicoach.yaml"]
+include_ext = ["go", "yaml", "yml", "tpl", "tmpl", "html"]
+include_dir = ["services/microservices/ai-coach", "pkg"]
+exclude_dir = ["tmp", "bin", "logs", "deploy", "docs", "sql", "scripts", "vendor", "testdata", "node_modules"]
+exclude_regex = ["_test\\.go"]
+delay = 1000
+stop_on_error = true
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
