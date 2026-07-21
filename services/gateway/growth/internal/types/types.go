@@ -464,6 +464,17 @@ type Notification struct {
 	CreatedAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
 }
 
+type NotificationPreferences struct {
+	EmailEnabled          bool `json:"emailEnabled,example=false"`
+	PushEnabled           bool `json:"pushEnabled,example=false"`
+	HabitRemindersEnabled bool `json:"habitRemindersEnabled,example=true"`
+	GoalRemindersEnabled  bool `json:"goalRemindersEnabled,example=false"`
+}
+
+type NotificationPreferencesResponse struct {
+	Preferences NotificationPreferences `json:"preferences"`
+}
+
 type NotificationRequest struct {
 	Id string `path:"id"`
 }
@@ -738,6 +749,10 @@ type TrackUpgradeEventResponse struct {
 	EventId string `json:"eventId,example=event-123"`
 }
 
+type UnreadNotificationCountResponse struct {
+	Count int32 `json:"count"`
+}
+
 type UpdateArticleRequest struct {
 	Id         string   `path:"id"`
 	Title      string   `json:"title,optional"`
@@ -770,6 +785,10 @@ type UpdateHabitRequest struct {
 	Name        string `json:"name,optional"`
 	Description string `json:"description,optional"`
 	Category    string `json:"category,optional"`
+}
+
+type UpdateNotificationPreferencesRequest struct {
+	Preferences NotificationPreferences `json:"preferences"`
 }
 
 type UpdatePlanAdjustmentSuggestionStatusRequest struct {

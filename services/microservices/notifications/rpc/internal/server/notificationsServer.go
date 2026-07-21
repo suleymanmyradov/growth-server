@@ -57,3 +57,13 @@ func (s *NotificationsServer) GetUnreadCount(ctx context.Context, in *notificati
 	l := logic.NewGetUnreadCountLogic(ctx, s.svcCtx)
 	return l.GetUnreadCount(in)
 }
+
+func (s *NotificationsServer) GetNotificationPreferences(ctx context.Context, in *notifications.GetNotificationPreferencesRequest) (*notifications.GetNotificationPreferencesResponse, error) {
+	l := logic.NewGetNotificationPreferencesLogic(ctx, s.svcCtx)
+	return l.GetNotificationPreferences(in)
+}
+
+func (s *NotificationsServer) UpdateNotificationPreferences(ctx context.Context, in *notifications.UpdateNotificationPreferencesRequest) (*notifications.UpdateNotificationPreferencesResponse, error) {
+	l := logic.NewUpdateNotificationPreferencesLogic(ctx, s.svcCtx)
+	return l.UpdateNotificationPreferences(in)
+}

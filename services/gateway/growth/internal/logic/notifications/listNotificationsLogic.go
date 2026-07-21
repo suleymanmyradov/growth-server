@@ -5,7 +5,7 @@ package notifications
 
 import (
 	"context"
-	"strconv"
+	"time"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -52,7 +52,7 @@ func (l *ListNotificationsLogic) ListNotifications(req *types.PageRequest) (resp
 			ItemType:  n.Type,
 			Read:      n.Read,
 			UserId:    n.UserId,
-			CreatedAt: strconv.FormatInt(n.CreatedAt, 10),
+			CreatedAt: time.Unix(n.CreatedAt, 0).UTC().Format(time.RFC3339),
 		})
 	}
 

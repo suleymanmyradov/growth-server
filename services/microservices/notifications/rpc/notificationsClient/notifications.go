@@ -22,8 +22,6 @@ type (
 	GetNotificationPreferencesResponse    = notifications.GetNotificationPreferencesResponse
 	GetNotificationRequest                = notifications.GetNotificationRequest
 	GetNotificationResponse               = notifications.GetNotificationResponse
-	GetNotificationTypesRequest           = notifications.GetNotificationTypesRequest
-	GetNotificationTypesResponse          = notifications.GetNotificationTypesResponse
 	GetUnreadCountRequest                 = notifications.GetUnreadCountRequest
 	GetUnreadCountResponse                = notifications.GetUnreadCountResponse
 	ListNotificationsRequest              = notifications.ListNotificationsRequest
@@ -33,8 +31,7 @@ type (
 	MarkNotificationReadRequest           = notifications.MarkNotificationReadRequest
 	MarkNotificationReadResponse          = notifications.MarkNotificationReadResponse
 	Notification                          = notifications.Notification
-	NotificationPreference                = notifications.NotificationPreference
-	NotificationType                      = notifications.NotificationType
+	NotificationPreferences               = notifications.NotificationPreferences
 	UpdateNotificationPreferencesRequest  = notifications.UpdateNotificationPreferencesRequest
 	UpdateNotificationPreferencesResponse = notifications.UpdateNotificationPreferencesResponse
 
@@ -48,7 +45,6 @@ type (
 		GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 		GetNotificationPreferences(ctx context.Context, in *GetNotificationPreferencesRequest, opts ...grpc.CallOption) (*GetNotificationPreferencesResponse, error)
 		UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error)
-		GetNotificationTypes(ctx context.Context, in *GetNotificationTypesRequest, opts ...grpc.CallOption) (*GetNotificationTypesResponse, error)
 	}
 
 	defaultNotifications struct {
@@ -105,9 +101,4 @@ func (m *defaultNotifications) GetNotificationPreferences(ctx context.Context, i
 func (m *defaultNotifications) UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error) {
 	client := notifications.NewNotificationsClient(m.cli.Conn())
 	return client.UpdateNotificationPreferences(ctx, in, opts...)
-}
-
-func (m *defaultNotifications) GetNotificationTypes(ctx context.Context, in *GetNotificationTypesRequest, opts ...grpc.CallOption) (*GetNotificationTypesResponse, error) {
-	client := notifications.NewNotificationsClient(m.cli.Conn())
-	return client.GetNotificationTypes(ctx, in, opts...)
 }

@@ -130,10 +130,9 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer cancel()
 				env, err := events.NewEnvelope(events.TypeSettingsChanged, events.SettingsChanged{
-					UserID:         userID.String(),
-					Timezone:       in.Settings.Timezone,
-					CheckInTime:    in.Settings.CheckInTime,
-					HabitReminders: true,
+					UserID:      userID.String(),
+					Timezone:    in.Settings.Timezone,
+					CheckInTime: in.Settings.CheckInTime,
 				})
 				if err != nil {
 					logx.Errorf("envelope: %v", err)

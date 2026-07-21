@@ -381,6 +381,28 @@ type (
 	NotificationRequest {
 		id string `path:"id"`
 	}
+
+	UnreadNotificationCountResponse {
+		count int32 `json:"count"`
+	}
+)
+
+// Notification preference types
+type (
+	NotificationPreferences {
+		emailEnabled          bool `json:"emailEnabled,example=false"`
+		pushEnabled           bool `json:"pushEnabled,example=false"`
+		habitRemindersEnabled bool `json:"habitRemindersEnabled,example=true"`
+		goalRemindersEnabled  bool `json:"goalRemindersEnabled,example=false"`
+	}
+
+	NotificationPreferencesResponse {
+		preferences NotificationPreferences `json:"preferences"`
+	}
+
+	UpdateNotificationPreferencesRequest {
+		preferences NotificationPreferences `json:"preferences"`
+	}
 )
 
 // Activity types

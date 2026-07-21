@@ -12,6 +12,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelPendingByType = `-- name: CancelPendingByType :execrows
+DELETE FROM reminders
+WHERE user_id = $1
+  AND type = $2
+  AND sent_at IS NULL
+`
+
+// Cancel all unsent reminders of a given type for a user. Used when the user
+// disables a notification preference (e.g. habit reminders) so no further
+// reminders of that type fire until re-enabled.
+func (q *Queries) CancelPendingByType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error) {
+	result, err := q.db.Exec(ctx, cancelPendingByType, userID, type_)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const cancelPendingReminderForDate = `-- name: CancelPendingReminderForDate :exec
 DELETE FROM reminders
 WHERE user_id = $1
@@ -33,26 +51,44 @@ func (q *Queries) CancelPendingReminderForDate(ctx context.Context, userID uuid.
 const claimDueReminders = `-- name: ClaimDueReminders :many
 WITH due AS (
     SELECT id FROM reminders
-    WHERE sent_at IS NULL AND scheduled_at <= now()
+    WHERE sent_at IS NULL
+      AND claimed_at IS NULL
+      AND scheduled_at <= now()
     ORDER BY scheduled_at
     LIMIT $1
     FOR UPDATE SKIP LOCKED
 )
-UPDATE reminders r SET sent_at = now()
+UPDATE reminders r SET claimed_at = now()
 FROM due
 WHERE r.id = due.id
 RETURNING r.id, r.user_id, r.type, r.scheduled_at, r.sent_at, r.metadata, r.created_at
 `
 
-func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error) {
+type ClaimDueRemindersRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+// Claim due, unclaimed, unsent reminders by setting claimed_at (a lease).
+// Does NOT set sent_at — that happens only after successful Kafka publish
+// via MarkReminderSent. Stale claims (claimed_at older than the lease window)
+// are released by ReleaseStaleClaims so a crashed scheduler does not lose
+// reminders. Uses FOR UPDATE SKIP LOCKED so multiple instances don't claim
+// the same rows.
+func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]ClaimDueRemindersRow, error) {
 	rows, err := q.db.Query(ctx, claimDueReminders, limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Reminder{}
+	items := []ClaimDueRemindersRow{}
 	for rows.Next() {
-		var i Reminder
+		var i ClaimDueRemindersRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -82,15 +118,25 @@ DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
 RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
 `
 
+type EnqueueReminderRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 // Reminders: sent_at IS NULL means pending.
-func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (Reminder, error) {
+func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error) {
 	row := q.db.QueryRow(ctx, enqueueReminder,
 		userID,
 		type_,
 		scheduledAt,
 		metadata,
 	)
-	var i Reminder
+	var i EnqueueReminderRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -110,15 +156,25 @@ WHERE user_id = $1 AND sent_at IS NULL
 ORDER BY scheduled_at
 `
 
-func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Reminder, error) {
+type GetPendingByUserRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]GetPendingByUserRow, error) {
 	rows, err := q.db.Query(ctx, getPendingByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Reminder{}
+	items := []GetPendingByUserRow{}
 	for rows.Next() {
-		var i Reminder
+		var i GetPendingByUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
@@ -145,9 +201,19 @@ WHERE id = $1
 RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
 `
 
-func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error) {
+type MarkReminderSentRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (MarkReminderSentRow, error) {
 	row := q.db.QueryRow(ctx, markReminderSent, id)
-	var i Reminder
+	var i MarkReminderSentRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
@@ -158,4 +224,24 @@ func (q *Queries) MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder,
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const releaseStaleClaims = `-- name: ReleaseStaleClaims :execrows
+UPDATE reminders
+SET claimed_at = NULL
+WHERE sent_at IS NULL
+  AND claimed_at IS NOT NULL
+  AND claimed_at < now() - ($1::int * interval '1 minute')
+`
+
+// Release claims older than the lease window (minutes) so they can be
+// re-claimed by the next tick. This handles scheduler crashes: a reminder
+// that was claimed but never acked (sent_at still NULL) becomes claimable
+// again after the lease expires.
+func (q *Queries) ReleaseStaleClaims(ctx context.Context, dollar_1 int32) (int64, error) {
+	result, err := q.db.Exec(ctx, releaseStaleClaims, dollar_1)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

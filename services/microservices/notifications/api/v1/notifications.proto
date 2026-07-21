@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package notifications;
 
-option go_package = "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications";
+option go_package = "./notifications";
 
 // Notification model
 message Notification {
@@ -74,6 +74,30 @@ message GetUnreadCountResponse {
   int32 count = 1;
 }
 
+// NotificationPreferences owns the per-user notification delivery flags.
+// Owned exclusively by the notifications service. The user is derived from
+// the authenticated principal in the RPC context, not from a request field.
+message NotificationPreferences {
+  bool emailEnabled = 1;
+  bool pushEnabled = 2;
+  bool habitRemindersEnabled = 3;
+  bool goalRemindersEnabled = 4;
+}
+
+message GetNotificationPreferencesRequest {}
+
+message GetNotificationPreferencesResponse {
+  NotificationPreferences preferences = 1;
+}
+
+message UpdateNotificationPreferencesRequest {
+  NotificationPreferences preferences = 1;
+}
+
+message UpdateNotificationPreferencesResponse {
+  NotificationPreferences preferences = 1;
+}
+
 service Notifications {
   rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
@@ -82,4 +106,6 @@ service Notifications {
   rpc MarkAllNotificationsRead(MarkAllNotificationsReadRequest) returns (MarkAllNotificationsReadResponse);
   rpc DeleteNotification(DeleteNotificationRequest) returns (DeleteNotificationResponse);
   rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
+  rpc GetNotificationPreferences(GetNotificationPreferencesRequest) returns (GetNotificationPreferencesResponse);
+  rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest) returns (UpdateNotificationPreferencesResponse);
 }
