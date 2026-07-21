@@ -288,7 +288,7 @@ generate-search-proto:
 	goctl rpc protoc ./services/microservices/search/api/v1/search.proto --go_out=./services/microservices/search/rpc/pb --go-grpc_out=./services/microservices/search/rpc/pb --zrpc_out=./services/microservices/search/rpc --style goZero
 generate-notification-proto:
 	@echo "Generating notifications proto..."
-	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc -m --style goZero
+	goctl rpc protoc ./services/microservices/notifications/api/v1/notifications.proto --go_out=./services/microservices/notifications/rpc/pb --go-grpc_out=./services/microservices/notifications/rpc/pb --zrpc_out=./services/microservices/notifications/rpc --style goZero
 generate-ai-coach-proto:
 	@echo "Generating ai-coach proto..."
 	goctl rpc protoc ./services/microservices/ai-coach/api/v1/ai-coach.proto --go_out=./services/microservices/ai-coach/rpc/pb --go-grpc_out=./services/microservices/ai-coach/rpc/pb --zrpc_out=./services/microservices/ai-coach/rpc -m --style goZero

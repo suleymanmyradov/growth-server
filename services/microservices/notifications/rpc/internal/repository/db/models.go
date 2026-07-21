@@ -250,6 +250,7 @@ type Reminder struct {
 	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ClaimedAt   pgtype.Timestamptz `db:"claimed_at" json:"claimed_at"`
 }
 
 type ReminderState struct {

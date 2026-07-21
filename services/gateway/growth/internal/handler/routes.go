@@ -406,6 +406,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodGet,
+					Path:    "/notification-preferences",
+					Handler: notifications.GetNotificationPreferencesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/notification-preferences",
+					Handler: notifications.UpdateNotificationPreferencesHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
 					Path:    "/notifications",
 					Handler: notifications.ListNotificationsHandler(serverCtx),
 				},
@@ -418,6 +428,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPut,
 					Path:    "/notifications/read-all",
 					Handler: notifications.MarkAllNotificationsReadHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/notifications/unread-count",
+					Handler: notifications.GetUnreadNotificationCountHandler(serverCtx),
 				},
 			}...,
 		),

@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
@@ -17,29 +19,59 @@ import (
 // ReminderDueHandler consumes events from the growth.reminder.due topic and
 // materializes notification rows, then enqueues follow-up reminders.
 type ReminderDueHandler struct {
-	repo  *repository.Repository
-	clock Clock
+	repo     *repository.Repository
+	clock    Clock
+	txRunner *postgres.PgxTxRunner
+	dlq      DLQPublisher
 }
 
-// NewReminderDueHandler creates a handler with the given dependencies.
-func NewReminderDueHandler(repo *repository.Repository, clock Clock) *ReminderDueHandler {
+// NewReminderDueHandler creates a handler with the given dependencies. If
+// txRunner is nil, the handler+mark pair runs without a transaction. If dlq
+// is nil, poison messages are logged and dropped instead of being routed to
+// a dead-letter topic.
+func NewReminderDueHandler(repo *repository.Repository, clock Clock, txRunner *postgres.PgxTxRunner, dlq DLQPublisher) *ReminderDueHandler {
 	if clock == nil {
 		clock = realClock{}
 	}
-	return &ReminderDueHandler{repo: repo, clock: clock}
+	return &ReminderDueHandler{repo: repo, clock: clock, txRunner: txRunner, dlq: dlq}
+}
+
+// sendToDLQ publishes a poison message to the DLQ. If no DLQ publisher is
+// configured, it logs the rejection instead.
+func (h *ReminderDueHandler) sendToDLQ(ctx context.Context, env events.Envelope, raw, reason string) {
+	msg := events.DLQMessage{
+		Original:    env,
+		Raw:         raw,
+		Reason:      reason,
+		Permanent:   true,
+		ServiceName: "notifications.reminder-due",
+		OccurredAt:  h.clock.Now(),
+	}
+	if h.dlq != nil {
+		if err := h.dlq.Publish(ctx, msg); err != nil {
+			logx.WithContext(ctx).Errorf("failed to publish to DLQ: %v (reason=%s)", err, reason)
+		}
+	} else {
+		logx.WithContext(ctx).Errorf("poison message dropped (no DLQ): reason=%s", reason)
+	}
 }
 
 // Consume is the kq.ConsumeHandler callback for the reminder.due topic.
+//
+// When a txRunner is configured, the handler dispatch and the processed_events
+// marking run inside a single transaction so that a crash or Mark failure
+// cannot leave a notification created without a processed_events row — which
+// would cause duplicate notifications on redelivery.
 func (h *ReminderDueHandler) Consume(ctx context.Context, _ string, raw string) error {
 	var env events.Envelope
 	if err := json.Unmarshal([]byte(raw), &env); err != nil {
-		logx.WithContext(ctx).Errorf("invalid envelope: %v", err)
+		h.sendToDLQ(ctx, events.Envelope{}, raw, fmt.Sprintf("invalid envelope JSON: %v", err))
 		return nil
 	}
 
 	eventID, err := uuid.Parse(env.EventID)
 	if err != nil {
-		logx.WithContext(ctx).Errorf("invalid event ID %q: %v", env.EventID, err)
+		h.sendToDLQ(ctx, env, raw, fmt.Sprintf("invalid event ID %q: %v", env.EventID, err))
 		return nil
 	}
 
@@ -49,36 +81,34 @@ func (h *ReminderDueHandler) Consume(ctx context.Context, _ string, raw string) 
 
 	var p events.ReminderDue
 	if err := json.Unmarshal(env.Payload, &p); err != nil {
-		logx.WithContext(ctx).Errorf("unmarshal ReminderDue: %v", err)
+		h.sendToDLQ(ctx, env, raw, fmt.Sprintf("unmarshal ReminderDue: %v", err))
 		return nil
 	}
 
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
-		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		h.sendToDLQ(ctx, env, raw, fmt.Sprintf("invalid userID %q: %v", p.UserID, err))
 		return nil
 	}
 
-	var handlerErr error
-	switch p.Type {
-	case "habit_reminder":
-		handlerErr = h.onHabitReminder(ctx, userID, p)
-	case "missed_check_in":
-		handlerErr = h.onMissedCheckIn(ctx, userID, p)
-	case "weekly_review":
-		handlerErr = h.onWeeklyReview(ctx, userID, p)
-	case "encouragement":
-		handlerErr = h.onEncouragement(ctx, userID, p)
-	default:
-		logx.WithContext(ctx).Infof("unhandled reminder type %s", p.Type)
-		return nil
+	if h.txRunner != nil && h.repo.ProcessedEvents != nil {
+		return h.txRunner.Run(ctx, "", func(tx pgx.Tx) error {
+			txRepo := repository.NewRepositoryFromTx(tx)
+
+			if err := h.dispatch(ctx, txRepo, userID, p); err != nil {
+				return err
+			}
+			if err := txRepo.ProcessedEvents.Mark(ctx, eventID); err != nil {
+				return fmt.Errorf("mark event %s processed: %w", env.EventID, err)
+			}
+			return nil
+		})
 	}
 
-	if handlerErr != nil {
-		return handlerErr
+	// Non-transactional fallback.
+	if err := h.dispatch(ctx, h.repo, userID, p); err != nil {
+		return err
 	}
-
-	// Mark event as processed only after successful handling.
 	if h.repo.ProcessedEvents != nil {
 		if err := h.repo.ProcessedEvents.Mark(ctx, eventID); err != nil {
 			logx.WithContext(ctx).Errorf("mark event %s processed: %v", env.EventID, err)
@@ -87,8 +117,24 @@ func (h *ReminderDueHandler) Consume(ctx context.Context, _ string, raw string) 
 	return nil
 }
 
-func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	rs, err := h.repo.ReminderState.Get(ctx, userID)
+func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repository, userID uuid.UUID, p events.ReminderDue) error {
+	switch p.Type {
+	case "habit_reminder":
+		return h.onHabitReminder(ctx, repo, userID, p)
+	case "missed_check_in":
+		return h.onMissedCheckIn(ctx, repo, userID, p)
+	case "weekly_review":
+		return h.onWeeklyReview(ctx, repo, userID, p)
+	case "encouragement":
+		return h.onEncouragement(ctx, repo, userID, p)
+	default:
+		logx.WithContext(ctx).Infof("unhandled reminder type %s", p.Type)
+		return nil
+	}
+}
+
+func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
+	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get reminder state: %w", err)
 	}
@@ -97,7 +143,7 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
+	_, err = repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -109,13 +155,13 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 	if err != nil {
 		logx.WithContext(ctx).Errorf("next occurrence: %v", err)
 	} else {
-		if _, err := h.repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
+		if _, err := repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
 			logx.WithContext(ctx).Errorf("enqueue next habit_reminder: %v", err)
 		}
 	}
 
 	// Enqueue today's missed_check_in at now + 2h.
-	if _, err := h.repo.Reminders.Enqueue(ctx, userID, "missed_check_in",
+	if _, err := repo.Reminders.Enqueue(ctx, userID, "missed_check_in",
 		now.Add(2*time.Hour), nil); err != nil {
 		logx.WithContext(ctx).Errorf("enqueue missed_check_in: %v", err)
 	}
@@ -123,8 +169,8 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, userID uuid.UU
 	return nil
 }
 
-func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	rs, err := h.repo.ReminderState.Get(ctx, userID)
+func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
+	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get reminder state: %w", err)
 	}
@@ -134,7 +180,7 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UU
 		return nil
 	}
 
-	_, err = h.repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
+	_, err = repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
@@ -142,14 +188,14 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, userID uuid.UU
 	return nil
 }
 
-func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, userID uuid.UUID, _ events.ReminderDue) error {
-	_, err := h.repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
+func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
+	_, err := repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
 
 	// Enqueue next Sunday 18:00 local.
-	rs, err := h.repo.ReminderState.Get(ctx, userID)
+	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get reminder state for weekly reschedule: %w", err)
 	}
@@ -158,7 +204,7 @@ func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, userID uuid.UUI
 	if err != nil {
 		logx.WithContext(ctx).Errorf("next weekday: %v", err)
 	} else {
-		if _, err := h.repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); err != nil {
+		if _, err := repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); err != nil {
 			logx.WithContext(ctx).Errorf("enqueue weekly_review: %v", err)
 		}
 	}
@@ -183,7 +229,7 @@ func timezoneOrUTC(tz string) *time.Location {
 	return loc
 }
 
-func (h *ReminderDueHandler) onEncouragement(ctx context.Context, userID uuid.UUID, p events.ReminderDue) error {
+func (h *ReminderDueHandler) onEncouragement(ctx context.Context, repo *repository.Repository, userID uuid.UUID, p events.ReminderDue) error {
 	var meta map[string]any
 	if p.Metadata != "" {
 		_ = json.Unmarshal([]byte(p.Metadata), &meta)
@@ -204,7 +250,7 @@ func (h *ReminderDueHandler) onEncouragement(ctx context.Context, userID uuid.UU
 		msg = fmt.Sprintf("You've maintained a %d-day streak on %s! Keep it up!", streak, habitName)
 	}
 
-	_, err := h.repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
+	_, err := repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}

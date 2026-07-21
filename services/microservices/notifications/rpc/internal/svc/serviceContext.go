@@ -58,11 +58,12 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	txRunner := postgres.NewPgxTxRunner(pool)
 
 	reminderPub := events.NewPublisher(c.Kafka.Brokers, c.Kafka.ReminderDueTopic)
+	dlqPub := events.NewDLQPublisher(c.Kafka.Brokers, events.DLQTopic)
 
 	sched := scheduler.NewScheduler(repo.Reminders, reminderPub, realClock{})
 
-	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil)
-	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil)
+	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
+	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub)
 
 	// Consumers/Processors must be set explicitly: their `default=8` tags only
 	// apply when the KqConf is loaded via conf.Load, not for struct literals.

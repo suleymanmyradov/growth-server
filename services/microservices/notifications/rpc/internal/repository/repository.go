@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 )
 
@@ -9,6 +10,7 @@ type Repository struct {
 	Reminders       *RemindersRepo
 	ProcessedEvents *ProcessedEventsRepo
 	ReminderState   *ReminderStateRepo
+	Preferences     *PreferencesRepo
 }
 
 func NewRepository(q *db.Queries) *Repository {
@@ -17,5 +19,13 @@ func NewRepository(q *db.Queries) *Repository {
 		Reminders:       NewRemindersRepo(q),
 		ProcessedEvents: NewProcessedEventsRepo(q),
 		ReminderState:   NewReminderStateRepo(q),
+		Preferences:     NewPreferencesRepo(q),
 	}
+}
+
+// NewRepositoryFromTx builds a Repository backed by the given transaction.
+// All repos in the returned Repository share the same tx, so operations on
+// them are atomic when the tx is committed or rolled back.
+func NewRepositoryFromTx(tx pgx.Tx) *Repository {
+	return NewRepository(db.New(tx))
 }

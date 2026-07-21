@@ -208,11 +208,20 @@ service growthapi {
 	@handler ListNotifications
 	get /notifications (PageRequest) returns (NotificationsResponse)
 
+	@handler GetUnreadNotificationCount
+	get /notifications/unread-count returns (UnreadNotificationCountResponse)
+
 	@handler MarkNotificationRead
 	put /notifications/:id/read (NotificationRequest) returns (EmptyResponse)
 
 	@handler MarkAllNotificationsRead
 	put /notifications/read-all returns (EmptyResponse)
+
+	@handler GetNotificationPreferences
+	get /notification-preferences returns (NotificationPreferencesResponse)
+
+	@handler UpdateNotificationPreferences
+	put /notification-preferences (UpdateNotificationPreferencesRequest) returns (NotificationPreferencesResponse)
 }
 
 @server (

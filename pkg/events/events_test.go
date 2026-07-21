@@ -33,10 +33,9 @@ func TestNewEnvelope(t *testing.T) {
 
 func TestEnvelopeRoundTrip(t *testing.T) {
 	payload := SettingsChanged{
-		UserID:         "user-2",
-		Timezone:       "America/New_York",
-		CheckInTime:    "09:00:00",
-		HabitReminders: true,
+		UserID:      "user-2",
+		Timezone:    "America/New_York",
+		CheckInTime: "09:00:00",
 	}
 
 	env, err := NewEnvelope(TypeSettingsChanged, payload)

@@ -13,8 +13,18 @@ import (
 
 type Querier interface {
 	BumpCheckInCountToday(ctx context.Context, userID uuid.UUID) error
+	// Cancel all unsent reminders of a given type for a user. Used when the user
+	// disables a notification preference (e.g. habit reminders) so no further
+	// reminders of that type fire until re-enabled.
+	CancelPendingByType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error)
 	CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Date, column4 string) error
-	ClaimDueReminders(ctx context.Context, limit int32) ([]Reminder, error)
+	// Claim due, unclaimed, unsent reminders by setting claimed_at (a lease).
+	// Does NOT set sent_at — that happens only after successful Kafka publish
+	// via MarkReminderSent. Stale claims (claimed_at older than the lease window)
+	// are released by ReleaseStaleClaims so a crashed scheduler does not lose
+	// reminders. Uses FOR UPDATE SKIP LOCKED so multiple instances don't claim
+	// the same rows.
+	ClaimDueReminders(ctx context.Context, limit int32) ([]ClaimDueRemindersRow, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error)
 	// Batch insert the same notification for many users (admin broadcast).
@@ -30,10 +40,10 @@ type Querier interface {
 	DeleteReminderState(ctx context.Context, userID uuid.UUID) error
 	DeleteRemindersByUser(ctx context.Context, userID uuid.UUID) error
 	// Reminders: sent_at IS NULL means pending.
-	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (Reminder, error)
+	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
 	GetNotificationPreferences(ctx context.Context, userID uuid.UUID) (NotificationPreference, error)
-	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]Reminder, error)
+	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]GetPendingByUserRow, error)
 	GetReminderState(ctx context.Context, userID uuid.UUID) (ReminderState, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	IncrementHabitCount(ctx context.Context, userID uuid.UUID) error
@@ -51,7 +61,12 @@ type Querier interface {
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	MarkEventProcessed(ctx context.Context, eventID string) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
-	MarkReminderSent(ctx context.Context, id uuid.UUID) (Reminder, error)
+	MarkReminderSent(ctx context.Context, id uuid.UUID) (MarkReminderSentRow, error)
+	// Release claims older than the lease window (minutes) so they can be
+	// re-claimed by the next tick. This handles scheduler crashes: a reminder
+	// that was claimed but never acked (sent_at still NULL) becomes claimable
+	// again after the lease expires.
+	ReleaseStaleClaims(ctx context.Context, dollar_1 int32) (int64, error)
 	SetOnboardingCompleted(ctx context.Context, userID uuid.UUID) error
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error

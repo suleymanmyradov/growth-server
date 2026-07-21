@@ -1,5 +1,5 @@
 // Code scaffolded by goctl. Safe to edit.
-// goctl 1.9.2
+// goctl 1.10.1
 
 package notifications
 
@@ -14,30 +14,31 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type MarkAllNotificationsReadLogic struct {
+type GetUnreadNotificationCountLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewMarkAllNotificationsReadLogic(ctx context.Context, svcCtx *svc.ServiceContext) *MarkAllNotificationsReadLogic {
-	return &MarkAllNotificationsReadLogic{
+func NewGetUnreadNotificationCountLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetUnreadNotificationCountLogic {
+	return &GetUnreadNotificationCountLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *MarkAllNotificationsReadLogic) MarkAllNotificationsRead() (resp *types.EmptyResponse, err error) {
-	_, ok := principal.PrincipalFrom(l.ctx)
-	if !ok {
-		return &types.EmptyResponse{}, nil
+func (l *GetUnreadNotificationCountLogic) GetUnreadNotificationCount() (resp *types.UnreadNotificationCountResponse, err error) {
+	if _, ok := principal.PrincipalFrom(l.ctx); !ok {
+		return &types.UnreadNotificationCountResponse{Count: 0}, nil
 	}
 
-	_, err = l.svcCtx.NotificationsRpc.MarkAllNotificationsRead(l.ctx, &notificationsClient.MarkAllNotificationsReadRequest{})
+	rpcResp, err := l.svcCtx.NotificationsRpc.GetUnreadCount(l.ctx, &notificationsClient.GetUnreadCountRequest{})
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.EmptyResponse{}, nil
+	return &types.UnreadNotificationCountResponse{
+		Count: rpcResp.Count,
+	}, nil
 }

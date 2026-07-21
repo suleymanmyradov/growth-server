@@ -61,10 +61,9 @@ type UserOnboarded struct {
 
 // SettingsChanged is the payload for TypeSettingsChanged events.
 type SettingsChanged struct {
-	UserID         string `json:"userId"`
-	Timezone       string `json:"timezone"`
-	CheckInTime    string `json:"checkInTime"`
-	HabitReminders bool   `json:"habitReminders"`
+	UserID      string `json:"userId"`
+	Timezone    string `json:"timezone"`
+	CheckInTime string `json:"checkInTime"`
 }
 
 // CheckInFeedbackGenerated is the payload for TypeCheckInFeedbackGenerated events.
@@ -145,12 +144,24 @@ func NewEnvelope(eventType EventType, payload any) (Envelope, error) {
 	if err != nil {
 		id = uuid.New()
 	}
+	return newEnvelopeWithID(id.String(), eventType, payload)
+}
+
+// NewEnvelopeWithID creates an envelope with a caller-supplied event ID. Use
+// this when you need deterministic idempotency: the consumer's processed_events
+// dedup keys on EventID, so a retry with the same ID is a no-op. The ID must
+// be a valid UUID string.
+func NewEnvelopeWithID(eventID string, eventType EventType, payload any) (Envelope, error) {
+	return newEnvelopeWithID(eventID, eventType, payload)
+}
+
+func newEnvelopeWithID(eventID string, eventType EventType, payload any) (Envelope, error) {
 	raw, err := json.Marshal(payload)
 	if err != nil {
 		return Envelope{}, fmt.Errorf("marshal payload: %w", err)
 	}
 	return Envelope{
-		EventID:    id.String(),
+		EventID:    eventID,
 		EventType:  string(eventType),
 		Version:    1,
 		OccurredAt: time.Now().UTC(),
