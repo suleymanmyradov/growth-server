@@ -42,7 +42,9 @@ type stripeSubscription struct {
 }
 
 type stripeSubscriptionItem struct {
-	Price stripePrice `json:"price"`
+	Price               stripePrice `json:"price"`
+	CurrentPeriodStart  int64       `json:"current_period_start"`
+	CurrentPeriodEnd    int64       `json:"current_period_end"`
 }
 
 type stripePrice struct {
@@ -107,15 +109,36 @@ func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext
 func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWebhookRequest) (*client.HandleStripeWebhookResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "HandleStripeWebhookLogic.HandleStripeWebhook")
 	defer span.End()
+
+	// Verify webhook signature — the client RPC owns all Stripe secrets.
+	if l.svcCtx.StripeClient == nil || l.svcCtx.Config.Billing.StripeWebhookSecret == "" {
+		l.Errorf("Stripe webhook verification not configured")
+		return nil, status.Error(codes.FailedPrecondition, "stripe webhook verification not configured")
+	}
+
+	eventType, err := l.svcCtx.StripeClient.VerifyWebhookSignature(in.RawBody, in.Signature, l.svcCtx.Config.Billing.StripeWebhookSecret)
+	if err != nil {
+		l.Errorf("Stripe webhook verification failed: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid signature")
+	}
+
+	// Parse the verified payload to extract event ID and data.
+	var event stripeEventTopLevel
+	if err := json.Unmarshal(in.RawBody, &event); err != nil {
+		l.Errorf("Failed to parse stripe event: %v", err)
+		return nil, status.Error(codes.InvalidArgument, "invalid event payload")
+	}
+
 	// Idempotency: skip duplicate events using the Stripe event ID.
-	if in.StripeEventId != "" {
-		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(ctx, in.StripeEventId)
+	stripeEventID := event.ID
+	if stripeEventID != "" {
+		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(ctx, stripeEventID)
 		if err != nil {
 			l.Errorf("idempotency check failed: %v", err)
 			return nil, status.Error(codes.Internal, "idempotency check failed")
 		}
 		if processed {
-			l.Infof("duplicate webhook skipped: %s", in.StripeEventId)
+			l.Infof("duplicate webhook skipped: %s", stripeEventID)
 			return &client.HandleStripeWebhookResponse{Processed: true}, nil
 		}
 	}
@@ -123,25 +146,25 @@ func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWe
 	var result *client.HandleStripeWebhookResponse
 	var handleErr error
 
-	switch in.EventType {
+	switch eventType {
 	case "checkout.session.completed":
-		result, handleErr = l.handleCheckoutCompleted(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleCheckoutCompleted(event.Data)
 	case "customer.subscription.created", "customer.subscription.updated":
-		result, handleErr = l.handleSubscriptionUpdated(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleSubscriptionUpdated(event.Data)
 	case "customer.subscription.deleted":
-		result, handleErr = l.handleSubscriptionDeleted(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleSubscriptionDeleted(event.Data)
 	case "invoice.payment_failed":
-		result, handleErr = l.handlePaymentFailed(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handlePaymentFailed(event.Data)
 	case "charge.dispute.created":
-		result, handleErr = l.handleDisputeCreated(json.RawMessage(in.PayloadJson))
+		result, handleErr = l.handleDisputeCreated(event.Data)
 	default:
-		l.Infof("Unhandled webhook event type: %s", in.EventType)
+		l.Infof("Unhandled webhook event type: %s", eventType)
 		result = &client.HandleStripeWebhookResponse{Processed: true}
 	}
 
 	// Mark as processed only on success to allow retries on transient failures.
-	if handleErr == nil && in.StripeEventId != "" {
-		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(ctx, in.StripeEventId); markErr != nil {
+	if handleErr == nil && stripeEventID != "" {
+		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(ctx, stripeEventID); markErr != nil {
 			l.Errorf("failed to mark stripe event processed: %v", markErr)
 			// Non-fatal: the business logic succeeded.
 		}
@@ -172,20 +195,24 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 		EventType: "checkout_completed",
 		Surface:   "stripe_webhook",
 		Code:      planCode,
+		Metadata:  []byte("{}"),
 	})
 	if eventErr != nil {
 		l.Errorf("Failed to record checkout completion event: %v", eventErr)
 		// Non-fatal: continue processing
 	}
 
-	// Update subscription with the new stripe_subscription_id if available
+	// Link the Stripe subscription ID and upgrade to the pro plan.
+	// Don't set status to "active" here — the DB requires period dates for
+	// active status (CHECK constraint), and those arrive via the
+	// customer.subscription.updated event. Keep the current status until then.
 	if checkout.Object.Subscription != "" {
 		proPlan, planErr := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "pro")
 		if planErr == nil {
 			_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 				UserID:               existingSub.UserID,
 				PlanID:               proPlan.ID,
-				Status:               "active",
+				Status:               existingSub.Status,
 				StripeCustomerID:     &checkout.Object.Customer,
 				StripeSubscriptionID: &checkout.Object.Subscription,
 			})
@@ -233,12 +260,24 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 		return nil, status.Error(codes.NotFound, "plan not found")
 	}
 
-	var periodStart, periodEnd pgtype.Timestamptz
-	if sub.CurrentPeriodStart > 0 {
-		periodStart = pgtype.Timestamptz{Time: time.Unix(sub.CurrentPeriodStart, 0), Valid: true}
+	// Extract period dates. In newer Stripe API versions (2026-06-24+),
+	// current_period_start/end moved from the subscription top-level to the
+	// subscription item level. Fall back to item-level fields if top-level is 0.
+	periodStartUnix := sub.CurrentPeriodStart
+	periodEndUnix := sub.CurrentPeriodEnd
+	if periodStartUnix == 0 && len(sub.Items.Data) > 0 {
+		periodStartUnix = sub.Items.Data[0].CurrentPeriodStart
 	}
-	if sub.CurrentPeriodEnd > 0 {
-		periodEnd = pgtype.Timestamptz{Time: time.Unix(sub.CurrentPeriodEnd, 0), Valid: true}
+	if periodEndUnix == 0 && len(sub.Items.Data) > 0 {
+		periodEndUnix = sub.Items.Data[0].CurrentPeriodEnd
+	}
+
+	var periodStart, periodEnd pgtype.Timestamptz
+	if periodStartUnix > 0 {
+		periodStart = pgtype.Timestamptz{Time: time.Unix(periodStartUnix, 0), Valid: true}
+	}
+	if periodEndUnix > 0 {
+		periodEnd = pgtype.Timestamptz{Time: time.Unix(periodEndUnix, 0), Valid: true}
 	}
 
 	var trialEndTime pgtype.Timestamptz

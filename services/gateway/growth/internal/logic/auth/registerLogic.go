@@ -34,6 +34,9 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.RegisterRes
 	if !validator.IsNotEmpty(req.Username) {
 		return nil, status.Error(codes.InvalidArgument, "username is required")
 	}
+	if !validator.IsValidUsername(req.Username) {
+		return nil, status.Error(codes.InvalidArgument, "username must be lowercase, start with a letter, and only contain letters, numbers, underscores, or hyphens")
+	}
 	if !validator.IsNotEmpty(req.Email) || !validator.IsValidEmail(req.Email) {
 		return nil, status.Error(codes.InvalidArgument, "valid email is required")
 	}

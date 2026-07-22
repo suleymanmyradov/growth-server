@@ -12597,9 +12597,8 @@ func (x *CreateCustomerPortalSessionResponse) GetPortalUrl() string {
 
 type HandleStripeWebhookRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	EventType     string                 `protobuf:"bytes,1,opt,name=eventType,proto3" json:"eventType,omitempty"`
-	PayloadJson   string                 `protobuf:"bytes,2,opt,name=payloadJson,proto3" json:"payloadJson,omitempty"`
-	StripeEventId string                 `protobuf:"bytes,3,opt,name=stripeEventId,proto3" json:"stripeEventId,omitempty"`
+	RawBody       []byte                 `protobuf:"bytes,1,opt,name=rawBody,proto3" json:"rawBody,omitempty"`
+	Signature     string                 `protobuf:"bytes,2,opt,name=signature,proto3" json:"signature,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -12634,23 +12633,16 @@ func (*HandleStripeWebhookRequest) Descriptor() ([]byte, []int) {
 	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{210}
 }
 
-func (x *HandleStripeWebhookRequest) GetEventType() string {
+func (x *HandleStripeWebhookRequest) GetRawBody() []byte {
 	if x != nil {
-		return x.EventType
+		return x.RawBody
 	}
-	return ""
+	return nil
 }
 
-func (x *HandleStripeWebhookRequest) GetPayloadJson() string {
+func (x *HandleStripeWebhookRequest) GetSignature() string {
 	if x != nil {
-		return x.PayloadJson
-	}
-	return ""
-}
-
-func (x *HandleStripeWebhookRequest) GetStripeEventId() string {
-	if x != nil {
-		return x.StripeEventId
+		return x.Signature
 	}
 	return ""
 }
@@ -14780,11 +14772,10 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\"CreateCustomerPortalSessionRequest\x12\x16\n" +
 	"\x06userId\x18\x01 \x01(\tR\x06userId\"C\n" +
 	"#CreateCustomerPortalSessionResponse\x12\x1c\n" +
-	"\tportalUrl\x18\x01 \x01(\tR\tportalUrl\"\x82\x01\n" +
-	"\x1aHandleStripeWebhookRequest\x12\x1c\n" +
-	"\teventType\x18\x01 \x01(\tR\teventType\x12 \n" +
-	"\vpayloadJson\x18\x02 \x01(\tR\vpayloadJson\x12$\n" +
-	"\rstripeEventId\x18\x03 \x01(\tR\rstripeEventId\";\n" +
+	"\tportalUrl\x18\x01 \x01(\tR\tportalUrl\"T\n" +
+	"\x1aHandleStripeWebhookRequest\x12\x18\n" +
+	"\arawBody\x18\x01 \x01(\fR\arawBody\x12\x1c\n" +
+	"\tsignature\x18\x02 \x01(\tR\tsignature\";\n" +
 	"\x1bHandleStripeWebhookResponse\x12\x1c\n" +
 	"\tprocessed\x18\x01 \x01(\bR\tprocessed\"P\n" +
 	"\x0fPlanLimitDetail\x12\x14\n" +

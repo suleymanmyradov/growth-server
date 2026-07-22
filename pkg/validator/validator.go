@@ -7,11 +7,21 @@ import (
 	"github.com/google/uuid"
 )
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+var (
+	emailRegex    = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	usernameRegex = regexp.MustCompile(`^[a-z][a-z0-9_-]*$`)
+)
 
 // IsValidEmail checks if the provided email string matches a valid email format.
 func IsValidEmail(email string) bool {
 	return emailRegex.MatchString(email)
+}
+
+// IsValidUsername checks if the username matches the users.username_format
+// CHECK constraint: lowercase, starts with a letter, only [a-z0-9_-].
+// Callers should also enforce length bounds (DB column is varchar(50)).
+func IsValidUsername(username string) bool {
+	return usernameRegex.MatchString(username)
 }
 
 // IsStrongPassword checks if the password meets strength requirements:

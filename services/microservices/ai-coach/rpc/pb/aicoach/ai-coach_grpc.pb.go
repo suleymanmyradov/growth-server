@@ -25,6 +25,8 @@ const (
 	AICoachService_StreamWeeklyReview_FullMethodName           = "/aicoach.AICoachService/StreamWeeklyReview"
 	AICoachService_StreamPersonalizedCoaching_FullMethodName   = "/aicoach.AICoachService/StreamPersonalizedCoaching"
 	AICoachService_GenerateOnboardingHabits_FullMethodName     = "/aicoach.AICoachService/GenerateOnboardingHabits"
+	AICoachService_Transcribe_FullMethodName                   = "/aicoach.AICoachService/Transcribe"
+	AICoachService_Synthesize_FullMethodName                   = "/aicoach.AICoachService/Synthesize"
 )
 
 // AICoachServiceClient is the client API for AICoachService service.
@@ -37,6 +39,8 @@ type AICoachServiceClient interface {
 	StreamWeeklyReview(ctx context.Context, in *WeeklyReviewRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WeeklyReviewStreamChunk], error)
 	StreamPersonalizedCoaching(ctx context.Context, in *PersonalizedCoachingRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PersonalizedCoachingStreamChunk], error)
 	GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error)
+	Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error)
+	Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error)
 }
 
 type aICoachServiceClient struct {
@@ -125,6 +129,26 @@ func (c *aICoachServiceClient) GenerateOnboardingHabits(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *aICoachServiceClient) Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TranscribeResponse)
+	err := c.cc.Invoke(ctx, AICoachService_Transcribe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aICoachServiceClient) Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SynthesizeResponse)
+	err := c.cc.Invoke(ctx, AICoachService_Synthesize_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AICoachServiceServer is the server API for AICoachService service.
 // All implementations must embed UnimplementedAICoachServiceServer
 // for forward compatibility.
@@ -135,6 +159,8 @@ type AICoachServiceServer interface {
 	StreamWeeklyReview(*WeeklyReviewRequest, grpc.ServerStreamingServer[WeeklyReviewStreamChunk]) error
 	StreamPersonalizedCoaching(*PersonalizedCoachingRequest, grpc.ServerStreamingServer[PersonalizedCoachingStreamChunk]) error
 	GenerateOnboardingHabits(context.Context, *GenerateOnboardingHabitsRequest) (*GenerateOnboardingHabitsResponse, error)
+	Transcribe(context.Context, *TranscribeRequest) (*TranscribeResponse, error)
+	Synthesize(context.Context, *SynthesizeRequest) (*SynthesizeResponse, error)
 	mustEmbedUnimplementedAICoachServiceServer()
 }
 
@@ -162,6 +188,12 @@ func (UnimplementedAICoachServiceServer) StreamPersonalizedCoaching(*Personalize
 }
 func (UnimplementedAICoachServiceServer) GenerateOnboardingHabits(context.Context, *GenerateOnboardingHabitsRequest) (*GenerateOnboardingHabitsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GenerateOnboardingHabits not implemented")
+}
+func (UnimplementedAICoachServiceServer) Transcribe(context.Context, *TranscribeRequest) (*TranscribeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Transcribe not implemented")
+}
+func (UnimplementedAICoachServiceServer) Synthesize(context.Context, *SynthesizeRequest) (*SynthesizeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Synthesize not implemented")
 }
 func (UnimplementedAICoachServiceServer) mustEmbedUnimplementedAICoachServiceServer() {}
 func (UnimplementedAICoachServiceServer) testEmbeddedByValue()                        {}
@@ -278,6 +310,42 @@ func _AICoachService_GenerateOnboardingHabits_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AICoachService_Transcribe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TranscribeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).Transcribe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_Transcribe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).Transcribe(ctx, req.(*TranscribeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AICoachService_Synthesize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SynthesizeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).Synthesize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_Synthesize_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).Synthesize(ctx, req.(*SynthesizeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AICoachService_ServiceDesc is the grpc.ServiceDesc for AICoachService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -300,6 +368,14 @@ var AICoachService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GenerateOnboardingHabits",
 			Handler:    _AICoachService_GenerateOnboardingHabits_Handler,
+		},
+		{
+			MethodName: "Transcribe",
+			Handler:    _AICoachService_Transcribe_Handler,
+		},
+		{
+			MethodName: "Synthesize",
+			Handler:    _AICoachService_Synthesize_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -22,12 +22,6 @@ type Config struct {
 		Issuer   string `json:",optional"`
 		Audience string `json:",optional"`
 	}
-	Billing struct {
-		Mode                string `json:",optional"`
-		StripeSecretKey     string `json:",optional" secret:"true"`
-		StripeWebhookSecret string `json:",optional" secret:"true"`
-		FrontendURL         string `json:",optional"`
-	}
 	ServiceAuth struct {
 		Secret string `json:",optional" secret:"true"`
 	}

@@ -83,8 +83,16 @@ func (c *Client) CreateCustomerPortalSession(ctx context.Context, customerID, fr
 
 // VerifyWebhookSignature verifies a Stripe webhook signature and returns the event type.
 // The caller should use the original payload as the verified event data.
+//
+// IgnoreAPIVersionMismatch is set because the dashboard's webhook endpoint API
+// version may drift ahead of the pinned stripe-go library version. The event
+// payload is still cryptographically verified via the HMAC signature — only the
+// version compatibility check is skipped, which is safe for our read-only use
+// (we parse the fields we need directly from the raw JSON).
 func (c *Client) VerifyWebhookSignature(payload []byte, signature string, webhookSecret string) (string, error) {
-	event, err := webhook.ConstructEvent(payload, signature, webhookSecret)
+	event, err := webhook.ConstructEventWithOptions(payload, signature, webhookSecret, webhook.ConstructEventOptions{
+		IgnoreAPIVersionMismatch: true,
+	})
 	if err != nil {
 		return "", fmt.Errorf("stripe webhook verification failed: %w", err)
 	}

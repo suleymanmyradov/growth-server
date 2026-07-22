@@ -53,6 +53,11 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 		return nil, status.Error(codes.InvalidArgument, "username, email and password are required")
 	}
 
+	if !validator.IsValidUsername(in.Username) {
+		l.Errorf("Register validation failed: invalid username format: %s", in.Username)
+		return nil, status.Error(codes.InvalidArgument, "username must be lowercase, start with a letter, and only contain letters, numbers, underscores, or hyphens")
+	}
+
 	if !validator.IsValidEmail(in.Email) {
 		l.Errorf("Register validation failed: invalid email format: %s", in.Email)
 		return nil, status.Error(codes.InvalidArgument, "invalid email format")

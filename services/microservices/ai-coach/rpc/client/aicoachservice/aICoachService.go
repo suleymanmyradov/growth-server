@@ -21,6 +21,10 @@ type (
 	PersonalizedCoachingRequest      = aicoach.PersonalizedCoachingRequest
 	PersonalizedCoachingResponse     = aicoach.PersonalizedCoachingResponse
 	PersonalizedCoachingStreamChunk  = aicoach.PersonalizedCoachingStreamChunk
+	SynthesizeRequest                = aicoach.SynthesizeRequest
+	SynthesizeResponse               = aicoach.SynthesizeResponse
+	TranscribeRequest                = aicoach.TranscribeRequest
+	TranscribeResponse               = aicoach.TranscribeResponse
 	WeeklyReviewRequest              = aicoach.WeeklyReviewRequest
 	WeeklyReviewResponse             = aicoach.WeeklyReviewResponse
 	WeeklyReviewStreamChunk          = aicoach.WeeklyReviewStreamChunk
@@ -32,6 +36,8 @@ type (
 		StreamWeeklyReview(ctx context.Context, in *WeeklyReviewRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamWeeklyReviewClient, error)
 		StreamPersonalizedCoaching(ctx context.Context, in *PersonalizedCoachingRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamPersonalizedCoachingClient, error)
 		GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error)
+		Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error)
+		Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error)
 	}
 
 	defaultAICoachService struct {
@@ -73,4 +79,14 @@ func (m *defaultAICoachService) StreamPersonalizedCoaching(ctx context.Context, 
 func (m *defaultAICoachService) GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error) {
 	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
 	return client.GenerateOnboardingHabits(ctx, in, opts...)
+}
+
+func (m *defaultAICoachService) Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.Transcribe(ctx, in, opts...)
+}
+
+func (m *defaultAICoachService) Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.Synthesize(ctx, in, opts...)
 }

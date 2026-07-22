@@ -26,8 +26,8 @@ func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext
 
 func (l *HandleStripeWebhookLogic) HandleStripeWebhook(req *types.StripeWebhookRequest) (resp *types.StripeWebhookResponse, err error) {
 	rpcResp, err := l.svcCtx.ClientRpc.BillingService.HandleStripeWebhook(l.ctx, &clientbilling.HandleStripeWebhookRequest{
-		EventType:   req.EventType,
-		PayloadJson: req.PayloadJson,
+		RawBody:   []byte(req.RawBody),
+		Signature: req.Signature,
 	})
 	if err != nil {
 		return nil, err

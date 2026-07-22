@@ -720,8 +720,8 @@ type StartConversationResponse struct {
 }
 
 type StripeWebhookRequest struct {
-	EventType   string `json:"eventType,example=checkout.session.completed"`
-	PayloadJson string `json:"payloadJson"`
+	RawBody   string `json:"rawBody"`
+	Signature string `json:"signature"`
 }
 
 type StripeWebhookResponse struct {
