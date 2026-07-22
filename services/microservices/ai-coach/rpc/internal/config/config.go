@@ -4,12 +4,17 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/speech"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
 	AI ai.Config
+	// Speech configures STT (dictate / live voice input) and TTS (live voice
+	// output). Optional: if APIKey is empty, both clients are nil and the
+	// Transcribe/Synthesize RPCs return Unavailable.
+	Speech speech.Config `json:",optional"`
 	Postgres struct {
 		Datasource      string `json:",optional" secret:"true"`
 		MaxOpenConns    int

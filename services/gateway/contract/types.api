@@ -800,8 +800,8 @@ type (
 		portalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
 	}
 	StripeWebhookRequest {
-		eventType   string `json:"eventType,example=checkout.session.completed"`
-		payloadJson string `json:"payloadJson"`
+		rawBody   string `json:"rawBody"`
+		signature string `json:"signature"`
 	}
 	StripeWebhookResponse {
 		processed bool `json:"processed,example=true"`

@@ -10,7 +10,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
-	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/middleware"
 	aicoachrpc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client"
@@ -35,7 +34,6 @@ type ServiceContext struct {
 	SearchRpc        searchservice.SearchService
 	AICoachRpc       *aicoachrpc.Service
 	FileManagerRpc   fileManagerClient.FileManager
-	StripeClient     *stripe.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -67,16 +65,20 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		zrpc.WithTimeout(time.Second * 90),
 	}
 
+	// Client RPC handles billing (Stripe API calls) which can be slow due to
+	// network latency to Stripe's servers — give it a longer timeout than base.
+	clientOpts := []zrpc.ClientOption{
+		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
+		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
+		zrpc.WithTimeout(time.Second * 30),
+	}
+
 	authRpc := authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...))
-	clientRpc := clientrpc.NewClientService(zrpc.MustNewClient(c.ClientRpc, baseOpts...))
+	clientRpc := clientrpc.NewClientService(zrpc.MustNewClient(c.ClientRpc, clientOpts...))
 	aiCoachRpc := aicoachrpc.NewAICoachClientService(
 		zrpc.MustNewClient(c.AICoachRpc, aiCoachOpts...),
 		zrpc.MustNewClient(c.AICoachRpc, baseOpts...),
 	)
-	var stripeClient *stripe.Client
-	if c.Billing.StripeSecretKey != "" {
-		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
-	}
 
 	limiters := middleware.BuildRateLimiters(c.RateLimit)
 
@@ -104,6 +106,5 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SearchRpc:        searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
 		AICoachRpc:       aiCoachRpc,
 		FileManagerRpc:   fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
-		StripeClient:     stripeClient,
 	}
 }

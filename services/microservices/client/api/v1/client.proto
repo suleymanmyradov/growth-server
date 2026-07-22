@@ -1412,9 +1412,8 @@ message CreateCustomerPortalSessionResponse {
 }
 
 message HandleStripeWebhookRequest {
-  string eventType = 1;
-  string payloadJson = 2;
-  string stripeEventId = 3;
+  bytes rawBody = 1;
+  string signature = 2;
 }
 
 message HandleStripeWebhookResponse {

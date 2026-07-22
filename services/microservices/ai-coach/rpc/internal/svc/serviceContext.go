@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
+	"github.com/suleymanmyradov/growth-server/pkg/speech"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/memory"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
@@ -21,6 +22,10 @@ type ServiceContext struct {
 	Queries         *db.Queries
 	TxRunner        *postgres.PgxTxRunner
 	MemoryRetriever *memory.Retriever
+	// Speech clients (optional). Nil when Speech config is empty — the
+	// Transcribe/Synthesize RPCs then return Unavailable.
+	STT speech.STTClient
+	TTS speech.TTSClient
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -74,6 +79,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		})
 	}
 
+	// Speech (STT/TTS) for dictate + live voice chat. Optional: if Speech.APIKey
+	// is empty, both clients are nil and the Transcribe/Synthesize RPCs return
+	// Unavailable. Reuses the OpenRouter key by default (same provider as chat).
+	speechClients, err := speech.New(c.Speech)
+	if err != nil {
+		logx.Must(fmt.Errorf("failed to create speech clients: %w", err))
+	}
+
 	return &ServiceContext{
 		Config:          c,
 		AIClient:        aiClient,
@@ -81,5 +94,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Queries:         queries,
 		TxRunner:        txRunner,
 		MemoryRetriever: memoryRetriever,
+		STT:             speechClients.STT,
+		TTS:             speechClients.TTS,
 	}
 }

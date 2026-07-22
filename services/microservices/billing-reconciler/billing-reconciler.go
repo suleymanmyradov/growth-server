@@ -28,7 +28,9 @@ func main() {
 	ctx := svc.NewServiceContext(c)
 	defer ctx.Close()
 
-	reconciled, err := reconcileExpiredSubscriptions(context.Background(), ctx, *dryRun)
+	repo := repository.NewBillingRepository(ctx.Pool)
+
+	reconciled, err := reconcileExpiredSubscriptions(context.Background(), repo, *dryRun)
 	if err != nil {
 		logx.Must(fmt.Errorf("reconciliation failed: %w", err))
 	}
@@ -37,13 +39,20 @@ func main() {
 	os.Exit(0)
 }
 
+// billingRepo is the subset of the billing repository that
+// reconcileExpiredSubscriptions needs. Extracted as an interface so the
+// reconciliation logic is testable without a real database.
+type billingRepo interface {
+	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]repository.ListExpiredActiveSubscriptionsRow, error)
+	GetPlanByCode(ctx context.Context, code string) (repository.Plan, error)
+	UpsertUserSubscription(ctx context.Context, params repository.UpsertUserSubscriptionParams) (repository.UserSubscription, error)
+}
+
 // reconcileExpiredSubscriptions finds active/trialing subscriptions whose
 // cancel_at_period_end=true and current_period_end has passed, and downgrades
 // them to the free plan. This protects against missed webhooks.
-func reconcileExpiredSubscriptions(ctx context.Context, s *svc.ServiceContext, dry bool) (int, error) {
+func reconcileExpiredSubscriptions(ctx context.Context, repo billingRepo, dry bool) (int, error) {
 	const batchSize = 100
-
-	repo := repository.NewBillingRepository(s.Pool)
 
 	expiredSubs, err := repo.ListExpiredActiveSubscriptions(ctx, batchSize)
 	if err != nil {

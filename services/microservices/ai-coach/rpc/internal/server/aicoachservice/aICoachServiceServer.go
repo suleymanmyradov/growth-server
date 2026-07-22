@@ -52,3 +52,13 @@ func (s *AICoachServiceServer) GenerateOnboardingHabits(ctx context.Context, in 
 	l := aicoachservicelogic.NewGenerateOnboardingHabitsLogic(ctx, s.svcCtx)
 	return l.GenerateOnboardingHabits(in)
 }
+
+func (s *AICoachServiceServer) Transcribe(ctx context.Context, in *aicoach.TranscribeRequest) (*aicoach.TranscribeResponse, error) {
+	l := aicoachservicelogic.NewTranscribeLogic(ctx, s.svcCtx)
+	return l.Transcribe(in)
+}
+
+func (s *AICoachServiceServer) Synthesize(ctx context.Context, in *aicoach.SynthesizeRequest) (*aicoach.SynthesizeResponse, error) {
+	l := aicoachservicelogic.NewSynthesizeLogic(ctx, s.svcCtx)
+	return l.Synthesize(in)
+}

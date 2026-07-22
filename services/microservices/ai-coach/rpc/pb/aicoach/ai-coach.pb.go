@@ -1421,6 +1421,249 @@ func (x *GenerateOnboardingHabitsResponse) GetHabits() []*OnboardingHabitSuggest
 	return nil
 }
 
+// Speech — STT/TTS. Used by the gateway for dictate (mic → text) and live
+// voice chat (text → spoken response). The ai-coach service owns the speech
+// provider config; the gateway is the orchestrator.
+type TranscribeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Audio         []byte                 `protobuf:"bytes,2,opt,name=audio,proto3" json:"audio,omitempty"`       // raw audio bytes
+	Format        string                 `protobuf:"bytes,3,opt,name=format,proto3" json:"format,omitempty"`     // wav | mp3 | flac | m4a | ogg | webm | aac
+	Language      string                 `protobuf:"bytes,4,opt,name=language,proto3" json:"language,omitempty"` // ISO-639-1, optional (auto-detect if empty)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TranscribeRequest) Reset() {
+	*x = TranscribeRequest{}
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TranscribeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TranscribeRequest) ProtoMessage() {}
+
+func (x *TranscribeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TranscribeRequest.ProtoReflect.Descriptor instead.
+func (*TranscribeRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *TranscribeRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *TranscribeRequest) GetAudio() []byte {
+	if x != nil {
+		return x.Audio
+	}
+	return nil
+}
+
+func (x *TranscribeRequest) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+func (x *TranscribeRequest) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+type TranscribeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Text          string                 `protobuf:"bytes,1,opt,name=text,proto3" json:"text,omitempty"`
+	Language      string                 `protobuf:"bytes,2,opt,name=language,proto3" json:"language,omitempty"`   // detected language, if reported by provider
+	Duration      float64                `protobuf:"fixed64,3,opt,name=duration,proto3" json:"duration,omitempty"` // audio duration in seconds, if reported
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TranscribeResponse) Reset() {
+	*x = TranscribeResponse{}
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TranscribeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TranscribeResponse) ProtoMessage() {}
+
+func (x *TranscribeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TranscribeResponse.ProtoReflect.Descriptor instead.
+func (*TranscribeResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *TranscribeResponse) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *TranscribeResponse) GetLanguage() string {
+	if x != nil {
+		return x.Language
+	}
+	return ""
+}
+
+func (x *TranscribeResponse) GetDuration() float64 {
+	if x != nil {
+		return x.Duration
+	}
+	return 0
+}
+
+type SynthesizeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Text          string                 `protobuf:"bytes,2,opt,name=text,proto3" json:"text,omitempty"`   // text to speak
+	Voice         string                 `protobuf:"bytes,3,opt,name=voice,proto3" json:"voice,omitempty"` // provider-specific voice, optional (uses config default)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SynthesizeRequest) Reset() {
+	*x = SynthesizeRequest{}
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesizeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesizeRequest) ProtoMessage() {}
+
+func (x *SynthesizeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesizeRequest.ProtoReflect.Descriptor instead.
+func (*SynthesizeRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SynthesizeRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *SynthesizeRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *SynthesizeRequest) GetVoice() string {
+	if x != nil {
+		return x.Voice
+	}
+	return ""
+}
+
+type SynthesizeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Audio         []byte                 `protobuf:"bytes,1,opt,name=audio,proto3" json:"audio,omitempty"`   // synthesized audio bytes
+	Format        string                 `protobuf:"bytes,2,opt,name=format,proto3" json:"format,omitempty"` // audio format: mp3 | pcm
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SynthesizeResponse) Reset() {
+	*x = SynthesizeResponse{}
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SynthesizeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SynthesizeResponse) ProtoMessage() {}
+
+func (x *SynthesizeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SynthesizeResponse.ProtoReflect.Descriptor instead.
+func (*SynthesizeResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SynthesizeResponse) GetAudio() []byte {
+	if x != nil {
+		return x.Audio
+	}
+	return nil
+}
+
+func (x *SynthesizeResponse) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
 // Conversation Service
 type Conversation struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1438,7 +1681,7 @@ type Conversation struct {
 
 func (x *Conversation) Reset() {
 	*x = Conversation{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[18]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1450,7 +1693,7 @@ func (x *Conversation) String() string {
 func (*Conversation) ProtoMessage() {}
 
 func (x *Conversation) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[18]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1463,7 +1706,7 @@ func (x *Conversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Conversation.ProtoReflect.Descriptor instead.
 func (*Conversation) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{18}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Conversation) GetId() string {
@@ -1535,7 +1778,7 @@ type ConversationMessage struct {
 
 func (x *ConversationMessage) Reset() {
 	*x = ConversationMessage{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[19]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1547,7 +1790,7 @@ func (x *ConversationMessage) String() string {
 func (*ConversationMessage) ProtoMessage() {}
 
 func (x *ConversationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[19]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,7 +1803,7 @@ func (x *ConversationMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConversationMessage.ProtoReflect.Descriptor instead.
 func (*ConversationMessage) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{19}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ConversationMessage) GetId() string {
@@ -1610,7 +1853,7 @@ type StartConversationRequest struct {
 
 func (x *StartConversationRequest) Reset() {
 	*x = StartConversationRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[20]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1622,7 +1865,7 @@ func (x *StartConversationRequest) String() string {
 func (*StartConversationRequest) ProtoMessage() {}
 
 func (x *StartConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[20]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1635,7 +1878,7 @@ func (x *StartConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartConversationRequest.ProtoReflect.Descriptor instead.
 func (*StartConversationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{20}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *StartConversationRequest) GetUserId() string {
@@ -1676,7 +1919,7 @@ type StartConversationResponse struct {
 
 func (x *StartConversationResponse) Reset() {
 	*x = StartConversationResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[21]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1688,7 +1931,7 @@ func (x *StartConversationResponse) String() string {
 func (*StartConversationResponse) ProtoMessage() {}
 
 func (x *StartConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[21]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1701,7 +1944,7 @@ func (x *StartConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartConversationResponse.ProtoReflect.Descriptor instead.
 func (*StartConversationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{21}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *StartConversationResponse) GetConversation() *Conversation {
@@ -1730,7 +1973,7 @@ type ListConversationsRequest struct {
 
 func (x *ListConversationsRequest) Reset() {
 	*x = ListConversationsRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[22]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1742,7 +1985,7 @@ func (x *ListConversationsRequest) String() string {
 func (*ListConversationsRequest) ProtoMessage() {}
 
 func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[22]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1755,7 +1998,7 @@ func (x *ListConversationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsRequest.ProtoReflect.Descriptor instead.
 func (*ListConversationsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{22}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListConversationsRequest) GetUserId() string {
@@ -1796,7 +2039,7 @@ type ListConversationsResponse struct {
 
 func (x *ListConversationsResponse) Reset() {
 	*x = ListConversationsResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[23]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1808,7 +2051,7 @@ func (x *ListConversationsResponse) String() string {
 func (*ListConversationsResponse) ProtoMessage() {}
 
 func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[23]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1821,7 +2064,7 @@ func (x *ListConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListConversationsResponse.ProtoReflect.Descriptor instead.
 func (*ListConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{23}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListConversationsResponse) GetConversations() []*Conversation {
@@ -1848,7 +2091,7 @@ type GetConversationRequest struct {
 
 func (x *GetConversationRequest) Reset() {
 	*x = GetConversationRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[24]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1860,7 +2103,7 @@ func (x *GetConversationRequest) String() string {
 func (*GetConversationRequest) ProtoMessage() {}
 
 func (x *GetConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[24]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1873,7 +2116,7 @@ func (x *GetConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConversationRequest.ProtoReflect.Descriptor instead.
 func (*GetConversationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{24}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetConversationRequest) GetConversationId() string {
@@ -1899,7 +2142,7 @@ type GetConversationResponse struct {
 
 func (x *GetConversationResponse) Reset() {
 	*x = GetConversationResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[25]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1911,7 +2154,7 @@ func (x *GetConversationResponse) String() string {
 func (*GetConversationResponse) ProtoMessage() {}
 
 func (x *GetConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[25]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1924,7 +2167,7 @@ func (x *GetConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConversationResponse.ProtoReflect.Descriptor instead.
 func (*GetConversationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{25}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetConversationResponse) GetConversation() *Conversation {
@@ -1946,7 +2189,7 @@ type GetMessagesRequest struct {
 
 func (x *GetMessagesRequest) Reset() {
 	*x = GetMessagesRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[26]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1958,7 +2201,7 @@ func (x *GetMessagesRequest) String() string {
 func (*GetMessagesRequest) ProtoMessage() {}
 
 func (x *GetMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[26]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1971,7 +2214,7 @@ func (x *GetMessagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessagesRequest.ProtoReflect.Descriptor instead.
 func (*GetMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{26}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetMessagesRequest) GetConversationId() string {
@@ -2012,7 +2255,7 @@ type GetMessagesResponse struct {
 
 func (x *GetMessagesResponse) Reset() {
 	*x = GetMessagesResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[27]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2024,7 +2267,7 @@ func (x *GetMessagesResponse) String() string {
 func (*GetMessagesResponse) ProtoMessage() {}
 
 func (x *GetMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[27]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2037,7 +2280,7 @@ func (x *GetMessagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMessagesResponse.ProtoReflect.Descriptor instead.
 func (*GetMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{27}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetMessagesResponse) GetMessages() []*ConversationMessage {
@@ -2066,7 +2309,7 @@ type AppendMessageRequest struct {
 
 func (x *AppendMessageRequest) Reset() {
 	*x = AppendMessageRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[28]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2078,7 +2321,7 @@ func (x *AppendMessageRequest) String() string {
 func (*AppendMessageRequest) ProtoMessage() {}
 
 func (x *AppendMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[28]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2091,7 +2334,7 @@ func (x *AppendMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendMessageRequest.ProtoReflect.Descriptor instead.
 func (*AppendMessageRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{28}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *AppendMessageRequest) GetConversationId() string {
@@ -2132,7 +2375,7 @@ type AppendMessageResponse struct {
 
 func (x *AppendMessageResponse) Reset() {
 	*x = AppendMessageResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[29]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2144,7 +2387,7 @@ func (x *AppendMessageResponse) String() string {
 func (*AppendMessageResponse) ProtoMessage() {}
 
 func (x *AppendMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[29]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2157,7 +2400,7 @@ func (x *AppendMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppendMessageResponse.ProtoReflect.Descriptor instead.
 func (*AppendMessageResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{29}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *AppendMessageResponse) GetMessage() *ConversationMessage {
@@ -2184,7 +2427,7 @@ type ArchiveConversationRequest struct {
 
 func (x *ArchiveConversationRequest) Reset() {
 	*x = ArchiveConversationRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[30]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2196,7 +2439,7 @@ func (x *ArchiveConversationRequest) String() string {
 func (*ArchiveConversationRequest) ProtoMessage() {}
 
 func (x *ArchiveConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[30]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2209,7 +2452,7 @@ func (x *ArchiveConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveConversationRequest.ProtoReflect.Descriptor instead.
 func (*ArchiveConversationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{30}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *ArchiveConversationRequest) GetConversationId() string {
@@ -2235,7 +2478,7 @@ type ArchiveConversationResponse struct {
 
 func (x *ArchiveConversationResponse) Reset() {
 	*x = ArchiveConversationResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[31]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2247,7 +2490,7 @@ func (x *ArchiveConversationResponse) String() string {
 func (*ArchiveConversationResponse) ProtoMessage() {}
 
 func (x *ArchiveConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[31]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2260,7 +2503,7 @@ func (x *ArchiveConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ArchiveConversationResponse.ProtoReflect.Descriptor instead.
 func (*ArchiveConversationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{31}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ArchiveConversationResponse) GetConversation() *Conversation {
@@ -2280,7 +2523,7 @@ type DeleteConversationRequest struct {
 
 func (x *DeleteConversationRequest) Reset() {
 	*x = DeleteConversationRequest{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[32]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2292,7 +2535,7 @@ func (x *DeleteConversationRequest) String() string {
 func (*DeleteConversationRequest) ProtoMessage() {}
 
 func (x *DeleteConversationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[32]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2305,7 +2548,7 @@ func (x *DeleteConversationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationRequest.ProtoReflect.Descriptor instead.
 func (*DeleteConversationRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{32}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DeleteConversationRequest) GetConversationId() string {
@@ -2330,7 +2573,7 @@ type DeleteConversationResponse struct {
 
 func (x *DeleteConversationResponse) Reset() {
 	*x = DeleteConversationResponse{}
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[33]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2342,7 +2585,7 @@ func (x *DeleteConversationResponse) String() string {
 func (*DeleteConversationResponse) ProtoMessage() {}
 
 func (x *DeleteConversationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[33]
+	mi := &file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2355,7 +2598,7 @@ func (x *DeleteConversationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteConversationResponse.ProtoReflect.Descriptor instead.
 func (*DeleteConversationResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{33}
+	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP(), []int{37}
 }
 
 var File_services_microservices_ai_coach_api_v1_ai_coach_proto protoreflect.FileDescriptor
@@ -2495,7 +2738,23 @@ const file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDesc = "" +
 	"\rdaily_minutes\x18\x06 \x01(\x05R\fdailyMinutes\x121\n" +
 	"\x14accountability_style\x18\a \x01(\tR\x13accountabilityStyle\"^\n" +
 	" GenerateOnboardingHabitsResponse\x12:\n" +
-	"\x06habits\x18\x01 \x03(\v2\".aicoach.OnboardingHabitSuggestionR\x06habits\"\xde\x01\n" +
+	"\x06habits\x18\x01 \x03(\v2\".aicoach.OnboardingHabitSuggestionR\x06habits\"v\n" +
+	"\x11TranscribeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05audio\x18\x02 \x01(\fR\x05audio\x12\x16\n" +
+	"\x06format\x18\x03 \x01(\tR\x06format\x12\x1a\n" +
+	"\blanguage\x18\x04 \x01(\tR\blanguage\"`\n" +
+	"\x12TranscribeResponse\x12\x12\n" +
+	"\x04text\x18\x01 \x01(\tR\x04text\x12\x1a\n" +
+	"\blanguage\x18\x02 \x01(\tR\blanguage\x12\x1a\n" +
+	"\bduration\x18\x03 \x01(\x01R\bduration\"V\n" +
+	"\x11SynthesizeRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x12\n" +
+	"\x04text\x18\x02 \x01(\tR\x04text\x12\x14\n" +
+	"\x05voice\x18\x03 \x01(\tR\x05voice\"B\n" +
+	"\x12SynthesizeResponse\x12\x14\n" +
+	"\x05audio\x18\x01 \x01(\fR\x05audio\x12\x16\n" +
+	"\x06format\x18\x02 \x01(\tR\x06format\"\xde\x01\n" +
 	"\fConversation\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x14\n" +
@@ -2559,14 +2818,18 @@ const file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDesc = "" +
 	"\x19DeleteConversationRequest\x12'\n" +
 	"\x0fconversation_id\x18\x01 \x01(\tR\x0econversationId\x12\x17\n" +
 	"\auser_id\x18\x02 \x01(\tR\x06userId\"\x1c\n" +
-	"\x1aDeleteConversationResponse2\xe9\x04\n" +
+	"\x1aDeleteConversationResponse2\xf7\x05\n" +
 	"\x0eAICoachService\x12\\\n" +
 	"\x17GenerateCheckInFeedback\x12\x1f.aicoach.CheckInFeedbackRequest\x1a .aicoach.CheckInFeedbackResponse\x12k\n" +
 	"\x1cGeneratePersonalizedCoaching\x12$.aicoach.PersonalizedCoachingRequest\x1a%.aicoach.PersonalizedCoachingResponse\x12S\n" +
 	"\x14GenerateWeeklyReview\x12\x1c.aicoach.WeeklyReviewRequest\x1a\x1d.aicoach.WeeklyReviewResponse\x12V\n" +
 	"\x12StreamWeeklyReview\x12\x1c.aicoach.WeeklyReviewRequest\x1a .aicoach.WeeklyReviewStreamChunk0\x01\x12n\n" +
 	"\x1aStreamPersonalizedCoaching\x12$.aicoach.PersonalizedCoachingRequest\x1a(.aicoach.PersonalizedCoachingStreamChunk0\x01\x12o\n" +
-	"\x18GenerateOnboardingHabits\x12(.aicoach.GenerateOnboardingHabitsRequest\x1a).aicoach.GenerateOnboardingHabitsResponse2\xe2\x05\n" +
+	"\x18GenerateOnboardingHabits\x12(.aicoach.GenerateOnboardingHabitsRequest\x1a).aicoach.GenerateOnboardingHabitsResponse\x12E\n" +
+	"\n" +
+	"Transcribe\x12\x1a.aicoach.TranscribeRequest\x1a\x1b.aicoach.TranscribeResponse\x12E\n" +
+	"\n" +
+	"Synthesize\x12\x1a.aicoach.SynthesizeRequest\x1a\x1b.aicoach.SynthesizeResponse2\xe2\x05\n" +
 	"\x13ConversationService\x12Z\n" +
 	"\x11StartConversation\x12!.aicoach.StartConversationRequest\x1a\".aicoach.StartConversationResponse\x12Z\n" +
 	"\x11ListConversations\x12!.aicoach.ListConversationsRequest\x1a\".aicoach.ListConversationsResponse\x12T\n" +
@@ -2589,7 +2852,7 @@ func file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescGZIP() []
 	return file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDescData
 }
 
-var file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_services_microservices_ai_coach_api_v1_ai_coach_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
 var file_services_microservices_ai_coach_api_v1_ai_coach_proto_goTypes = []any{
 	(*CheckInFeedbackRequest)(nil),           // 0: aicoach.CheckInFeedbackRequest
 	(*CheckInFeedbackResponse)(nil),          // 1: aicoach.CheckInFeedbackResponse
@@ -2609,26 +2872,30 @@ var file_services_microservices_ai_coach_api_v1_ai_coach_proto_goTypes = []any{
 	(*OnboardingHabitSuggestion)(nil),        // 15: aicoach.OnboardingHabitSuggestion
 	(*GenerateOnboardingHabitsRequest)(nil),  // 16: aicoach.GenerateOnboardingHabitsRequest
 	(*GenerateOnboardingHabitsResponse)(nil), // 17: aicoach.GenerateOnboardingHabitsResponse
-	(*Conversation)(nil),                     // 18: aicoach.Conversation
-	(*ConversationMessage)(nil),              // 19: aicoach.ConversationMessage
-	(*StartConversationRequest)(nil),         // 20: aicoach.StartConversationRequest
-	(*StartConversationResponse)(nil),        // 21: aicoach.StartConversationResponse
-	(*ListConversationsRequest)(nil),         // 22: aicoach.ListConversationsRequest
-	(*ListConversationsResponse)(nil),        // 23: aicoach.ListConversationsResponse
-	(*GetConversationRequest)(nil),           // 24: aicoach.GetConversationRequest
-	(*GetConversationResponse)(nil),          // 25: aicoach.GetConversationResponse
-	(*GetMessagesRequest)(nil),               // 26: aicoach.GetMessagesRequest
-	(*GetMessagesResponse)(nil),              // 27: aicoach.GetMessagesResponse
-	(*AppendMessageRequest)(nil),             // 28: aicoach.AppendMessageRequest
-	(*AppendMessageResponse)(nil),            // 29: aicoach.AppendMessageResponse
-	(*ArchiveConversationRequest)(nil),       // 30: aicoach.ArchiveConversationRequest
-	(*ArchiveConversationResponse)(nil),      // 31: aicoach.ArchiveConversationResponse
-	(*DeleteConversationRequest)(nil),        // 32: aicoach.DeleteConversationRequest
-	(*DeleteConversationResponse)(nil),       // 33: aicoach.DeleteConversationResponse
-	nil,                                      // 34: aicoach.PersonalizedCoachingRequest.PatternInsightsEntry
+	(*TranscribeRequest)(nil),                // 18: aicoach.TranscribeRequest
+	(*TranscribeResponse)(nil),               // 19: aicoach.TranscribeResponse
+	(*SynthesizeRequest)(nil),                // 20: aicoach.SynthesizeRequest
+	(*SynthesizeResponse)(nil),               // 21: aicoach.SynthesizeResponse
+	(*Conversation)(nil),                     // 22: aicoach.Conversation
+	(*ConversationMessage)(nil),              // 23: aicoach.ConversationMessage
+	(*StartConversationRequest)(nil),         // 24: aicoach.StartConversationRequest
+	(*StartConversationResponse)(nil),        // 25: aicoach.StartConversationResponse
+	(*ListConversationsRequest)(nil),         // 26: aicoach.ListConversationsRequest
+	(*ListConversationsResponse)(nil),        // 27: aicoach.ListConversationsResponse
+	(*GetConversationRequest)(nil),           // 28: aicoach.GetConversationRequest
+	(*GetConversationResponse)(nil),          // 29: aicoach.GetConversationResponse
+	(*GetMessagesRequest)(nil),               // 30: aicoach.GetMessagesRequest
+	(*GetMessagesResponse)(nil),              // 31: aicoach.GetMessagesResponse
+	(*AppendMessageRequest)(nil),             // 32: aicoach.AppendMessageRequest
+	(*AppendMessageResponse)(nil),            // 33: aicoach.AppendMessageResponse
+	(*ArchiveConversationRequest)(nil),       // 34: aicoach.ArchiveConversationRequest
+	(*ArchiveConversationResponse)(nil),      // 35: aicoach.ArchiveConversationResponse
+	(*DeleteConversationRequest)(nil),        // 36: aicoach.DeleteConversationRequest
+	(*DeleteConversationResponse)(nil),       // 37: aicoach.DeleteConversationResponse
+	nil,                                      // 38: aicoach.PersonalizedCoachingRequest.PatternInsightsEntry
 }
 var file_services_microservices_ai_coach_api_v1_ai_coach_proto_depIdxs = []int32{
-	34, // 0: aicoach.PersonalizedCoachingRequest.pattern_insights:type_name -> aicoach.PersonalizedCoachingRequest.PatternInsightsEntry
+	38, // 0: aicoach.PersonalizedCoachingRequest.pattern_insights:type_name -> aicoach.PersonalizedCoachingRequest.PatternInsightsEntry
 	3,  // 1: aicoach.PersonalizedCoachingRequest.history:type_name -> aicoach.HistoryMessage
 	5,  // 2: aicoach.WeeklyReviewRequest.habit_breakdowns:type_name -> aicoach.HabitBreakdown
 	6,  // 3: aicoach.WeeklyReviewRequest.blocker_stats:type_name -> aicoach.BlockerStat
@@ -2638,44 +2905,48 @@ var file_services_microservices_ai_coach_api_v1_ai_coach_proto_depIdxs = []int32
 	10, // 7: aicoach.WeeklyReviewResponse.next_week_plan:type_name -> aicoach.NextWeekPlan
 	12, // 8: aicoach.WeeklyReviewStreamChunk.review:type_name -> aicoach.WeeklyReviewResponse
 	15, // 9: aicoach.GenerateOnboardingHabitsResponse.habits:type_name -> aicoach.OnboardingHabitSuggestion
-	18, // 10: aicoach.StartConversationResponse.conversation:type_name -> aicoach.Conversation
-	19, // 11: aicoach.StartConversationResponse.initial_message_row:type_name -> aicoach.ConversationMessage
-	18, // 12: aicoach.ListConversationsResponse.conversations:type_name -> aicoach.Conversation
-	18, // 13: aicoach.GetConversationResponse.conversation:type_name -> aicoach.Conversation
-	19, // 14: aicoach.GetMessagesResponse.messages:type_name -> aicoach.ConversationMessage
-	19, // 15: aicoach.AppendMessageResponse.message:type_name -> aicoach.ConversationMessage
-	18, // 16: aicoach.AppendMessageResponse.conversation:type_name -> aicoach.Conversation
-	18, // 17: aicoach.ArchiveConversationResponse.conversation:type_name -> aicoach.Conversation
+	22, // 10: aicoach.StartConversationResponse.conversation:type_name -> aicoach.Conversation
+	23, // 11: aicoach.StartConversationResponse.initial_message_row:type_name -> aicoach.ConversationMessage
+	22, // 12: aicoach.ListConversationsResponse.conversations:type_name -> aicoach.Conversation
+	22, // 13: aicoach.GetConversationResponse.conversation:type_name -> aicoach.Conversation
+	23, // 14: aicoach.GetMessagesResponse.messages:type_name -> aicoach.ConversationMessage
+	23, // 15: aicoach.AppendMessageResponse.message:type_name -> aicoach.ConversationMessage
+	22, // 16: aicoach.AppendMessageResponse.conversation:type_name -> aicoach.Conversation
+	22, // 17: aicoach.ArchiveConversationResponse.conversation:type_name -> aicoach.Conversation
 	0,  // 18: aicoach.AICoachService.GenerateCheckInFeedback:input_type -> aicoach.CheckInFeedbackRequest
 	2,  // 19: aicoach.AICoachService.GeneratePersonalizedCoaching:input_type -> aicoach.PersonalizedCoachingRequest
 	11, // 20: aicoach.AICoachService.GenerateWeeklyReview:input_type -> aicoach.WeeklyReviewRequest
 	11, // 21: aicoach.AICoachService.StreamWeeklyReview:input_type -> aicoach.WeeklyReviewRequest
 	2,  // 22: aicoach.AICoachService.StreamPersonalizedCoaching:input_type -> aicoach.PersonalizedCoachingRequest
 	16, // 23: aicoach.AICoachService.GenerateOnboardingHabits:input_type -> aicoach.GenerateOnboardingHabitsRequest
-	20, // 24: aicoach.ConversationService.StartConversation:input_type -> aicoach.StartConversationRequest
-	22, // 25: aicoach.ConversationService.ListConversations:input_type -> aicoach.ListConversationsRequest
-	24, // 26: aicoach.ConversationService.GetConversation:input_type -> aicoach.GetConversationRequest
-	26, // 27: aicoach.ConversationService.GetMessages:input_type -> aicoach.GetMessagesRequest
-	28, // 28: aicoach.ConversationService.AppendMessage:input_type -> aicoach.AppendMessageRequest
-	30, // 29: aicoach.ConversationService.ArchiveConversation:input_type -> aicoach.ArchiveConversationRequest
-	30, // 30: aicoach.ConversationService.UnarchiveConversation:input_type -> aicoach.ArchiveConversationRequest
-	32, // 31: aicoach.ConversationService.DeleteConversation:input_type -> aicoach.DeleteConversationRequest
-	1,  // 32: aicoach.AICoachService.GenerateCheckInFeedback:output_type -> aicoach.CheckInFeedbackResponse
-	4,  // 33: aicoach.AICoachService.GeneratePersonalizedCoaching:output_type -> aicoach.PersonalizedCoachingResponse
-	12, // 34: aicoach.AICoachService.GenerateWeeklyReview:output_type -> aicoach.WeeklyReviewResponse
-	13, // 35: aicoach.AICoachService.StreamWeeklyReview:output_type -> aicoach.WeeklyReviewStreamChunk
-	14, // 36: aicoach.AICoachService.StreamPersonalizedCoaching:output_type -> aicoach.PersonalizedCoachingStreamChunk
-	17, // 37: aicoach.AICoachService.GenerateOnboardingHabits:output_type -> aicoach.GenerateOnboardingHabitsResponse
-	21, // 38: aicoach.ConversationService.StartConversation:output_type -> aicoach.StartConversationResponse
-	23, // 39: aicoach.ConversationService.ListConversations:output_type -> aicoach.ListConversationsResponse
-	25, // 40: aicoach.ConversationService.GetConversation:output_type -> aicoach.GetConversationResponse
-	27, // 41: aicoach.ConversationService.GetMessages:output_type -> aicoach.GetMessagesResponse
-	29, // 42: aicoach.ConversationService.AppendMessage:output_type -> aicoach.AppendMessageResponse
-	31, // 43: aicoach.ConversationService.ArchiveConversation:output_type -> aicoach.ArchiveConversationResponse
-	31, // 44: aicoach.ConversationService.UnarchiveConversation:output_type -> aicoach.ArchiveConversationResponse
-	33, // 45: aicoach.ConversationService.DeleteConversation:output_type -> aicoach.DeleteConversationResponse
-	32, // [32:46] is the sub-list for method output_type
-	18, // [18:32] is the sub-list for method input_type
+	18, // 24: aicoach.AICoachService.Transcribe:input_type -> aicoach.TranscribeRequest
+	20, // 25: aicoach.AICoachService.Synthesize:input_type -> aicoach.SynthesizeRequest
+	24, // 26: aicoach.ConversationService.StartConversation:input_type -> aicoach.StartConversationRequest
+	26, // 27: aicoach.ConversationService.ListConversations:input_type -> aicoach.ListConversationsRequest
+	28, // 28: aicoach.ConversationService.GetConversation:input_type -> aicoach.GetConversationRequest
+	30, // 29: aicoach.ConversationService.GetMessages:input_type -> aicoach.GetMessagesRequest
+	32, // 30: aicoach.ConversationService.AppendMessage:input_type -> aicoach.AppendMessageRequest
+	34, // 31: aicoach.ConversationService.ArchiveConversation:input_type -> aicoach.ArchiveConversationRequest
+	34, // 32: aicoach.ConversationService.UnarchiveConversation:input_type -> aicoach.ArchiveConversationRequest
+	36, // 33: aicoach.ConversationService.DeleteConversation:input_type -> aicoach.DeleteConversationRequest
+	1,  // 34: aicoach.AICoachService.GenerateCheckInFeedback:output_type -> aicoach.CheckInFeedbackResponse
+	4,  // 35: aicoach.AICoachService.GeneratePersonalizedCoaching:output_type -> aicoach.PersonalizedCoachingResponse
+	12, // 36: aicoach.AICoachService.GenerateWeeklyReview:output_type -> aicoach.WeeklyReviewResponse
+	13, // 37: aicoach.AICoachService.StreamWeeklyReview:output_type -> aicoach.WeeklyReviewStreamChunk
+	14, // 38: aicoach.AICoachService.StreamPersonalizedCoaching:output_type -> aicoach.PersonalizedCoachingStreamChunk
+	17, // 39: aicoach.AICoachService.GenerateOnboardingHabits:output_type -> aicoach.GenerateOnboardingHabitsResponse
+	19, // 40: aicoach.AICoachService.Transcribe:output_type -> aicoach.TranscribeResponse
+	21, // 41: aicoach.AICoachService.Synthesize:output_type -> aicoach.SynthesizeResponse
+	25, // 42: aicoach.ConversationService.StartConversation:output_type -> aicoach.StartConversationResponse
+	27, // 43: aicoach.ConversationService.ListConversations:output_type -> aicoach.ListConversationsResponse
+	29, // 44: aicoach.ConversationService.GetConversation:output_type -> aicoach.GetConversationResponse
+	31, // 45: aicoach.ConversationService.GetMessages:output_type -> aicoach.GetMessagesResponse
+	33, // 46: aicoach.ConversationService.AppendMessage:output_type -> aicoach.AppendMessageResponse
+	35, // 47: aicoach.ConversationService.ArchiveConversation:output_type -> aicoach.ArchiveConversationResponse
+	35, // 48: aicoach.ConversationService.UnarchiveConversation:output_type -> aicoach.ArchiveConversationResponse
+	37, // 49: aicoach.ConversationService.DeleteConversation:output_type -> aicoach.DeleteConversationResponse
+	34, // [34:50] is the sub-list for method output_type
+	18, // [18:34] is the sub-list for method input_type
 	18, // [18:18] is the sub-list for extension type_name
 	18, // [18:18] is the sub-list for extension extendee
 	0,  // [0:18] is the sub-list for field type_name
@@ -2692,7 +2963,7 @@ func file_services_microservices_ai_coach_api_v1_ai_coach_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDesc), len(file_services_microservices_ai_coach_api_v1_ai_coach_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   35,
+			NumMessages:   39,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

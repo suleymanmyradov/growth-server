@@ -64,12 +64,6 @@ Auth:
 ServiceAuth:
   Secret: dd05451984339bccc6b388e8c81d1375f8a6e7191e716d7eec39e152e5e440b8
 
-Billing:
-  Mode: "stripe_test"           # disabled | fake_door | stripe_test | stripe_live
-  StripeSecretKey: sk_test_dev_placeholder
-  StripeWebhookSecret: whsec_dev_placeholder
-  FrontendURL: "https://growth.app"
-
 # Rate limiting (Redis-backed fixed-window)
 RateLimit:
   Redis:

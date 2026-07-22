@@ -166,6 +166,35 @@ service AICoachService {
   rpc StreamWeeklyReview(WeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
   rpc StreamPersonalizedCoaching(PersonalizedCoachingRequest) returns (stream PersonalizedCoachingStreamChunk);
   rpc GenerateOnboardingHabits(GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse);
+  rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
+  rpc Synthesize(SynthesizeRequest) returns (SynthesizeResponse);
+}
+
+// Speech — STT/TTS. Used by the gateway for dictate (mic → text) and live
+// voice chat (text → spoken response). The ai-coach service owns the speech
+// provider config; the gateway is the orchestrator.
+message TranscribeRequest {
+  string user_id = 1;
+  bytes audio = 2;          // raw audio bytes
+  string format = 3;        // wav | mp3 | flac | m4a | ogg | webm | aac
+  string language = 4;      // ISO-639-1, optional (auto-detect if empty)
+}
+
+message TranscribeResponse {
+  string text = 1;
+  string language = 2;      // detected language, if reported by provider
+  double duration = 3;      // audio duration in seconds, if reported
+}
+
+message SynthesizeRequest {
+  string user_id = 1;
+  string text = 2;          // text to speak
+  string voice = 3;         // provider-specific voice, optional (uses config default)
+}
+
+message SynthesizeResponse {
+  bytes audio = 1;          // synthesized audio bytes
+  string format = 2;        // audio format: mp3 | pcm
 }
 
 // Conversation Service
