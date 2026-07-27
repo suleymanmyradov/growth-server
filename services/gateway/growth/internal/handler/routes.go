@@ -110,6 +110,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		[]rest.Route{
 			{
 				Method:  http.MethodPost,
+				Path:    "/auth/apple",
+				Handler: auth.AppleLoginHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/auth/forgot-password",
 				Handler: auth.ForgotPasswordHandler(serverCtx),
 			},
@@ -197,6 +202,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 
 	server.AddRoutes(
 		[]rest.Route{
+			{
+				Method:  http.MethodPost,
+				Path:    "/billing/revenuecat-webhook",
+				Handler: billing.HandleRevenueCatWebhookHandler(serverCtx),
+			},
 			{
 				Method:  http.MethodPost,
 				Path:    "/billing/webhook",
@@ -404,6 +414,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 		rest.WithMiddlewares(
 			[]rest.Middleware{serverCtx.Auth},
 			[]rest.Route{
+				{
+					Method:  http.MethodPut,
+					Path:    "/devices/:installationId",
+					Handler: notifications.RegisterDeviceHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/devices/:installationId",
+					Handler: notifications.UnregisterDeviceHandler(serverCtx),
+				},
 				{
 					Method:  http.MethodGet,
 					Path:    "/notification-preferences",

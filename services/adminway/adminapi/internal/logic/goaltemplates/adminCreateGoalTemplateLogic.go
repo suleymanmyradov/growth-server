@@ -3,9 +3,9 @@ package goaltemplates
 import (
 	"context"
 
-	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clientgoaltemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goaltemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -31,31 +31,23 @@ func (l *AdminCreateGoalTemplateLogic) AdminCreateGoalTemplate(req *types.Create
 		return nil, status.Error(codes.InvalidArgument, "title is required")
 	}
 
-	categoryID, err := parseOptionalUUID(req.CategoryId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid categoryId")
+	categoryId := ""
+	if req.CategoryId != nil {
+		categoryId = *req.CategoryId
 	}
 
-	var desc *string
-	if req.Description != "" {
-		d := req.Description
-		desc = &d
-	}
-
-	params := db.AdminCreateGoalTemplateParams{
+	t, err := l.svcCtx.GoalTemplatesRpc.AdminCreateGoalTemplate(l.ctx, &clientgoaltemplates.AdminCreateGoalTemplateRequest{
 		Title:       req.Title,
-		Description: desc,
-		CategoryID:  categoryID,
+		Description: req.Description,
+		CategoryId:  categoryId,
 		SortOrder:   req.SortOrder,
 		IsActive:    req.IsActive,
-	}
-
-	m, err := l.svcCtx.Repo.GoalTemplates.Create(l.ctx, params)
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.GoalTemplateResponse{
-		Data: goalTemplateModelToItem(m),
+		Data: goalTemplateProtoToItem(t),
 	}, nil
 }

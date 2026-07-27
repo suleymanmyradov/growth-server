@@ -394,8 +394,12 @@ func (x *RefreshRequest) GetRefreshToken() string {
 }
 
 type LogoutRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	AccessToken   string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	AccessToken string                 `protobuf:"bytes,1,opt,name=access_token,json=accessToken,proto3" json:"access_token,omitempty"`
+	// Optional refresh token for defense-in-depth revocation. The session is
+	// revoked regardless via the access token's session ID, but providing the
+	// refresh token also revokes it by value.
+	RefreshToken  string `protobuf:"bytes,2,opt,name=refresh_token,json=refreshToken,proto3" json:"refresh_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -433,6 +437,13 @@ func (*LogoutRequest) Descriptor() ([]byte, []int) {
 func (x *LogoutRequest) GetAccessToken() string {
 	if x != nil {
 		return x.AccessToken
+	}
+	return ""
+}
+
+func (x *LogoutRequest) GetRefreshToken() string {
+	if x != nil {
+		return x.RefreshToken
 	}
 	return ""
 }
@@ -1230,6 +1241,151 @@ func (x *GoogleLoginRequest) GetRedirectUri() string {
 	return ""
 }
 
+// AppleFullName carries the user's name from the Apple authorization response.
+// Apple only provides the name on the FIRST authorization; it is delivered
+// outside the ID token (in the authorization response) and the client forwards
+// it here. Both fields are empty for subsequent authorizations.
+type AppleFullName struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	GivenName     string                 `protobuf:"bytes,1,opt,name=given_name,json=givenName,proto3" json:"given_name,omitempty"`
+	FamilyName    string                 `protobuf:"bytes,2,opt,name=family_name,json=familyName,proto3" json:"family_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppleFullName) Reset() {
+	*x = AppleFullName{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppleFullName) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppleFullName) ProtoMessage() {}
+
+func (x *AppleFullName) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppleFullName.ProtoReflect.Descriptor instead.
+func (*AppleFullName) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *AppleFullName) GetGivenName() string {
+	if x != nil {
+		return x.GivenName
+	}
+	return ""
+}
+
+func (x *AppleFullName) GetFamilyName() string {
+	if x != nil {
+		return x.FamilyName
+	}
+	return ""
+}
+
+// AppleLoginRequest authenticates a user via Sign in with Apple. The client
+// (expo-apple-authentication) obtains the identity_token and authorization_code
+// from Apple and sends both here. The identity token is verified by signature
+// against Apple's public keys; the authorization code may be exchanged for a
+// refresh token when the Apple private key is configured.
+type AppleLoginRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Apple authorization code. Required for code exchange (token revocation /
+	// subscription status); optional if only identity-token verification is used.
+	AuthorizationCode string `protobuf:"bytes,1,opt,name=authorization_code,json=authorizationCode,proto3" json:"authorization_code,omitempty"`
+	// Apple ID token (signed JWT). Required — this is the primary credential.
+	IdentityToken string `protobuf:"bytes,2,opt,name=identity_token,json=identityToken,proto3" json:"identity_token,omitempty"`
+	// Optional nonce the client used during authorization. When non-empty, the
+	// ID token's nonce claim must match.
+	Nonce string `protobuf:"bytes,3,opt,name=nonce,proto3" json:"nonce,omitempty"`
+	// User's name, only present on first authorization. Forwarded by the client
+	// from the Apple authorization response.
+	FullName *AppleFullName `protobuf:"bytes,4,opt,name=full_name,json=fullName,proto3" json:"full_name,omitempty"`
+	// Optional redirect URI for code exchange. Validated against an allowlist.
+	RedirectUri   string `protobuf:"bytes,5,opt,name=redirect_uri,json=redirectUri,proto3" json:"redirect_uri,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppleLoginRequest) Reset() {
+	*x = AppleLoginRequest{}
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppleLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppleLoginRequest) ProtoMessage() {}
+
+func (x *AppleLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppleLoginRequest.ProtoReflect.Descriptor instead.
+func (*AppleLoginRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *AppleLoginRequest) GetAuthorizationCode() string {
+	if x != nil {
+		return x.AuthorizationCode
+	}
+	return ""
+}
+
+func (x *AppleLoginRequest) GetIdentityToken() string {
+	if x != nil {
+		return x.IdentityToken
+	}
+	return ""
+}
+
+func (x *AppleLoginRequest) GetNonce() string {
+	if x != nil {
+		return x.Nonce
+	}
+	return ""
+}
+
+func (x *AppleLoginRequest) GetFullName() *AppleFullName {
+	if x != nil {
+		return x.FullName
+	}
+	return nil
+}
+
+func (x *AppleLoginRequest) GetRedirectUri() string {
+	if x != nil {
+		return x.RedirectUri
+	}
+	return ""
+}
+
 type EmptyResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1238,7 +1394,7 @@ type EmptyResponse struct {
 
 func (x *EmptyResponse) Reset() {
 	*x = EmptyResponse{}
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1250,7 +1406,7 @@ func (x *EmptyResponse) String() string {
 func (*EmptyResponse) ProtoMessage() {}
 
 func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[21]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1263,7 +1419,7 @@ func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EmptyResponse.ProtoReflect.Descriptor instead.
 func (*EmptyResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{21}
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{23}
 }
 
 type DeleteUserRequest struct {
@@ -1275,7 +1431,7 @@ type DeleteUserRequest struct {
 
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1287,7 +1443,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[22]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1300,7 +1456,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{22}
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *DeleteUserRequest) GetUserId() string {
@@ -1322,7 +1478,7 @@ type ListUserIdsRequest struct {
 
 func (x *ListUserIdsRequest) Reset() {
 	*x = ListUserIdsRequest{}
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1334,7 +1490,7 @@ func (x *ListUserIdsRequest) String() string {
 func (*ListUserIdsRequest) ProtoMessage() {}
 
 func (x *ListUserIdsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[23]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1347,7 +1503,7 @@ func (x *ListUserIdsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserIdsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserIdsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{23}
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *ListUserIdsRequest) GetLimit() int32 {
@@ -1374,7 +1530,7 @@ type ListUserIdsResponse struct {
 
 func (x *ListUserIdsResponse) Reset() {
 	*x = ListUserIdsResponse{}
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1386,7 +1542,7 @@ func (x *ListUserIdsResponse) String() string {
 func (*ListUserIdsResponse) ProtoMessage() {}
 
 func (x *ListUserIdsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[24]
+	mi := &file_services_microservices_auth_api_v1_auth_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1399,7 +1555,7 @@ func (x *ListUserIdsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserIdsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserIdsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{24}
+	return file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ListUserIdsResponse) GetUserIds() []string {
@@ -1455,9 +1611,10 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"updated_at\x18\v \x01(\tR\tupdatedAt\x12%\n" +
 	"\x0eemail_verified\x18\f \x01(\bR\remailVerified\"5\n" +
 	"\x0eRefreshRequest\x12#\n" +
-	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"2\n" +
+	"\rrefresh_token\x18\x01 \x01(\tR\frefreshToken\"W\n" +
 	"\rLogoutRequest\x12!\n" +
-	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\"9\n" +
+	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\x12#\n" +
+	"\rrefresh_token\x18\x02 \x01(\tR\frefreshToken\"9\n" +
 	"\x14ValidateTokenRequest\x12!\n" +
 	"\faccess_token\x18\x01 \x01(\tR\vaccessToken\"b\n" +
 	"\x15ValidateTokenResponse\x12\x14\n" +
@@ -1508,7 +1665,18 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x05email\x18\x01 \x01(\tR\x05email\"f\n" +
 	"\x12GoogleLoginRequest\x12-\n" +
 	"\x12authorization_code\x18\x01 \x01(\tR\x11authorizationCode\x12!\n" +
-	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\"\x0f\n" +
+	"\fredirect_uri\x18\x02 \x01(\tR\vredirectUri\"O\n" +
+	"\rAppleFullName\x12\x1d\n" +
+	"\n" +
+	"given_name\x18\x01 \x01(\tR\tgivenName\x12\x1f\n" +
+	"\vfamily_name\x18\x02 \x01(\tR\n" +
+	"familyName\"\xd4\x01\n" +
+	"\x11AppleLoginRequest\x12-\n" +
+	"\x12authorization_code\x18\x01 \x01(\tR\x11authorizationCode\x12%\n" +
+	"\x0eidentity_token\x18\x02 \x01(\tR\ridentityToken\x12\x14\n" +
+	"\x05nonce\x18\x03 \x01(\tR\x05nonce\x120\n" +
+	"\tfull_name\x18\x04 \x01(\v2\x13.auth.AppleFullNameR\bfullName\x12!\n" +
+	"\fredirect_uri\x18\x05 \x01(\tR\vredirectUri\"\x0f\n" +
 	"\rEmptyResponse\",\n" +
 	"\x11DeleteUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\tR\x06userId\"B\n" +
@@ -1518,7 +1686,7 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\x13ListUserIdsResponse\x12\x19\n" +
 	"\buser_ids\x18\x01 \x03(\tR\auserIds\x12\x1f\n" +
 	"\vnext_cursor\x18\x02 \x01(\tR\n" +
-	"nextCursor2\xa2\b\n" +
+	"nextCursor2\xdd\b\n" +
 	"\vAuthService\x129\n" +
 	"\bRegister\x12\x15.auth.RegisterRequest\x1a\x16.auth.RegisterResponse\x12/\n" +
 	"\x05Login\x12\x12.auth.LoginRequest\x1a\x12.auth.AuthResponse\x128\n" +
@@ -1536,7 +1704,9 @@ const file_services_microservices_auth_api_v1_auth_proto_rawDesc = "" +
 	"\rResetPassword\x12\x1a.auth.ResetPasswordRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
 	"\vVerifyEmail\x12\x18.auth.VerifyEmailRequest\x1a\x12.auth.AuthResponse\x12J\n" +
 	"\x12ResendVerification\x12\x1f.auth.ResendVerificationRequest\x1a\x13.auth.EmptyResponse\x12;\n" +
-	"\vGoogleLogin\x12\x18.auth.GoogleLoginRequest\x1a\x12.auth.AuthResponse\x12B\n" +
+	"\vGoogleLogin\x12\x18.auth.GoogleLoginRequest\x1a\x12.auth.AuthResponse\x129\n" +
+	"\n" +
+	"AppleLogin\x12\x17.auth.AppleLoginRequest\x1a\x12.auth.AuthResponse\x12B\n" +
 	"\vListUserIds\x12\x18.auth.ListUserIdsRequest\x1a\x19.auth.ListUserIdsResponseB\bZ\x06./authb\x06proto3"
 
 var (
@@ -1551,7 +1721,7 @@ func file_services_microservices_auth_api_v1_auth_proto_rawDescGZIP() []byte {
 	return file_services_microservices_auth_api_v1_auth_proto_rawDescData
 }
 
-var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_services_microservices_auth_api_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*RegisterRequest)(nil),           // 0: auth.RegisterRequest
 	(*LoginRequest)(nil),              // 1: auth.LoginRequest
@@ -1574,52 +1744,57 @@ var file_services_microservices_auth_api_v1_auth_proto_goTypes = []any{
 	(*VerifyEmailRequest)(nil),        // 18: auth.VerifyEmailRequest
 	(*ResendVerificationRequest)(nil), // 19: auth.ResendVerificationRequest
 	(*GoogleLoginRequest)(nil),        // 20: auth.GoogleLoginRequest
-	(*EmptyResponse)(nil),             // 21: auth.EmptyResponse
-	(*DeleteUserRequest)(nil),         // 22: auth.DeleteUserRequest
-	(*ListUserIdsRequest)(nil),        // 23: auth.ListUserIdsRequest
-	(*ListUserIdsResponse)(nil),       // 24: auth.ListUserIdsResponse
+	(*AppleFullName)(nil),             // 21: auth.AppleFullName
+	(*AppleLoginRequest)(nil),         // 22: auth.AppleLoginRequest
+	(*EmptyResponse)(nil),             // 23: auth.EmptyResponse
+	(*DeleteUserRequest)(nil),         // 24: auth.DeleteUserRequest
+	(*ListUserIdsRequest)(nil),        // 25: auth.ListUserIdsRequest
+	(*ListUserIdsResponse)(nil),       // 26: auth.ListUserIdsResponse
 }
 var file_services_microservices_auth_api_v1_auth_proto_depIdxs = []int32{
 	3,  // 0: auth.AuthResponse.user:type_name -> auth.User
 	3,  // 1: auth.GetProfileResponse.user:type_name -> auth.User
 	3,  // 2: auth.UpdateProfileResponse.user:type_name -> auth.User
-	0,  // 3: auth.AuthService.Register:input_type -> auth.RegisterRequest
-	1,  // 4: auth.AuthService.Login:input_type -> auth.LoginRequest
-	4,  // 5: auth.AuthService.RefreshToken:input_type -> auth.RefreshRequest
-	5,  // 6: auth.AuthService.Logout:input_type -> auth.LogoutRequest
-	6,  // 7: auth.AuthService.ValidateToken:input_type -> auth.ValidateTokenRequest
-	8,  // 8: auth.AuthService.VerifyAccessToken:input_type -> auth.VerifyAccessTokenRequest
-	10, // 9: auth.AuthService.GetProfile:input_type -> auth.GetProfileRequest
-	12, // 10: auth.AuthService.UpdateProfile:input_type -> auth.UpdateProfileRequest
-	22, // 11: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
-	14, // 12: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
-	15, // 13: auth.AuthService.ForgotPassword:input_type -> auth.ForgotPasswordRequest
-	16, // 14: auth.AuthService.ResetPassword:input_type -> auth.ResetPasswordRequest
-	18, // 15: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
-	19, // 16: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
-	20, // 17: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
-	23, // 18: auth.AuthService.ListUserIds:input_type -> auth.ListUserIdsRequest
-	17, // 19: auth.AuthService.Register:output_type -> auth.RegisterResponse
-	2,  // 20: auth.AuthService.Login:output_type -> auth.AuthResponse
-	2,  // 21: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
-	21, // 22: auth.AuthService.Logout:output_type -> auth.EmptyResponse
-	7,  // 23: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
-	9,  // 24: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
-	11, // 25: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
-	13, // 26: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
-	21, // 27: auth.AuthService.DeleteUser:output_type -> auth.EmptyResponse
-	21, // 28: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
-	21, // 29: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
-	21, // 30: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
-	2,  // 31: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
-	21, // 32: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
-	2,  // 33: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
-	24, // 34: auth.AuthService.ListUserIds:output_type -> auth.ListUserIdsResponse
-	19, // [19:35] is the sub-list for method output_type
-	3,  // [3:19] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	21, // 3: auth.AppleLoginRequest.full_name:type_name -> auth.AppleFullName
+	0,  // 4: auth.AuthService.Register:input_type -> auth.RegisterRequest
+	1,  // 5: auth.AuthService.Login:input_type -> auth.LoginRequest
+	4,  // 6: auth.AuthService.RefreshToken:input_type -> auth.RefreshRequest
+	5,  // 7: auth.AuthService.Logout:input_type -> auth.LogoutRequest
+	6,  // 8: auth.AuthService.ValidateToken:input_type -> auth.ValidateTokenRequest
+	8,  // 9: auth.AuthService.VerifyAccessToken:input_type -> auth.VerifyAccessTokenRequest
+	10, // 10: auth.AuthService.GetProfile:input_type -> auth.GetProfileRequest
+	12, // 11: auth.AuthService.UpdateProfile:input_type -> auth.UpdateProfileRequest
+	24, // 12: auth.AuthService.DeleteUser:input_type -> auth.DeleteUserRequest
+	14, // 13: auth.AuthService.ChangePassword:input_type -> auth.ChangePasswordRequest
+	15, // 14: auth.AuthService.ForgotPassword:input_type -> auth.ForgotPasswordRequest
+	16, // 15: auth.AuthService.ResetPassword:input_type -> auth.ResetPasswordRequest
+	18, // 16: auth.AuthService.VerifyEmail:input_type -> auth.VerifyEmailRequest
+	19, // 17: auth.AuthService.ResendVerification:input_type -> auth.ResendVerificationRequest
+	20, // 18: auth.AuthService.GoogleLogin:input_type -> auth.GoogleLoginRequest
+	22, // 19: auth.AuthService.AppleLogin:input_type -> auth.AppleLoginRequest
+	25, // 20: auth.AuthService.ListUserIds:input_type -> auth.ListUserIdsRequest
+	17, // 21: auth.AuthService.Register:output_type -> auth.RegisterResponse
+	2,  // 22: auth.AuthService.Login:output_type -> auth.AuthResponse
+	2,  // 23: auth.AuthService.RefreshToken:output_type -> auth.AuthResponse
+	23, // 24: auth.AuthService.Logout:output_type -> auth.EmptyResponse
+	7,  // 25: auth.AuthService.ValidateToken:output_type -> auth.ValidateTokenResponse
+	9,  // 26: auth.AuthService.VerifyAccessToken:output_type -> auth.VerifyAccessTokenResponse
+	11, // 27: auth.AuthService.GetProfile:output_type -> auth.GetProfileResponse
+	13, // 28: auth.AuthService.UpdateProfile:output_type -> auth.UpdateProfileResponse
+	23, // 29: auth.AuthService.DeleteUser:output_type -> auth.EmptyResponse
+	23, // 30: auth.AuthService.ChangePassword:output_type -> auth.EmptyResponse
+	23, // 31: auth.AuthService.ForgotPassword:output_type -> auth.EmptyResponse
+	23, // 32: auth.AuthService.ResetPassword:output_type -> auth.EmptyResponse
+	2,  // 33: auth.AuthService.VerifyEmail:output_type -> auth.AuthResponse
+	23, // 34: auth.AuthService.ResendVerification:output_type -> auth.EmptyResponse
+	2,  // 35: auth.AuthService.GoogleLogin:output_type -> auth.AuthResponse
+	2,  // 36: auth.AuthService.AppleLogin:output_type -> auth.AuthResponse
+	26, // 37: auth.AuthService.ListUserIds:output_type -> auth.ListUserIdsResponse
+	21, // [21:38] is the sub-list for method output_type
+	4,  // [4:21] is the sub-list for method input_type
+	4,  // [4:4] is the sub-list for extension type_name
+	4,  // [4:4] is the sub-list for extension extendee
+	0,  // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_services_microservices_auth_api_v1_auth_proto_init() }
@@ -1633,7 +1808,7 @@ func file_services_microservices_auth_api_v1_auth_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_auth_api_v1_auth_proto_rawDesc), len(file_services_microservices_auth_api_v1_auth_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   25,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

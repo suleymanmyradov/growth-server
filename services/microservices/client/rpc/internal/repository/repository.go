@@ -135,6 +135,8 @@ type ICategories interface {
 	CountCategories(ctx context.Context) (int64, error)
 	GetCategoriesByIDs(ctx context.Context, ids []uuid.UUID) ([]db.Category, error)
 	ReorderCategories(ctx context.Context, ids []uuid.UUID, sortOrders []int32) error
+	// Admin list for template management (called by adminway via gRPC).
+	AdminListCategories(ctx context.Context) ([]db.AdminListCategoriesRow, error)
 }
 
 type ICheckIns interface {
@@ -186,6 +188,11 @@ type IBilling interface {
 	MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error
 	ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error)
 	ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error)
+	// RevenueCat
+	GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionByUserIDRow, error)
+	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
+	IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error)
+	MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error
 }
 
 type IPlanAdjustmentSuggestions interface {
@@ -213,10 +220,22 @@ type ISiteSettings interface {
 
 type IHabitTemplates interface {
 	ListHabitTemplates(ctx context.Context) ([]db.ListHabitTemplatesRow, error)
+	// Admin CRUD (called by adminway via gRPC).
+	AdminListHabitTemplates(ctx context.Context) ([]db.AdminListHabitTemplatesRow, error)
+	AdminGetHabitTemplate(ctx context.Context, id uuid.UUID) (db.AdminGetHabitTemplateRow, error)
+	AdminCreateHabitTemplate(ctx context.Context, params db.AdminCreateHabitTemplateParams) (db.HabitTemplate, error)
+	AdminUpdateHabitTemplate(ctx context.Context, params db.AdminUpdateHabitTemplateParams) (db.HabitTemplate, error)
+	AdminDeleteHabitTemplate(ctx context.Context, id uuid.UUID) error
 }
 
 type IGoalTemplates interface {
 	ListGoalTemplates(ctx context.Context) ([]db.ListGoalTemplatesRow, error)
+	// Admin CRUD (called by adminway via gRPC).
+	AdminListGoalTemplates(ctx context.Context) ([]db.AdminListGoalTemplatesRow, error)
+	AdminGetGoalTemplate(ctx context.Context, id uuid.UUID) (db.AdminGetGoalTemplateRow, error)
+	AdminCreateGoalTemplate(ctx context.Context, params db.AdminCreateGoalTemplateParams) (db.GoalTemplate, error)
+	AdminUpdateGoalTemplate(ctx context.Context, params db.AdminUpdateGoalTemplateParams) (db.GoalTemplate, error)
+	AdminDeleteGoalTemplate(ctx context.Context, id uuid.UUID) error
 }
 
 type IReports interface {

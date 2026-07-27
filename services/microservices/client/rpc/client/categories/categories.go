@@ -14,16 +14,18 @@ import (
 )
 
 type (
-	CreateCategoryRequest     = client.CreateCategoryRequest
-	CreateCategoryResponse    = client.CreateCategoryResponse
-	DeleteCategoryRequest     = client.DeleteCategoryRequest
-	DeleteCategoryResponse    = client.DeleteCategoryResponse
-	ListCategoriesRequest     = client.ListCategoriesRequest
-	ListCategoriesResponse    = client.ListCategoriesResponse
-	ReorderCategoriesRequest  = client.ReorderCategoriesRequest
-	ReorderCategoriesResponse = client.ReorderCategoriesResponse
-	UpdateCategoryRequest     = client.UpdateCategoryRequest
-	UpdateCategoryResponse    = client.UpdateCategoryResponse
+	AdminListCategoriesRequest  = client.AdminListCategoriesRequest
+	AdminListCategoriesResponse = client.AdminListCategoriesResponse
+	CreateCategoryRequest       = client.CreateCategoryRequest
+	CreateCategoryResponse      = client.CreateCategoryResponse
+	DeleteCategoryRequest       = client.DeleteCategoryRequest
+	DeleteCategoryResponse      = client.DeleteCategoryResponse
+	ListCategoriesRequest       = client.ListCategoriesRequest
+	ListCategoriesResponse      = client.ListCategoriesResponse
+	ReorderCategoriesRequest    = client.ReorderCategoriesRequest
+	ReorderCategoriesResponse   = client.ReorderCategoriesResponse
+	UpdateCategoryRequest       = client.UpdateCategoryRequest
+	UpdateCategoryResponse      = client.UpdateCategoryResponse
 
 	Categories interface {
 		ListCategories(ctx context.Context, in *ListCategoriesRequest, opts ...grpc.CallOption) (*ListCategoriesResponse, error)
@@ -31,6 +33,8 @@ type (
 		UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error)
 		DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error)
 		ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error)
+		// Admin list for template management (called by adminway via gRPC).
+		AdminListCategories(ctx context.Context, in *AdminListCategoriesRequest, opts ...grpc.CallOption) (*AdminListCategoriesResponse, error)
 	}
 
 	defaultCategories struct {
@@ -67,4 +71,10 @@ func (m *defaultCategories) DeleteCategory(ctx context.Context, in *DeleteCatego
 func (m *defaultCategories) ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error) {
 	client := client.NewCategoriesClient(m.cli.Conn())
 	return client.ReorderCategories(ctx, in, opts...)
+}
+
+// Admin list for template management (called by adminway via gRPC).
+func (m *defaultCategories) AdminListCategories(ctx context.Context, in *AdminListCategoriesRequest, opts ...grpc.CallOption) (*AdminListCategoriesResponse, error) {
+	client := client.NewCategoriesClient(m.cli.Conn())
+	return client.AdminListCategories(ctx, in, opts...)
 }

@@ -203,6 +203,32 @@ func (r *billingRepo) ListExpiredActiveSubscriptions(ctx context.Context, limit 
 	return r.db.ListExpiredActiveSubscriptions(ctx, limit)
 }
 
+// ─── RevenueCat ──────────────────────────────────────────────────────────────
+
+func (r *billingRepo) GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionByUserIDRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetUserSubscriptionByUserID")
+	defer span.End()
+	return r.db.GetUserSubscriptionByUserID(ctx, userID)
+}
+
+func (r *billingRepo) SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.SetRevenueCatCustomerID")
+	defer span.End()
+	return r.db.SetRevenueCatCustomerID(ctx, userID, revenuecatCustomerID)
+}
+
+func (r *billingRepo) IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.IsRevenueCatEventProcessed")
+	defer span.End()
+	return r.db.IsRevenueCatEventProcessed(ctx, eventID)
+}
+
+func (r *billingRepo) MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.MarkRevenueCatEventProcessed")
+	defer span.End()
+	return r.db.MarkRevenueCatEventProcessed(ctx, eventID)
+}
+
 // NullJSON returns json.RawMessage for metadata.
 func NullJSON(m map[string]interface{}) json.RawMessage {
 	if m == nil {

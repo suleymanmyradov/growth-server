@@ -373,9 +373,19 @@ func (h *EventsHandler) onUserDeleted(ctx context.Context, repo *repository.Repo
 	if err := repo.Reminders.DeleteByUser(ctx, userID); err != nil {
 		return fmt.Errorf("delete reminders: %w", err)
 	}
+	if repo.Preferences != nil {
+		if err := repo.Preferences.DeleteByUser(ctx, userID); err != nil {
+			return fmt.Errorf("delete notification preferences: %w", err)
+		}
+	}
 	if repo.ReminderState != nil {
 		if err := repo.ReminderState.Delete(ctx, userID); err != nil {
 			return fmt.Errorf("delete reminder state: %w", err)
+		}
+	}
+	if repo.Devices != nil {
+		if err := repo.Devices.DeleteByUser(ctx, userID); err != nil {
+			return fmt.Errorf("delete devices: %w", err)
 		}
 	}
 	return nil

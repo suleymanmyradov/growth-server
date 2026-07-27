@@ -34,6 +34,7 @@ const (
 	AuthService_VerifyEmail_FullMethodName        = "/auth.AuthService/VerifyEmail"
 	AuthService_ResendVerification_FullMethodName = "/auth.AuthService/ResendVerification"
 	AuthService_GoogleLogin_FullMethodName        = "/auth.AuthService/GoogleLogin"
+	AuthService_AppleLogin_FullMethodName         = "/auth.AuthService/AppleLogin"
 	AuthService_ListUserIds_FullMethodName        = "/auth.AuthService/ListUserIds"
 )
 
@@ -62,6 +63,7 @@ type AuthServiceClient interface {
 	ResendVerification(ctx context.Context, in *ResendVerificationRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	// OAuth
 	GoogleLogin(ctx context.Context, in *GoogleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
+	AppleLogin(ctx context.Context, in *AppleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error)
 	// Admin / internal: enumerate user ids (used by adminway for broadcasts).
 	ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error)
 }
@@ -224,6 +226,16 @@ func (c *authServiceClient) GoogleLogin(ctx context.Context, in *GoogleLoginRequ
 	return out, nil
 }
 
+func (c *authServiceClient) AppleLogin(ctx context.Context, in *AppleLoginRequest, opts ...grpc.CallOption) (*AuthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AuthResponse)
+	err := c.cc.Invoke(ctx, AuthService_AppleLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *authServiceClient) ListUserIds(ctx context.Context, in *ListUserIdsRequest, opts ...grpc.CallOption) (*ListUserIdsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListUserIdsResponse)
@@ -259,6 +271,7 @@ type AuthServiceServer interface {
 	ResendVerification(context.Context, *ResendVerificationRequest) (*EmptyResponse, error)
 	// OAuth
 	GoogleLogin(context.Context, *GoogleLoginRequest) (*AuthResponse, error)
+	AppleLogin(context.Context, *AppleLoginRequest) (*AuthResponse, error)
 	// Admin / internal: enumerate user ids (used by adminway for broadcasts).
 	ListUserIds(context.Context, *ListUserIdsRequest) (*ListUserIdsResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
@@ -315,6 +328,9 @@ func (UnimplementedAuthServiceServer) ResendVerification(context.Context, *Resen
 }
 func (UnimplementedAuthServiceServer) GoogleLogin(context.Context, *GoogleLoginRequest) (*AuthResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GoogleLogin not implemented")
+}
+func (UnimplementedAuthServiceServer) AppleLogin(context.Context, *AppleLoginRequest) (*AuthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AppleLogin not implemented")
 }
 func (UnimplementedAuthServiceServer) ListUserIds(context.Context, *ListUserIdsRequest) (*ListUserIdsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListUserIds not implemented")
@@ -610,6 +626,24 @@ func _AuthService_GoogleLogin_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_AppleLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AppleLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AppleLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AppleLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AppleLogin(ctx, req.(*AppleLoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AuthService_ListUserIds_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListUserIdsRequest)
 	if err := dec(in); err != nil {
@@ -694,6 +728,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GoogleLogin",
 			Handler:    _AuthService_GoogleLogin_Handler,
+		},
+		{
+			MethodName: "AppleLogin",
+			Handler:    _AuthService_AppleLogin_Handler,
 		},
 		{
 			MethodName: "ListUserIds",

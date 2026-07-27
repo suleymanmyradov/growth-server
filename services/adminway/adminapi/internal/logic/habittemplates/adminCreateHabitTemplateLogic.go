@@ -3,9 +3,9 @@ package habittemplates
 import (
 	"context"
 
-	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clienthabittemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -31,31 +31,23 @@ func (l *AdminCreateHabitTemplateLogic) AdminCreateHabitTemplate(req *types.Crea
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	categoryID, err := parseOptionalUUID(req.CategoryId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid categoryId")
+	categoryId := ""
+	if req.CategoryId != nil {
+		categoryId = *req.CategoryId
 	}
 
-	var desc *string
-	if req.Description != "" {
-		d := req.Description
-		desc = &d
-	}
-
-	params := db.AdminCreateHabitTemplateParams{
+	t, err := l.svcCtx.HabitTemplatesRpc.AdminCreateHabitTemplate(l.ctx, &clienthabittemplates.AdminCreateHabitTemplateRequest{
 		Name:        req.Name,
-		Description: desc,
-		CategoryID:  categoryID,
+		Description: req.Description,
+		CategoryId:  categoryId,
 		SortOrder:   req.SortOrder,
 		IsActive:    req.IsActive,
-	}
-
-	m, err := l.svcCtx.Repo.HabitTemplates.Create(l.ctx, params)
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.HabitTemplateResponse{
-		Data: habitTemplateModelToItem(m),
+		Data: habitTemplateProtoToItem(t),
 	}, nil
 }

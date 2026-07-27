@@ -12691,6 +12691,105 @@ func (x *HandleStripeWebhookResponse) GetProcessed() bool {
 	return false
 }
 
+// RevenueCat webhook (mobile subscriptions via App Store / Play Store).
+// The gateway forwards the raw body + Authorization header; the client service
+// verifies the signature and processes the events. See pkg/revenuecat/client.go.
+type HandleRevenueCatWebhookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RawBody       []byte                 `protobuf:"bytes,1,opt,name=rawBody,proto3" json:"rawBody,omitempty"`
+	Authorization string                 `protobuf:"bytes,2,opt,name=authorization,proto3" json:"authorization,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandleRevenueCatWebhookRequest) Reset() {
+	*x = HandleRevenueCatWebhookRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[212]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleRevenueCatWebhookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleRevenueCatWebhookRequest) ProtoMessage() {}
+
+func (x *HandleRevenueCatWebhookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[212]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleRevenueCatWebhookRequest.ProtoReflect.Descriptor instead.
+func (*HandleRevenueCatWebhookRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{212}
+}
+
+func (x *HandleRevenueCatWebhookRequest) GetRawBody() []byte {
+	if x != nil {
+		return x.RawBody
+	}
+	return nil
+}
+
+func (x *HandleRevenueCatWebhookRequest) GetAuthorization() string {
+	if x != nil {
+		return x.Authorization
+	}
+	return ""
+}
+
+type HandleRevenueCatWebhookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Processed     bool                   `protobuf:"varint,1,opt,name=processed,proto3" json:"processed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HandleRevenueCatWebhookResponse) Reset() {
+	*x = HandleRevenueCatWebhookResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[213]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HandleRevenueCatWebhookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HandleRevenueCatWebhookResponse) ProtoMessage() {}
+
+func (x *HandleRevenueCatWebhookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[213]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HandleRevenueCatWebhookResponse.ProtoReflect.Descriptor instead.
+func (*HandleRevenueCatWebhookResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{213}
+}
+
+func (x *HandleRevenueCatWebhookResponse) GetProcessed() bool {
+	if x != nil {
+		return x.Processed
+	}
+	return false
+}
+
 // PlanLimitDetail is attached to gRPC status details when a plan limit is reached.
 // It is used by the gateway to render structured 402 / payment_required responses.
 type PlanLimitDetail struct {
@@ -12703,7 +12802,7 @@ type PlanLimitDetail struct {
 
 func (x *PlanLimitDetail) Reset() {
 	*x = PlanLimitDetail{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[212]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[214]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12715,7 +12814,7 @@ func (x *PlanLimitDetail) String() string {
 func (*PlanLimitDetail) ProtoMessage() {}
 
 func (x *PlanLimitDetail) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[212]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[214]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12728,7 +12827,7 @@ func (x *PlanLimitDetail) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanLimitDetail.ProtoReflect.Descriptor instead.
 func (*PlanLimitDetail) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{212}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{214}
 }
 
 func (x *PlanLimitDetail) GetLimit() string {
@@ -12756,7 +12855,7 @@ type SubscriptionStatus struct {
 
 func (x *SubscriptionStatus) Reset() {
 	*x = SubscriptionStatus{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[213]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[215]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12768,7 +12867,7 @@ func (x *SubscriptionStatus) String() string {
 func (*SubscriptionStatus) ProtoMessage() {}
 
 func (x *SubscriptionStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[213]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[215]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12781,7 +12880,7 @@ func (x *SubscriptionStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SubscriptionStatus.ProtoReflect.Descriptor instead.
 func (*SubscriptionStatus) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{213}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{215}
 }
 
 func (x *SubscriptionStatus) GetUserId() string {
@@ -12813,7 +12912,7 @@ type ListSubscriptionStatusesRequest struct {
 
 func (x *ListSubscriptionStatusesRequest) Reset() {
 	*x = ListSubscriptionStatusesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[214]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[216]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12825,7 +12924,7 @@ func (x *ListSubscriptionStatusesRequest) String() string {
 func (*ListSubscriptionStatusesRequest) ProtoMessage() {}
 
 func (x *ListSubscriptionStatusesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[214]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[216]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12838,7 +12937,7 @@ func (x *ListSubscriptionStatusesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubscriptionStatusesRequest.ProtoReflect.Descriptor instead.
 func (*ListSubscriptionStatusesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{214}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{216}
 }
 
 type ListSubscriptionStatusesResponse struct {
@@ -12850,7 +12949,7 @@ type ListSubscriptionStatusesResponse struct {
 
 func (x *ListSubscriptionStatusesResponse) Reset() {
 	*x = ListSubscriptionStatusesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[215]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[217]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12862,7 +12961,7 @@ func (x *ListSubscriptionStatusesResponse) String() string {
 func (*ListSubscriptionStatusesResponse) ProtoMessage() {}
 
 func (x *ListSubscriptionStatusesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[215]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[217]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12875,7 +12974,7 @@ func (x *ListSubscriptionStatusesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSubscriptionStatusesResponse.ProtoReflect.Descriptor instead.
 func (*ListSubscriptionStatusesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{215}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{217}
 }
 
 func (x *ListSubscriptionStatusesResponse) GetStatuses() []*SubscriptionStatus {
@@ -12899,7 +12998,7 @@ type SiteSetting struct {
 
 func (x *SiteSetting) Reset() {
 	*x = SiteSetting{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[216]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[218]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12911,7 +13010,7 @@ func (x *SiteSetting) String() string {
 func (*SiteSetting) ProtoMessage() {}
 
 func (x *SiteSetting) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[216]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[218]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12924,7 +13023,7 @@ func (x *SiteSetting) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SiteSetting.ProtoReflect.Descriptor instead.
 func (*SiteSetting) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{216}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{218}
 }
 
 func (x *SiteSetting) GetKey() string {
@@ -12964,7 +13063,7 @@ type GetSiteSettingRequest struct {
 
 func (x *GetSiteSettingRequest) Reset() {
 	*x = GetSiteSettingRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[217]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[219]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12976,7 +13075,7 @@ func (x *GetSiteSettingRequest) String() string {
 func (*GetSiteSettingRequest) ProtoMessage() {}
 
 func (x *GetSiteSettingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[217]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[219]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12989,7 +13088,7 @@ func (x *GetSiteSettingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSiteSettingRequest.ProtoReflect.Descriptor instead.
 func (*GetSiteSettingRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{217}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{219}
 }
 
 func (x *GetSiteSettingRequest) GetKey() string {
@@ -13008,7 +13107,7 @@ type GetSiteSettingResponse struct {
 
 func (x *GetSiteSettingResponse) Reset() {
 	*x = GetSiteSettingResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[218]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[220]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13020,7 +13119,7 @@ func (x *GetSiteSettingResponse) String() string {
 func (*GetSiteSettingResponse) ProtoMessage() {}
 
 func (x *GetSiteSettingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[218]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[220]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13033,7 +13132,7 @@ func (x *GetSiteSettingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSiteSettingResponse.ProtoReflect.Descriptor instead.
 func (*GetSiteSettingResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{218}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{220}
 }
 
 func (x *GetSiteSettingResponse) GetSetting() *SiteSetting {
@@ -13052,7 +13151,7 @@ type ListSiteSettingsRequest struct {
 
 func (x *ListSiteSettingsRequest) Reset() {
 	*x = ListSiteSettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[219]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[221]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13064,7 +13163,7 @@ func (x *ListSiteSettingsRequest) String() string {
 func (*ListSiteSettingsRequest) ProtoMessage() {}
 
 func (x *ListSiteSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[219]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[221]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13077,7 +13176,7 @@ func (x *ListSiteSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSiteSettingsRequest.ProtoReflect.Descriptor instead.
 func (*ListSiteSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{219}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{221}
 }
 
 func (x *ListSiteSettingsRequest) GetKeys() []string {
@@ -13096,7 +13195,7 @@ type ListSiteSettingsResponse struct {
 
 func (x *ListSiteSettingsResponse) Reset() {
 	*x = ListSiteSettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[220]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[222]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13108,7 +13207,7 @@ func (x *ListSiteSettingsResponse) String() string {
 func (*ListSiteSettingsResponse) ProtoMessage() {}
 
 func (x *ListSiteSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[220]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[222]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13121,7 +13220,7 @@ func (x *ListSiteSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSiteSettingsResponse.ProtoReflect.Descriptor instead.
 func (*ListSiteSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{220}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{222}
 }
 
 func (x *ListSiteSettingsResponse) GetSettings() []*SiteSetting {
@@ -13139,7 +13238,7 @@ type ListAllSiteSettingsRequest struct {
 
 func (x *ListAllSiteSettingsRequest) Reset() {
 	*x = ListAllSiteSettingsRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[221]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[223]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13151,7 +13250,7 @@ func (x *ListAllSiteSettingsRequest) String() string {
 func (*ListAllSiteSettingsRequest) ProtoMessage() {}
 
 func (x *ListAllSiteSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[221]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[223]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13164,7 +13263,7 @@ func (x *ListAllSiteSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAllSiteSettingsRequest.ProtoReflect.Descriptor instead.
 func (*ListAllSiteSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{221}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{223}
 }
 
 type ListAllSiteSettingsResponse struct {
@@ -13176,7 +13275,7 @@ type ListAllSiteSettingsResponse struct {
 
 func (x *ListAllSiteSettingsResponse) Reset() {
 	*x = ListAllSiteSettingsResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[222]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[224]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13188,7 +13287,7 @@ func (x *ListAllSiteSettingsResponse) String() string {
 func (*ListAllSiteSettingsResponse) ProtoMessage() {}
 
 func (x *ListAllSiteSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[222]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[224]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13201,7 +13300,7 @@ func (x *ListAllSiteSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAllSiteSettingsResponse.ProtoReflect.Descriptor instead.
 func (*ListAllSiteSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{222}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{224}
 }
 
 func (x *ListAllSiteSettingsResponse) GetSettings() []*SiteSetting {
@@ -13221,7 +13320,7 @@ type UpsertSiteSettingRequest struct {
 
 func (x *UpsertSiteSettingRequest) Reset() {
 	*x = UpsertSiteSettingRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[223]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[225]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13233,7 +13332,7 @@ func (x *UpsertSiteSettingRequest) String() string {
 func (*UpsertSiteSettingRequest) ProtoMessage() {}
 
 func (x *UpsertSiteSettingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[223]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[225]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13246,7 +13345,7 @@ func (x *UpsertSiteSettingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertSiteSettingRequest.ProtoReflect.Descriptor instead.
 func (*UpsertSiteSettingRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{223}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{225}
 }
 
 func (x *UpsertSiteSettingRequest) GetKey() string {
@@ -13272,7 +13371,7 @@ type UpsertSiteSettingResponse struct {
 
 func (x *UpsertSiteSettingResponse) Reset() {
 	*x = UpsertSiteSettingResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[224]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[226]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13284,7 +13383,7 @@ func (x *UpsertSiteSettingResponse) String() string {
 func (*UpsertSiteSettingResponse) ProtoMessage() {}
 
 func (x *UpsertSiteSettingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[224]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[226]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13297,7 +13396,7 @@ func (x *UpsertSiteSettingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpsertSiteSettingResponse.ProtoReflect.Descriptor instead.
 func (*UpsertSiteSettingResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{224}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{226}
 }
 
 func (x *UpsertSiteSettingResponse) GetSetting() *SiteSetting {
@@ -13316,7 +13415,7 @@ type DeleteSiteSettingRequest struct {
 
 func (x *DeleteSiteSettingRequest) Reset() {
 	*x = DeleteSiteSettingRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[225]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[227]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13328,7 +13427,7 @@ func (x *DeleteSiteSettingRequest) String() string {
 func (*DeleteSiteSettingRequest) ProtoMessage() {}
 
 func (x *DeleteSiteSettingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[225]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[227]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13341,7 +13440,7 @@ func (x *DeleteSiteSettingRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSiteSettingRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSiteSettingRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{225}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{227}
 }
 
 func (x *DeleteSiteSettingRequest) GetKey() string {
@@ -13360,7 +13459,7 @@ type DeleteSiteSettingResponse struct {
 
 func (x *DeleteSiteSettingResponse) Reset() {
 	*x = DeleteSiteSettingResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[226]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[228]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13372,7 +13471,7 @@ func (x *DeleteSiteSettingResponse) String() string {
 func (*DeleteSiteSettingResponse) ProtoMessage() {}
 
 func (x *DeleteSiteSettingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[226]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[228]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13385,7 +13484,7 @@ func (x *DeleteSiteSettingResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSiteSettingResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSiteSettingResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{226}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{228}
 }
 
 func (x *DeleteSiteSettingResponse) GetSuccess() bool {
@@ -13396,8 +13495,9 @@ func (x *DeleteSiteSettingResponse) GetSuccess() bool {
 }
 
 // Habit & Goal Templates Service — admin-managed suggestion library shown on
-// the explore page. Only List RPCs are exposed to the gateway; CRUD is handled
-// by adminway via direct DB access (adminway has its own sqlc queries).
+// the explore page. List RPCs are exposed to the gateway for the explore page;
+// admin CRUD RPCs are called by adminway (replacing former direct DB access
+// that violated table ownership).
 type TemplateCategory struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -13409,7 +13509,7 @@ type TemplateCategory struct {
 
 func (x *TemplateCategory) Reset() {
 	*x = TemplateCategory{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[227]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[229]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13421,7 +13521,7 @@ func (x *TemplateCategory) String() string {
 func (*TemplateCategory) ProtoMessage() {}
 
 func (x *TemplateCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[227]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[229]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13434,7 +13534,7 @@ func (x *TemplateCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TemplateCategory.ProtoReflect.Descriptor instead.
 func (*TemplateCategory) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{227}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{229}
 }
 
 func (x *TemplateCategory) GetId() string {
@@ -13465,15 +13565,16 @@ type HabitTemplate struct {
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Category      *TemplateCategory      `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	SortOrder     int32                  `protobuf:"varint,5,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,7,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	IsActive      bool                   `protobuf:"varint,6,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,7,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	UpdatedAt     int64                  `protobuf:"varint,8,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *HabitTemplate) Reset() {
 	*x = HabitTemplate{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[228]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[230]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13485,7 +13586,7 @@ func (x *HabitTemplate) String() string {
 func (*HabitTemplate) ProtoMessage() {}
 
 func (x *HabitTemplate) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[228]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[230]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13498,7 +13599,7 @@ func (x *HabitTemplate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HabitTemplate.ProtoReflect.Descriptor instead.
 func (*HabitTemplate) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{228}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{230}
 }
 
 func (x *HabitTemplate) GetId() string {
@@ -13536,6 +13637,13 @@ func (x *HabitTemplate) GetSortOrder() int32 {
 	return 0
 }
 
+func (x *HabitTemplate) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
 func (x *HabitTemplate) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
@@ -13557,15 +13665,16 @@ type GoalTemplate struct {
 	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
 	Category      *TemplateCategory      `protobuf:"bytes,4,opt,name=category,proto3" json:"category,omitempty"`
 	SortOrder     int32                  `protobuf:"varint,5,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
-	CreatedAt     int64                  `protobuf:"varint,6,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
-	UpdatedAt     int64                  `protobuf:"varint,7,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
+	IsActive      bool                   `protobuf:"varint,6,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	CreatedAt     int64                  `protobuf:"varint,7,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	UpdatedAt     int64                  `protobuf:"varint,8,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GoalTemplate) Reset() {
 	*x = GoalTemplate{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[229]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[231]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13577,7 +13686,7 @@ func (x *GoalTemplate) String() string {
 func (*GoalTemplate) ProtoMessage() {}
 
 func (x *GoalTemplate) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[229]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[231]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13590,7 +13699,7 @@ func (x *GoalTemplate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GoalTemplate.ProtoReflect.Descriptor instead.
 func (*GoalTemplate) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{229}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{231}
 }
 
 func (x *GoalTemplate) GetId() string {
@@ -13628,6 +13737,13 @@ func (x *GoalTemplate) GetSortOrder() int32 {
 	return 0
 }
 
+func (x *GoalTemplate) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
 func (x *GoalTemplate) GetCreatedAt() int64 {
 	if x != nil {
 		return x.CreatedAt
@@ -13650,7 +13766,7 @@ type ListHabitTemplatesRequest struct {
 
 func (x *ListHabitTemplatesRequest) Reset() {
 	*x = ListHabitTemplatesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[230]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[232]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13662,7 +13778,7 @@ func (x *ListHabitTemplatesRequest) String() string {
 func (*ListHabitTemplatesRequest) ProtoMessage() {}
 
 func (x *ListHabitTemplatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[230]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[232]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13675,7 +13791,7 @@ func (x *ListHabitTemplatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHabitTemplatesRequest.ProtoReflect.Descriptor instead.
 func (*ListHabitTemplatesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{230}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{232}
 }
 
 type ListHabitTemplatesResponse struct {
@@ -13687,7 +13803,7 @@ type ListHabitTemplatesResponse struct {
 
 func (x *ListHabitTemplatesResponse) Reset() {
 	*x = ListHabitTemplatesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[231]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[233]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13699,7 +13815,7 @@ func (x *ListHabitTemplatesResponse) String() string {
 func (*ListHabitTemplatesResponse) ProtoMessage() {}
 
 func (x *ListHabitTemplatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[231]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[233]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13712,7 +13828,7 @@ func (x *ListHabitTemplatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListHabitTemplatesResponse.ProtoReflect.Descriptor instead.
 func (*ListHabitTemplatesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{231}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{233}
 }
 
 func (x *ListHabitTemplatesResponse) GetTemplates() []*HabitTemplate {
@@ -13730,7 +13846,7 @@ type ListGoalTemplatesRequest struct {
 
 func (x *ListGoalTemplatesRequest) Reset() {
 	*x = ListGoalTemplatesRequest{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[232]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[234]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13742,7 +13858,7 @@ func (x *ListGoalTemplatesRequest) String() string {
 func (*ListGoalTemplatesRequest) ProtoMessage() {}
 
 func (x *ListGoalTemplatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[232]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[234]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13755,7 +13871,7 @@ func (x *ListGoalTemplatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGoalTemplatesRequest.ProtoReflect.Descriptor instead.
 func (*ListGoalTemplatesRequest) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{232}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{234}
 }
 
 type ListGoalTemplatesResponse struct {
@@ -13767,7 +13883,7 @@ type ListGoalTemplatesResponse struct {
 
 func (x *ListGoalTemplatesResponse) Reset() {
 	*x = ListGoalTemplatesResponse{}
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[233]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[235]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13779,7 +13895,7 @@ func (x *ListGoalTemplatesResponse) String() string {
 func (*ListGoalTemplatesResponse) ProtoMessage() {}
 
 func (x *ListGoalTemplatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[233]
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[235]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13792,12 +13908,839 @@ func (x *ListGoalTemplatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGoalTemplatesResponse.ProtoReflect.Descriptor instead.
 func (*ListGoalTemplatesResponse) Descriptor() ([]byte, []int) {
-	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{233}
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{235}
 }
 
 func (x *ListGoalTemplatesResponse) GetTemplates() []*GoalTemplate {
 	if x != nil {
 		return x.Templates
+	}
+	return nil
+}
+
+// Admin CRUD for habit templates (called by adminway, not the gateway).
+type AdminListHabitTemplatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListHabitTemplatesRequest) Reset() {
+	*x = AdminListHabitTemplatesRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[236]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListHabitTemplatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListHabitTemplatesRequest) ProtoMessage() {}
+
+func (x *AdminListHabitTemplatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[236]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListHabitTemplatesRequest.ProtoReflect.Descriptor instead.
+func (*AdminListHabitTemplatesRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{236}
+}
+
+type AdminListHabitTemplatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Templates     []*HabitTemplate       `protobuf:"bytes,1,rep,name=templates,proto3" json:"templates,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListHabitTemplatesResponse) Reset() {
+	*x = AdminListHabitTemplatesResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[237]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListHabitTemplatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListHabitTemplatesResponse) ProtoMessage() {}
+
+func (x *AdminListHabitTemplatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[237]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListHabitTemplatesResponse.ProtoReflect.Descriptor instead.
+func (*AdminListHabitTemplatesResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{237}
+}
+
+func (x *AdminListHabitTemplatesResponse) GetTemplates() []*HabitTemplate {
+	if x != nil {
+		return x.Templates
+	}
+	return nil
+}
+
+type AdminGetHabitTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminGetHabitTemplateRequest) Reset() {
+	*x = AdminGetHabitTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[238]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminGetHabitTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminGetHabitTemplateRequest) ProtoMessage() {}
+
+func (x *AdminGetHabitTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[238]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminGetHabitTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminGetHabitTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{238}
+}
+
+func (x *AdminGetHabitTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type AdminCreateHabitTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,3,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
+	SortOrder     int32                  `protobuf:"varint,4,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
+	IsActive      bool                   `protobuf:"varint,5,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminCreateHabitTemplateRequest) Reset() {
+	*x = AdminCreateHabitTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[239]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminCreateHabitTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminCreateHabitTemplateRequest) ProtoMessage() {}
+
+func (x *AdminCreateHabitTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[239]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminCreateHabitTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminCreateHabitTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{239}
+}
+
+func (x *AdminCreateHabitTemplateRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AdminCreateHabitTemplateRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *AdminCreateHabitTemplateRequest) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+func (x *AdminCreateHabitTemplateRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *AdminCreateHabitTemplateRequest) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+type AdminUpdateHabitTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,4,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
+	SortOrder     int32                  `protobuf:"varint,5,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
+	IsActive      bool                   `protobuf:"varint,6,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminUpdateHabitTemplateRequest) Reset() {
+	*x = AdminUpdateHabitTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[240]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminUpdateHabitTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminUpdateHabitTemplateRequest) ProtoMessage() {}
+
+func (x *AdminUpdateHabitTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[240]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminUpdateHabitTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminUpdateHabitTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{240}
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *AdminUpdateHabitTemplateRequest) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+type AdminDeleteHabitTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminDeleteHabitTemplateRequest) Reset() {
+	*x = AdminDeleteHabitTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[241]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminDeleteHabitTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminDeleteHabitTemplateRequest) ProtoMessage() {}
+
+func (x *AdminDeleteHabitTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[241]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminDeleteHabitTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminDeleteHabitTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{241}
+}
+
+func (x *AdminDeleteHabitTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type AdminDeleteHabitTemplateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminDeleteHabitTemplateResponse) Reset() {
+	*x = AdminDeleteHabitTemplateResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[242]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminDeleteHabitTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminDeleteHabitTemplateResponse) ProtoMessage() {}
+
+func (x *AdminDeleteHabitTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[242]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminDeleteHabitTemplateResponse.ProtoReflect.Descriptor instead.
+func (*AdminDeleteHabitTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{242}
+}
+
+func (x *AdminDeleteHabitTemplateResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Admin CRUD for goal templates (called by adminway, not the gateway).
+type AdminListGoalTemplatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListGoalTemplatesRequest) Reset() {
+	*x = AdminListGoalTemplatesRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[243]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListGoalTemplatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListGoalTemplatesRequest) ProtoMessage() {}
+
+func (x *AdminListGoalTemplatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[243]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListGoalTemplatesRequest.ProtoReflect.Descriptor instead.
+func (*AdminListGoalTemplatesRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{243}
+}
+
+type AdminListGoalTemplatesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Templates     []*GoalTemplate        `protobuf:"bytes,1,rep,name=templates,proto3" json:"templates,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListGoalTemplatesResponse) Reset() {
+	*x = AdminListGoalTemplatesResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[244]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListGoalTemplatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListGoalTemplatesResponse) ProtoMessage() {}
+
+func (x *AdminListGoalTemplatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[244]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListGoalTemplatesResponse.ProtoReflect.Descriptor instead.
+func (*AdminListGoalTemplatesResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{244}
+}
+
+func (x *AdminListGoalTemplatesResponse) GetTemplates() []*GoalTemplate {
+	if x != nil {
+		return x.Templates
+	}
+	return nil
+}
+
+type AdminGetGoalTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminGetGoalTemplateRequest) Reset() {
+	*x = AdminGetGoalTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[245]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminGetGoalTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminGetGoalTemplateRequest) ProtoMessage() {}
+
+func (x *AdminGetGoalTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[245]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminGetGoalTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminGetGoalTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{245}
+}
+
+func (x *AdminGetGoalTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type AdminCreateGoalTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,3,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
+	SortOrder     int32                  `protobuf:"varint,4,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
+	IsActive      bool                   `protobuf:"varint,5,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminCreateGoalTemplateRequest) Reset() {
+	*x = AdminCreateGoalTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[246]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminCreateGoalTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminCreateGoalTemplateRequest) ProtoMessage() {}
+
+func (x *AdminCreateGoalTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[246]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminCreateGoalTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminCreateGoalTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{246}
+}
+
+func (x *AdminCreateGoalTemplateRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *AdminCreateGoalTemplateRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *AdminCreateGoalTemplateRequest) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+func (x *AdminCreateGoalTemplateRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *AdminCreateGoalTemplateRequest) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+type AdminUpdateGoalTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,4,opt,name=categoryId,proto3" json:"categoryId,omitempty"`
+	SortOrder     int32                  `protobuf:"varint,5,opt,name=sortOrder,proto3" json:"sortOrder,omitempty"`
+	IsActive      bool                   `protobuf:"varint,6,opt,name=isActive,proto3" json:"isActive,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminUpdateGoalTemplateRequest) Reset() {
+	*x = AdminUpdateGoalTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[247]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminUpdateGoalTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminUpdateGoalTemplateRequest) ProtoMessage() {}
+
+func (x *AdminUpdateGoalTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[247]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminUpdateGoalTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminUpdateGoalTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{247}
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetCategoryId() string {
+	if x != nil {
+		return x.CategoryId
+	}
+	return ""
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *AdminUpdateGoalTemplateRequest) GetIsActive() bool {
+	if x != nil {
+		return x.IsActive
+	}
+	return false
+}
+
+type AdminDeleteGoalTemplateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminDeleteGoalTemplateRequest) Reset() {
+	*x = AdminDeleteGoalTemplateRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[248]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminDeleteGoalTemplateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminDeleteGoalTemplateRequest) ProtoMessage() {}
+
+func (x *AdminDeleteGoalTemplateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[248]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminDeleteGoalTemplateRequest.ProtoReflect.Descriptor instead.
+func (*AdminDeleteGoalTemplateRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{248}
+}
+
+func (x *AdminDeleteGoalTemplateRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type AdminDeleteGoalTemplateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminDeleteGoalTemplateResponse) Reset() {
+	*x = AdminDeleteGoalTemplateResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[249]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminDeleteGoalTemplateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminDeleteGoalTemplateResponse) ProtoMessage() {}
+
+func (x *AdminDeleteGoalTemplateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[249]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminDeleteGoalTemplateResponse.ProtoReflect.Descriptor instead.
+func (*AdminDeleteGoalTemplateResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{249}
+}
+
+func (x *AdminDeleteGoalTemplateResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+// Admin CRUD for categories (called by adminway for template management).
+type AdminListCategoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListCategoriesRequest) Reset() {
+	*x = AdminListCategoriesRequest{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[250]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListCategoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListCategoriesRequest) ProtoMessage() {}
+
+func (x *AdminListCategoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[250]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListCategoriesRequest.ProtoReflect.Descriptor instead.
+func (*AdminListCategoriesRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{250}
+}
+
+type AdminListCategoriesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Categories    []*TemplateCategory    `protobuf:"bytes,1,rep,name=categories,proto3" json:"categories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminListCategoriesResponse) Reset() {
+	*x = AdminListCategoriesResponse{}
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[251]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminListCategoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminListCategoriesResponse) ProtoMessage() {}
+
+func (x *AdminListCategoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_client_api_v1_client_proto_msgTypes[251]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminListCategoriesResponse.ProtoReflect.Descriptor instead.
+func (*AdminListCategoriesResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_client_api_v1_client_proto_rawDescGZIP(), []int{251}
+}
+
+func (x *AdminListCategoriesResponse) GetCategories() []*TemplateCategory {
+	if x != nil {
+		return x.Categories
 	}
 	return nil
 }
@@ -14777,6 +15720,11 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\arawBody\x18\x01 \x01(\fR\arawBody\x12\x1c\n" +
 	"\tsignature\x18\x02 \x01(\tR\tsignature\";\n" +
 	"\x1bHandleStripeWebhookResponse\x12\x1c\n" +
+	"\tprocessed\x18\x01 \x01(\bR\tprocessed\"`\n" +
+	"\x1eHandleRevenueCatWebhookRequest\x12\x18\n" +
+	"\arawBody\x18\x01 \x01(\fR\arawBody\x12$\n" +
+	"\rauthorization\x18\x02 \x01(\tR\rauthorization\"?\n" +
+	"\x1fHandleRevenueCatWebhookResponse\x12\x1c\n" +
 	"\tprocessed\x18\x01 \x01(\bR\tprocessed\"P\n" +
 	"\x0fPlanLimitDetail\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\tR\x05limit\x12'\n" +
@@ -14816,29 +15764,88 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x10TemplateCategory\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
-	"\x04slug\x18\x03 \x01(\tR\x04slug\"\xe5\x01\n" +
+	"\x04slug\x18\x03 \x01(\tR\x04slug\"\x81\x02\n" +
 	"\rHabitTemplate\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x124\n" +
 	"\bcategory\x18\x04 \x01(\v2\x18.client.TemplateCategoryR\bcategory\x12\x1c\n" +
-	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1c\n" +
-	"\tcreatedAt\x18\x06 \x01(\x03R\tcreatedAt\x12\x1c\n" +
-	"\tupdatedAt\x18\a \x01(\x03R\tupdatedAt\"\xe6\x01\n" +
+	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x06 \x01(\bR\bisActive\x12\x1c\n" +
+	"\tcreatedAt\x18\a \x01(\x03R\tcreatedAt\x12\x1c\n" +
+	"\tupdatedAt\x18\b \x01(\x03R\tupdatedAt\"\x82\x02\n" +
 	"\fGoalTemplate\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x124\n" +
 	"\bcategory\x18\x04 \x01(\v2\x18.client.TemplateCategoryR\bcategory\x12\x1c\n" +
-	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1c\n" +
-	"\tcreatedAt\x18\x06 \x01(\x03R\tcreatedAt\x12\x1c\n" +
-	"\tupdatedAt\x18\a \x01(\x03R\tupdatedAt\"\x1b\n" +
+	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x06 \x01(\bR\bisActive\x12\x1c\n" +
+	"\tcreatedAt\x18\a \x01(\x03R\tcreatedAt\x12\x1c\n" +
+	"\tupdatedAt\x18\b \x01(\x03R\tupdatedAt\"\x1b\n" +
 	"\x19ListHabitTemplatesRequest\"Q\n" +
 	"\x1aListHabitTemplatesResponse\x123\n" +
 	"\ttemplates\x18\x01 \x03(\v2\x15.client.HabitTemplateR\ttemplates\"\x1a\n" +
 	"\x18ListGoalTemplatesRequest\"O\n" +
 	"\x19ListGoalTemplatesResponse\x122\n" +
-	"\ttemplates\x18\x01 \x03(\v2\x14.client.GoalTemplateR\ttemplates2\xf6\x03\n" +
+	"\ttemplates\x18\x01 \x03(\v2\x14.client.GoalTemplateR\ttemplates\" \n" +
+	"\x1eAdminListHabitTemplatesRequest\"V\n" +
+	"\x1fAdminListHabitTemplatesResponse\x123\n" +
+	"\ttemplates\x18\x01 \x03(\v2\x15.client.HabitTemplateR\ttemplates\".\n" +
+	"\x1cAdminGetHabitTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xb1\x01\n" +
+	"\x1fAdminCreateHabitTemplateRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categoryId\x18\x03 \x01(\tR\n" +
+	"categoryId\x12\x1c\n" +
+	"\tsortOrder\x18\x04 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x05 \x01(\bR\bisActive\"\xc1\x01\n" +
+	"\x1fAdminUpdateHabitTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categoryId\x18\x04 \x01(\tR\n" +
+	"categoryId\x12\x1c\n" +
+	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x06 \x01(\bR\bisActive\"1\n" +
+	"\x1fAdminDeleteHabitTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"<\n" +
+	" AdminDeleteHabitTemplateResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x1f\n" +
+	"\x1dAdminListGoalTemplatesRequest\"T\n" +
+	"\x1eAdminListGoalTemplatesResponse\x122\n" +
+	"\ttemplates\x18\x01 \x03(\v2\x14.client.GoalTemplateR\ttemplates\"-\n" +
+	"\x1bAdminGetGoalTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\xb2\x01\n" +
+	"\x1eAdminCreateGoalTemplateRequest\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categoryId\x18\x03 \x01(\tR\n" +
+	"categoryId\x12\x1c\n" +
+	"\tsortOrder\x18\x04 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x05 \x01(\bR\bisActive\"\xc2\x01\n" +
+	"\x1eAdminUpdateGoalTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categoryId\x18\x04 \x01(\tR\n" +
+	"categoryId\x12\x1c\n" +
+	"\tsortOrder\x18\x05 \x01(\x05R\tsortOrder\x12\x1a\n" +
+	"\bisActive\x18\x06 \x01(\bR\bisActive\"0\n" +
+	"\x1eAdminDeleteGoalTemplateRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\";\n" +
+	"\x1fAdminDeleteGoalTemplateResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x1c\n" +
+	"\x1aAdminListCategoriesRequest\"W\n" +
+	"\x1bAdminListCategoriesResponse\x128\n" +
+	"\n" +
+	"categories\x18\x01 \x03(\v2\x18.client.TemplateCategoryR\n" +
+	"categories2\xf6\x03\n" +
 	"\bActivity\x12R\n" +
 	"\x0fGetActivityFeed\x12\x1e.client.GetActivityFeedRequest\x1a\x1f.client.GetActivityFeedResponse\x12F\n" +
 	"\vLogActivity\x12\x1a.client.LogActivityRequest\x1a\x1b.client.LogActivityResponse\x12U\n" +
@@ -14917,14 +15924,15 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"DeleteGoal\x12\x19.client.DeleteGoalRequest\x1a\x1a.client.DeleteGoalResponse\x12C\n" +
 	"\n" +
 	"ToggleGoal\x12\x19.client.ToggleGoalRequest\x1a\x1a.client.ToggleGoalResponse\x12[\n" +
-	"\x12UpdateGoalProgress\x12!.client.UpdateGoalProgressRequest\x1a\".client.UpdateGoalProgressResponse2\xaa\x03\n" +
+	"\x12UpdateGoalProgress\x12!.client.UpdateGoalProgressRequest\x1a\".client.UpdateGoalProgressResponse2\x8a\x04\n" +
 	"\n" +
 	"Categories\x12O\n" +
 	"\x0eListCategories\x12\x1d.client.ListCategoriesRequest\x1a\x1e.client.ListCategoriesResponse\x12O\n" +
 	"\x0eCreateCategory\x12\x1d.client.CreateCategoryRequest\x1a\x1e.client.CreateCategoryResponse\x12O\n" +
 	"\x0eUpdateCategory\x12\x1d.client.UpdateCategoryRequest\x1a\x1e.client.UpdateCategoryResponse\x12O\n" +
 	"\x0eDeleteCategory\x12\x1d.client.DeleteCategoryRequest\x1a\x1e.client.DeleteCategoryResponse\x12X\n" +
-	"\x11ReorderCategories\x12 .client.ReorderCategoriesRequest\x1a!.client.ReorderCategoriesResponse2\xe9\x02\n" +
+	"\x11ReorderCategories\x12 .client.ReorderCategoriesRequest\x1a!.client.ReorderCategoriesResponse\x12^\n" +
+	"\x13AdminListCategories\x12\".client.AdminListCategoriesRequest\x1a#.client.AdminListCategoriesResponse2\xe9\x02\n" +
 	"\x0eCheckInService\x12L\n" +
 	"\rCreateCheckIn\x12\x1c.client.CreateCheckInRequest\x1a\x1d.client.CreateCheckInResponse\x12U\n" +
 	"\x10GetTodayCheckIns\x12\x1f.client.GetTodayCheckInsRequest\x1a .client.GetTodayCheckInsResponse\x12X\n" +
@@ -14944,24 +15952,35 @@ const file_services_microservices_client_api_v1_client_proto_rawDesc = "" +
 	"\x1eCreatePlanAdjustmentSuggestion\x12-.client.CreatePlanAdjustmentSuggestionRequest\x1a..client.CreatePlanAdjustmentSuggestionResponse\x12\x91\x01\n" +
 	"$ListPendingPlanAdjustmentSuggestions\x123.client.ListPendingPlanAdjustmentSuggestionsRequest\x1a4.client.ListPendingPlanAdjustmentSuggestionsResponse\x12\x91\x01\n" +
 	"$UpdatePlanAdjustmentSuggestionStatus\x123.client.UpdatePlanAdjustmentSuggestionStatusRequest\x1a4.client.UpdatePlanAdjustmentSuggestionStatusResponse\x12|\n" +
-	"\x1dApplyPlanAdjustmentSuggestion\x12,.client.ApplyPlanAdjustmentSuggestionRequest\x1a-.client.ApplyPlanAdjustmentSuggestionResponse2\xf4\x04\n" +
+	"\x1dApplyPlanAdjustmentSuggestion\x12,.client.ApplyPlanAdjustmentSuggestionRequest\x1a-.client.ApplyPlanAdjustmentSuggestionResponse2\xe0\x05\n" +
 	"\x0eBillingService\x12[\n" +
 	"\x12GetBillingOverview\x12!.client.GetBillingOverviewRequest\x1a\".client.GetBillingOverviewResponse\x12X\n" +
 	"\x11TrackUpgradeEvent\x12 .client.TrackUpgradeEventRequest\x1a!.client.TrackUpgradeEventResponse\x12d\n" +
 	"\x15CreateCheckoutSession\x12$.client.CreateCheckoutSessionRequest\x1a%.client.CreateCheckoutSessionResponse\x12v\n" +
 	"\x1bCreateCustomerPortalSession\x12*.client.CreateCustomerPortalSessionRequest\x1a+.client.CreateCustomerPortalSessionResponse\x12^\n" +
-	"\x13HandleStripeWebhook\x12\".client.HandleStripeWebhookRequest\x1a#.client.HandleStripeWebhookResponse\x12m\n" +
+	"\x13HandleStripeWebhook\x12\".client.HandleStripeWebhookRequest\x1a#.client.HandleStripeWebhookResponse\x12j\n" +
+	"\x17HandleRevenueCatWebhook\x12&.client.HandleRevenueCatWebhookRequest\x1a'.client.HandleRevenueCatWebhookResponse\x12m\n" +
 	"\x18ListSubscriptionStatuses\x12'.client.ListSubscriptionStatusesRequest\x1a(.client.ListSubscriptionStatusesResponse2\xca\x03\n" +
 	"\fSiteSettings\x12O\n" +
 	"\x0eGetSiteSetting\x12\x1d.client.GetSiteSettingRequest\x1a\x1e.client.GetSiteSettingResponse\x12U\n" +
 	"\x10ListSiteSettings\x12\x1f.client.ListSiteSettingsRequest\x1a .client.ListSiteSettingsResponse\x12^\n" +
 	"\x13ListAllSiteSettings\x12\".client.ListAllSiteSettingsRequest\x1a#.client.ListAllSiteSettingsResponse\x12X\n" +
 	"\x11UpsertSiteSetting\x12 .client.UpsertSiteSettingRequest\x1a!.client.UpsertSiteSettingResponse\x12X\n" +
-	"\x11DeleteSiteSetting\x12 .client.DeleteSiteSettingRequest\x1a!.client.DeleteSiteSettingResponse2m\n" +
+	"\x11DeleteSiteSetting\x12 .client.DeleteSiteSettingRequest\x1a!.client.DeleteSiteSettingResponse2\xd6\x04\n" +
 	"\x0eHabitTemplates\x12[\n" +
-	"\x12ListHabitTemplates\x12!.client.ListHabitTemplatesRequest\x1a\".client.ListHabitTemplatesResponse2i\n" +
+	"\x12ListHabitTemplates\x12!.client.ListHabitTemplatesRequest\x1a\".client.ListHabitTemplatesResponse\x12j\n" +
+	"\x17AdminListHabitTemplates\x12&.client.AdminListHabitTemplatesRequest\x1a'.client.AdminListHabitTemplatesResponse\x12T\n" +
+	"\x15AdminGetHabitTemplate\x12$.client.AdminGetHabitTemplateRequest\x1a\x15.client.HabitTemplate\x12Z\n" +
+	"\x18AdminCreateHabitTemplate\x12'.client.AdminCreateHabitTemplateRequest\x1a\x15.client.HabitTemplate\x12Z\n" +
+	"\x18AdminUpdateHabitTemplate\x12'.client.AdminUpdateHabitTemplateRequest\x1a\x15.client.HabitTemplate\x12m\n" +
+	"\x18AdminDeleteHabitTemplate\x12'.client.AdminDeleteHabitTemplateRequest\x1a(.client.AdminDeleteHabitTemplateResponse2\xc3\x04\n" +
 	"\rGoalTemplates\x12X\n" +
-	"\x11ListGoalTemplates\x12 .client.ListGoalTemplatesRequest\x1a!.client.ListGoalTemplatesResponseB\n" +
+	"\x11ListGoalTemplates\x12 .client.ListGoalTemplatesRequest\x1a!.client.ListGoalTemplatesResponse\x12g\n" +
+	"\x16AdminListGoalTemplates\x12%.client.AdminListGoalTemplatesRequest\x1a&.client.AdminListGoalTemplatesResponse\x12Q\n" +
+	"\x14AdminGetGoalTemplate\x12#.client.AdminGetGoalTemplateRequest\x1a\x14.client.GoalTemplate\x12W\n" +
+	"\x17AdminCreateGoalTemplate\x12&.client.AdminCreateGoalTemplateRequest\x1a\x14.client.GoalTemplate\x12W\n" +
+	"\x17AdminUpdateGoalTemplate\x12&.client.AdminUpdateGoalTemplateRequest\x1a\x14.client.GoalTemplate\x12j\n" +
+	"\x17AdminDeleteGoalTemplate\x12&.client.AdminDeleteGoalTemplateRequest\x1a'.client.AdminDeleteGoalTemplateResponseB\n" +
 	"Z\b./clientb\x06proto3"
 
 var (
@@ -14976,7 +15995,7 @@ func file_services_microservices_client_api_v1_client_proto_rawDescGZIP() []byte
 	return file_services_microservices_client_api_v1_client_proto_rawDescData
 }
 
-var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 245)
+var file_services_microservices_client_api_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 263)
 var file_services_microservices_client_api_v1_client_proto_goTypes = []any{
 	(*ActivityItem)(nil),                                 // 0: client.ActivityItem
 	(*GetActivityFeedRequest)(nil),                       // 1: client.GetActivityFeedRequest
@@ -15190,58 +16209,76 @@ var file_services_microservices_client_api_v1_client_proto_goTypes = []any{
 	(*CreateCustomerPortalSessionResponse)(nil),          // 209: client.CreateCustomerPortalSessionResponse
 	(*HandleStripeWebhookRequest)(nil),                   // 210: client.HandleStripeWebhookRequest
 	(*HandleStripeWebhookResponse)(nil),                  // 211: client.HandleStripeWebhookResponse
-	(*PlanLimitDetail)(nil),                              // 212: client.PlanLimitDetail
-	(*SubscriptionStatus)(nil),                           // 213: client.SubscriptionStatus
-	(*ListSubscriptionStatusesRequest)(nil),              // 214: client.ListSubscriptionStatusesRequest
-	(*ListSubscriptionStatusesResponse)(nil),             // 215: client.ListSubscriptionStatusesResponse
-	(*SiteSetting)(nil),                                  // 216: client.SiteSetting
-	(*GetSiteSettingRequest)(nil),                        // 217: client.GetSiteSettingRequest
-	(*GetSiteSettingResponse)(nil),                       // 218: client.GetSiteSettingResponse
-	(*ListSiteSettingsRequest)(nil),                      // 219: client.ListSiteSettingsRequest
-	(*ListSiteSettingsResponse)(nil),                     // 220: client.ListSiteSettingsResponse
-	(*ListAllSiteSettingsRequest)(nil),                   // 221: client.ListAllSiteSettingsRequest
-	(*ListAllSiteSettingsResponse)(nil),                  // 222: client.ListAllSiteSettingsResponse
-	(*UpsertSiteSettingRequest)(nil),                     // 223: client.UpsertSiteSettingRequest
-	(*UpsertSiteSettingResponse)(nil),                    // 224: client.UpsertSiteSettingResponse
-	(*DeleteSiteSettingRequest)(nil),                     // 225: client.DeleteSiteSettingRequest
-	(*DeleteSiteSettingResponse)(nil),                    // 226: client.DeleteSiteSettingResponse
-	(*TemplateCategory)(nil),                             // 227: client.TemplateCategory
-	(*HabitTemplate)(nil),                                // 228: client.HabitTemplate
-	(*GoalTemplate)(nil),                                 // 229: client.GoalTemplate
-	(*ListHabitTemplatesRequest)(nil),                    // 230: client.ListHabitTemplatesRequest
-	(*ListHabitTemplatesResponse)(nil),                   // 231: client.ListHabitTemplatesResponse
-	(*ListGoalTemplatesRequest)(nil),                     // 232: client.ListGoalTemplatesRequest
-	(*ListGoalTemplatesResponse)(nil),                    // 233: client.ListGoalTemplatesResponse
-	nil,                                                  // 234: client.ActivityItem.MetadataEntry
-	nil,                                                  // 235: client.LogActivityRequest.MetadataEntry
-	nil,                                                  // 236: client.GetActivityStatsResponse.ActivityCountsEntry
-	nil,                                                  // 237: client.SavedItem.MetadataEntry
-	nil,                                                  // 238: client.SaveItemRequest.MetadataEntry
-	nil,                                                  // 239: client.GetSavedStatsResponse.TypeCountsEntry
-	nil,                                                  // 240: client.WeeklyReview.MoodSummaryEntry
-	nil,                                                  // 241: client.WeeklyReview.EnergySummaryEntry
-	nil,                                                  // 242: client.PreparedWeeklyReviewData.MoodSummaryEntry
-	nil,                                                  // 243: client.PreparedWeeklyReviewData.EnergySummaryEntry
-	nil,                                                  // 244: client.PersonalizationContext.PatternInsightsEntry
+	(*HandleRevenueCatWebhookRequest)(nil),               // 212: client.HandleRevenueCatWebhookRequest
+	(*HandleRevenueCatWebhookResponse)(nil),              // 213: client.HandleRevenueCatWebhookResponse
+	(*PlanLimitDetail)(nil),                              // 214: client.PlanLimitDetail
+	(*SubscriptionStatus)(nil),                           // 215: client.SubscriptionStatus
+	(*ListSubscriptionStatusesRequest)(nil),              // 216: client.ListSubscriptionStatusesRequest
+	(*ListSubscriptionStatusesResponse)(nil),             // 217: client.ListSubscriptionStatusesResponse
+	(*SiteSetting)(nil),                                  // 218: client.SiteSetting
+	(*GetSiteSettingRequest)(nil),                        // 219: client.GetSiteSettingRequest
+	(*GetSiteSettingResponse)(nil),                       // 220: client.GetSiteSettingResponse
+	(*ListSiteSettingsRequest)(nil),                      // 221: client.ListSiteSettingsRequest
+	(*ListSiteSettingsResponse)(nil),                     // 222: client.ListSiteSettingsResponse
+	(*ListAllSiteSettingsRequest)(nil),                   // 223: client.ListAllSiteSettingsRequest
+	(*ListAllSiteSettingsResponse)(nil),                  // 224: client.ListAllSiteSettingsResponse
+	(*UpsertSiteSettingRequest)(nil),                     // 225: client.UpsertSiteSettingRequest
+	(*UpsertSiteSettingResponse)(nil),                    // 226: client.UpsertSiteSettingResponse
+	(*DeleteSiteSettingRequest)(nil),                     // 227: client.DeleteSiteSettingRequest
+	(*DeleteSiteSettingResponse)(nil),                    // 228: client.DeleteSiteSettingResponse
+	(*TemplateCategory)(nil),                             // 229: client.TemplateCategory
+	(*HabitTemplate)(nil),                                // 230: client.HabitTemplate
+	(*GoalTemplate)(nil),                                 // 231: client.GoalTemplate
+	(*ListHabitTemplatesRequest)(nil),                    // 232: client.ListHabitTemplatesRequest
+	(*ListHabitTemplatesResponse)(nil),                   // 233: client.ListHabitTemplatesResponse
+	(*ListGoalTemplatesRequest)(nil),                     // 234: client.ListGoalTemplatesRequest
+	(*ListGoalTemplatesResponse)(nil),                    // 235: client.ListGoalTemplatesResponse
+	(*AdminListHabitTemplatesRequest)(nil),               // 236: client.AdminListHabitTemplatesRequest
+	(*AdminListHabitTemplatesResponse)(nil),              // 237: client.AdminListHabitTemplatesResponse
+	(*AdminGetHabitTemplateRequest)(nil),                 // 238: client.AdminGetHabitTemplateRequest
+	(*AdminCreateHabitTemplateRequest)(nil),              // 239: client.AdminCreateHabitTemplateRequest
+	(*AdminUpdateHabitTemplateRequest)(nil),              // 240: client.AdminUpdateHabitTemplateRequest
+	(*AdminDeleteHabitTemplateRequest)(nil),              // 241: client.AdminDeleteHabitTemplateRequest
+	(*AdminDeleteHabitTemplateResponse)(nil),             // 242: client.AdminDeleteHabitTemplateResponse
+	(*AdminListGoalTemplatesRequest)(nil),                // 243: client.AdminListGoalTemplatesRequest
+	(*AdminListGoalTemplatesResponse)(nil),               // 244: client.AdminListGoalTemplatesResponse
+	(*AdminGetGoalTemplateRequest)(nil),                  // 245: client.AdminGetGoalTemplateRequest
+	(*AdminCreateGoalTemplateRequest)(nil),               // 246: client.AdminCreateGoalTemplateRequest
+	(*AdminUpdateGoalTemplateRequest)(nil),               // 247: client.AdminUpdateGoalTemplateRequest
+	(*AdminDeleteGoalTemplateRequest)(nil),               // 248: client.AdminDeleteGoalTemplateRequest
+	(*AdminDeleteGoalTemplateResponse)(nil),              // 249: client.AdminDeleteGoalTemplateResponse
+	(*AdminListCategoriesRequest)(nil),                   // 250: client.AdminListCategoriesRequest
+	(*AdminListCategoriesResponse)(nil),                  // 251: client.AdminListCategoriesResponse
+	nil,                                                  // 252: client.ActivityItem.MetadataEntry
+	nil,                                                  // 253: client.LogActivityRequest.MetadataEntry
+	nil,                                                  // 254: client.GetActivityStatsResponse.ActivityCountsEntry
+	nil,                                                  // 255: client.SavedItem.MetadataEntry
+	nil,                                                  // 256: client.SaveItemRequest.MetadataEntry
+	nil,                                                  // 257: client.GetSavedStatsResponse.TypeCountsEntry
+	nil,                                                  // 258: client.WeeklyReview.MoodSummaryEntry
+	nil,                                                  // 259: client.WeeklyReview.EnergySummaryEntry
+	nil,                                                  // 260: client.PreparedWeeklyReviewData.MoodSummaryEntry
+	nil,                                                  // 261: client.PreparedWeeklyReviewData.EnergySummaryEntry
+	nil,                                                  // 262: client.PersonalizationContext.PatternInsightsEntry
 }
 var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
-	234, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
+	252, // 0: client.ActivityItem.metadata:type_name -> client.ActivityItem.MetadataEntry
 	0,   // 1: client.GetActivityFeedResponse.activities:type_name -> client.ActivityItem
-	235, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
-	236, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
+	253, // 2: client.LogActivityRequest.metadata:type_name -> client.LogActivityRequest.MetadataEntry
+	254, // 3: client.GetActivityStatsResponse.activityCounts:type_name -> client.GetActivityStatsResponse.ActivityCountsEntry
 	10,  // 4: client.GetAchievementsResponse.achievements:type_name -> client.Achievement
 	13,  // 5: client.GetActivityCalendarResponse.days:type_name -> client.CalendarDay
 	15,  // 6: client.GetReportResponse.report:type_name -> client.ReportItem
 	15,  // 7: client.ListReportsResponse.reports:type_name -> client.ReportItem
 	25,  // 8: client.GetReportCategoriesResponse.categories:type_name -> client.ReportCategory
 	33,  // 9: client.GetReportCommentsResponse.comments:type_name -> client.ReportComment
-	237, // 10: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
-	238, // 11: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
+	255, // 10: client.SavedItem.metadata:type_name -> client.SavedItem.MetadataEntry
+	256, // 11: client.SaveItemRequest.metadata:type_name -> client.SaveItemRequest.MetadataEntry
 	36,  // 12: client.ListSavedResponse.items:type_name -> client.SavedItem
 	36,  // 13: client.GetSavedItemResponse.item:type_name -> client.SavedItem
 	37,  // 14: client.ListCollectionsResponse.collections:type_name -> client.Collection
 	37,  // 15: client.GetCollectionResponse.collection:type_name -> client.Collection
-	239, // 16: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
+	257, // 16: client.GetSavedStatsResponse.typeCounts:type_name -> client.GetSavedStatsResponse.TypeCountsEntry
 	62,  // 17: client.GetSettingsResponse.settings:type_name -> client.UserSettings
 	62,  // 18: client.UpdateSettingsRequest.settings:type_name -> client.UserSettings
 	68,  // 19: client.GetPreferencesResponse.preferences:type_name -> client.Preference
@@ -15276,8 +16313,8 @@ var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
 	112, // 48: client.CreateCheckInResponse.habit:type_name -> client.Habit
 	151, // 49: client.GetTodayCheckInsResponse.checkIns:type_name -> client.CheckIn
 	151, // 50: client.GetCheckInHistoryResponse.checkIns:type_name -> client.CheckIn
-	240, // 51: client.WeeklyReview.moodSummary:type_name -> client.WeeklyReview.MoodSummaryEntry
-	241, // 52: client.WeeklyReview.energySummary:type_name -> client.WeeklyReview.EnergySummaryEntry
+	258, // 51: client.WeeklyReview.moodSummary:type_name -> client.WeeklyReview.MoodSummaryEntry
+	259, // 52: client.WeeklyReview.energySummary:type_name -> client.WeeklyReview.EnergySummaryEntry
 	160, // 53: client.WeeklyReview.habitBreakdown:type_name -> client.WeeklyReviewHabitBreakdown
 	161, // 54: client.WeeklyReview.suggestedAdjustments:type_name -> client.WeeklyReviewAdjustment
 	162, // 55: client.WeeklyReview.nextWeekPlan:type_name -> client.WeeklyReviewNextWeekPlan
@@ -15285,8 +16322,8 @@ var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
 	165, // 57: client.PreparedWeeklyReviewData.blockerStats:type_name -> client.PreparedBlockerStat
 	166, // 58: client.PreparedWeeklyReviewData.moodStats:type_name -> client.PreparedMoodStat
 	167, // 59: client.PreparedWeeklyReviewData.energyStats:type_name -> client.PreparedEnergyStat
-	242, // 60: client.PreparedWeeklyReviewData.moodSummary:type_name -> client.PreparedWeeklyReviewData.MoodSummaryEntry
-	243, // 61: client.PreparedWeeklyReviewData.energySummary:type_name -> client.PreparedWeeklyReviewData.EnergySummaryEntry
+	260, // 60: client.PreparedWeeklyReviewData.moodSummary:type_name -> client.PreparedWeeklyReviewData.MoodSummaryEntry
+	261, // 61: client.PreparedWeeklyReviewData.energySummary:type_name -> client.PreparedWeeklyReviewData.EnergySummaryEntry
 	163, // 62: client.PrepareWeeklyReviewResponse.existingReview:type_name -> client.WeeklyReview
 	168, // 63: client.PrepareWeeklyReviewResponse.data:type_name -> client.PreparedWeeklyReviewData
 	168, // 64: client.SaveWeeklyReviewRequest.data:type_name -> client.PreparedWeeklyReviewData
@@ -15302,7 +16339,7 @@ var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
 	151, // 74: client.PersonalizationContext.recentCheckIns:type_name -> client.CheckIn
 	163, // 75: client.PersonalizationContext.latestWeeklyReview:type_name -> client.WeeklyReview
 	181, // 76: client.PersonalizationContext.pendingSuggestions:type_name -> client.PlanAdjustmentSuggestion
-	244, // 77: client.PersonalizationContext.patternInsights:type_name -> client.PersonalizationContext.PatternInsightsEntry
+	262, // 77: client.PersonalizationContext.patternInsights:type_name -> client.PersonalizationContext.PatternInsightsEntry
 	180, // 78: client.PersonalizationContext.user:type_name -> client.UserProfile
 	178, // 79: client.GetCoachingProfileResponse.profile:type_name -> client.CoachingProfile
 	178, // 80: client.UpsertCoachingProfileResponse.profile:type_name -> client.CoachingProfile
@@ -15315,216 +16352,243 @@ var file_services_microservices_client_api_v1_client_proto_depIdxs = []int32{
 	199, // 87: client.GetBillingOverviewResponse.plans:type_name -> client.Plan
 	200, // 88: client.GetBillingOverviewResponse.subscription:type_name -> client.UserSubscription
 	201, // 89: client.GetBillingOverviewResponse.entitlements:type_name -> client.Entitlements
-	213, // 90: client.ListSubscriptionStatusesResponse.statuses:type_name -> client.SubscriptionStatus
-	216, // 91: client.GetSiteSettingResponse.setting:type_name -> client.SiteSetting
-	216, // 92: client.ListSiteSettingsResponse.settings:type_name -> client.SiteSetting
-	216, // 93: client.ListAllSiteSettingsResponse.settings:type_name -> client.SiteSetting
-	216, // 94: client.UpsertSiteSettingResponse.setting:type_name -> client.SiteSetting
-	227, // 95: client.HabitTemplate.category:type_name -> client.TemplateCategory
-	227, // 96: client.GoalTemplate.category:type_name -> client.TemplateCategory
-	228, // 97: client.ListHabitTemplatesResponse.templates:type_name -> client.HabitTemplate
-	229, // 98: client.ListGoalTemplatesResponse.templates:type_name -> client.GoalTemplate
-	1,   // 99: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
-	3,   // 100: client.Activity.LogActivity:input_type -> client.LogActivityRequest
-	5,   // 101: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
-	7,   // 102: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
-	9,   // 103: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
-	12,  // 104: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
-	16,  // 105: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
-	18,  // 106: client.Report.GetReport:input_type -> client.GetReportRequest
-	20,  // 107: client.Report.ListReports:input_type -> client.ListReportsRequest
-	22,  // 108: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
-	24,  // 109: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
-	27,  // 110: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
-	29,  // 111: client.Report.CloseReport:input_type -> client.CloseReportRequest
-	31,  // 112: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
-	34,  // 113: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
-	38,  // 114: client.Saved.SaveItem:input_type -> client.SaveItemRequest
-	40,  // 115: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
-	42,  // 116: client.Saved.ListSaved:input_type -> client.ListSavedRequest
-	44,  // 117: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
-	46,  // 118: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
-	48,  // 119: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
-	50,  // 120: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
-	52,  // 121: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
-	54,  // 122: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
-	56,  // 123: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
-	58,  // 124: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
-	60,  // 125: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
-	63,  // 126: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
-	65,  // 127: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
-	67,  // 128: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
-	70,  // 129: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
-	72,  // 130: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
-	74,  // 131: client.Settings.ExportData:input_type -> client.ExportDataRequest
-	77,  // 132: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
-	79,  // 133: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
-	83,  // 134: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
-	85,  // 135: client.Articles.GetArticle:input_type -> client.GetArticleRequest
-	93,  // 136: client.Articles.CreateArticle:input_type -> client.CreateArticleRequest
-	95,  // 137: client.Articles.UpdateArticle:input_type -> client.UpdateArticleRequest
-	97,  // 138: client.Articles.DeleteArticle:input_type -> client.DeleteArticleRequest
-	87,  // 139: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
-	89,  // 140: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
-	91,  // 141: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
-	100, // 142: client.Articles.ListTags:input_type -> client.ListTagsRequest
-	102, // 143: client.Articles.GetArticlesByIds:input_type -> client.GetArticlesByIdsRequest
-	104, // 144: client.Articles.GetFeaturedArticle:input_type -> client.GetFeaturedArticleRequest
-	100, // 145: client.Tags.ListTags:input_type -> client.ListTagsRequest
-	106, // 146: client.Tags.CreateTag:input_type -> client.CreateTagRequest
-	108, // 147: client.Tags.UpdateTag:input_type -> client.UpdateTagRequest
-	110, // 148: client.Tags.DeleteTag:input_type -> client.DeleteTagRequest
-	113, // 149: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
-	115, // 150: client.Habits.GetHabit:input_type -> client.GetHabitRequest
-	117, // 151: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
-	119, // 152: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
-	121, // 153: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
-	123, // 154: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
-	126, // 155: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
-	128, // 156: client.Goals.GetGoal:input_type -> client.GetGoalRequest
-	130, // 157: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
-	132, // 158: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
-	134, // 159: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
-	136, // 160: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
-	138, // 161: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
-	141, // 162: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
-	143, // 163: client.Categories.CreateCategory:input_type -> client.CreateCategoryRequest
-	145, // 164: client.Categories.UpdateCategory:input_type -> client.UpdateCategoryRequest
-	147, // 165: client.Categories.DeleteCategory:input_type -> client.DeleteCategoryRequest
-	149, // 166: client.Categories.ReorderCategories:input_type -> client.ReorderCategoriesRequest
-	152, // 167: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
-	154, // 168: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
-	156, // 169: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
-	158, // 170: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
-	164, // 171: client.WeeklyReviewService.PrepareWeeklyReview:input_type -> client.PrepareWeeklyReviewRequest
-	170, // 172: client.WeeklyReviewService.SaveWeeklyReview:input_type -> client.SaveWeeklyReviewRequest
-	172, // 173: client.WeeklyReviewService.GetWeeklyReview:input_type -> client.GetWeeklyReviewRequest
-	174, // 174: client.WeeklyReviewService.GetCurrentWeeklyReview:input_type -> client.GetCurrentWeeklyReviewRequest
-	176, // 175: client.WeeklyReviewService.ListWeeklyReviews:input_type -> client.ListWeeklyReviewsRequest
-	182, // 176: client.PersonalizationService.GetCoachingProfile:input_type -> client.GetCoachingProfileRequest
-	184, // 177: client.PersonalizationService.UpsertCoachingProfile:input_type -> client.UpsertCoachingProfileRequest
-	186, // 178: client.PersonalizationService.UpdateCoachingProfilePreferences:input_type -> client.UpdateCoachingProfilePreferencesRequest
-	188, // 179: client.PersonalizationService.GetPersonalizationContext:input_type -> client.GetPersonalizationContextRequest
-	190, // 180: client.PersonalizationService.CreatePlanAdjustmentSuggestion:input_type -> client.CreatePlanAdjustmentSuggestionRequest
-	192, // 181: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:input_type -> client.ListPendingPlanAdjustmentSuggestionsRequest
-	194, // 182: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:input_type -> client.UpdatePlanAdjustmentSuggestionStatusRequest
-	196, // 183: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:input_type -> client.ApplyPlanAdjustmentSuggestionRequest
-	202, // 184: client.BillingService.GetBillingOverview:input_type -> client.GetBillingOverviewRequest
-	204, // 185: client.BillingService.TrackUpgradeEvent:input_type -> client.TrackUpgradeEventRequest
-	206, // 186: client.BillingService.CreateCheckoutSession:input_type -> client.CreateCheckoutSessionRequest
-	208, // 187: client.BillingService.CreateCustomerPortalSession:input_type -> client.CreateCustomerPortalSessionRequest
-	210, // 188: client.BillingService.HandleStripeWebhook:input_type -> client.HandleStripeWebhookRequest
-	214, // 189: client.BillingService.ListSubscriptionStatuses:input_type -> client.ListSubscriptionStatusesRequest
-	217, // 190: client.SiteSettings.GetSiteSetting:input_type -> client.GetSiteSettingRequest
-	219, // 191: client.SiteSettings.ListSiteSettings:input_type -> client.ListSiteSettingsRequest
-	221, // 192: client.SiteSettings.ListAllSiteSettings:input_type -> client.ListAllSiteSettingsRequest
-	223, // 193: client.SiteSettings.UpsertSiteSetting:input_type -> client.UpsertSiteSettingRequest
-	225, // 194: client.SiteSettings.DeleteSiteSetting:input_type -> client.DeleteSiteSettingRequest
-	230, // 195: client.HabitTemplates.ListHabitTemplates:input_type -> client.ListHabitTemplatesRequest
-	232, // 196: client.GoalTemplates.ListGoalTemplates:input_type -> client.ListGoalTemplatesRequest
-	2,   // 197: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
-	4,   // 198: client.Activity.LogActivity:output_type -> client.LogActivityResponse
-	6,   // 199: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
-	8,   // 200: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
-	11,  // 201: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
-	14,  // 202: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
-	17,  // 203: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
-	19,  // 204: client.Report.GetReport:output_type -> client.GetReportResponse
-	21,  // 205: client.Report.ListReports:output_type -> client.ListReportsResponse
-	23,  // 206: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
-	26,  // 207: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
-	28,  // 208: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
-	30,  // 209: client.Report.CloseReport:output_type -> client.CloseReportResponse
-	32,  // 210: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
-	35,  // 211: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
-	39,  // 212: client.Saved.SaveItem:output_type -> client.SaveItemResponse
-	41,  // 213: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
-	43,  // 214: client.Saved.ListSaved:output_type -> client.ListSavedResponse
-	45,  // 215: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
-	47,  // 216: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
-	49,  // 217: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
-	51,  // 218: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
-	53,  // 219: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
-	55,  // 220: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
-	57,  // 221: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
-	59,  // 222: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
-	61,  // 223: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
-	64,  // 224: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
-	66,  // 225: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
-	69,  // 226: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
-	71,  // 227: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
-	73,  // 228: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
-	75,  // 229: client.Settings.ExportData:output_type -> client.ExportDataResponse
-	78,  // 230: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
-	80,  // 231: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
-	84,  // 232: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
-	86,  // 233: client.Articles.GetArticle:output_type -> client.GetArticleResponse
-	94,  // 234: client.Articles.CreateArticle:output_type -> client.CreateArticleResponse
-	96,  // 235: client.Articles.UpdateArticle:output_type -> client.UpdateArticleResponse
-	98,  // 236: client.Articles.DeleteArticle:output_type -> client.DeleteArticleResponse
-	88,  // 237: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
-	90,  // 238: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
-	92,  // 239: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
-	101, // 240: client.Articles.ListTags:output_type -> client.ListTagsResponse
-	103, // 241: client.Articles.GetArticlesByIds:output_type -> client.GetArticlesByIdsResponse
-	105, // 242: client.Articles.GetFeaturedArticle:output_type -> client.GetFeaturedArticleResponse
-	101, // 243: client.Tags.ListTags:output_type -> client.ListTagsResponse
-	107, // 244: client.Tags.CreateTag:output_type -> client.CreateTagResponse
-	109, // 245: client.Tags.UpdateTag:output_type -> client.UpdateTagResponse
-	111, // 246: client.Tags.DeleteTag:output_type -> client.DeleteTagResponse
-	114, // 247: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
-	116, // 248: client.Habits.GetHabit:output_type -> client.GetHabitResponse
-	118, // 249: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
-	120, // 250: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
-	122, // 251: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
-	124, // 252: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
-	127, // 253: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
-	129, // 254: client.Goals.GetGoal:output_type -> client.GetGoalResponse
-	131, // 255: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
-	133, // 256: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
-	135, // 257: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
-	137, // 258: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
-	139, // 259: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
-	142, // 260: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
-	144, // 261: client.Categories.CreateCategory:output_type -> client.CreateCategoryResponse
-	146, // 262: client.Categories.UpdateCategory:output_type -> client.UpdateCategoryResponse
-	148, // 263: client.Categories.DeleteCategory:output_type -> client.DeleteCategoryResponse
-	150, // 264: client.Categories.ReorderCategories:output_type -> client.ReorderCategoriesResponse
-	153, // 265: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
-	155, // 266: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
-	157, // 267: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
-	159, // 268: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
-	169, // 269: client.WeeklyReviewService.PrepareWeeklyReview:output_type -> client.PrepareWeeklyReviewResponse
-	171, // 270: client.WeeklyReviewService.SaveWeeklyReview:output_type -> client.SaveWeeklyReviewResponse
-	173, // 271: client.WeeklyReviewService.GetWeeklyReview:output_type -> client.GetWeeklyReviewResponse
-	175, // 272: client.WeeklyReviewService.GetCurrentWeeklyReview:output_type -> client.GetCurrentWeeklyReviewResponse
-	177, // 273: client.WeeklyReviewService.ListWeeklyReviews:output_type -> client.ListWeeklyReviewsResponse
-	183, // 274: client.PersonalizationService.GetCoachingProfile:output_type -> client.GetCoachingProfileResponse
-	185, // 275: client.PersonalizationService.UpsertCoachingProfile:output_type -> client.UpsertCoachingProfileResponse
-	187, // 276: client.PersonalizationService.UpdateCoachingProfilePreferences:output_type -> client.UpdateCoachingProfilePreferencesResponse
-	189, // 277: client.PersonalizationService.GetPersonalizationContext:output_type -> client.GetPersonalizationContextResponse
-	191, // 278: client.PersonalizationService.CreatePlanAdjustmentSuggestion:output_type -> client.CreatePlanAdjustmentSuggestionResponse
-	193, // 279: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:output_type -> client.ListPendingPlanAdjustmentSuggestionsResponse
-	195, // 280: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:output_type -> client.UpdatePlanAdjustmentSuggestionStatusResponse
-	197, // 281: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:output_type -> client.ApplyPlanAdjustmentSuggestionResponse
-	203, // 282: client.BillingService.GetBillingOverview:output_type -> client.GetBillingOverviewResponse
-	205, // 283: client.BillingService.TrackUpgradeEvent:output_type -> client.TrackUpgradeEventResponse
-	207, // 284: client.BillingService.CreateCheckoutSession:output_type -> client.CreateCheckoutSessionResponse
-	209, // 285: client.BillingService.CreateCustomerPortalSession:output_type -> client.CreateCustomerPortalSessionResponse
-	211, // 286: client.BillingService.HandleStripeWebhook:output_type -> client.HandleStripeWebhookResponse
-	215, // 287: client.BillingService.ListSubscriptionStatuses:output_type -> client.ListSubscriptionStatusesResponse
-	218, // 288: client.SiteSettings.GetSiteSetting:output_type -> client.GetSiteSettingResponse
-	220, // 289: client.SiteSettings.ListSiteSettings:output_type -> client.ListSiteSettingsResponse
-	222, // 290: client.SiteSettings.ListAllSiteSettings:output_type -> client.ListAllSiteSettingsResponse
-	224, // 291: client.SiteSettings.UpsertSiteSetting:output_type -> client.UpsertSiteSettingResponse
-	226, // 292: client.SiteSettings.DeleteSiteSetting:output_type -> client.DeleteSiteSettingResponse
-	231, // 293: client.HabitTemplates.ListHabitTemplates:output_type -> client.ListHabitTemplatesResponse
-	233, // 294: client.GoalTemplates.ListGoalTemplates:output_type -> client.ListGoalTemplatesResponse
-	197, // [197:295] is the sub-list for method output_type
-	99,  // [99:197] is the sub-list for method input_type
-	99,  // [99:99] is the sub-list for extension type_name
-	99,  // [99:99] is the sub-list for extension extendee
-	0,   // [0:99] is the sub-list for field type_name
+	215, // 90: client.ListSubscriptionStatusesResponse.statuses:type_name -> client.SubscriptionStatus
+	218, // 91: client.GetSiteSettingResponse.setting:type_name -> client.SiteSetting
+	218, // 92: client.ListSiteSettingsResponse.settings:type_name -> client.SiteSetting
+	218, // 93: client.ListAllSiteSettingsResponse.settings:type_name -> client.SiteSetting
+	218, // 94: client.UpsertSiteSettingResponse.setting:type_name -> client.SiteSetting
+	229, // 95: client.HabitTemplate.category:type_name -> client.TemplateCategory
+	229, // 96: client.GoalTemplate.category:type_name -> client.TemplateCategory
+	230, // 97: client.ListHabitTemplatesResponse.templates:type_name -> client.HabitTemplate
+	231, // 98: client.ListGoalTemplatesResponse.templates:type_name -> client.GoalTemplate
+	230, // 99: client.AdminListHabitTemplatesResponse.templates:type_name -> client.HabitTemplate
+	231, // 100: client.AdminListGoalTemplatesResponse.templates:type_name -> client.GoalTemplate
+	229, // 101: client.AdminListCategoriesResponse.categories:type_name -> client.TemplateCategory
+	1,   // 102: client.Activity.GetActivityFeed:input_type -> client.GetActivityFeedRequest
+	3,   // 103: client.Activity.LogActivity:input_type -> client.LogActivityRequest
+	5,   // 104: client.Activity.GetActivityStats:input_type -> client.GetActivityStatsRequest
+	7,   // 105: client.Activity.GetStreaks:input_type -> client.GetStreaksRequest
+	9,   // 106: client.Activity.GetAchievements:input_type -> client.GetAchievementsRequest
+	12,  // 107: client.Activity.GetActivityCalendar:input_type -> client.GetActivityCalendarRequest
+	16,  // 108: client.Report.SubmitReport:input_type -> client.SubmitReportRequest
+	18,  // 109: client.Report.GetReport:input_type -> client.GetReportRequest
+	20,  // 110: client.Report.ListReports:input_type -> client.ListReportsRequest
+	22,  // 111: client.Report.UpdateReport:input_type -> client.UpdateReportRequest
+	24,  // 112: client.Report.GetReportCategories:input_type -> client.GetReportCategoriesRequest
+	27,  // 113: client.Report.GetReportStatus:input_type -> client.GetReportStatusRequest
+	29,  // 114: client.Report.CloseReport:input_type -> client.CloseReportRequest
+	31,  // 115: client.Report.AddReportComment:input_type -> client.AddReportCommentRequest
+	34,  // 116: client.Report.GetReportComments:input_type -> client.GetReportCommentsRequest
+	38,  // 117: client.Saved.SaveItem:input_type -> client.SaveItemRequest
+	40,  // 118: client.Saved.RemoveSaved:input_type -> client.RemoveSavedRequest
+	42,  // 119: client.Saved.ListSaved:input_type -> client.ListSavedRequest
+	44,  // 120: client.Saved.GetSavedItem:input_type -> client.GetSavedItemRequest
+	46,  // 121: client.Saved.CreateCollection:input_type -> client.CreateCollectionRequest
+	48,  // 122: client.Saved.UpdateCollection:input_type -> client.UpdateCollectionRequest
+	50,  // 123: client.Saved.DeleteCollection:input_type -> client.DeleteCollectionRequest
+	52,  // 124: client.Saved.ListCollections:input_type -> client.ListCollectionsRequest
+	54,  // 125: client.Saved.GetCollection:input_type -> client.GetCollectionRequest
+	56,  // 126: client.Saved.MoveToCollection:input_type -> client.MoveToCollectionRequest
+	58,  // 127: client.Saved.GetSavedStats:input_type -> client.GetSavedStatsRequest
+	60,  // 128: client.Saved.ExportSaved:input_type -> client.ExportSavedRequest
+	63,  // 129: client.Settings.GetSettings:input_type -> client.GetSettingsRequest
+	65,  // 130: client.Settings.UpdateSettings:input_type -> client.UpdateSettingsRequest
+	67,  // 131: client.Settings.GetPreferences:input_type -> client.GetPreferencesRequest
+	70,  // 132: client.Settings.UpdatePreferences:input_type -> client.UpdatePreferencesRequest
+	72,  // 133: client.Settings.DeleteAccount:input_type -> client.DeleteAccountRequest
+	74,  // 134: client.Settings.ExportData:input_type -> client.ExportDataRequest
+	77,  // 135: client.Settings.GetPrivacySettings:input_type -> client.GetPrivacySettingsRequest
+	79,  // 136: client.Settings.UpdatePrivacySettings:input_type -> client.UpdatePrivacySettingsRequest
+	83,  // 137: client.Articles.ListArticles:input_type -> client.ListArticlesRequest
+	85,  // 138: client.Articles.GetArticle:input_type -> client.GetArticleRequest
+	93,  // 139: client.Articles.CreateArticle:input_type -> client.CreateArticleRequest
+	95,  // 140: client.Articles.UpdateArticle:input_type -> client.UpdateArticleRequest
+	97,  // 141: client.Articles.DeleteArticle:input_type -> client.DeleteArticleRequest
+	87,  // 142: client.Articles.LikeArticle:input_type -> client.LikeArticleRequest
+	89,  // 143: client.Articles.ShareArticle:input_type -> client.ShareArticleRequest
+	91,  // 144: client.Articles.GetAuthorArticles:input_type -> client.GetAuthorArticlesRequest
+	100, // 145: client.Articles.ListTags:input_type -> client.ListTagsRequest
+	102, // 146: client.Articles.GetArticlesByIds:input_type -> client.GetArticlesByIdsRequest
+	104, // 147: client.Articles.GetFeaturedArticle:input_type -> client.GetFeaturedArticleRequest
+	100, // 148: client.Tags.ListTags:input_type -> client.ListTagsRequest
+	106, // 149: client.Tags.CreateTag:input_type -> client.CreateTagRequest
+	108, // 150: client.Tags.UpdateTag:input_type -> client.UpdateTagRequest
+	110, // 151: client.Tags.DeleteTag:input_type -> client.DeleteTagRequest
+	113, // 152: client.Habits.ListHabits:input_type -> client.ListHabitsRequest
+	115, // 153: client.Habits.GetHabit:input_type -> client.GetHabitRequest
+	117, // 154: client.Habits.CreateHabit:input_type -> client.CreateHabitRequest
+	119, // 155: client.Habits.UpdateHabit:input_type -> client.UpdateHabitRequest
+	121, // 156: client.Habits.DeleteHabit:input_type -> client.DeleteHabitRequest
+	123, // 157: client.Habits.ResetTodayHabits:input_type -> client.ResetTodayHabitsRequest
+	126, // 158: client.Goals.ListGoals:input_type -> client.ListGoalsRequest
+	128, // 159: client.Goals.GetGoal:input_type -> client.GetGoalRequest
+	130, // 160: client.Goals.CreateGoal:input_type -> client.CreateGoalRequest
+	132, // 161: client.Goals.UpdateGoal:input_type -> client.UpdateGoalRequest
+	134, // 162: client.Goals.DeleteGoal:input_type -> client.DeleteGoalRequest
+	136, // 163: client.Goals.ToggleGoal:input_type -> client.ToggleGoalRequest
+	138, // 164: client.Goals.UpdateGoalProgress:input_type -> client.UpdateGoalProgressRequest
+	141, // 165: client.Categories.ListCategories:input_type -> client.ListCategoriesRequest
+	143, // 166: client.Categories.CreateCategory:input_type -> client.CreateCategoryRequest
+	145, // 167: client.Categories.UpdateCategory:input_type -> client.UpdateCategoryRequest
+	147, // 168: client.Categories.DeleteCategory:input_type -> client.DeleteCategoryRequest
+	149, // 169: client.Categories.ReorderCategories:input_type -> client.ReorderCategoriesRequest
+	250, // 170: client.Categories.AdminListCategories:input_type -> client.AdminListCategoriesRequest
+	152, // 171: client.CheckInService.CreateCheckIn:input_type -> client.CreateCheckInRequest
+	154, // 172: client.CheckInService.GetTodayCheckIns:input_type -> client.GetTodayCheckInsRequest
+	156, // 173: client.CheckInService.GetCheckInHistory:input_type -> client.GetCheckInHistoryRequest
+	158, // 174: client.CheckInService.HasCheckedInToday:input_type -> client.HasCheckedInTodayRequest
+	164, // 175: client.WeeklyReviewService.PrepareWeeklyReview:input_type -> client.PrepareWeeklyReviewRequest
+	170, // 176: client.WeeklyReviewService.SaveWeeklyReview:input_type -> client.SaveWeeklyReviewRequest
+	172, // 177: client.WeeklyReviewService.GetWeeklyReview:input_type -> client.GetWeeklyReviewRequest
+	174, // 178: client.WeeklyReviewService.GetCurrentWeeklyReview:input_type -> client.GetCurrentWeeklyReviewRequest
+	176, // 179: client.WeeklyReviewService.ListWeeklyReviews:input_type -> client.ListWeeklyReviewsRequest
+	182, // 180: client.PersonalizationService.GetCoachingProfile:input_type -> client.GetCoachingProfileRequest
+	184, // 181: client.PersonalizationService.UpsertCoachingProfile:input_type -> client.UpsertCoachingProfileRequest
+	186, // 182: client.PersonalizationService.UpdateCoachingProfilePreferences:input_type -> client.UpdateCoachingProfilePreferencesRequest
+	188, // 183: client.PersonalizationService.GetPersonalizationContext:input_type -> client.GetPersonalizationContextRequest
+	190, // 184: client.PersonalizationService.CreatePlanAdjustmentSuggestion:input_type -> client.CreatePlanAdjustmentSuggestionRequest
+	192, // 185: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:input_type -> client.ListPendingPlanAdjustmentSuggestionsRequest
+	194, // 186: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:input_type -> client.UpdatePlanAdjustmentSuggestionStatusRequest
+	196, // 187: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:input_type -> client.ApplyPlanAdjustmentSuggestionRequest
+	202, // 188: client.BillingService.GetBillingOverview:input_type -> client.GetBillingOverviewRequest
+	204, // 189: client.BillingService.TrackUpgradeEvent:input_type -> client.TrackUpgradeEventRequest
+	206, // 190: client.BillingService.CreateCheckoutSession:input_type -> client.CreateCheckoutSessionRequest
+	208, // 191: client.BillingService.CreateCustomerPortalSession:input_type -> client.CreateCustomerPortalSessionRequest
+	210, // 192: client.BillingService.HandleStripeWebhook:input_type -> client.HandleStripeWebhookRequest
+	212, // 193: client.BillingService.HandleRevenueCatWebhook:input_type -> client.HandleRevenueCatWebhookRequest
+	216, // 194: client.BillingService.ListSubscriptionStatuses:input_type -> client.ListSubscriptionStatusesRequest
+	219, // 195: client.SiteSettings.GetSiteSetting:input_type -> client.GetSiteSettingRequest
+	221, // 196: client.SiteSettings.ListSiteSettings:input_type -> client.ListSiteSettingsRequest
+	223, // 197: client.SiteSettings.ListAllSiteSettings:input_type -> client.ListAllSiteSettingsRequest
+	225, // 198: client.SiteSettings.UpsertSiteSetting:input_type -> client.UpsertSiteSettingRequest
+	227, // 199: client.SiteSettings.DeleteSiteSetting:input_type -> client.DeleteSiteSettingRequest
+	232, // 200: client.HabitTemplates.ListHabitTemplates:input_type -> client.ListHabitTemplatesRequest
+	236, // 201: client.HabitTemplates.AdminListHabitTemplates:input_type -> client.AdminListHabitTemplatesRequest
+	238, // 202: client.HabitTemplates.AdminGetHabitTemplate:input_type -> client.AdminGetHabitTemplateRequest
+	239, // 203: client.HabitTemplates.AdminCreateHabitTemplate:input_type -> client.AdminCreateHabitTemplateRequest
+	240, // 204: client.HabitTemplates.AdminUpdateHabitTemplate:input_type -> client.AdminUpdateHabitTemplateRequest
+	241, // 205: client.HabitTemplates.AdminDeleteHabitTemplate:input_type -> client.AdminDeleteHabitTemplateRequest
+	234, // 206: client.GoalTemplates.ListGoalTemplates:input_type -> client.ListGoalTemplatesRequest
+	243, // 207: client.GoalTemplates.AdminListGoalTemplates:input_type -> client.AdminListGoalTemplatesRequest
+	245, // 208: client.GoalTemplates.AdminGetGoalTemplate:input_type -> client.AdminGetGoalTemplateRequest
+	246, // 209: client.GoalTemplates.AdminCreateGoalTemplate:input_type -> client.AdminCreateGoalTemplateRequest
+	247, // 210: client.GoalTemplates.AdminUpdateGoalTemplate:input_type -> client.AdminUpdateGoalTemplateRequest
+	248, // 211: client.GoalTemplates.AdminDeleteGoalTemplate:input_type -> client.AdminDeleteGoalTemplateRequest
+	2,   // 212: client.Activity.GetActivityFeed:output_type -> client.GetActivityFeedResponse
+	4,   // 213: client.Activity.LogActivity:output_type -> client.LogActivityResponse
+	6,   // 214: client.Activity.GetActivityStats:output_type -> client.GetActivityStatsResponse
+	8,   // 215: client.Activity.GetStreaks:output_type -> client.GetStreaksResponse
+	11,  // 216: client.Activity.GetAchievements:output_type -> client.GetAchievementsResponse
+	14,  // 217: client.Activity.GetActivityCalendar:output_type -> client.GetActivityCalendarResponse
+	17,  // 218: client.Report.SubmitReport:output_type -> client.SubmitReportResponse
+	19,  // 219: client.Report.GetReport:output_type -> client.GetReportResponse
+	21,  // 220: client.Report.ListReports:output_type -> client.ListReportsResponse
+	23,  // 221: client.Report.UpdateReport:output_type -> client.UpdateReportResponse
+	26,  // 222: client.Report.GetReportCategories:output_type -> client.GetReportCategoriesResponse
+	28,  // 223: client.Report.GetReportStatus:output_type -> client.GetReportStatusResponse
+	30,  // 224: client.Report.CloseReport:output_type -> client.CloseReportResponse
+	32,  // 225: client.Report.AddReportComment:output_type -> client.AddReportCommentResponse
+	35,  // 226: client.Report.GetReportComments:output_type -> client.GetReportCommentsResponse
+	39,  // 227: client.Saved.SaveItem:output_type -> client.SaveItemResponse
+	41,  // 228: client.Saved.RemoveSaved:output_type -> client.RemoveSavedResponse
+	43,  // 229: client.Saved.ListSaved:output_type -> client.ListSavedResponse
+	45,  // 230: client.Saved.GetSavedItem:output_type -> client.GetSavedItemResponse
+	47,  // 231: client.Saved.CreateCollection:output_type -> client.CreateCollectionResponse
+	49,  // 232: client.Saved.UpdateCollection:output_type -> client.UpdateCollectionResponse
+	51,  // 233: client.Saved.DeleteCollection:output_type -> client.DeleteCollectionResponse
+	53,  // 234: client.Saved.ListCollections:output_type -> client.ListCollectionsResponse
+	55,  // 235: client.Saved.GetCollection:output_type -> client.GetCollectionResponse
+	57,  // 236: client.Saved.MoveToCollection:output_type -> client.MoveToCollectionResponse
+	59,  // 237: client.Saved.GetSavedStats:output_type -> client.GetSavedStatsResponse
+	61,  // 238: client.Saved.ExportSaved:output_type -> client.ExportSavedResponse
+	64,  // 239: client.Settings.GetSettings:output_type -> client.GetSettingsResponse
+	66,  // 240: client.Settings.UpdateSettings:output_type -> client.UpdateSettingsResponse
+	69,  // 241: client.Settings.GetPreferences:output_type -> client.GetPreferencesResponse
+	71,  // 242: client.Settings.UpdatePreferences:output_type -> client.UpdatePreferencesResponse
+	73,  // 243: client.Settings.DeleteAccount:output_type -> client.DeleteAccountResponse
+	75,  // 244: client.Settings.ExportData:output_type -> client.ExportDataResponse
+	78,  // 245: client.Settings.GetPrivacySettings:output_type -> client.GetPrivacySettingsResponse
+	80,  // 246: client.Settings.UpdatePrivacySettings:output_type -> client.UpdatePrivacySettingsResponse
+	84,  // 247: client.Articles.ListArticles:output_type -> client.ListArticlesResponse
+	86,  // 248: client.Articles.GetArticle:output_type -> client.GetArticleResponse
+	94,  // 249: client.Articles.CreateArticle:output_type -> client.CreateArticleResponse
+	96,  // 250: client.Articles.UpdateArticle:output_type -> client.UpdateArticleResponse
+	98,  // 251: client.Articles.DeleteArticle:output_type -> client.DeleteArticleResponse
+	88,  // 252: client.Articles.LikeArticle:output_type -> client.LikeArticleResponse
+	90,  // 253: client.Articles.ShareArticle:output_type -> client.ShareArticleResponse
+	92,  // 254: client.Articles.GetAuthorArticles:output_type -> client.GetAuthorArticlesResponse
+	101, // 255: client.Articles.ListTags:output_type -> client.ListTagsResponse
+	103, // 256: client.Articles.GetArticlesByIds:output_type -> client.GetArticlesByIdsResponse
+	105, // 257: client.Articles.GetFeaturedArticle:output_type -> client.GetFeaturedArticleResponse
+	101, // 258: client.Tags.ListTags:output_type -> client.ListTagsResponse
+	107, // 259: client.Tags.CreateTag:output_type -> client.CreateTagResponse
+	109, // 260: client.Tags.UpdateTag:output_type -> client.UpdateTagResponse
+	111, // 261: client.Tags.DeleteTag:output_type -> client.DeleteTagResponse
+	114, // 262: client.Habits.ListHabits:output_type -> client.ListHabitsResponse
+	116, // 263: client.Habits.GetHabit:output_type -> client.GetHabitResponse
+	118, // 264: client.Habits.CreateHabit:output_type -> client.CreateHabitResponse
+	120, // 265: client.Habits.UpdateHabit:output_type -> client.UpdateHabitResponse
+	122, // 266: client.Habits.DeleteHabit:output_type -> client.DeleteHabitResponse
+	124, // 267: client.Habits.ResetTodayHabits:output_type -> client.ResetTodayHabitsResponse
+	127, // 268: client.Goals.ListGoals:output_type -> client.ListGoalsResponse
+	129, // 269: client.Goals.GetGoal:output_type -> client.GetGoalResponse
+	131, // 270: client.Goals.CreateGoal:output_type -> client.CreateGoalResponse
+	133, // 271: client.Goals.UpdateGoal:output_type -> client.UpdateGoalResponse
+	135, // 272: client.Goals.DeleteGoal:output_type -> client.DeleteGoalResponse
+	137, // 273: client.Goals.ToggleGoal:output_type -> client.ToggleGoalResponse
+	139, // 274: client.Goals.UpdateGoalProgress:output_type -> client.UpdateGoalProgressResponse
+	142, // 275: client.Categories.ListCategories:output_type -> client.ListCategoriesResponse
+	144, // 276: client.Categories.CreateCategory:output_type -> client.CreateCategoryResponse
+	146, // 277: client.Categories.UpdateCategory:output_type -> client.UpdateCategoryResponse
+	148, // 278: client.Categories.DeleteCategory:output_type -> client.DeleteCategoryResponse
+	150, // 279: client.Categories.ReorderCategories:output_type -> client.ReorderCategoriesResponse
+	251, // 280: client.Categories.AdminListCategories:output_type -> client.AdminListCategoriesResponse
+	153, // 281: client.CheckInService.CreateCheckIn:output_type -> client.CreateCheckInResponse
+	155, // 282: client.CheckInService.GetTodayCheckIns:output_type -> client.GetTodayCheckInsResponse
+	157, // 283: client.CheckInService.GetCheckInHistory:output_type -> client.GetCheckInHistoryResponse
+	159, // 284: client.CheckInService.HasCheckedInToday:output_type -> client.HasCheckedInTodayResponse
+	169, // 285: client.WeeklyReviewService.PrepareWeeklyReview:output_type -> client.PrepareWeeklyReviewResponse
+	171, // 286: client.WeeklyReviewService.SaveWeeklyReview:output_type -> client.SaveWeeklyReviewResponse
+	173, // 287: client.WeeklyReviewService.GetWeeklyReview:output_type -> client.GetWeeklyReviewResponse
+	175, // 288: client.WeeklyReviewService.GetCurrentWeeklyReview:output_type -> client.GetCurrentWeeklyReviewResponse
+	177, // 289: client.WeeklyReviewService.ListWeeklyReviews:output_type -> client.ListWeeklyReviewsResponse
+	183, // 290: client.PersonalizationService.GetCoachingProfile:output_type -> client.GetCoachingProfileResponse
+	185, // 291: client.PersonalizationService.UpsertCoachingProfile:output_type -> client.UpsertCoachingProfileResponse
+	187, // 292: client.PersonalizationService.UpdateCoachingProfilePreferences:output_type -> client.UpdateCoachingProfilePreferencesResponse
+	189, // 293: client.PersonalizationService.GetPersonalizationContext:output_type -> client.GetPersonalizationContextResponse
+	191, // 294: client.PersonalizationService.CreatePlanAdjustmentSuggestion:output_type -> client.CreatePlanAdjustmentSuggestionResponse
+	193, // 295: client.PersonalizationService.ListPendingPlanAdjustmentSuggestions:output_type -> client.ListPendingPlanAdjustmentSuggestionsResponse
+	195, // 296: client.PersonalizationService.UpdatePlanAdjustmentSuggestionStatus:output_type -> client.UpdatePlanAdjustmentSuggestionStatusResponse
+	197, // 297: client.PersonalizationService.ApplyPlanAdjustmentSuggestion:output_type -> client.ApplyPlanAdjustmentSuggestionResponse
+	203, // 298: client.BillingService.GetBillingOverview:output_type -> client.GetBillingOverviewResponse
+	205, // 299: client.BillingService.TrackUpgradeEvent:output_type -> client.TrackUpgradeEventResponse
+	207, // 300: client.BillingService.CreateCheckoutSession:output_type -> client.CreateCheckoutSessionResponse
+	209, // 301: client.BillingService.CreateCustomerPortalSession:output_type -> client.CreateCustomerPortalSessionResponse
+	211, // 302: client.BillingService.HandleStripeWebhook:output_type -> client.HandleStripeWebhookResponse
+	213, // 303: client.BillingService.HandleRevenueCatWebhook:output_type -> client.HandleRevenueCatWebhookResponse
+	217, // 304: client.BillingService.ListSubscriptionStatuses:output_type -> client.ListSubscriptionStatusesResponse
+	220, // 305: client.SiteSettings.GetSiteSetting:output_type -> client.GetSiteSettingResponse
+	222, // 306: client.SiteSettings.ListSiteSettings:output_type -> client.ListSiteSettingsResponse
+	224, // 307: client.SiteSettings.ListAllSiteSettings:output_type -> client.ListAllSiteSettingsResponse
+	226, // 308: client.SiteSettings.UpsertSiteSetting:output_type -> client.UpsertSiteSettingResponse
+	228, // 309: client.SiteSettings.DeleteSiteSetting:output_type -> client.DeleteSiteSettingResponse
+	233, // 310: client.HabitTemplates.ListHabitTemplates:output_type -> client.ListHabitTemplatesResponse
+	237, // 311: client.HabitTemplates.AdminListHabitTemplates:output_type -> client.AdminListHabitTemplatesResponse
+	230, // 312: client.HabitTemplates.AdminGetHabitTemplate:output_type -> client.HabitTemplate
+	230, // 313: client.HabitTemplates.AdminCreateHabitTemplate:output_type -> client.HabitTemplate
+	230, // 314: client.HabitTemplates.AdminUpdateHabitTemplate:output_type -> client.HabitTemplate
+	242, // 315: client.HabitTemplates.AdminDeleteHabitTemplate:output_type -> client.AdminDeleteHabitTemplateResponse
+	235, // 316: client.GoalTemplates.ListGoalTemplates:output_type -> client.ListGoalTemplatesResponse
+	244, // 317: client.GoalTemplates.AdminListGoalTemplates:output_type -> client.AdminListGoalTemplatesResponse
+	231, // 318: client.GoalTemplates.AdminGetGoalTemplate:output_type -> client.GoalTemplate
+	231, // 319: client.GoalTemplates.AdminCreateGoalTemplate:output_type -> client.GoalTemplate
+	231, // 320: client.GoalTemplates.AdminUpdateGoalTemplate:output_type -> client.GoalTemplate
+	249, // 321: client.GoalTemplates.AdminDeleteGoalTemplate:output_type -> client.AdminDeleteGoalTemplateResponse
+	212, // [212:322] is the sub-list for method output_type
+	102, // [102:212] is the sub-list for method input_type
+	102, // [102:102] is the sub-list for extension type_name
+	102, // [102:102] is the sub-list for extension extendee
+	0,   // [0:102] is the sub-list for field type_name
 }
 
 func init() { file_services_microservices_client_api_v1_client_proto_init() }
@@ -15538,7 +16602,7 @@ func file_services_microservices_client_api_v1_client_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_client_api_v1_client_proto_rawDesc), len(file_services_microservices_client_api_v1_client_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   245,
+			NumMessages:   263,
 			NumExtensions: 0,
 			NumServices:   16,
 		},

@@ -28,6 +28,16 @@ func (r *mockRevocationRepo) IsTokenRevoked(_ context.Context, _ TokenType, toke
 	return ok, nil
 }
 
+func (r *mockRevocationRepo) MarkSessionRevoked(_ context.Context, sessionID string, _ time.Duration) error {
+	r.revoked["session:"+sessionID] = struct{}{}
+	return nil
+}
+
+func (r *mockRevocationRepo) IsSessionRevoked(_ context.Context, sessionID string) (bool, error) {
+	_, ok := r.revoked["session:"+sessionID]
+	return ok, nil
+}
+
 // Test that validateClaims handles nil time fields without panicking.
 func TestValidateClaims_NilTimeFields(t *testing.T) {
 	claims := &TokenClaims{
@@ -116,5 +126,100 @@ func TestRevokeAccessToken_ExpiredToken(t *testing.T) {
 	}
 	if !revoked {
 		t.Error("expected token to be revoked")
+	}
+}
+
+// TestRefreshAfterLogout_RejectedBySessionRevocation proves the critical
+// security property that a copied refresh token cannot refresh after logout.
+// Logout revokes the entire session (by session ID), so even if an attacker
+// copied the refresh token value before logout, the session revocation check
+// in VerifyRefreshToken blocks the refresh attempt.
+func TestRefreshAfterLogout_RejectedBySessionRevocation(t *testing.T) {
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(Config{
+		Secret:                "test-secret-must-be-at-least-32-bytes",
+		Issuer:                "test-issuer",
+		Audience:              "test-audience",
+		AccessExpiryDuration:  time.Minute,
+		RefreshExpiryDuration: time.Hour,
+	}, repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	sessionID := uuid.New()
+	userID := uuid.New()
+
+	// Issue a refresh token for this session.
+	refreshResp, err := maker.CreateRefreshToken(context.Background(), userID, "test-user", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+
+	// Verify the refresh token is valid before logout.
+	claims, err := maker.VerifyRefreshToken(context.Background(), refreshResp.Token)
+	if err != nil {
+		t.Fatalf("verify refresh token before logout: %v", err)
+	}
+	if claims.SessionID != sessionID {
+		t.Fatalf("expected session ID %s, got %s", sessionID, claims.SessionID)
+	}
+
+	// Logout: revoke the entire session by session ID (as logoutLogic does).
+	err = maker.RevokeSession(context.Background(), sessionID, time.Hour)
+	if err != nil {
+		t.Fatalf("revoke session: %v", err)
+	}
+
+	// A copied refresh token (same value) must now be rejected because the
+	// session is revoked, even though the token value itself is not revoked.
+	_, err = maker.VerifyRefreshToken(context.Background(), refreshResp.Token)
+	if err == nil {
+		t.Fatal("expected refresh token to be rejected after session revocation, but VerifyRefreshToken succeeded")
+	}
+
+	// Also verify via IsSessionRevoked for clarity.
+	revoked, err := maker.IsSessionRevoked(context.Background(), sessionID)
+	if err != nil {
+		t.Fatalf("IsSessionRevoked failed: %v", err)
+	}
+	if !revoked {
+		t.Error("expected session to be revoked")
+	}
+}
+
+// TestRefreshAfterLogout_RejectedByTokenRevocation proves that defense-in-depth
+// token-value revocation also blocks refresh, even if the session check were
+// somehow bypassed.
+func TestRefreshAfterLogout_RejectedByTokenRevocation(t *testing.T) {
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(Config{
+		Secret:                "test-secret-must-be-at-least-32-bytes",
+		Issuer:                "test-issuer",
+		Audience:              "test-audience",
+		AccessExpiryDuration:  time.Minute,
+		RefreshExpiryDuration: time.Hour,
+	}, repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	sessionID := uuid.New()
+	refreshResp, err := maker.CreateRefreshToken(context.Background(), uuid.New(), "test-user", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+
+	// Revoke the refresh token by value (defense-in-depth, as logoutLogic does
+	// when the refresh token is provided).
+	err = maker.RevokeRefreshToken(context.Background(), refreshResp.Token)
+	if err != nil {
+		t.Fatalf("revoke refresh token: %v", err)
+	}
+
+	// The refresh token must now be rejected by value revocation.
+	_, err = maker.VerifyRefreshToken(context.Background(), refreshResp.Token)
+	if err == nil {
+		t.Fatal("expected refresh token to be rejected after token-value revocation, but VerifyRefreshToken succeeded")
 	}
 }

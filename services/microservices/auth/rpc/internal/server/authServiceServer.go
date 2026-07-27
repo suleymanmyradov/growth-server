@@ -104,6 +104,11 @@ func (s *AuthServiceServer) GoogleLogin(ctx context.Context, in *auth.GoogleLogi
 	return l.GoogleLogin(in)
 }
 
+func (s *AuthServiceServer) AppleLogin(ctx context.Context, in *auth.AppleLoginRequest) (*auth.AuthResponse, error) {
+	l := logic.NewAppleLoginLogic(ctx, s.svcCtx)
+	return l.AppleLogin(in)
+}
+
 // Admin / internal: enumerate user ids (used by adminway for broadcasts).
 func (s *AuthServiceServer) ListUserIds(ctx context.Context, in *auth.ListUserIdsRequest) (*auth.ListUserIdsResponse, error) {
 	l := logic.NewListUserIdsLogic(ctx, s.svcCtx)

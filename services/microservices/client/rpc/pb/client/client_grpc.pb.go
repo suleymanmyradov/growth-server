@@ -2925,11 +2925,12 @@ var Goals_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	Categories_ListCategories_FullMethodName    = "/client.Categories/ListCategories"
-	Categories_CreateCategory_FullMethodName    = "/client.Categories/CreateCategory"
-	Categories_UpdateCategory_FullMethodName    = "/client.Categories/UpdateCategory"
-	Categories_DeleteCategory_FullMethodName    = "/client.Categories/DeleteCategory"
-	Categories_ReorderCategories_FullMethodName = "/client.Categories/ReorderCategories"
+	Categories_ListCategories_FullMethodName      = "/client.Categories/ListCategories"
+	Categories_CreateCategory_FullMethodName      = "/client.Categories/CreateCategory"
+	Categories_UpdateCategory_FullMethodName      = "/client.Categories/UpdateCategory"
+	Categories_DeleteCategory_FullMethodName      = "/client.Categories/DeleteCategory"
+	Categories_ReorderCategories_FullMethodName   = "/client.Categories/ReorderCategories"
+	Categories_AdminListCategories_FullMethodName = "/client.Categories/AdminListCategories"
 )
 
 // CategoriesClient is the client API for Categories service.
@@ -2941,6 +2942,8 @@ type CategoriesClient interface {
 	UpdateCategory(ctx context.Context, in *UpdateCategoryRequest, opts ...grpc.CallOption) (*UpdateCategoryResponse, error)
 	DeleteCategory(ctx context.Context, in *DeleteCategoryRequest, opts ...grpc.CallOption) (*DeleteCategoryResponse, error)
 	ReorderCategories(ctx context.Context, in *ReorderCategoriesRequest, opts ...grpc.CallOption) (*ReorderCategoriesResponse, error)
+	// Admin list for template management (called by adminway via gRPC).
+	AdminListCategories(ctx context.Context, in *AdminListCategoriesRequest, opts ...grpc.CallOption) (*AdminListCategoriesResponse, error)
 }
 
 type categoriesClient struct {
@@ -3001,6 +3004,16 @@ func (c *categoriesClient) ReorderCategories(ctx context.Context, in *ReorderCat
 	return out, nil
 }
 
+func (c *categoriesClient) AdminListCategories(ctx context.Context, in *AdminListCategoriesRequest, opts ...grpc.CallOption) (*AdminListCategoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminListCategoriesResponse)
+	err := c.cc.Invoke(ctx, Categories_AdminListCategories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CategoriesServer is the server API for Categories service.
 // All implementations must embed UnimplementedCategoriesServer
 // for forward compatibility.
@@ -3010,6 +3023,8 @@ type CategoriesServer interface {
 	UpdateCategory(context.Context, *UpdateCategoryRequest) (*UpdateCategoryResponse, error)
 	DeleteCategory(context.Context, *DeleteCategoryRequest) (*DeleteCategoryResponse, error)
 	ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error)
+	// Admin list for template management (called by adminway via gRPC).
+	AdminListCategories(context.Context, *AdminListCategoriesRequest) (*AdminListCategoriesResponse, error)
 	mustEmbedUnimplementedCategoriesServer()
 }
 
@@ -3034,6 +3049,9 @@ func (UnimplementedCategoriesServer) DeleteCategory(context.Context, *DeleteCate
 }
 func (UnimplementedCategoriesServer) ReorderCategories(context.Context, *ReorderCategoriesRequest) (*ReorderCategoriesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReorderCategories not implemented")
+}
+func (UnimplementedCategoriesServer) AdminListCategories(context.Context, *AdminListCategoriesRequest) (*AdminListCategoriesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminListCategories not implemented")
 }
 func (UnimplementedCategoriesServer) mustEmbedUnimplementedCategoriesServer() {}
 func (UnimplementedCategoriesServer) testEmbeddedByValue()                    {}
@@ -3146,6 +3164,24 @@ func _Categories_ReorderCategories_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Categories_AdminListCategories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminListCategoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CategoriesServer).AdminListCategories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Categories_AdminListCategories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CategoriesServer).AdminListCategories(ctx, req.(*AdminListCategoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Categories_ServiceDesc is the grpc.ServiceDesc for Categories service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3172,6 +3208,10 @@ var Categories_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReorderCategories",
 			Handler:    _Categories_ReorderCategories_Handler,
+		},
+		{
+			MethodName: "AdminListCategories",
+			Handler:    _Categories_AdminListCategories_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -4023,6 +4063,7 @@ const (
 	BillingService_CreateCheckoutSession_FullMethodName       = "/client.BillingService/CreateCheckoutSession"
 	BillingService_CreateCustomerPortalSession_FullMethodName = "/client.BillingService/CreateCustomerPortalSession"
 	BillingService_HandleStripeWebhook_FullMethodName         = "/client.BillingService/HandleStripeWebhook"
+	BillingService_HandleRevenueCatWebhook_FullMethodName     = "/client.BillingService/HandleRevenueCatWebhook"
 	BillingService_ListSubscriptionStatuses_FullMethodName    = "/client.BillingService/ListSubscriptionStatuses"
 )
 
@@ -4035,6 +4076,7 @@ type BillingServiceClient interface {
 	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
+	HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
@@ -4098,6 +4140,16 @@ func (c *billingServiceClient) HandleStripeWebhook(ctx context.Context, in *Hand
 	return out, nil
 }
 
+func (c *billingServiceClient) HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HandleRevenueCatWebhookResponse)
+	err := c.cc.Invoke(ctx, BillingService_HandleRevenueCatWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingServiceClient) ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSubscriptionStatusesResponse)
@@ -4117,6 +4169,7 @@ type BillingServiceServer interface {
 	CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error)
+	HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error)
@@ -4144,6 +4197,9 @@ func (UnimplementedBillingServiceServer) CreateCustomerPortalSession(context.Con
 }
 func (UnimplementedBillingServiceServer) HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method HandleStripeWebhook not implemented")
+}
+func (UnimplementedBillingServiceServer) HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method HandleRevenueCatWebhook not implemented")
 }
 func (UnimplementedBillingServiceServer) ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListSubscriptionStatuses not implemented")
@@ -4259,6 +4315,24 @@ func _BillingService_HandleStripeWebhook_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingService_HandleRevenueCatWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandleRevenueCatWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).HandleRevenueCatWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_HandleRevenueCatWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).HandleRevenueCatWebhook(ctx, req.(*HandleRevenueCatWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BillingService_ListSubscriptionStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSubscriptionStatusesRequest)
 	if err := dec(in); err != nil {
@@ -4303,6 +4377,10 @@ var BillingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandleStripeWebhook",
 			Handler:    _BillingService_HandleStripeWebhook_Handler,
+		},
+		{
+			MethodName: "HandleRevenueCatWebhook",
+			Handler:    _BillingService_HandleRevenueCatWebhook_Handler,
 		},
 		{
 			MethodName: "ListSubscriptionStatuses",
@@ -4568,7 +4646,12 @@ var SiteSettings_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	HabitTemplates_ListHabitTemplates_FullMethodName = "/client.HabitTemplates/ListHabitTemplates"
+	HabitTemplates_ListHabitTemplates_FullMethodName       = "/client.HabitTemplates/ListHabitTemplates"
+	HabitTemplates_AdminListHabitTemplates_FullMethodName  = "/client.HabitTemplates/AdminListHabitTemplates"
+	HabitTemplates_AdminGetHabitTemplate_FullMethodName    = "/client.HabitTemplates/AdminGetHabitTemplate"
+	HabitTemplates_AdminCreateHabitTemplate_FullMethodName = "/client.HabitTemplates/AdminCreateHabitTemplate"
+	HabitTemplates_AdminUpdateHabitTemplate_FullMethodName = "/client.HabitTemplates/AdminUpdateHabitTemplate"
+	HabitTemplates_AdminDeleteHabitTemplate_FullMethodName = "/client.HabitTemplates/AdminDeleteHabitTemplate"
 )
 
 // HabitTemplatesClient is the client API for HabitTemplates service.
@@ -4576,6 +4659,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HabitTemplatesClient interface {
 	ListHabitTemplates(ctx context.Context, in *ListHabitTemplatesRequest, opts ...grpc.CallOption) (*ListHabitTemplatesResponse, error)
+	// Admin CRUD (called by adminway via gRPC, not direct DB access).
+	AdminListHabitTemplates(ctx context.Context, in *AdminListHabitTemplatesRequest, opts ...grpc.CallOption) (*AdminListHabitTemplatesResponse, error)
+	AdminGetHabitTemplate(ctx context.Context, in *AdminGetHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+	AdminCreateHabitTemplate(ctx context.Context, in *AdminCreateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+	AdminUpdateHabitTemplate(ctx context.Context, in *AdminUpdateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+	AdminDeleteHabitTemplate(ctx context.Context, in *AdminDeleteHabitTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteHabitTemplateResponse, error)
 }
 
 type habitTemplatesClient struct {
@@ -4596,11 +4685,67 @@ func (c *habitTemplatesClient) ListHabitTemplates(ctx context.Context, in *ListH
 	return out, nil
 }
 
+func (c *habitTemplatesClient) AdminListHabitTemplates(ctx context.Context, in *AdminListHabitTemplatesRequest, opts ...grpc.CallOption) (*AdminListHabitTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminListHabitTemplatesResponse)
+	err := c.cc.Invoke(ctx, HabitTemplates_AdminListHabitTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *habitTemplatesClient) AdminGetHabitTemplate(ctx context.Context, in *AdminGetHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HabitTemplate)
+	err := c.cc.Invoke(ctx, HabitTemplates_AdminGetHabitTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *habitTemplatesClient) AdminCreateHabitTemplate(ctx context.Context, in *AdminCreateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HabitTemplate)
+	err := c.cc.Invoke(ctx, HabitTemplates_AdminCreateHabitTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *habitTemplatesClient) AdminUpdateHabitTemplate(ctx context.Context, in *AdminUpdateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HabitTemplate)
+	err := c.cc.Invoke(ctx, HabitTemplates_AdminUpdateHabitTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *habitTemplatesClient) AdminDeleteHabitTemplate(ctx context.Context, in *AdminDeleteHabitTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteHabitTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminDeleteHabitTemplateResponse)
+	err := c.cc.Invoke(ctx, HabitTemplates_AdminDeleteHabitTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // HabitTemplatesServer is the server API for HabitTemplates service.
 // All implementations must embed UnimplementedHabitTemplatesServer
 // for forward compatibility.
 type HabitTemplatesServer interface {
 	ListHabitTemplates(context.Context, *ListHabitTemplatesRequest) (*ListHabitTemplatesResponse, error)
+	// Admin CRUD (called by adminway via gRPC, not direct DB access).
+	AdminListHabitTemplates(context.Context, *AdminListHabitTemplatesRequest) (*AdminListHabitTemplatesResponse, error)
+	AdminGetHabitTemplate(context.Context, *AdminGetHabitTemplateRequest) (*HabitTemplate, error)
+	AdminCreateHabitTemplate(context.Context, *AdminCreateHabitTemplateRequest) (*HabitTemplate, error)
+	AdminUpdateHabitTemplate(context.Context, *AdminUpdateHabitTemplateRequest) (*HabitTemplate, error)
+	AdminDeleteHabitTemplate(context.Context, *AdminDeleteHabitTemplateRequest) (*AdminDeleteHabitTemplateResponse, error)
 	mustEmbedUnimplementedHabitTemplatesServer()
 }
 
@@ -4613,6 +4758,21 @@ type UnimplementedHabitTemplatesServer struct{}
 
 func (UnimplementedHabitTemplatesServer) ListHabitTemplates(context.Context, *ListHabitTemplatesRequest) (*ListHabitTemplatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListHabitTemplates not implemented")
+}
+func (UnimplementedHabitTemplatesServer) AdminListHabitTemplates(context.Context, *AdminListHabitTemplatesRequest) (*AdminListHabitTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminListHabitTemplates not implemented")
+}
+func (UnimplementedHabitTemplatesServer) AdminGetHabitTemplate(context.Context, *AdminGetHabitTemplateRequest) (*HabitTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminGetHabitTemplate not implemented")
+}
+func (UnimplementedHabitTemplatesServer) AdminCreateHabitTemplate(context.Context, *AdminCreateHabitTemplateRequest) (*HabitTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminCreateHabitTemplate not implemented")
+}
+func (UnimplementedHabitTemplatesServer) AdminUpdateHabitTemplate(context.Context, *AdminUpdateHabitTemplateRequest) (*HabitTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminUpdateHabitTemplate not implemented")
+}
+func (UnimplementedHabitTemplatesServer) AdminDeleteHabitTemplate(context.Context, *AdminDeleteHabitTemplateRequest) (*AdminDeleteHabitTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminDeleteHabitTemplate not implemented")
 }
 func (UnimplementedHabitTemplatesServer) mustEmbedUnimplementedHabitTemplatesServer() {}
 func (UnimplementedHabitTemplatesServer) testEmbeddedByValue()                        {}
@@ -4653,6 +4813,96 @@ func _HabitTemplates_ListHabitTemplates_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HabitTemplates_AdminListHabitTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminListHabitTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).AdminListHabitTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_AdminListHabitTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).AdminListHabitTemplates(ctx, req.(*AdminListHabitTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HabitTemplates_AdminGetHabitTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminGetHabitTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).AdminGetHabitTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_AdminGetHabitTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).AdminGetHabitTemplate(ctx, req.(*AdminGetHabitTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HabitTemplates_AdminCreateHabitTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminCreateHabitTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).AdminCreateHabitTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_AdminCreateHabitTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).AdminCreateHabitTemplate(ctx, req.(*AdminCreateHabitTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HabitTemplates_AdminUpdateHabitTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminUpdateHabitTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).AdminUpdateHabitTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_AdminUpdateHabitTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).AdminUpdateHabitTemplate(ctx, req.(*AdminUpdateHabitTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _HabitTemplates_AdminDeleteHabitTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminDeleteHabitTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HabitTemplatesServer).AdminDeleteHabitTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HabitTemplates_AdminDeleteHabitTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HabitTemplatesServer).AdminDeleteHabitTemplate(ctx, req.(*AdminDeleteHabitTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // HabitTemplates_ServiceDesc is the grpc.ServiceDesc for HabitTemplates service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4664,13 +4914,38 @@ var HabitTemplates_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "ListHabitTemplates",
 			Handler:    _HabitTemplates_ListHabitTemplates_Handler,
 		},
+		{
+			MethodName: "AdminListHabitTemplates",
+			Handler:    _HabitTemplates_AdminListHabitTemplates_Handler,
+		},
+		{
+			MethodName: "AdminGetHabitTemplate",
+			Handler:    _HabitTemplates_AdminGetHabitTemplate_Handler,
+		},
+		{
+			MethodName: "AdminCreateHabitTemplate",
+			Handler:    _HabitTemplates_AdminCreateHabitTemplate_Handler,
+		},
+		{
+			MethodName: "AdminUpdateHabitTemplate",
+			Handler:    _HabitTemplates_AdminUpdateHabitTemplate_Handler,
+		},
+		{
+			MethodName: "AdminDeleteHabitTemplate",
+			Handler:    _HabitTemplates_AdminDeleteHabitTemplate_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "services/microservices/client/api/v1/client.proto",
 }
 
 const (
-	GoalTemplates_ListGoalTemplates_FullMethodName = "/client.GoalTemplates/ListGoalTemplates"
+	GoalTemplates_ListGoalTemplates_FullMethodName       = "/client.GoalTemplates/ListGoalTemplates"
+	GoalTemplates_AdminListGoalTemplates_FullMethodName  = "/client.GoalTemplates/AdminListGoalTemplates"
+	GoalTemplates_AdminGetGoalTemplate_FullMethodName    = "/client.GoalTemplates/AdminGetGoalTemplate"
+	GoalTemplates_AdminCreateGoalTemplate_FullMethodName = "/client.GoalTemplates/AdminCreateGoalTemplate"
+	GoalTemplates_AdminUpdateGoalTemplate_FullMethodName = "/client.GoalTemplates/AdminUpdateGoalTemplate"
+	GoalTemplates_AdminDeleteGoalTemplate_FullMethodName = "/client.GoalTemplates/AdminDeleteGoalTemplate"
 )
 
 // GoalTemplatesClient is the client API for GoalTemplates service.
@@ -4678,6 +4953,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GoalTemplatesClient interface {
 	ListGoalTemplates(ctx context.Context, in *ListGoalTemplatesRequest, opts ...grpc.CallOption) (*ListGoalTemplatesResponse, error)
+	// Admin CRUD (called by adminway via gRPC, not direct DB access).
+	AdminListGoalTemplates(ctx context.Context, in *AdminListGoalTemplatesRequest, opts ...grpc.CallOption) (*AdminListGoalTemplatesResponse, error)
+	AdminGetGoalTemplate(ctx context.Context, in *AdminGetGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+	AdminCreateGoalTemplate(ctx context.Context, in *AdminCreateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+	AdminUpdateGoalTemplate(ctx context.Context, in *AdminUpdateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+	AdminDeleteGoalTemplate(ctx context.Context, in *AdminDeleteGoalTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteGoalTemplateResponse, error)
 }
 
 type goalTemplatesClient struct {
@@ -4698,11 +4979,67 @@ func (c *goalTemplatesClient) ListGoalTemplates(ctx context.Context, in *ListGoa
 	return out, nil
 }
 
+func (c *goalTemplatesClient) AdminListGoalTemplates(ctx context.Context, in *AdminListGoalTemplatesRequest, opts ...grpc.CallOption) (*AdminListGoalTemplatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminListGoalTemplatesResponse)
+	err := c.cc.Invoke(ctx, GoalTemplates_AdminListGoalTemplates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalTemplatesClient) AdminGetGoalTemplate(ctx context.Context, in *AdminGetGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GoalTemplate)
+	err := c.cc.Invoke(ctx, GoalTemplates_AdminGetGoalTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalTemplatesClient) AdminCreateGoalTemplate(ctx context.Context, in *AdminCreateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GoalTemplate)
+	err := c.cc.Invoke(ctx, GoalTemplates_AdminCreateGoalTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalTemplatesClient) AdminUpdateGoalTemplate(ctx context.Context, in *AdminUpdateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GoalTemplate)
+	err := c.cc.Invoke(ctx, GoalTemplates_AdminUpdateGoalTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalTemplatesClient) AdminDeleteGoalTemplate(ctx context.Context, in *AdminDeleteGoalTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteGoalTemplateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminDeleteGoalTemplateResponse)
+	err := c.cc.Invoke(ctx, GoalTemplates_AdminDeleteGoalTemplate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GoalTemplatesServer is the server API for GoalTemplates service.
 // All implementations must embed UnimplementedGoalTemplatesServer
 // for forward compatibility.
 type GoalTemplatesServer interface {
 	ListGoalTemplates(context.Context, *ListGoalTemplatesRequest) (*ListGoalTemplatesResponse, error)
+	// Admin CRUD (called by adminway via gRPC, not direct DB access).
+	AdminListGoalTemplates(context.Context, *AdminListGoalTemplatesRequest) (*AdminListGoalTemplatesResponse, error)
+	AdminGetGoalTemplate(context.Context, *AdminGetGoalTemplateRequest) (*GoalTemplate, error)
+	AdminCreateGoalTemplate(context.Context, *AdminCreateGoalTemplateRequest) (*GoalTemplate, error)
+	AdminUpdateGoalTemplate(context.Context, *AdminUpdateGoalTemplateRequest) (*GoalTemplate, error)
+	AdminDeleteGoalTemplate(context.Context, *AdminDeleteGoalTemplateRequest) (*AdminDeleteGoalTemplateResponse, error)
 	mustEmbedUnimplementedGoalTemplatesServer()
 }
 
@@ -4715,6 +5052,21 @@ type UnimplementedGoalTemplatesServer struct{}
 
 func (UnimplementedGoalTemplatesServer) ListGoalTemplates(context.Context, *ListGoalTemplatesRequest) (*ListGoalTemplatesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListGoalTemplates not implemented")
+}
+func (UnimplementedGoalTemplatesServer) AdminListGoalTemplates(context.Context, *AdminListGoalTemplatesRequest) (*AdminListGoalTemplatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminListGoalTemplates not implemented")
+}
+func (UnimplementedGoalTemplatesServer) AdminGetGoalTemplate(context.Context, *AdminGetGoalTemplateRequest) (*GoalTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminGetGoalTemplate not implemented")
+}
+func (UnimplementedGoalTemplatesServer) AdminCreateGoalTemplate(context.Context, *AdminCreateGoalTemplateRequest) (*GoalTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminCreateGoalTemplate not implemented")
+}
+func (UnimplementedGoalTemplatesServer) AdminUpdateGoalTemplate(context.Context, *AdminUpdateGoalTemplateRequest) (*GoalTemplate, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminUpdateGoalTemplate not implemented")
+}
+func (UnimplementedGoalTemplatesServer) AdminDeleteGoalTemplate(context.Context, *AdminDeleteGoalTemplateRequest) (*AdminDeleteGoalTemplateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdminDeleteGoalTemplate not implemented")
 }
 func (UnimplementedGoalTemplatesServer) mustEmbedUnimplementedGoalTemplatesServer() {}
 func (UnimplementedGoalTemplatesServer) testEmbeddedByValue()                       {}
@@ -4755,6 +5107,96 @@ func _GoalTemplates_ListGoalTemplates_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _GoalTemplates_AdminListGoalTemplates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminListGoalTemplatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).AdminListGoalTemplates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_AdminListGoalTemplates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).AdminListGoalTemplates(ctx, req.(*AdminListGoalTemplatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoalTemplates_AdminGetGoalTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminGetGoalTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).AdminGetGoalTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_AdminGetGoalTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).AdminGetGoalTemplate(ctx, req.(*AdminGetGoalTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoalTemplates_AdminCreateGoalTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminCreateGoalTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).AdminCreateGoalTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_AdminCreateGoalTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).AdminCreateGoalTemplate(ctx, req.(*AdminCreateGoalTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoalTemplates_AdminUpdateGoalTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminUpdateGoalTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).AdminUpdateGoalTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_AdminUpdateGoalTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).AdminUpdateGoalTemplate(ctx, req.(*AdminUpdateGoalTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GoalTemplates_AdminDeleteGoalTemplate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminDeleteGoalTemplateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalTemplatesServer).AdminDeleteGoalTemplate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: GoalTemplates_AdminDeleteGoalTemplate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalTemplatesServer).AdminDeleteGoalTemplate(ctx, req.(*AdminDeleteGoalTemplateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // GoalTemplates_ServiceDesc is the grpc.ServiceDesc for GoalTemplates service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -4765,6 +5207,26 @@ var GoalTemplates_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGoalTemplates",
 			Handler:    _GoalTemplates_ListGoalTemplates_Handler,
+		},
+		{
+			MethodName: "AdminListGoalTemplates",
+			Handler:    _GoalTemplates_AdminListGoalTemplates_Handler,
+		},
+		{
+			MethodName: "AdminGetGoalTemplate",
+			Handler:    _GoalTemplates_AdminGetGoalTemplate_Handler,
+		},
+		{
+			MethodName: "AdminCreateGoalTemplate",
+			Handler:    _GoalTemplates_AdminCreateGoalTemplate_Handler,
+		},
+		{
+			MethodName: "AdminUpdateGoalTemplate",
+			Handler:    _GoalTemplates_AdminUpdateGoalTemplate_Handler,
+		},
+		{
+			MethodName: "AdminDeleteGoalTemplate",
+			Handler:    _GoalTemplates_AdminDeleteGoalTemplate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

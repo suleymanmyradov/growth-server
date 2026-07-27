@@ -10,30 +10,38 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// PushSender is the interface the reminder consumer uses to deliver push
+// notifications. The delivery.Sender implements this; nil means no push.
+type PushSender interface {
+	Send(ctx context.Context, userID uuid.UUID, payload delivery.Payload) (int, error)
+}
+
 // ReminderDueHandler consumes events from the growth.reminder.due topic and
 // materializes notification rows, then enqueues follow-up reminders.
 type ReminderDueHandler struct {
-	repo     *repository.Repository
-	clock    Clock
-	txRunner *postgres.PgxTxRunner
-	dlq      DLQPublisher
+	repo       *repository.Repository
+	clock      Clock
+	txRunner   *postgres.PgxTxRunner
+	dlq        DLQPublisher
+	pushSender PushSender
 }
 
 // NewReminderDueHandler creates a handler with the given dependencies. If
 // txRunner is nil, the handler+mark pair runs without a transaction. If dlq
 // is nil, poison messages are logged and dropped instead of being routed to
-// a dead-letter topic.
-func NewReminderDueHandler(repo *repository.Repository, clock Clock, txRunner *postgres.PgxTxRunner, dlq DLQPublisher) *ReminderDueHandler {
+// a dead-letter topic. If pushSender is nil, no push is delivered.
+func NewReminderDueHandler(repo *repository.Repository, clock Clock, txRunner *postgres.PgxTxRunner, dlq DLQPublisher, pushSender PushSender) *ReminderDueHandler {
 	if clock == nil {
 		clock = realClock{}
 	}
-	return &ReminderDueHandler{repo: repo, clock: clock, txRunner: txRunner, dlq: dlq}
+	return &ReminderDueHandler{repo: repo, clock: clock, txRunner: txRunner, dlq: dlq, pushSender: pushSender}
 }
 
 // sendToDLQ publishes a poison message to the DLQ. If no DLQ publisher is
@@ -133,6 +141,24 @@ func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repo
 	}
 }
 
+// sendPush delivers a best-effort push notification for a newly created
+// in-app notification row. Push failures are logged but never fail the
+// reminder processing. When pushSender is nil (e.g. in tests or when Expo is
+// disabled), this is a no-op.
+func (h *ReminderDueHandler) sendPush(ctx context.Context, userID uuid.UUID, title, body string, notificationID uuid.UUID, dest delivery.Destination, resourceID uuid.UUID) {
+	if h.pushSender == nil {
+		return
+	}
+	payload, err := delivery.NewPayload(title, body, notificationID, dest, resourceID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("push payload construction failed: %v", err)
+		return
+	}
+	if _, err := h.pushSender.Send(ctx, userID, payload); err != nil {
+		logx.WithContext(ctx).Errorf("push delivery failed for notification %s: %v", notificationID, err)
+	}
+}
+
 func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
 	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
@@ -143,10 +169,11 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *reposito
 		return nil
 	}
 
-	_, err = repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
+	notif, err := repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
+	h.sendPush(ctx, userID, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), notif.ID, delivery.DestinationActivity, uuid.Nil)
 
 	now := h.clock.Now()
 
@@ -180,19 +207,21 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, repo *reposito
 		return nil
 	}
 
-	_, err = repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
+	notif, err := repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
+	h.sendPush(ctx, userID, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", notif.ID, delivery.DestinationActivity, uuid.Nil)
 
 	return nil
 }
 
 func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
-	_, err := repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
+	notif, err := repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
+	h.sendPush(ctx, userID, "Weekly review", "Reflect on your week", notif.ID, delivery.DestinationWeeklyReview, uuid.Nil)
 
 	// Enqueue next Sunday 18:00 local.
 	rs, err := repo.ReminderState.Get(ctx, userID)
@@ -250,10 +279,11 @@ func (h *ReminderDueHandler) onEncouragement(ctx context.Context, repo *reposito
 		msg = fmt.Sprintf("You've maintained a %d-day streak on %s! Keep it up!", streak, habitName)
 	}
 
-	_, err := repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
+	notif, err := repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
 	if err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
+	h.sendPush(ctx, userID, title, msg, notif.ID, delivery.DestinationHabitDetail, uuid.Nil)
 
 	return nil
 }

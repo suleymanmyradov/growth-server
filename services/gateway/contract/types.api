@@ -32,6 +32,10 @@ type (
 	RefreshRequest {
 		refreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	}
+	LogoutRequest {
+		refreshToken string `json:"refreshToken,optional,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+		deviceId     string `header:"X-Device-Id,optional,example=device-12345"`
+	}
 	AuthResponse {
 		accessToken  string  `json:"accessToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 		refreshToken string  `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
@@ -51,6 +55,17 @@ type (
 	GoogleLoginRequest {
 		authorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
 		redirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
+	}
+	AppleFullName {
+		givenName  string `json:"givenName,optional,example=John"`
+		familyName string `json:"familyName,optional,example=Doe"`
+	}
+	AppleLoginRequest {
+		authorizationCode string       `json:"authorizationCode,optional,example=c..."`
+		identityToken     string       `json:"identityToken,example=eyJraWQi..."`
+		nonce             string       `json:"nonce,optional,example=..."`
+		fullName          *AppleFullName `json:"fullName,optional"`
+		redirectUri       string       `json:"redirectUri,optional,example=https://app.example.com/auth/callback/apple"`
 	}
 	ForgotPasswordRequest {
 		email string `json:"email,example=john@example.com"`
@@ -402,6 +417,26 @@ type (
 
 	UpdateNotificationPreferencesRequest {
 		preferences NotificationPreferences `json:"preferences"`
+	}
+)
+
+// Push device registration types (see docs/push-notifications-design.md).
+type (
+	RegisterDeviceRequest {
+		installationId string `path:"installationId"`
+		pushToken      string `json:"pushToken,example=ExponentPushToken[...]"`
+		provider       string `json:"provider,example=expo"`
+		platform       string `json:"platform,example=ios"`
+		appId          string `json:"appId,optional,example=com.company.growth"`
+		environment    string `json:"environment,example=production"`
+		appVersion     string `json:"appVersion,optional,example=1.0.0"`
+		osVersion      string `json:"osVersion,optional,example=17.5"`
+		locale         string `json:"locale,optional,example=en-US"`
+		timezone       string `json:"timezone,optional,example=America/Los_Angeles"`
+	}
+
+	UnregisterDeviceRequest {
+		installationId string `path:"installationId"`
 	}
 )
 
@@ -804,6 +839,9 @@ type (
 		signature string `json:"signature"`
 	}
 	StripeWebhookResponse {
+		processed bool `json:"processed,example=true"`
+	}
+	RevenueCatWebhookResponse {
 		processed bool `json:"processed,example=true"`
 	}
 )

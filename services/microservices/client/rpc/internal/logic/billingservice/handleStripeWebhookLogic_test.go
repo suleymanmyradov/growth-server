@@ -90,6 +90,18 @@ func (m *mockBilling) ListExpiredActiveSubscriptions(ctx context.Context, limit 
 func (m *mockBilling) ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error) {
 	panic("not used in webhook tests")
 }
+func (m *mockBilling) GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionByUserIDRow, error) {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error {
+	panic("not used in webhook tests")
+}
 
 // --- Test helpers ---
 
@@ -222,6 +234,33 @@ func TestHandleCheckoutCompleted_NoSubscriptionID(t *testing.T) {
 	assert.True(t, resp.Processed)
 	// Upgrade event recorded, but no upsert (no subscription ID)
 	assert.Len(t, m.createUpgradeEventCalls, 1)
+	assert.Empty(t, m.upsertCalls)
+}
+
+func TestHandleCheckoutCompleted_PlanLookupFails_ReturnsError(t *testing.T) {
+	// If the pro plan lookup fails, the handler must return an error so Stripe
+	// retries the webhook. Silently succeeding would mark the event processed
+	// without linking the subscription ID — a retry wouldn't fix it.
+	m := &mockBilling{
+		getPlanByCode:          map[string]db.Plan{}, // no "pro" plan → lookup fails
+		getSubByStripeCustomer: map[string]db.GetUserSubscriptionByStripeCustomerIDRow{testCustomerID: testExistingSub},
+	}
+	l := newTestLogic(m).withRepo(m)
+
+	data := mustJSON(t, stripeCheckoutData{
+		Object: stripeCheckoutSession{
+			ID:           "cs_test_1",
+			Customer:     testCustomerID,
+			Subscription: testSubID,
+		},
+	})
+
+	resp, err := l.handleCheckoutCompleted(data)
+	assert.Nil(t, resp)
+	assert.Error(t, err)
+	// Upgrade event still recorded (it happens before plan lookup)
+	assert.Len(t, m.createUpgradeEventCalls, 1)
+	// No upsert — plan lookup failed
 	assert.Empty(t, m.upsertCalls)
 }
 
@@ -429,6 +468,39 @@ func TestHandlePaymentFailed_CustomerNotFound(t *testing.T) {
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Empty(t, m.upsertCalls)
+}
+
+func TestHandlePaymentFailed_EmptySubscriptionPreservesExistingID(t *testing.T) {
+	// Some invoice types don't carry a subscription ID. The handler must not
+	// wipe the existing StripeSubscriptionID with an empty string.
+	proSub := testExistingSub
+	proSub.Status = "active"
+	proSub.PlanID = testProPlanID
+	proSub.StripeSubscriptionID = strPtr(testSubID)
+	m := &mockBilling{
+		getSubByStripeCustomer: map[string]db.GetUserSubscriptionByStripeCustomerIDRow{testCustomerID: proSub},
+	}
+	l := newTestLogic(m).withRepo(m)
+
+	data := mustJSON(t, stripeInvoiceData{
+		Object: stripeInvoice{
+			ID:           "in_test_2",
+			Customer:     testCustomerID,
+			Subscription: "", // empty — must not overwrite existing ID
+			Status:       "open",
+		},
+	})
+
+	resp, err := l.handlePaymentFailed(data)
+	require.NoError(t, err)
+	assert.True(t, resp.Processed)
+
+	require.Len(t, m.upsertCalls, 1)
+	assert.Equal(t, "past_due", m.upsertCalls[0].Status)
+	assert.Equal(t, testProPlanID, m.upsertCalls[0].PlanID)
+	// Existing subscription ID preserved, not wiped to ""
+	require.NotNil(t, m.upsertCalls[0].StripeSubscriptionID)
+	assert.Equal(t, testSubID, *m.upsertCalls[0].StripeSubscriptionID)
 }
 
 // --- handleDisputeCreated tests ---

@@ -27,3 +27,29 @@ func (s *HabitTemplatesServer) ListHabitTemplates(ctx context.Context, in *clien
 	l := habittemplateslogic.NewListHabitTemplatesLogic(ctx, s.svcCtx)
 	return l.ListHabitTemplates(in)
 }
+
+// Admin CRUD (called by adminway via gRPC, not direct DB access).
+func (s *HabitTemplatesServer) AdminListHabitTemplates(ctx context.Context, in *client.AdminListHabitTemplatesRequest) (*client.AdminListHabitTemplatesResponse, error) {
+	l := habittemplateslogic.NewAdminListHabitTemplatesLogic(ctx, s.svcCtx)
+	return l.AdminListHabitTemplates(in)
+}
+
+func (s *HabitTemplatesServer) AdminGetHabitTemplate(ctx context.Context, in *client.AdminGetHabitTemplateRequest) (*client.HabitTemplate, error) {
+	l := habittemplateslogic.NewAdminGetHabitTemplateLogic(ctx, s.svcCtx)
+	return l.AdminGetHabitTemplate(in)
+}
+
+func (s *HabitTemplatesServer) AdminCreateHabitTemplate(ctx context.Context, in *client.AdminCreateHabitTemplateRequest) (*client.HabitTemplate, error) {
+	l := habittemplateslogic.NewAdminCreateHabitTemplateLogic(ctx, s.svcCtx)
+	return l.AdminCreateHabitTemplate(in)
+}
+
+func (s *HabitTemplatesServer) AdminUpdateHabitTemplate(ctx context.Context, in *client.AdminUpdateHabitTemplateRequest) (*client.HabitTemplate, error) {
+	l := habittemplateslogic.NewAdminUpdateHabitTemplateLogic(ctx, s.svcCtx)
+	return l.AdminUpdateHabitTemplate(in)
+}
+
+func (s *HabitTemplatesServer) AdminDeleteHabitTemplate(ctx context.Context, in *client.AdminDeleteHabitTemplateRequest) (*client.AdminDeleteHabitTemplateResponse, error) {
+	l := habittemplateslogic.NewAdminDeleteHabitTemplateLogic(ctx, s.svcCtx)
+	return l.AdminDeleteHabitTemplate(in)
+}

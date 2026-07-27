@@ -3,9 +3,9 @@ package goaltemplates
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clientgoaltemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goaltemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -27,17 +27,18 @@ func NewAdminGetGoalTemplateLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 func (l *AdminGetGoalTemplateLogic) AdminGetGoalTemplate(req *types.GetGoalTemplateRequest) (resp *types.GoalTemplateResponse, err error) {
-	id, err := uuid.Parse(req.Id)
-	if err != nil {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid id")
 	}
 
-	row, err := l.svcCtx.Repo.GoalTemplates.Get(l.ctx, id)
+	t, err := l.svcCtx.GoalTemplatesRpc.AdminGetGoalTemplate(l.ctx, &clientgoaltemplates.AdminGetGoalTemplateRequest{
+		Id: req.Id,
+	})
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "goal template not found")
 	}
 
 	return &types.GoalTemplateResponse{
-		Data: goalTemplateGetRowToItem(row),
+		Data: goalTemplateProtoToItem(t),
 	}, nil
 }

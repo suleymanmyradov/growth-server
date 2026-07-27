@@ -208,17 +208,23 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 	// customer.subscription.updated event. Keep the current status until then.
 	if checkout.Object.Subscription != "" {
 		proPlan, planErr := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "pro")
-		if planErr == nil {
-			_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
-				UserID:               existingSub.UserID,
-				PlanID:               proPlan.ID,
-				Status:               existingSub.Status,
-				StripeCustomerID:     &checkout.Object.Customer,
-				StripeSubscriptionID: &checkout.Object.Subscription,
-			})
-			if upsertErr != nil {
-				l.Errorf("Failed to update subscription after checkout: %v", upsertErr)
-			}
+		if planErr != nil {
+			// Return an error so Stripe retries the webhook. If we silently
+			// succeed, the event is marked processed and the subscription ID
+			// is never linked — a retry won't fix it.
+			l.Errorf("Failed to get pro plan during checkout completion: %v", planErr)
+			return nil, status.Error(codes.NotFound, "pro plan not found")
+		}
+		_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
+			UserID:               existingSub.UserID,
+			PlanID:               proPlan.ID,
+			Status:               existingSub.Status,
+			StripeCustomerID:     &checkout.Object.Customer,
+			StripeSubscriptionID: &checkout.Object.Subscription,
+		})
+		if upsertErr != nil {
+			l.Errorf("Failed to update subscription after checkout: %v", upsertErr)
+			return nil, status.Error(codes.Internal, "failed to update subscription")
 		}
 	}
 
@@ -385,12 +391,18 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 	}
 
 	// Update status to past_due; keep the current plan so grace-period logic applies.
+	// Guard against empty invoice.Subscription (some invoice types don't carry it)
+	// to avoid wiping an existing subscription ID — fall back to the stored value.
+	subIDPtr := &invoice.Subscription
+	if invoice.Subscription == "" && existingSub.StripeSubscriptionID != nil {
+		subIDPtr = existingSub.StripeSubscriptionID
+	}
 	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               existingSub.PlanID,
 		Status:               "past_due",
 		StripeCustomerID:     &invoice.Customer,
-		StripeSubscriptionID: &invoice.Subscription,
+		StripeSubscriptionID: subIDPtr,
 	})
 	if err != nil {
 		l.Errorf("Failed to update subscription to past_due: %v", err)

@@ -3,9 +3,9 @@ package habittemplates
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clienthabittemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -27,17 +27,18 @@ func NewAdminGetHabitTemplateLogic(ctx context.Context, svcCtx *svc.ServiceConte
 }
 
 func (l *AdminGetHabitTemplateLogic) AdminGetHabitTemplate(req *types.GetHabitTemplateRequest) (resp *types.HabitTemplateResponse, err error) {
-	id, err := uuid.Parse(req.Id)
-	if err != nil {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid id")
 	}
 
-	row, err := l.svcCtx.Repo.HabitTemplates.Get(l.ctx, id)
+	t, err := l.svcCtx.HabitTemplatesRpc.AdminGetHabitTemplate(l.ctx, &clienthabittemplates.AdminGetHabitTemplateRequest{
+		Id: req.Id,
+	})
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "habit template not found")
 	}
 
 	return &types.HabitTemplateResponse{
-		Data: habitTemplateGetRowToItem(row),
+		Data: habitTemplateProtoToItem(t),
 	}, nil
 }

@@ -3,10 +3,9 @@ package habittemplates
 import (
 	"context"
 
-	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clienthabittemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -28,8 +27,7 @@ func NewAdminUpdateHabitTemplateLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *AdminUpdateHabitTemplateLogic) AdminUpdateHabitTemplate(req *types.UpdateHabitTemplateRequest) (resp *types.HabitTemplateResponse, err error) {
-	id, err := uuid.Parse(req.Id)
-	if err != nil {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid id")
 	}
 
@@ -37,32 +35,24 @@ func (l *AdminUpdateHabitTemplateLogic) AdminUpdateHabitTemplate(req *types.Upda
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	categoryID, err := parseOptionalUUID(req.CategoryId)
-	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid categoryId")
+	categoryId := ""
+	if req.CategoryId != nil {
+		categoryId = *req.CategoryId
 	}
 
-	var desc *string
-	if req.Description != "" {
-		d := req.Description
-		desc = &d
-	}
-
-	params := db.AdminUpdateHabitTemplateParams{
-		ID:          id,
+	t, err := l.svcCtx.HabitTemplatesRpc.AdminUpdateHabitTemplate(l.ctx, &clienthabittemplates.AdminUpdateHabitTemplateRequest{
+		Id:          req.Id,
 		Name:        req.Name,
-		Description: desc,
-		CategoryID:  categoryID,
+		Description: req.Description,
+		CategoryId:  categoryId,
 		SortOrder:   req.SortOrder,
 		IsActive:    req.IsActive,
-	}
-
-	m, err := l.svcCtx.Repo.HabitTemplates.Update(l.ctx, params)
+	})
 	if err != nil {
 		return nil, status.Error(codes.NotFound, "habit template not found")
 	}
 
 	return &types.HabitTemplateResponse{
-		Data: habitTemplateModelToItem(m),
+		Data: habitTemplateProtoToItem(t),
 	}, nil
 }

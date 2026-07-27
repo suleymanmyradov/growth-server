@@ -45,6 +45,10 @@ message RefreshRequest {
 
 message LogoutRequest {
   string access_token = 1;
+  // Optional refresh token for defense-in-depth revocation. The session is
+  // revoked regardless via the access token's session ID, but providing the
+  // refresh token also revokes it by value.
+  string refresh_token = 2;
 }
 
 message ValidateTokenRequest {
@@ -127,6 +131,36 @@ message GoogleLoginRequest {
   string redirect_uri = 2;
 }
 
+// AppleFullName carries the user's name from the Apple authorization response.
+// Apple only provides the name on the FIRST authorization; it is delivered
+// outside the ID token (in the authorization response) and the client forwards
+// it here. Both fields are empty for subsequent authorizations.
+message AppleFullName {
+  string given_name = 1;
+  string family_name = 2;
+}
+
+// AppleLoginRequest authenticates a user via Sign in with Apple. The client
+// (expo-apple-authentication) obtains the identity_token and authorization_code
+// from Apple and sends both here. The identity token is verified by signature
+// against Apple's public keys; the authorization code may be exchanged for a
+// refresh token when the Apple private key is configured.
+message AppleLoginRequest {
+  // Apple authorization code. Required for code exchange (token revocation /
+  // subscription status); optional if only identity-token verification is used.
+  string authorization_code = 1;
+  // Apple ID token (signed JWT). Required — this is the primary credential.
+  string identity_token = 2;
+  // Optional nonce the client used during authorization. When non-empty, the
+  // ID token's nonce claim must match.
+  string nonce = 3;
+  // User's name, only present on first authorization. Forwarded by the client
+  // from the Apple authorization response.
+  AppleFullName full_name = 4;
+  // Optional redirect URI for code exchange. Validated against an allowlist.
+  string redirect_uri = 5;
+}
+
 message EmptyResponse {}
 
 message DeleteUserRequest {
@@ -172,6 +206,7 @@ service AuthService {
 
   // OAuth
   rpc GoogleLogin(GoogleLoginRequest) returns (AuthResponse);
+  rpc AppleLogin(AppleLoginRequest) returns (AuthResponse);
 
   // Admin / internal: enumerate user ids (used by adminway for broadcasts).
   rpc ListUserIds(ListUserIdsRequest) returns (ListUserIdsResponse);

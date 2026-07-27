@@ -86,3 +86,9 @@ func (r *CategoriesRepo) ReorderCategories(ctx context.Context, ids []uuid.UUID,
 
 	return r.db.ReorderCategories(ctx, ids, sortOrders)
 }
+
+func (r *CategoriesRepo) AdminListCategories(ctx context.Context) ([]db.AdminListCategoriesRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CategoriesRepo.AdminListCategories")
+	defer span.End()
+	return r.db.AdminListCategories(ctx)
+}

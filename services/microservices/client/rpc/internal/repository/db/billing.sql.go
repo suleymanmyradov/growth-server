@@ -18,7 +18,7 @@ SELECT $1, p.id, 'free'
 FROM plans p
 WHERE p.code = 'free'
 ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at
+RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at, revenuecat_customer_id
 `
 
 func (q *Queries) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (Subscription, error) {
@@ -38,6 +38,7 @@ func (q *Queries) CreateDefaultFreeSubscription(ctx context.Context, userID uuid
 		&i.StripeSubscriptionID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RevenuecatCustomerID,
 	)
 	return i, err
 }
@@ -146,7 +147,7 @@ func (q *Queries) GetPlanByCode(ctx context.Context, code string) (Plan, error) 
 
 const getUserSubscription = `-- name: GetUserSubscription :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -171,6 +172,7 @@ type GetUserSubscriptionRow struct {
 	CancelAtPeriodEnd        bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
 	StripeCustomerID         *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
 	StripeSubscriptionID     *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	RevenuecatCustomerID     *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	PlanCode                 string             `db:"plan_code" json:"plan_code"`
@@ -197,6 +199,79 @@ func (q *Queries) GetUserSubscription(ctx context.Context, userID uuid.UUID) (Ge
 		&i.CancelAtPeriodEnd,
 		&i.StripeCustomerID,
 		&i.StripeSubscriptionID,
+		&i.RevenuecatCustomerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PlanCode,
+		&i.PlanName,
+		&i.ActiveGoalLimit,
+		&i.ActiveHabitLimit,
+		&i.WeeklyReviewHistoryLimit,
+		&i.PlanAdjustmentLimit,
+		&i.PersonalizedAiEnabled,
+	)
+	return i, err
+}
+
+const getUserSubscriptionByRevenueCatCustomerID = `-- name: GetUserSubscriptionByRevenueCatCustomerID :one
+
+SELECT
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.revenuecat_customer_id = $1
+`
+
+type GetUserSubscriptionByRevenueCatCustomerIDRow struct {
+	ID                       uuid.UUID          `db:"id" json:"id"`
+	UserID                   uuid.UUID          `db:"user_id" json:"user_id"`
+	PlanID                   uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status                   string             `db:"status" json:"status"`
+	BillingInterval          *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart       pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd         pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                 pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd        bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID         *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID     *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	RevenuecatCustomerID     *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
+	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	PlanCode                 string             `db:"plan_code" json:"plan_code"`
+	PlanName                 string             `db:"plan_name" json:"plan_name"`
+	ActiveGoalLimit          int32              `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32              `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32              `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool               `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+}
+
+// ─── RevenueCat queries ─────────────────────────────────────────────────────
+// RevenueCat webhooks deliver entitlement changes from App Store / Play Store.
+// See migration 043 and docs/push-notifications-design.md (billing section).
+func (q *Queries) GetUserSubscriptionByRevenueCatCustomerID(ctx context.Context, revenuecatCustomerID *string) (GetUserSubscriptionByRevenueCatCustomerIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserSubscriptionByRevenueCatCustomerID, revenuecatCustomerID)
+	var i GetUserSubscriptionByRevenueCatCustomerIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PlanID,
+		&i.Status,
+		&i.BillingInterval,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelAtPeriodEnd,
+		&i.StripeCustomerID,
+		&i.StripeSubscriptionID,
+		&i.RevenuecatCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PlanCode,
@@ -212,7 +287,7 @@ func (q *Queries) GetUserSubscription(ctx context.Context, userID uuid.UUID) (Ge
 
 const getUserSubscriptionByStripeCustomerID = `-- name: GetUserSubscriptionByStripeCustomerID :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -237,6 +312,7 @@ type GetUserSubscriptionByStripeCustomerIDRow struct {
 	CancelAtPeriodEnd        bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
 	StripeCustomerID         *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
 	StripeSubscriptionID     *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	RevenuecatCustomerID     *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	PlanCode                 string             `db:"plan_code" json:"plan_code"`
@@ -263,6 +339,7 @@ func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, str
 		&i.CancelAtPeriodEnd,
 		&i.StripeCustomerID,
 		&i.StripeSubscriptionID,
+		&i.RevenuecatCustomerID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PlanCode,
@@ -276,9 +353,93 @@ func (q *Queries) GetUserSubscriptionByStripeCustomerID(ctx context.Context, str
 	return i, err
 }
 
+const getUserSubscriptionByUserID = `-- name: GetUserSubscriptionByUserID :one
+SELECT
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.user_id = $1
+`
+
+type GetUserSubscriptionByUserIDRow struct {
+	ID                       uuid.UUID          `db:"id" json:"id"`
+	UserID                   uuid.UUID          `db:"user_id" json:"user_id"`
+	PlanID                   uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status                   string             `db:"status" json:"status"`
+	BillingInterval          *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart       pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd         pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd                 pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd        bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	StripeCustomerID         *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
+	StripeSubscriptionID     *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	RevenuecatCustomerID     *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
+	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	PlanCode                 string             `db:"plan_code" json:"plan_code"`
+	PlanName                 string             `db:"plan_name" json:"plan_name"`
+	ActiveGoalLimit          int32              `db:"active_goal_limit" json:"active_goal_limit"`
+	ActiveHabitLimit         int32              `db:"active_habit_limit" json:"active_habit_limit"`
+	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
+	PlanAdjustmentLimit      int32              `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
+	PersonalizedAiEnabled    bool               `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
+}
+
+// Used by the RevenueCat webhook handler to look up the subscription by user
+// UUID (RevenueCat's app_user_id after Purchases.logIn).
+func (q *Queries) GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getUserSubscriptionByUserID, userID)
+	var i GetUserSubscriptionByUserIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PlanID,
+		&i.Status,
+		&i.BillingInterval,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelAtPeriodEnd,
+		&i.StripeCustomerID,
+		&i.StripeSubscriptionID,
+		&i.RevenuecatCustomerID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.PlanCode,
+		&i.PlanName,
+		&i.ActiveGoalLimit,
+		&i.ActiveHabitLimit,
+		&i.WeeklyReviewHistoryLimit,
+		&i.PlanAdjustmentLimit,
+		&i.PersonalizedAiEnabled,
+	)
+	return i, err
+}
+
+const isRevenueCatEventProcessed = `-- name: IsRevenueCatEventProcessed :one
+SELECT EXISTS(
+    SELECT 1 FROM billing_webhook_events
+    WHERE consumer = 'revenuecat_webhooks' AND event_id = $1
+)
+`
+
+func (q *Queries) IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	row := q.db.QueryRow(ctx, isRevenueCatEventProcessed, eventID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const isStripeEventProcessed = `-- name: IsStripeEventProcessed :one
 SELECT EXISTS(
-    SELECT 1 FROM processed_events
+    SELECT 1 FROM billing_webhook_events
     WHERE consumer = 'stripe_webhooks' AND event_id = $1
 )
 `
@@ -337,7 +498,7 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 
 const listExpiredActiveSubscriptions = `-- name: ListExpiredActiveSubscriptions :many
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -365,6 +526,7 @@ type ListExpiredActiveSubscriptionsRow struct {
 	CancelAtPeriodEnd        bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
 	StripeCustomerID         *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
 	StripeSubscriptionID     *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
+	RevenuecatCustomerID     *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	PlanCode                 string             `db:"plan_code" json:"plan_code"`
@@ -397,6 +559,7 @@ func (q *Queries) ListExpiredActiveSubscriptions(ctx context.Context, limit int3
 			&i.CancelAtPeriodEnd,
 			&i.StripeCustomerID,
 			&i.StripeSubscriptionID,
+			&i.RevenuecatCustomerID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.PlanCode,
@@ -453,14 +616,39 @@ func (q *Queries) ListSubscriptionStatuses(ctx context.Context) ([]ListSubscript
 	return items, nil
 }
 
+const markRevenueCatEventProcessed = `-- name: MarkRevenueCatEventProcessed :exec
+INSERT INTO billing_webhook_events (consumer, event_id)
+VALUES ('revenuecat_webhooks', $1)
+ON CONFLICT DO NOTHING
+`
+
+func (q *Queries) MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error {
+	_, err := q.db.Exec(ctx, markRevenueCatEventProcessed, eventID)
+	return err
+}
+
 const markStripeEventProcessed = `-- name: MarkStripeEventProcessed :exec
-INSERT INTO processed_events (consumer, event_id)
+INSERT INTO billing_webhook_events (consumer, event_id)
 VALUES ('stripe_webhooks', $1)
 ON CONFLICT DO NOTHING
 `
 
 func (q *Queries) MarkStripeEventProcessed(ctx context.Context, eventID string) error {
 	_, err := q.db.Exec(ctx, markStripeEventProcessed, eventID)
+	return err
+}
+
+const setRevenueCatCustomerID = `-- name: SetRevenueCatCustomerID :exec
+UPDATE subscriptions
+SET revenuecat_customer_id = $2, updated_at = now()
+WHERE user_id = $1 AND revenuecat_customer_id IS NULL
+`
+
+// Links a RevenueCat customer ID to an existing subscription. Called when the
+// first RevenueCat webhook arrives for a user (the mobile app has already
+// called Purchases.logIn(userId) on the client side).
+func (q *Queries) SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error {
+	_, err := q.db.Exec(ctx, setRevenueCatCustomerID, userID, revenuecatCustomerID)
 	return err
 }
 
@@ -489,7 +677,7 @@ DO UPDATE SET
     cancel_at_period_end = EXCLUDED.cancel_at_period_end,
     stripe_customer_id = EXCLUDED.stripe_customer_id,
     stripe_subscription_id = EXCLUDED.stripe_subscription_id
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at
+RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at, revenuecat_customer_id
 `
 
 type UpsertUserSubscriptionParams struct {
@@ -533,6 +721,7 @@ func (q *Queries) UpsertUserSubscription(ctx context.Context, arg UpsertUserSubs
 		&i.StripeSubscriptionID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.RevenuecatCustomerID,
 	)
 	return i, err
 }

@@ -1214,6 +1214,155 @@
         }
       }
     },
+    "/api/v1/auth/apple": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "AppleLogin",
+        "operationId": "authAppleLogin",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "identityToken"
+              ],
+              "properties": {
+                "authorizationCode": {
+                  "type": "string",
+                  "example": "c..."
+                },
+                "fullName": {
+                  "type": "object",
+                  "properties": {
+                    "familyName": {
+                      "type": "string",
+                      "example": "Doe"
+                    },
+                    "givenName": {
+                      "type": "string",
+                      "example": "John"
+                    }
+                  }
+                },
+                "identityToken": {
+                  "type": "string",
+                  "example": "eyJraWQi..."
+                },
+                "nonce": {
+                  "type": "string",
+                  "example": "..."
+                },
+                "redirectUri": {
+                  "type": "string",
+                  "example": "https://app.example.com/auth/callback/apple"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "accessToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "expiresIn": {
+                  "type": "integer",
+                  "example": 3600
+                },
+                "refreshToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                },
+                "user": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "fullName",
+                    "username",
+                    "email",
+                    "createdAt",
+                    "updatedAt",
+                    "emailVerified"
+                  ],
+                  "properties": {
+                    "avatarUrl": {
+                      "type": "string",
+                      "example": "https://example.com/avatar.jpg"
+                    },
+                    "bio": {
+                      "type": "string",
+                      "example": "Passionate about personal growth"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "email": {
+                      "type": "string",
+                      "example": "john@example.com"
+                    },
+                    "emailVerified": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "fullName": {
+                      "type": "string",
+                      "example": "John Doe"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "user-123"
+                    },
+                    "interests": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": "[\"fitness\""
+                    },
+                    "location": {
+                      "type": "string",
+                      "example": "San Francisco"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "username": {
+                      "type": "string",
+                      "example": "johndoe"
+                    },
+                    "website": {
+                      "type": "string",
+                      "example": "https://johndoe.com"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/forgot-password": {
       "post": {
         "consumes": [
@@ -1524,6 +1673,9 @@
     },
     "/api/v1/auth/logout": {
       "post": {
+        "consumes": [
+          "application/json"
+        ],
         "produces": [
           "application/json"
         ],
@@ -1535,6 +1687,28 @@
         ],
         "summary": "Logout",
         "operationId": "authLogout",
+        "parameters": [
+          {
+            "type": "string",
+            "example": "device-12345",
+            "name": "X-Device-Id",
+            "in": "header"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "refreshToken": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "",
@@ -2289,6 +2463,35 @@
         }
       }
     },
+    "/api/v1/billing/revenuecat-webhook": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Billing"
+        ],
+        "summary": "HandleRevenueCatWebhook",
+        "operationId": "billingHandleRevenueCatWebhook",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "processed": {
+                  "type": "boolean",
+                  "example": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/billing/upgrade-events": {
       "post": {
         "consumes": [
@@ -2391,15 +2594,14 @@
             "schema": {
               "type": "object",
               "required": [
-                "eventType",
-                "payloadJson"
+                "rawBody",
+                "signature"
               ],
               "properties": {
-                "eventType": {
-                  "type": "string",
-                  "example": "checkout.session.completed"
+                "rawBody": {
+                  "type": "string"
                 },
-                "payloadJson": {
+                "signature": {
                   "type": "string"
                 }
               }
@@ -3606,6 +3808,124 @@
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/devices/{installationId}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "RegisterDevice",
+        "operationId": "notificationsRegisterDevice",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "installationId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "pushToken",
+                "provider",
+                "platform",
+                "environment"
+              ],
+              "properties": {
+                "appId": {
+                  "type": "string",
+                  "example": "com.company.growth"
+                },
+                "appVersion": {
+                  "type": "string",
+                  "example": "1.0.0"
+                },
+                "environment": {
+                  "type": "string",
+                  "example": "production"
+                },
+                "locale": {
+                  "type": "string",
+                  "example": "en-US"
+                },
+                "osVersion": {
+                  "type": "string",
+                  "example": "17.5"
+                },
+                "platform": {
+                  "type": "string",
+                  "example": "ios"
+                },
+                "provider": {
+                  "type": "string",
+                  "example": "expo"
+                },
+                "pushToken": {
+                  "type": "string",
+                  "example": "ExponentPushToken[...]"
+                },
+                "timezone": {
+                  "type": "string",
+                  "example": "America/Los_Angeles"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "UnregisterDevice",
+        "operationId": "notificationsUnregisterDevice",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "installationId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
             }
           }
         }
@@ -4988,6 +5308,153 @@
         }
       }
     },
+    "/api/v1/notification-preferences": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "GetNotificationPreferences",
+        "operationId": "notificationsGetNotificationPreferences",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "preferences": {
+                  "type": "object",
+                  "required": [
+                    "emailEnabled",
+                    "pushEnabled",
+                    "habitRemindersEnabled",
+                    "goalRemindersEnabled"
+                  ],
+                  "properties": {
+                    "emailEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "goalRemindersEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "habitRemindersEnabled": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "UpdateNotificationPreferences",
+        "operationId": "notificationsUpdateNotificationPreferences",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "preferences"
+              ],
+              "properties": {
+                "preferences": {
+                  "type": "object",
+                  "required": [
+                    "emailEnabled",
+                    "pushEnabled",
+                    "habitRemindersEnabled",
+                    "goalRemindersEnabled"
+                  ],
+                  "properties": {
+                    "emailEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "goalRemindersEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "habitRemindersEnabled": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "preferences": {
+                  "type": "object",
+                  "required": [
+                    "emailEnabled",
+                    "pushEnabled",
+                    "habitRemindersEnabled",
+                    "goalRemindersEnabled"
+                  ],
+                  "properties": {
+                    "emailEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "goalRemindersEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "habitRemindersEnabled": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/notifications": {
       "get": {
         "produces": [
@@ -5121,6 +5588,34 @@
             "description": "",
             "schema": {
               "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/unread-count": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "GetUnreadNotificationCount",
+        "operationId": "notificationsGetUnreadNotificationCount",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "type": "integer"
+                }
+              }
             }
           }
         }
@@ -9002,7 +9497,7 @@
       }
     }
   },
-  "x-date": "2026-07-18 16:34:13",
+  "x-date": "2026-07-27 13:20:50",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

@@ -1009,6 +1009,210 @@ func (x *UpdateNotificationPreferencesResponse) GetPreferences() *NotificationPr
 	return nil
 }
 
+type RegisterDeviceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// installationId is the app-generated stable installation ID (from
+	// expo-secure-store), supplied in the gateway path. Included here so the RPC
+	// is self-contained when called without HTTP context.
+	InstallationId string `protobuf:"bytes,1,opt,name=installationId,proto3" json:"installationId,omitempty"`
+	PushToken      string `protobuf:"bytes,2,opt,name=pushToken,proto3" json:"pushToken,omitempty"`
+	// provider is 'expo' (default), 'fcm', or 'apns'.
+	Provider string `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	// platform is 'ios' or 'android'.
+	Platform string `protobuf:"bytes,4,opt,name=platform,proto3" json:"platform,omitempty"`
+	AppId    string `protobuf:"bytes,5,opt,name=appId,proto3" json:"appId,omitempty"`
+	// environment is 'development', 'preview', or 'production'.
+	Environment   string `protobuf:"bytes,6,opt,name=environment,proto3" json:"environment,omitempty"`
+	AppVersion    string `protobuf:"bytes,7,opt,name=appVersion,proto3" json:"appVersion,omitempty"`
+	OsVersion     string `protobuf:"bytes,8,opt,name=osVersion,proto3" json:"osVersion,omitempty"`
+	Locale        string `protobuf:"bytes,9,opt,name=locale,proto3" json:"locale,omitempty"`
+	Timezone      string `protobuf:"bytes,10,opt,name=timezone,proto3" json:"timezone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterDeviceRequest) Reset() {
+	*x = RegisterDeviceRequest{}
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterDeviceRequest) ProtoMessage() {}
+
+func (x *RegisterDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterDeviceRequest.ProtoReflect.Descriptor instead.
+func (*RegisterDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_notifications_api_v1_notifications_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *RegisterDeviceRequest) GetInstallationId() string {
+	if x != nil {
+		return x.InstallationId
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetPushToken() string {
+	if x != nil {
+		return x.PushToken
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetPlatform() string {
+	if x != nil {
+		return x.Platform
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetEnvironment() string {
+	if x != nil {
+		return x.Environment
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetAppVersion() string {
+	if x != nil {
+		return x.AppVersion
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetOsVersion() string {
+	if x != nil {
+		return x.OsVersion
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetLocale() string {
+	if x != nil {
+		return x.Locale
+	}
+	return ""
+}
+
+func (x *RegisterDeviceRequest) GetTimezone() string {
+	if x != nil {
+		return x.Timezone
+	}
+	return ""
+}
+
+type UnregisterDeviceRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	InstallationId string                 `protobuf:"bytes,1,opt,name=installationId,proto3" json:"installationId,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *UnregisterDeviceRequest) Reset() {
+	*x = UnregisterDeviceRequest{}
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnregisterDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnregisterDeviceRequest) ProtoMessage() {}
+
+func (x *UnregisterDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnregisterDeviceRequest.ProtoReflect.Descriptor instead.
+func (*UnregisterDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_services_microservices_notifications_api_v1_notifications_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *UnregisterDeviceRequest) GetInstallationId() string {
+	if x != nil {
+		return x.InstallationId
+	}
+	return ""
+}
+
+// EmptyResponse is the empty reply for fire-and-forget RPCs (device
+// register/unregister). The gateway maps it to 200 OK / 204 No Content.
+type EmptyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EmptyResponse) Reset() {
+	*x = EmptyResponse{}
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EmptyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EmptyResponse) ProtoMessage() {}
+
+func (x *EmptyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_services_microservices_notifications_api_v1_notifications_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EmptyResponse.ProtoReflect.Descriptor instead.
+func (*EmptyResponse) Descriptor() ([]byte, []int) {
+	return file_services_microservices_notifications_api_v1_notifications_proto_rawDescGZIP(), []int{22}
+}
+
 var File_services_microservices_notifications_api_v1_notifications_proto protoreflect.FileDescriptor
 
 const file_services_microservices_notifications_api_v1_notifications_proto_rawDesc = "" +
@@ -1070,7 +1274,24 @@ const file_services_microservices_notifications_api_v1_notifications_proto_rawDe
 	"$UpdateNotificationPreferencesRequest\x12H\n" +
 	"\vpreferences\x18\x01 \x01(\v2&.notifications.NotificationPreferencesR\vpreferences\"q\n" +
 	"%UpdateNotificationPreferencesResponse\x12H\n" +
-	"\vpreferences\x18\x01 \x01(\v2&.notifications.NotificationPreferencesR\vpreferences2\x8d\b\n" +
+	"\vpreferences\x18\x01 \x01(\v2&.notifications.NotificationPreferencesR\vpreferences\"\xbf\x02\n" +
+	"\x15RegisterDeviceRequest\x12&\n" +
+	"\x0einstallationId\x18\x01 \x01(\tR\x0einstallationId\x12\x1c\n" +
+	"\tpushToken\x18\x02 \x01(\tR\tpushToken\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\tR\bprovider\x12\x1a\n" +
+	"\bplatform\x18\x04 \x01(\tR\bplatform\x12\x14\n" +
+	"\x05appId\x18\x05 \x01(\tR\x05appId\x12 \n" +
+	"\venvironment\x18\x06 \x01(\tR\venvironment\x12\x1e\n" +
+	"\n" +
+	"appVersion\x18\a \x01(\tR\n" +
+	"appVersion\x12\x1c\n" +
+	"\tosVersion\x18\b \x01(\tR\tosVersion\x12\x16\n" +
+	"\x06locale\x18\t \x01(\tR\x06locale\x12\x1a\n" +
+	"\btimezone\x18\n" +
+	" \x01(\tR\btimezone\"A\n" +
+	"\x17UnregisterDeviceRequest\x12&\n" +
+	"\x0einstallationId\x18\x01 \x01(\tR\x0einstallationId\"\x0f\n" +
+	"\rEmptyResponse2\xbd\t\n" +
 	"\rNotifications\x12i\n" +
 	"\x12CreateNotification\x12(.notifications.CreateNotificationRequest\x1a).notifications.CreateNotificationResponse\x12`\n" +
 	"\x0fGetNotification\x12%.notifications.GetNotificationRequest\x1a&.notifications.GetNotificationResponse\x12f\n" +
@@ -1080,7 +1301,9 @@ const file_services_microservices_notifications_api_v1_notifications_proto_rawDe
 	"\x12DeleteNotification\x12(.notifications.DeleteNotificationRequest\x1a).notifications.DeleteNotificationResponse\x12]\n" +
 	"\x0eGetUnreadCount\x12$.notifications.GetUnreadCountRequest\x1a%.notifications.GetUnreadCountResponse\x12\x81\x01\n" +
 	"\x1aGetNotificationPreferences\x120.notifications.GetNotificationPreferencesRequest\x1a1.notifications.GetNotificationPreferencesResponse\x12\x8a\x01\n" +
-	"\x1dUpdateNotificationPreferences\x123.notifications.UpdateNotificationPreferencesRequest\x1a4.notifications.UpdateNotificationPreferencesResponseB\x11Z\x0f./notificationsb\x06proto3"
+	"\x1dUpdateNotificationPreferences\x123.notifications.UpdateNotificationPreferencesRequest\x1a4.notifications.UpdateNotificationPreferencesResponse\x12T\n" +
+	"\x0eRegisterDevice\x12$.notifications.RegisterDeviceRequest\x1a\x1c.notifications.EmptyResponse\x12X\n" +
+	"\x10UnregisterDevice\x12&.notifications.UnregisterDeviceRequest\x1a\x1c.notifications.EmptyResponseB\x11Z\x0f./notificationsb\x06proto3"
 
 var (
 	file_services_microservices_notifications_api_v1_notifications_proto_rawDescOnce sync.Once
@@ -1094,7 +1317,7 @@ func file_services_microservices_notifications_api_v1_notifications_proto_rawDes
 	return file_services_microservices_notifications_api_v1_notifications_proto_rawDescData
 }
 
-var file_services_microservices_notifications_api_v1_notifications_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
+var file_services_microservices_notifications_api_v1_notifications_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_services_microservices_notifications_api_v1_notifications_proto_goTypes = []any{
 	(*Notification)(nil),                          // 0: notifications.Notification
 	(*CreateNotificationRequest)(nil),             // 1: notifications.CreateNotificationRequest
@@ -1116,6 +1339,9 @@ var file_services_microservices_notifications_api_v1_notifications_proto_goTypes
 	(*GetNotificationPreferencesResponse)(nil),    // 17: notifications.GetNotificationPreferencesResponse
 	(*UpdateNotificationPreferencesRequest)(nil),  // 18: notifications.UpdateNotificationPreferencesRequest
 	(*UpdateNotificationPreferencesResponse)(nil), // 19: notifications.UpdateNotificationPreferencesResponse
+	(*RegisterDeviceRequest)(nil),                 // 20: notifications.RegisterDeviceRequest
+	(*UnregisterDeviceRequest)(nil),               // 21: notifications.UnregisterDeviceRequest
+	(*EmptyResponse)(nil),                         // 22: notifications.EmptyResponse
 }
 var file_services_microservices_notifications_api_v1_notifications_proto_depIdxs = []int32{
 	0,  // 0: notifications.GetNotificationResponse.notification:type_name -> notifications.Notification
@@ -1132,17 +1358,21 @@ var file_services_microservices_notifications_api_v1_notifications_proto_depIdxs
 	13, // 11: notifications.Notifications.GetUnreadCount:input_type -> notifications.GetUnreadCountRequest
 	16, // 12: notifications.Notifications.GetNotificationPreferences:input_type -> notifications.GetNotificationPreferencesRequest
 	18, // 13: notifications.Notifications.UpdateNotificationPreferences:input_type -> notifications.UpdateNotificationPreferencesRequest
-	2,  // 14: notifications.Notifications.CreateNotification:output_type -> notifications.CreateNotificationResponse
-	4,  // 15: notifications.Notifications.GetNotification:output_type -> notifications.GetNotificationResponse
-	6,  // 16: notifications.Notifications.ListNotifications:output_type -> notifications.ListNotificationsResponse
-	8,  // 17: notifications.Notifications.MarkNotificationRead:output_type -> notifications.MarkNotificationReadResponse
-	10, // 18: notifications.Notifications.MarkAllNotificationsRead:output_type -> notifications.MarkAllNotificationsReadResponse
-	12, // 19: notifications.Notifications.DeleteNotification:output_type -> notifications.DeleteNotificationResponse
-	14, // 20: notifications.Notifications.GetUnreadCount:output_type -> notifications.GetUnreadCountResponse
-	17, // 21: notifications.Notifications.GetNotificationPreferences:output_type -> notifications.GetNotificationPreferencesResponse
-	19, // 22: notifications.Notifications.UpdateNotificationPreferences:output_type -> notifications.UpdateNotificationPreferencesResponse
-	14, // [14:23] is the sub-list for method output_type
-	5,  // [5:14] is the sub-list for method input_type
+	20, // 14: notifications.Notifications.RegisterDevice:input_type -> notifications.RegisterDeviceRequest
+	21, // 15: notifications.Notifications.UnregisterDevice:input_type -> notifications.UnregisterDeviceRequest
+	2,  // 16: notifications.Notifications.CreateNotification:output_type -> notifications.CreateNotificationResponse
+	4,  // 17: notifications.Notifications.GetNotification:output_type -> notifications.GetNotificationResponse
+	6,  // 18: notifications.Notifications.ListNotifications:output_type -> notifications.ListNotificationsResponse
+	8,  // 19: notifications.Notifications.MarkNotificationRead:output_type -> notifications.MarkNotificationReadResponse
+	10, // 20: notifications.Notifications.MarkAllNotificationsRead:output_type -> notifications.MarkAllNotificationsReadResponse
+	12, // 21: notifications.Notifications.DeleteNotification:output_type -> notifications.DeleteNotificationResponse
+	14, // 22: notifications.Notifications.GetUnreadCount:output_type -> notifications.GetUnreadCountResponse
+	17, // 23: notifications.Notifications.GetNotificationPreferences:output_type -> notifications.GetNotificationPreferencesResponse
+	19, // 24: notifications.Notifications.UpdateNotificationPreferences:output_type -> notifications.UpdateNotificationPreferencesResponse
+	22, // 25: notifications.Notifications.RegisterDevice:output_type -> notifications.EmptyResponse
+	22, // 26: notifications.Notifications.UnregisterDevice:output_type -> notifications.EmptyResponse
+	16, // [16:27] is the sub-list for method output_type
+	5,  // [5:16] is the sub-list for method input_type
 	5,  // [5:5] is the sub-list for extension type_name
 	5,  // [5:5] is the sub-list for extension extendee
 	0,  // [0:5] is the sub-list for field type_name
@@ -1159,7 +1389,7 @@ func file_services_microservices_notifications_api_v1_notifications_proto_init()
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_services_microservices_notifications_api_v1_notifications_proto_rawDesc), len(file_services_microservices_notifications_api_v1_notifications_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   20,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

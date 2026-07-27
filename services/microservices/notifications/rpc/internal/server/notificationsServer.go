@@ -67,3 +67,14 @@ func (s *NotificationsServer) UpdateNotificationPreferences(ctx context.Context,
 	l := logic.NewUpdateNotificationPreferencesLogic(ctx, s.svcCtx)
 	return l.UpdateNotificationPreferences(in)
 }
+
+// Push device registration (see docs/push-notifications-design.md).
+func (s *NotificationsServer) RegisterDevice(ctx context.Context, in *notifications.RegisterDeviceRequest) (*notifications.EmptyResponse, error) {
+	l := logic.NewRegisterDeviceLogic(ctx, s.svcCtx)
+	return l.RegisterDevice(in)
+}
+
+func (s *NotificationsServer) UnregisterDevice(ctx context.Context, in *notifications.UnregisterDeviceRequest) (*notifications.EmptyResponse, error) {
+	l := logic.NewUnregisterDeviceLogic(ctx, s.svcCtx)
+	return l.UnregisterDevice(in)
+}
