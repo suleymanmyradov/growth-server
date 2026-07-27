@@ -47,3 +47,9 @@ func (s *CategoriesServer) ReorderCategories(ctx context.Context, in *client.Reo
 	l := categorieslogic.NewReorderCategoriesLogic(ctx, s.svcCtx)
 	return l.ReorderCategories(in)
 }
+
+// Admin list for template management (called by adminway via gRPC).
+func (s *CategoriesServer) AdminListCategories(ctx context.Context, in *client.AdminListCategoriesRequest) (*client.AdminListCategoriesResponse, error) {
+	l := categorieslogic.NewAdminListCategoriesLogic(ctx, s.svcCtx)
+	return l.AdminListCategories(in)
+}

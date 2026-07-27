@@ -65,6 +65,12 @@ type ArticleTag struct {
 	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
 }
 
+type BillingWebhookEvent struct {
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
 type Category struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Name      string             `db:"name" json:"name"`
@@ -85,6 +91,12 @@ type CheckIn struct {
 	Blocker   *string            `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type ClientProcessedEvent struct {
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type CoachingProfile struct {
@@ -190,6 +202,25 @@ type Notification struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type NotificationDevice struct {
+	ID             uuid.UUID          `db:"id" json:"id"`
+	UserID         uuid.UUID          `db:"user_id" json:"user_id"`
+	InstallationID string             `db:"installation_id" json:"installation_id"`
+	Provider       string             `db:"provider" json:"provider"`
+	PushToken      string             `db:"push_token" json:"push_token"`
+	Platform       string             `db:"platform" json:"platform"`
+	AppID          *string            `db:"app_id" json:"app_id"`
+	Environment    string             `db:"environment" json:"environment"`
+	AppVersion     *string            `db:"app_version" json:"app_version"`
+	OsVersion      *string            `db:"os_version" json:"os_version"`
+	Locale         *string            `db:"locale" json:"locale"`
+	Timezone       *string            `db:"timezone" json:"timezone"`
+	Enabled        bool               `db:"enabled" json:"enabled"`
+	LastSeenAt     pgtype.Timestamptz `db:"last_seen_at" json:"last_seen_at"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type NotificationPreference struct {
 	UserID             uuid.UUID          `db:"user_id" json:"user_id"`
 	EmailNotifications bool               `db:"email_notifications" json:"email_notifications"`
@@ -240,6 +271,18 @@ type ProcessedEvent struct {
 	Consumer    string             `db:"consumer" json:"consumer"`
 	EventID     string             `db:"event_id" json:"event_id"`
 	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
+type PushTicket struct {
+	ID               int64              `db:"id" json:"id"`
+	TicketID         string             `db:"ticket_id" json:"ticket_id"`
+	PushToken        string             `db:"push_token" json:"push_token"`
+	UserID           uuid.UUID          `db:"user_id" json:"user_id"`
+	NotificationID   uuid.UUID          `db:"notification_id" json:"notification_id"`
+	ReceiptStatus    string             `db:"receipt_status" json:"receipt_status"`
+	ReceiptError     *string            `db:"receipt_error" json:"receipt_error"`
+	ReceiptCheckedAt pgtype.Timestamptz `db:"receipt_checked_at" json:"receipt_checked_at"`
+	CreatedAt        pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Reminder struct {
@@ -333,6 +376,7 @@ type Subscription struct {
 	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 }
 
 type Tag struct {

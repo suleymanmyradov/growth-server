@@ -19,6 +19,8 @@ import (
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	clientbilling "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
 	clientcategories "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/categories"
+	clientgoaltemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goaltemplates"
+	clienthabittemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	clientreport "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/report"
 	clientsitesettings "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/sitesettings"
 	clienttags "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/tags"
@@ -34,15 +36,17 @@ type ServiceContext struct {
 	Auth            rest.Middleware
 	AdminAuth       rest.Middleware
 	TokenMaker      *jwt.TokenMaker
-	ArticlesRpc     clientarticles.Articles
-	CategoriesRpc   clientcategories.Categories
-	TagsRpc         clienttags.Tags
-	ReportRpc       clientreport.Report
-	SiteSettingsRpc clientsitesettings.SiteSettings
-	SearchRpc       searchservice.SearchService
-	FileManagerRpc  clientfilemanager.FileManager
-	AuthRpc         authservice.AuthService
-	BillingRpc      clientbilling.BillingService
+	ArticlesRpc        clientarticles.Articles
+	CategoriesRpc      clientcategories.Categories
+	TagsRpc            clienttags.Tags
+	ReportRpc          clientreport.Report
+	SiteSettingsRpc    clientsitesettings.SiteSettings
+	HabitTemplatesRpc  clienthabittemplates.HabitTemplates
+	GoalTemplatesRpc   clientgoaltemplates.GoalTemplates
+	SearchRpc          searchservice.SearchService
+	FileManagerRpc     clientfilemanager.FileManager
+	AuthRpc            authservice.AuthService
+	BillingRpc         clientbilling.BillingService
 	EventsPub       *events.Publisher
 	Repo            *repository.Repository
 	TxRunner        *postgres.PgxTxRunner
@@ -101,11 +105,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}),
 		AdminAuth:       middleware.AdminAuth(),
 		TokenMaker:      tokenMaker,
-		ArticlesRpc:     clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		CategoriesRpc:   clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		TagsRpc:         clienttags.NewTags(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		ReportRpc:       clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		SiteSettingsRpc: clientsitesettings.NewSiteSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		ArticlesRpc:       clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		CategoriesRpc:     clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		TagsRpc:           clienttags.NewTags(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		ReportRpc:         clientreport.NewReport(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		SiteSettingsRpc:   clientsitesettings.NewSiteSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		HabitTemplatesRpc: clienthabittemplates.NewHabitTemplates(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		GoalTemplatesRpc:  clientgoaltemplates.NewGoalTemplates(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		SearchRpc:       searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
 		FileManagerRpc:  clientfilemanager.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
 		AuthRpc:         authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...)),

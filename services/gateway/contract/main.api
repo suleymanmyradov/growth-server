@@ -36,6 +36,9 @@ service growthapi {
 	@handler GoogleLogin
 	post /auth/google (GoogleLoginRequest) returns (AuthResponse)
 
+	@handler AppleLogin
+	post /auth/apple (AppleLoginRequest) returns (AuthResponse)
+
 	@handler ForgotPassword
 	post /auth/forgot-password (ForgotPasswordRequest) returns (EmptyResponse)
 
@@ -51,7 +54,7 @@ service growthapi {
 )
 service growthapi {
 	@handler Logout
-	post /auth/logout returns (EmptyResponse)
+	post /auth/logout (LogoutRequest) returns (EmptyResponse)
 }
 
 @server (
@@ -222,6 +225,12 @@ service growthapi {
 
 	@handler UpdateNotificationPreferences
 	put /notification-preferences (UpdateNotificationPreferencesRequest) returns (NotificationPreferencesResponse)
+
+	@handler RegisterDevice
+	put /devices/:installationId (RegisterDeviceRequest) returns (EmptyResponse)
+
+	@handler UnregisterDevice
+	delete /devices/:installationId (UnregisterDeviceRequest) returns (EmptyResponse)
 }
 
 @server (
@@ -288,6 +297,9 @@ service growthapi {
 service growthapi {
 	@handler HandleStripeWebhook
 	post /billing/webhook (StripeWebhookRequest) returns (StripeWebhookResponse)
+
+	@handler HandleRevenueCatWebhook
+	post /billing/revenuecat-webhook returns (RevenueCatWebhookResponse)
 }
 
 @server (

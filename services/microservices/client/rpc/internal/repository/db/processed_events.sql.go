@@ -11,10 +11,12 @@ import (
 
 const isClientEventProcessed = `-- name: IsClientEventProcessed :one
 
-SELECT EXISTS(SELECT 1 FROM processed_events WHERE consumer = 'client' AND event_id = $1)
+SELECT EXISTS(SELECT 1 FROM client_processed_events WHERE consumer = 'client' AND event_id = $1)
 `
 
 // Event dedup for the client service's Kafka consumer.
+// Uses the client-owned client_processed_events table (not the notifications-
+// owned processed_events table) to respect table ownership boundaries.
 func (q *Queries) IsClientEventProcessed(ctx context.Context, eventID string) (bool, error) {
 	row := q.db.QueryRow(ctx, isClientEventProcessed, eventID)
 	var exists bool
@@ -23,7 +25,7 @@ func (q *Queries) IsClientEventProcessed(ctx context.Context, eventID string) (b
 }
 
 const markClientEventProcessed = `-- name: MarkClientEventProcessed :exec
-INSERT INTO processed_events (consumer, event_id)
+INSERT INTO client_processed_events (consumer, event_id)
 VALUES ('client', $1)
 ON CONFLICT DO NOTHING
 `

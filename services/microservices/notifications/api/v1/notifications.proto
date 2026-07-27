@@ -98,6 +98,37 @@ message UpdateNotificationPreferencesResponse {
   NotificationPreferences preferences = 1;
 }
 
+// ─── Push device registration ───────────────────────────────────────────────
+// See docs/push-notifications-design.md. The user is derived from the
+// authenticated principal in the RPC context, not from a request field.
+
+message RegisterDeviceRequest {
+  // installationId is the app-generated stable installation ID (from
+  // expo-secure-store), supplied in the gateway path. Included here so the RPC
+  // is self-contained when called without HTTP context.
+  string installationId = 1;
+  string pushToken = 2;
+  // provider is 'expo' (default), 'fcm', or 'apns'.
+  string provider = 3;
+  // platform is 'ios' or 'android'.
+  string platform = 4;
+  string appId = 5;
+  // environment is 'development', 'preview', or 'production'.
+  string environment = 6;
+  string appVersion = 7;
+  string osVersion = 8;
+  string locale = 9;
+  string timezone = 10;
+}
+
+message UnregisterDeviceRequest {
+  string installationId = 1;
+}
+
+// EmptyResponse is the empty reply for fire-and-forget RPCs (device
+// register/unregister). The gateway maps it to 200 OK / 204 No Content.
+message EmptyResponse {}
+
 service Notifications {
   rpc CreateNotification(CreateNotificationRequest) returns (CreateNotificationResponse);
   rpc GetNotification(GetNotificationRequest) returns (GetNotificationResponse);
@@ -108,4 +139,8 @@ service Notifications {
   rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
   rpc GetNotificationPreferences(GetNotificationPreferencesRequest) returns (GetNotificationPreferencesResponse);
   rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest) returns (UpdateNotificationPreferencesResponse);
+
+  // Push device registration (see docs/push-notifications-design.md).
+  rpc RegisterDevice(RegisterDeviceRequest) returns (EmptyResponse);
+  rpc UnregisterDevice(UnregisterDeviceRequest) returns (EmptyResponse);
 }

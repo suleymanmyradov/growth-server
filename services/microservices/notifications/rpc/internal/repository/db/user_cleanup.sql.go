@@ -11,6 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+const deleteDevicesByUser = `-- name: DeleteDevicesByUser :exec
+DELETE FROM notification_devices WHERE user_id = $1
+`
+
+func (q *Queries) DeleteDevicesByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteDevicesByUser, userID)
+	return err
+}
+
 const deleteNotificationPreferencesByUser = `-- name: DeleteNotificationPreferencesByUser :exec
 DELETE FROM notification_preferences WHERE user_id = $1
 `

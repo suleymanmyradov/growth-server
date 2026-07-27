@@ -8,9 +8,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	expo "github.com/suleymanmyradov/growth-server/pkg/notifications/expo"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/consumer"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
@@ -27,8 +29,14 @@ type ServiceContext struct {
 	TxRunner     *postgres.PgxTxRunner
 	EventsQ      queue.MessageQueue
 	ReminderDueQ queue.MessageQueue
-	pool         *pgxpool.Pool
-	schedCancel  context.CancelFunc
+	// PushSender delivers push notifications via Expo. Nil-safe: when Expo is
+	// disabled in config, Send is a no-op. See docs/push-notifications-design.md.
+	PushSender  *delivery.Sender
+	// ReceiptWorker checks Expo push receipts asynchronously and disables
+	// stale tokens. Nil-safe: when Expo is disabled, Run is a no-op.
+	ReceiptWorker *delivery.ReceiptWorker
+	pool          *pgxpool.Pool
+	schedCancel   context.CancelFunc
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
@@ -62,8 +70,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	sched := scheduler.NewScheduler(repo.Reminders, reminderPub, realClock{})
 
+	// Expo push client + delivery sender. When Expo is disabled in config,
+	// the sender is still constructed (with a nil Expo client) so callers can
+	// invoke Send without nil-checks; it is a no-op in that case.
+	var expoClient *expo.Client
+	if c.Expo.Enabled {
+		expoClient = expo.NewClient(nil, c.Expo.AccessToken)
+	}
+	pushSender := delivery.NewSender(repo.Devices, repo.PushTickets, expoClient, c.Expo.Enabled)
+	receiptWorker := delivery.NewReceiptWorker(repo.Devices, repo.PushTickets, expoClient)
+
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
-	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub)
+	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender)
 
 	// Consumers/Processors must be set explicitly: their `default=8` tags only
 	// apply when the KqConf is loaded via conf.Load, not for struct literals.
@@ -93,14 +111,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	)
 
 	return &ServiceContext{
-		Config:       c,
-		Repo:         repo,
-		EventsPub:    reminderPub,
-		Scheduler:    sched,
-		TxRunner:     txRunner,
-		EventsQ:      eventsQ,
-		ReminderDueQ: reminderDueQ,
-		pool:         pool,
+		Config:        c,
+		Repo:          repo,
+		EventsPub:     reminderPub,
+		Scheduler:     sched,
+		TxRunner:      txRunner,
+		EventsQ:       eventsQ,
+		ReminderDueQ:  reminderDueQ,
+		PushSender:    pushSender,
+		ReceiptWorker: receiptWorker,
+		pool:          pool,
 	}
 }
 
@@ -117,8 +137,11 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	go s.Scheduler.Run(ctx)
 	go s.EventsQ.Start()
 	go s.ReminderDueQ.Start()
+	if s.ReceiptWorker != nil {
+		go s.ReceiptWorker.Run(ctx)
+	}
 
-	logx.Info("started scheduler and kafka consumers")
+	logx.Info("started scheduler, kafka consumers, and push receipt worker")
 	return cancel
 }
 

@@ -30,15 +30,28 @@ type Querier interface {
 	// Batch insert the same notification for many users (admin broadcast).
 	// Uses unnest to fan out a single INSERT...SELECT over the uuid array.
 	CreateNotificationsForUsers(ctx context.Context, title string, message string, type_ string, column4 []uuid.UUID) (int64, error)
+	// Push ticket persistence for async Expo receipt processing.
+	// Owned exclusively by the notifications service.
+	CreatePushTicket(ctx context.Context, ticketID string, pushToken string, userID uuid.UUID, notificationID uuid.UUID) error
 	DecrementHabitCount(ctx context.Context, userID uuid.UUID) error
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
+	// Unregister a device by installation_id + user_id. Used on logout and on
+	// explicit unregister. The user_id scoping prevents a user from deleting
+	// another user's device registration.
+	DeleteDevice(ctx context.Context, installationID string, userID uuid.UUID) error
+	DeleteDevicesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
 	DeleteNotificationPreferences(ctx context.Context, userID uuid.UUID) error
 	DeleteNotificationPreferencesByUser(ctx context.Context, userID uuid.UUID) error
 	// Bulk cleanup queries for user_deleted event consumers.
 	DeleteNotificationsByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteOldPushTickets(ctx context.Context, createdAt pgtype.Timestamptz) error
 	DeleteReminderState(ctx context.Context, userID uuid.UUID) error
 	DeleteRemindersByUser(ctx context.Context, userID uuid.UUID) error
+	// Mark a device disabled when the push provider reports the token as invalid
+	// (e.g. Expo receipt API returns a DeviceNotRegistered error). The token is
+	// the only stable identifier the provider returns, so we disable by token.
+	DisableDeviceByToken(ctx context.Context, pushToken string) error
 	// Reminders: sent_at IS NULL means pending.
 	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
@@ -48,6 +61,8 @@ type Querier interface {
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	IncrementHabitCount(ctx context.Context, userID uuid.UUID) error
 	IsEventProcessed(ctx context.Context, eventID string) (bool, error)
+	// All enabled devices for a user, used to fan out push notifications.
+	ListActiveDevicesByUser(ctx context.Context, userID uuid.UUID) ([]NotificationDevice, error)
 	ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error)
 	ListNotificationsByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]ListNotificationsByTypeRow, error)
 	// Keyset pagination for typed notification feeds.
@@ -55,12 +70,15 @@ type Querier interface {
 	ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListNotificationsForUserRow, error)
 	// Keyset pagination: more efficient than OFFSET for deep pages.
 	ListNotificationsForUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListNotificationsForUserKeysetRow, error)
+	ListPendingPushTickets(ctx context.Context, limit int32) ([]PushTicket, error)
 	ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListUnreadNotificationsRow, error)
 	// Keyset pagination for unread notifications feed.
 	ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	MarkEventProcessed(ctx context.Context, eventID string) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
+	MarkPushTicketReceiptError(ctx context.Context, ticketID string, pushToken string, receiptError *string) error
+	MarkPushTicketReceiptOK(ctx context.Context, ticketID string, pushToken string) error
 	MarkReminderSent(ctx context.Context, id uuid.UUID) (MarkReminderSentRow, error)
 	// Release claims older than the lease window (minutes) so they can be
 	// re-claimed by the next tick. This handles scheduler crashes: a reminder
@@ -68,6 +86,16 @@ type Querier interface {
 	// again after the lease expires.
 	ReleaseStaleClaims(ctx context.Context, dollar_1 int32) (int64, error)
 	SetOnboardingCompleted(ctx context.Context, userID uuid.UUID) error
+	// Bump last_seen_at on a registration/heartbeat so we can age out stale
+	// installations later.
+	UpdateDeviceLastSeen(ctx context.Context, installationID string, userID uuid.UUID) error
+	// Device installation / push token queries.
+	// Owned exclusively by the notifications service. See migration 042 and
+	// docs/push-notifications-design.md.
+	// Idempotent register/update: insert a new device or update the push token +
+	// metadata for an existing (installation_id, user_id) pair. Token rotation is
+	// handled by the UPDATE branch. enabled is reset to true on re-registration.
+	UpsertDevice(ctx context.Context, arg UpsertDeviceParams) (NotificationDevice, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error
 }

@@ -1,0 +1,551 @@
+# Custom transport OpenAPI 3.0 overlay for the Growth gateway.
+#
+# These three routes are registered manually in services/gateway/growth/growthapi.go
+# (not generated from contract/main.api by goctl) because they use multipart/form-data
+# or text/event-stream transports that goctl's .api format does not express. They are
+# therefore absent from the generated swagger.json. This fragment is merged into the
+# converted OpenAPI 3.0 spec by scripts/merge-swagger.sh to produce swagger-combined.json.
+#
+# Source of truth for field names, size limits, MIME restrictions, SSE event payload
+# shapes, and error behavior:
+#   - services/gateway/growth/internal/handler/files/uploadHandler.go
+#   - services/gateway/growth/internal/handler/voice/transcribeHandler.go
+#   - services/gateway/growth/internal/handler/voice/voiceTurnHandler.go
+#
+# All three routes require the Auth middleware (Bearer access token).
+#
+# This is an OpenAPI 3.0 fragment (paths + components.schemas). It is NOT a standalone
+# document — it is merged into the converted output of the generated Swagger 2.0 spec.
+
+paths:
+  /api/v1/files/upload:
+    post:
+      operationId: uploadFile
+      summary: Upload a file to object storage
+      description: |
+        Uploads a single file to MinIO object storage via the filemanager RPC.
+        Multipart form with a binary "file" field and an optional "folder" field
+        (defaults to "uploads"). Maximum request body size is 10 MB. Requires
+        authentication.
+      tags:
+        - Files
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload (binary content).
+                folder:
+                  type: string
+                  description: Storage folder/key prefix. Defaults to "uploads" when omitted.
+                  default: uploads
+                  example: uploads
+            encoding:
+              file:
+                allowReserved: true
+      responses:
+        "200":
+          description: Upload succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          description: |
+            Bad request — multipart parse failure, missing "file" field, or request
+            body exceeded the 10 MB limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Request entity too large (exceeded 10 MB).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Object storage or upstream failure.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/personalization/transcribe:
+    post:
+      operationId: transcribeAudio
+      summary: Transcribe an audio clip to text
+      description: |
+        Accepts a multipart audio upload (field "audio") and returns the transcribed
+        text via the ai-coach STT provider. Optional "language" hint (BCP-47, e.g.
+        "en-US"). Maximum request body size is 25 MB (matching the OpenAI Whisper
+        limit). The audio format is derived from the filename extension or the
+        Content-Type; supported formats are wav, mp3, flac, m4a, ogg, webm, aac.
+        Requires authentication.
+      tags:
+        - Personalization
+        - Voice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - audio
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: |
+                    Audio clip to transcribe. The format is inferred from the filename
+                    extension (preferred) or the part Content-Type. Supported
+                    extensions: wav, mp3, flac, m4a, ogg, webm, aac.
+                language:
+                  type: string
+                  description: Optional BCP-47 language hint (e.g. "en-US").
+                  example: en-US
+            encoding:
+              audio:
+                allowReserved: true
+                contentType:
+                  - audio/wav
+                  - audio/mpeg
+                  - audio/mp3
+                  - audio/flac
+                  - audio/mp4
+                  - audio/m4a
+                  - audio/x-m4a
+                  - audio/ogg
+                  - application/ogg
+                  - audio/webm
+                  - audio/aac
+      responses:
+        "200":
+          description: Transcription succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TranscribeResponse"
+        "400":
+          description: |
+            Bad request — multipart parse failure, missing "audio" field, empty
+            payload, unsupported/undeterminable audio format, or body exceeded 25 MB.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Request entity too large (exceeded 25 MB).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: STT provider or upstream failure.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/personalization/voice-turn:
+    post:
+      operationId: voiceTurn
+      summary: One voice coaching turn (audio in, SSE stream out)
+      description: |
+        Turn-based live voice coaching. The client uploads one recorded utterance
+        (multipart field "audio") plus optional "language" and "conversationId" form
+        fields, and the server responds with an SSE stream (`text/event-stream`) that
+        carries the transcription, the streamed coaching response, the synthesized
+        spoken audio, and a terminal "ready" event.
+
+        Maximum request body size is 25 MB. The audio format is derived from the
+        filename extension or Content-Type (wav, mp3, flac, m4a, ogg, webm, aac).
+        Requires authentication.
+
+        ## SSE event ordering
+
+        The stream commits HTTP 200 with `Content-Type: text/event-stream` before any
+        processing, so authentication and multipart parse errors are returned as
+        regular JSON error responses (not as SSE events) when they occur before the
+        stream is committed. Once the stream is committed, all subsequent errors are
+        delivered as `error` SSE events.
+
+        Typical successful ordering:
+
+        1. `transcript` — STT result for the uploaded utterance (always first).
+        2. `conversation` — emitted only when a new conversation is created (i.e. when
+           no `conversationId` was supplied). Omitted when continuing an existing
+           conversation.
+        3. `delta` — zero or more incremental coaching text chunks, in order.
+        4. `complete` — the full assembled coaching response (exactly one).
+        5. `audio` — synthesized TTS audio for the full response (zero or one). Emitted
+           only when synthesis succeeds and produces audio bytes.
+        6. `ready` — terminal success event (exactly one). Signals the client may begin
+           the next turn.
+
+        ## Terminal events
+
+        - `ready` — terminal success. The stream ends after this event.
+        - `error` — may be fatal or non-fatal:
+          - Fatal: emitted before `complete` (e.g. transcription failed, transcription
+            was empty, personalization context failed, coaching stream open failed, or
+            the coaching stream broke before producing any output). The stream ends
+            after a fatal `error` event and no `ready` is sent.
+          - Non-fatal: emitted after `complete` (e.g. TTS synthesis unavailable). The
+            stream continues and still ends with `ready`.
+
+        ## Cancellation
+
+        The client may close the connection at any time to cancel an in-flight turn
+        (e.g. user pressed stop, navigated away, or started a new turn). The server
+        honors the request context deadline and aborts upstream STT/coaching/TTS
+        calls. The client must not assume any partial state is persisted beyond what
+        was already emitted; the assistant message is persisted only after `complete`.
+
+        ## Reconnect behavior
+
+        This is a POST stream that triggers generation. The client must NOT blindly
+        reconnect on disconnect, because a reconnect would re-run STT and coaching and
+        duplicate the turn. Reconnect/resume is not supported until the backend
+        provides an idempotency/resume token.
+
+        ## Event wire format
+
+        Each event is written as:
+        ```
+        event: <eventName>\n
+        data: <json>\n
+        \n
+        ```
+        with `\n` (LF) line separators. The client SSE parser must tolerate chunk
+        boundaries that split a JSON `data` value across reads, CRLF/LF mixed
+        separators, comment/heartbeat lines (`: keep-alive`), and multiple consecutive
+        `data:` lines for a single event.
+      tags:
+        - Personalization
+        - Voice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - audio
+              properties:
+                audio:
+                  type: string
+                  format: binary
+                  description: |
+                    One recorded voice utterance. Format inferred from filename
+                    extension (preferred) or Content-Type. Supported: wav, mp3, flac,
+                    m4a, ogg, webm, aac. Must be non-empty.
+                language:
+                  type: string
+                  description: Optional BCP-47 language hint (e.g. "en-US").
+                  example: en-US
+                conversationId:
+                  type: string
+                  format: uuid
+                  description: |
+                    Optional existing conversation ID to append the turn to. When
+                    omitted, a new coach conversation is created and its ID is
+                    announced via a `conversation` SSE event.
+            encoding:
+              audio:
+                allowReserved: true
+                contentType:
+                  - audio/wav
+                  - audio/mpeg
+                  - audio/mp3
+                  - audio/flac
+                  - audio/mp4
+                  - audio/m4a
+                  - audio/x-m4a
+                  - audio/ogg
+                  - application/ogg
+                  - audio/webm
+                  - audio/aac
+      responses:
+        "200":
+          description: |
+            SSE stream opened successfully. The response body is a sequence of
+            Server-Sent Events (see the operation description for ordering, terminal
+            events, and cancellation). The HTTP 200 + `text/event-stream` headers are
+            committed before processing begins, so subsequent failures appear as
+            `error` events rather than HTTP error statuses.
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                description: |
+                  The SSE body is a stream of `event: <name>\ndata: <json>\n\n` blocks.
+                  This schema describes the union of all event payloads; each individual
+                  event uses the subset of fields named in its payload schema below.
+                  See the operation description for ordering and terminal semantics.
+              examples:
+                happyPath:
+                  summary: Successful turn (new conversation)
+                  value: |
+                    event: transcript
+                    data: {"text":"How do I stay consistent?","language":"en","duration":2.4}
+
+                    event: conversation
+                    data: {"id":"0192be94-1234-5678-9aaa-09876543210a"}
+
+                    event: delta
+                    data: {"text":"Consistency grows from "}
+
+                    event: delta
+                    data: {"text":"small, repeatable cues."}
+
+                    event: complete
+                    data: {"fullResponse":"Consistency grows from small, repeatable cues."}
+
+                    event: audio
+                    data: {"format":"mp3","data":"<base64-encoded-mp3>"}
+
+                    event: ready
+                    data: {}
+                fatalError:
+                  summary: Fatal error before complete (no ready event)
+                  value: |
+                    event: error
+                    data: {"message":"transcribe failed: context deadline exceeded"}
+                nonFatalError:
+                  summary: Non-fatal error after complete (still ends with ready)
+                  value: |
+                    event: transcript
+                    data: {"text":"Hello","language":"en","duration":0.8}
+
+                    event: delta
+                    data: {"text":"Hi there!"}
+
+                    event: complete
+                    data: {"fullResponse":"Hi there!"}
+
+                    event: error
+                    data: {"message":"voice synthesis unavailable"}
+
+                    event: ready
+                    data: {}
+        "400":
+          description: |
+            Bad request — multipart parse failure, missing "audio" field, empty audio
+            payload, unsupported/undeterminable audio format, or body exceeded 25 MB.
+            Returned as a regular JSON error (the SSE stream has not been committed
+            yet at this point).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Missing or invalid bearer token (returned before stream commit).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "413":
+          description: Request entity too large (exceeded 25 MB).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Upstream failure before the stream was committed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer access token issued by the auth service (issuer `growth-auth`,
+        audience `growth-api`). Obtained from POST /auth/login, /auth/verify-email,
+        /auth/google, /auth/apple, or /auth/refresh. Sent as
+        `Authorization: Bearer <token>`.
+  schemas:
+    UploadResponse:
+      type: object
+      required:
+        - url
+        - key
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Public or pre-signed URL of the stored object.
+          example: https://cdn.example.com/uploads/0192be94-...-image.png
+        key:
+          type: string
+          description: Object storage key (path) of the stored object.
+          example: uploads/0192be94-1234-5678-9aaa-09876543210a-image.png
+
+    TranscribeResponse:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Transcribed text.
+          example: How do I stay consistent?
+        language:
+          type: string
+          description: Detected or echoed language (BCP-47), when available.
+          example: en
+        duration:
+          type: number
+          format: float
+          description: Audio duration in seconds, when available.
+          example: 2.4
+
+    # SSE event payload schemas. Each is the JSON `data` payload for the
+    # corresponding `event:` name in the voice-turn stream.
+    VoiceTurnTranscriptEvent:
+      type: object
+      description: Payload of the `transcript` SSE event. Always the first event.
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Transcribed user utterance.
+        language:
+          type: string
+          description: Detected/echoed language (BCP-47), when available.
+        duration:
+          type: number
+          format: float
+          description: Audio duration in seconds, when available.
+
+    VoiceTurnDeltaEvent:
+      type: object
+      description: Payload of a `delta` SSE event. Zero or more, in order.
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Incremental coaching text chunk. Concatenate in order to build the full response.
+
+    VoiceTurnCompleteEvent:
+      type: object
+      description: Payload of the `complete` SSE event. Exactly one on success.
+      required:
+        - fullResponse
+      properties:
+        fullResponse:
+          type: string
+          description: The full assembled coaching response.
+
+    VoiceTurnAudioEvent:
+      type: object
+      description: |
+        Payload of the `audio` SSE event. Zero or one. Base64-encoded TTS audio for
+        the full coaching response. Mobile clients should treat base64 TTS in SSE as
+        a parity path and prefer a future authenticated short-lived audio URL.
+      required:
+        - format
+        - data
+      properties:
+        format:
+          type: string
+          description: Audio format of the encoded payload.
+          example: mp3
+        data:
+          type: string
+          description: Base64-encoded audio bytes.
+          contentEncoding: base64
+
+    VoiceTurnConversationEvent:
+      type: object
+      description: |
+        Payload of the `conversation` SSE event. Emitted only when a new conversation
+        is created (no `conversationId` supplied). Carries the new conversation ID so
+        the client can append subsequent turns to it.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: New conversation ID.
+
+    VoiceTurnErrorEvent:
+      type: object
+      description: |
+        Payload of the `error` SSE event. Fatal when emitted before `complete`
+        (stream ends, no `ready`); non-fatal when emitted after `complete` (stream
+        still ends with `ready`).
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: User-safe error message.
+
+    VoiceTurnReadyEvent:
+      type: object
+      description: |
+        Payload of the `ready` SSE event. Terminal success event (exactly one). The
+        stream ends after this event; the client may begin the next turn.
+        The payload is an empty JSON object.
+
+    ErrorResponse:
+      type: object
+      description: |
+        Standard gateway error response (see pkg/httpx/errors/errors.go). The `code`
+        field is a stable snake_case identifier; `message` is a user-safe string.
+        `limit` and `upgradeTrigger` are present only on plan-limit (402) responses.
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Stable snake_case error code.
+          example: unauthenticated
+        message:
+          type: string
+          description: User-safe error message.
+          example: authentication required
+        limit:
+          type: string
+          description: Present only on plan-limit responses (HTTP 402). The feature limit reached.
+          example: max_goals
+        upgradeTrigger:
+          type: string
+          description: Present only on plan-limit responses (HTTP 402). The upgrade trigger identifier.
+          example: goals

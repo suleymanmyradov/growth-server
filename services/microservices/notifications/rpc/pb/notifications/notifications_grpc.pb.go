@@ -28,6 +28,8 @@ const (
 	Notifications_GetUnreadCount_FullMethodName                = "/notifications.Notifications/GetUnreadCount"
 	Notifications_GetNotificationPreferences_FullMethodName    = "/notifications.Notifications/GetNotificationPreferences"
 	Notifications_UpdateNotificationPreferences_FullMethodName = "/notifications.Notifications/UpdateNotificationPreferences"
+	Notifications_RegisterDevice_FullMethodName                = "/notifications.Notifications/RegisterDevice"
+	Notifications_UnregisterDevice_FullMethodName              = "/notifications.Notifications/UnregisterDevice"
 )
 
 // NotificationsClient is the client API for Notifications service.
@@ -43,6 +45,9 @@ type NotificationsClient interface {
 	GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 	GetNotificationPreferences(ctx context.Context, in *GetNotificationPreferencesRequest, opts ...grpc.CallOption) (*GetNotificationPreferencesResponse, error)
 	UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error)
+	// Push device registration (see docs/push-notifications-design.md).
+	RegisterDevice(ctx context.Context, in *RegisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
+	UnregisterDevice(ctx context.Context, in *UnregisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 }
 
 type notificationsClient struct {
@@ -143,6 +148,26 @@ func (c *notificationsClient) UpdateNotificationPreferences(ctx context.Context,
 	return out, nil
 }
 
+func (c *notificationsClient) RegisterDevice(ctx context.Context, in *RegisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Notifications_RegisterDevice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *notificationsClient) UnregisterDevice(ctx context.Context, in *UnregisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Notifications_UnregisterDevice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NotificationsServer is the server API for Notifications service.
 // All implementations must embed UnimplementedNotificationsServer
 // for forward compatibility.
@@ -156,6 +181,9 @@ type NotificationsServer interface {
 	GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error)
 	GetNotificationPreferences(context.Context, *GetNotificationPreferencesRequest) (*GetNotificationPreferencesResponse, error)
 	UpdateNotificationPreferences(context.Context, *UpdateNotificationPreferencesRequest) (*UpdateNotificationPreferencesResponse, error)
+	// Push device registration (see docs/push-notifications-design.md).
+	RegisterDevice(context.Context, *RegisterDeviceRequest) (*EmptyResponse, error)
+	UnregisterDevice(context.Context, *UnregisterDeviceRequest) (*EmptyResponse, error)
 	mustEmbedUnimplementedNotificationsServer()
 }
 
@@ -192,6 +220,12 @@ func (UnimplementedNotificationsServer) GetNotificationPreferences(context.Conte
 }
 func (UnimplementedNotificationsServer) UpdateNotificationPreferences(context.Context, *UpdateNotificationPreferencesRequest) (*UpdateNotificationPreferencesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method UpdateNotificationPreferences not implemented")
+}
+func (UnimplementedNotificationsServer) RegisterDevice(context.Context, *RegisterDeviceRequest) (*EmptyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RegisterDevice not implemented")
+}
+func (UnimplementedNotificationsServer) UnregisterDevice(context.Context, *UnregisterDeviceRequest) (*EmptyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UnregisterDevice not implemented")
 }
 func (UnimplementedNotificationsServer) mustEmbedUnimplementedNotificationsServer() {}
 func (UnimplementedNotificationsServer) testEmbeddedByValue()                       {}
@@ -376,6 +410,42 @@ func _Notifications_UpdateNotificationPreferences_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Notifications_RegisterDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterDeviceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationsServer).RegisterDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Notifications_RegisterDevice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationsServer).RegisterDevice(ctx, req.(*RegisterDeviceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Notifications_UnregisterDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnregisterDeviceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationsServer).UnregisterDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Notifications_UnregisterDevice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationsServer).UnregisterDevice(ctx, req.(*UnregisterDeviceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Notifications_ServiceDesc is the grpc.ServiceDesc for Notifications service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -418,6 +488,14 @@ var Notifications_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateNotificationPreferences",
 			Handler:    _Notifications_UpdateNotificationPreferences_Handler,
+		},
+		{
+			MethodName: "RegisterDevice",
+			Handler:    _Notifications_RegisterDevice_Handler,
+		},
+		{
+			MethodName: "UnregisterDevice",
+			Handler:    _Notifications_UnregisterDevice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

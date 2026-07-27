@@ -11,6 +11,8 @@ type Repository struct {
 	ProcessedEvents *ProcessedEventsRepo
 	ReminderState   *ReminderStateRepo
 	Preferences     *PreferencesRepo
+	Devices         *DevicesRepo
+	PushTickets     *PushTicketsRepo
 }
 
 func NewRepository(q *db.Queries) *Repository {
@@ -20,6 +22,8 @@ func NewRepository(q *db.Queries) *Repository {
 		ProcessedEvents: NewProcessedEventsRepo(q),
 		ReminderState:   NewReminderStateRepo(q),
 		Preferences:     NewPreferencesRepo(q),
+		Devices:         NewDevicesRepo(q),
+		PushTickets:     NewPushTicketsRepo(q),
 	}
 }
 

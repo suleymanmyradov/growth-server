@@ -42,6 +42,20 @@ func (l *RefreshTokenLogic) RefreshToken(in *auth.RefreshRequest) (*auth.AuthRes
 		return nil, status.Error(codes.Unauthenticated, "invalid or expired refresh token")
 	}
 
+	// Check whether the session has been revoked (e.g. via logout). This blocks
+	// refresh even if the token value itself hasn't been revoked, which is the
+	// key protection against a copied refresh token surviving logout.
+	sessionID := refreshClaims.SessionID
+	revoked, err := l.svcCtx.TokenMaker.IsSessionRevoked(ctx, sessionID)
+	if err != nil {
+		l.Errorf("RefreshToken failed to check session revocation for %s: %v", sessionID, err)
+		return nil, status.Error(codes.Internal, "failed to validate session")
+	}
+	if revoked {
+		l.Infof("RefreshToken rejected: session %s is revoked", sessionID)
+		return nil, status.Error(codes.Unauthenticated, "session revoked")
+	}
+
 	userID := refreshClaims.Subject
 	user, err := l.svcCtx.Repo.Users.GetUserByID(ctx, userID)
 	if err != nil {
@@ -49,7 +63,6 @@ func (l *RefreshTokenLogic) RefreshToken(in *auth.RefreshRequest) (*auth.AuthRes
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	sessionID := refreshClaims.SessionID
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("RefreshToken failed to create access token for user %s: %v", user.ID, err)

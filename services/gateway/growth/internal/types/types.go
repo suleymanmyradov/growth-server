@@ -29,6 +29,19 @@ type AppendMessageResponse struct {
 	Conversation Conversation        `json:"conversation"`
 }
 
+type AppleFullName struct {
+	GivenName  string `json:"givenName,optional,example=John"`
+	FamilyName string `json:"familyName,optional,example=Doe"`
+}
+
+type AppleLoginRequest struct {
+	AuthorizationCode string         `json:"authorizationCode,optional,example=c..."`
+	IdentityToken     string         `json:"identityToken,example=eyJraWQi..."`
+	Nonce             string         `json:"nonce,optional,example=..."`
+	FullName          *AppleFullName `json:"fullName,optional"`
+	RedirectUri       string         `json:"redirectUri,optional,example=https://app.example.com/auth/callback/apple"`
+}
+
 type ApplyPlanAdjustmentSuggestionRequest struct {
 	Id string `path:"id"`
 }
@@ -454,6 +467,11 @@ type LoginRequest struct {
 	DeviceId string `header:"X-Device-Id,optional,example=device-12345"`
 }
 
+type LogoutRequest struct {
+	RefreshToken string `json:"refreshToken,optional,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	DeviceId     string `header:"X-Device-Id,optional,example=device-12345"`
+}
+
 type Notification struct {
 	Id        string `json:"id,example=notif-123"`
 	Title     string `json:"title,example=Habit Reminder"`
@@ -576,6 +594,19 @@ type RefreshRequest struct {
 	RefreshToken string `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 }
 
+type RegisterDeviceRequest struct {
+	InstallationId string `path:"installationId"`
+	PushToken      string `json:"pushToken,example=ExponentPushToken[...]"`
+	Provider       string `json:"provider,example=expo"`
+	Platform       string `json:"platform,example=ios"`
+	AppId          string `json:"appId,optional,example=com.company.growth"`
+	Environment    string `json:"environment,example=production"`
+	AppVersion     string `json:"appVersion,optional,example=1.0.0"`
+	OsVersion      string `json:"osVersion,optional,example=17.5"`
+	Locale         string `json:"locale,optional,example=en-US"`
+	Timezone       string `json:"timezone,optional,example=America/Los_Angeles"`
+}
+
 type RegisterRequest struct {
 	Username string `json:"username,example=johndoe"`
 	Email    string `json:"email,example=john@example.com"`
@@ -603,6 +634,10 @@ type ResendVerificationRequest struct {
 type ResetPasswordRequest struct {
 	Token       string `json:"token,example=9f8e..."`
 	NewPassword string `json:"newPassword,example=securePassword123"`
+}
+
+type RevenueCatWebhookResponse struct {
+	Processed bool `json:"processed,example=true"`
 }
 
 type SaveItemRequest struct {
@@ -751,6 +786,10 @@ type TrackUpgradeEventResponse struct {
 
 type UnreadNotificationCountResponse struct {
 	Count int32 `json:"count"`
+}
+
+type UnregisterDeviceRequest struct {
+	InstallationId string `path:"installationId"`
 }
 
 type UpdateArticleRequest struct {

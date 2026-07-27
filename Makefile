@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api swagger-combined open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership check-openapi-drift
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -259,6 +259,16 @@ swagger-api:
 open-swagger:
 	@echo "Opening Swagger UI in browser..."
 	bunx open-swagger-ui --open ./services/gateway/contract/swagger/swagger.json
+
+# swagger-combined regenerates the goctl Swagger 2.0 spec, converts it to
+# OpenAPI 3.0 (swagger2openapi), and merges in the custom-transport routes
+# (multipart upload, transcribe, voice-turn SSE) from
+# services/gateway/contract/swagger/custom-transports.yaml. The result,
+# swagger-combined.json, is the OpenAPI 3.0 spec the mobile app feeds to
+# openapi-typescript. See scripts/merge-swagger.sh for details.
+swagger-combined:
+	@echo "Building combined OpenAPI 3.0 spec (generated + custom transports)..."
+	bash scripts/merge-swagger.sh --regen
 	
 sqlc:
 	@echo "Generating repository layer with sqlc..."
@@ -367,3 +377,7 @@ clean:
 check-ownership:
 	@echo "Running table ownership check..."
 	@bash scripts/check-table-ownership.sh
+
+check-openapi-drift:
+	@echo "Running OpenAPI drift check (gateway runtime vs swagger-combined.json)..."
+	@bash scripts/check-openapi-drift.sh

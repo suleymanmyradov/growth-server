@@ -5,6 +5,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clientgoaltemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goaltemplates"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -24,14 +25,14 @@ func NewAdminListGoalTemplatesLogic(ctx context.Context, svcCtx *svc.ServiceCont
 }
 
 func (l *AdminListGoalTemplatesLogic) AdminListGoalTemplates() (resp *types.GoalTemplatesResponse, err error) {
-	rows, err := l.svcCtx.Repo.GoalTemplates.List(l.ctx)
+	rpcResp, err := l.svcCtx.GoalTemplatesRpc.AdminListGoalTemplates(l.ctx, &clientgoaltemplates.AdminListGoalTemplatesRequest{})
 	if err != nil {
 		return nil, err
 	}
 
-	items := make([]types.GoalTemplateItem, 0, len(rows))
-	for _, row := range rows {
-		items = append(items, goalTemplateRowToItem(row))
+	items := make([]types.GoalTemplateItem, 0, len(rpcResp.Templates))
+	for _, t := range rpcResp.Templates {
+		items = append(items, goalTemplateProtoToItem(t))
 	}
 
 	return &types.GoalTemplatesResponse{

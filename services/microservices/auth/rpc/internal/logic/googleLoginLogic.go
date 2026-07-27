@@ -59,6 +59,14 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	redirectURI := in.RedirectUri
 	if redirectURI == "" {
 		redirectURI = cfg.RedirectURI
+	} else {
+		// Validate client-supplied redirect URI against an explicit allowlist
+		// to prevent authorization code interception. If no allowlist is
+		// configured, only the server's configured RedirectURI is accepted.
+		if !isAllowedRedirectURI(redirectURI, l.svcCtx.Config.GoogleOAuth.AllowedRedirectURIs, cfg.RedirectURI) {
+			l.Errorf("GoogleLogin: redirect URI not allowed: %s", redirectURI)
+			return nil, status.Error(codes.InvalidArgument, "redirect URI not allowed")
+		}
 	}
 
 	googleUser, err := cfg.ExchangeCode(ctx, in.AuthorizationCode, redirectURI)
@@ -224,4 +232,16 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(buf[i:])
+}
+
+// isAllowedRedirectURI checks whether a client-supplied redirect URI is in the
+// allowlist. If the allowlist is empty, only the server's configured RedirectURI
+// is accepted. The comparison is exact to prevent path traversal tricks.
+func isAllowedRedirectURI(uri string, allowed []string, configured string) bool {
+	for _, a := range allowed {
+		if a == uri {
+			return true
+		}
+	}
+	return uri == configured
 }

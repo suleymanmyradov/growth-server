@@ -13,6 +13,7 @@ import (
 const (
 	revokedAccessPrefix  = "revoked:access:"
 	revokedRefreshPrefix = "revoked:refresh:"
+	revokedSessionPrefix = "revoked:session:"
 	minRedisTTL          = 100 * time.Millisecond
 )
 
@@ -68,5 +69,27 @@ func (r *CmdableRedisRepository) IsTokenRevoked(ctx context.Context, tokenType j
 		return false, fmt.Errorf("check revocation: %w", err)
 	}
 
+	return exists > 0, nil
+}
+
+func (r *CmdableRedisRepository) MarkSessionRevoked(ctx context.Context, sessionID string, ttl time.Duration) error {
+	if ttl < minRedisTTL {
+		ttl = minRedisTTL
+	}
+
+	key := revokedSessionPrefix + sessionID
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	return r.client.Set(ctx, key, "1", ttl).Err()
+}
+
+func (r *CmdableRedisRepository) IsSessionRevoked(ctx context.Context, sessionID string) (bool, error) {
+	key := revokedSessionPrefix + sessionID
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+	exists, err := r.client.Exists(ctx, key).Result()
+	if err != nil {
+		return false, fmt.Errorf("check session revocation: %w", err)
+	}
 	return exists > 0, nil
 }

@@ -12,6 +12,22 @@ import (
 )
 
 type Querier interface {
+	AdminCreateGoalTemplate(ctx context.Context, arg AdminCreateGoalTemplateParams) (GoalTemplate, error)
+	AdminCreateHabitTemplate(ctx context.Context, arg AdminCreateHabitTemplateParams) (HabitTemplate, error)
+	AdminDeleteGoalTemplate(ctx context.Context, id uuid.UUID) error
+	AdminDeleteHabitTemplate(ctx context.Context, id uuid.UUID) error
+	// Admin CRUD queries for goal templates.
+	AdminGetGoalTemplate(ctx context.Context, id uuid.UUID) (AdminGetGoalTemplateRow, error)
+	// Admin CRUD queries for habit templates (called by adminway via gRPC).
+	// These queries are owned by the client service; adminway no longer queries
+	// these tables directly.
+	AdminGetHabitTemplate(ctx context.Context, id uuid.UUID) (AdminGetHabitTemplateRow, error)
+	// Admin list categories (for template management).
+	AdminListCategories(ctx context.Context) ([]AdminListCategoriesRow, error)
+	AdminListGoalTemplates(ctx context.Context) ([]AdminListGoalTemplatesRow, error)
+	AdminListHabitTemplates(ctx context.Context) ([]AdminListHabitTemplatesRow, error)
+	AdminUpdateGoalTemplate(ctx context.Context, arg AdminUpdateGoalTemplateParams) (GoalTemplate, error)
+	AdminUpdateHabitTemplate(ctx context.Context, arg AdminUpdateHabitTemplateParams) (HabitTemplate, error)
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error)
 	BatchCreateSavedArticles(ctx context.Context, arg []BatchCreateSavedArticlesParams) (int64, error)
 	BatchCreateSavedGoals(ctx context.Context, arg []BatchCreateSavedGoalsParams) (int64, error)
@@ -159,16 +175,26 @@ type Querier interface {
 	GetUserPreferences(ctx context.Context, userID uuid.UUID) (UserPreference, error)
 	GetUserProfileByID(ctx context.Context, id uuid.UUID) (GetUserProfileByIDRow, error)
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionRow, error)
+	// ─── RevenueCat queries ─────────────────────────────────────────────────────
+	// RevenueCat webhooks deliver entitlement changes from App Store / Play Store.
+	// See migration 043 and docs/push-notifications-design.md (billing section).
+	GetUserSubscriptionByRevenueCatCustomerID(ctx context.Context, revenuecatCustomerID *string) (GetUserSubscriptionByRevenueCatCustomerIDRow, error)
 	GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (GetUserSubscriptionByStripeCustomerIDRow, error)
+	// Used by the RevenueCat webhook handler to look up the subscription by user
+	// UUID (RevenueCat's app_user_id after Purchases.logIn).
+	GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (GetUserSubscriptionByUserIDRow, error)
 	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (GetWeeklyReviewRow, error)
 	// Timezone is passed by the caller.
 	HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, timezone string) (bool, error)
 	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 	IsArticleSaved(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (bool, error)
 	// Event dedup for the client service's Kafka consumer.
+	// Uses the client-owned client_processed_events table (not the notifications-
+	// owned processed_events table) to respect table ownership boundaries.
 	IsClientEventProcessed(ctx context.Context, eventID string) (bool, error)
 	IsGoalSaved(ctx context.Context, userID uuid.UUID, goalID uuid.UUID) (bool, error)
 	IsHabitSaved(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) (bool, error)
+	IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error)
 	IsStripeEventProcessed(ctx context.Context, eventID string) (bool, error)
 	LinkArticleTags(ctx context.Context, articleID uuid.UUID, column2 []string) error
 	// Link multiple habits to a goal at once.
@@ -250,6 +276,7 @@ type Querier interface {
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListWeeklyReviewsRow, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
 	MarkClientEventProcessed(ctx context.Context, eventID string) error
+	MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error
 	MarkStripeEventProcessed(ctx context.Context, eventID string) error
 	ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error
 	// "Uncompletes" all of today's habits by deleting today's completed check-ins.
@@ -257,6 +284,10 @@ type Querier interface {
 	// once today's completed check-in is gone; no streak mutation is needed here.
 	// Returns the number of completed check-ins removed.
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error)
+	// Links a RevenueCat customer ID to an existing subscription. Called when the
+	// first RevenueCat webhook arrives for a user (the mobile app has already
+	// called Purchases.logIn(userId) on the client side).
+	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
 	ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error)
 	// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error

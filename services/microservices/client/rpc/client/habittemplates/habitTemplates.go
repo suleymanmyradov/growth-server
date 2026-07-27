@@ -14,11 +14,25 @@ import (
 )
 
 type (
-	ListHabitTemplatesRequest  = client.ListHabitTemplatesRequest
-	ListHabitTemplatesResponse = client.ListHabitTemplatesResponse
+	AdminCreateHabitTemplateRequest  = client.AdminCreateHabitTemplateRequest
+	AdminDeleteHabitTemplateRequest  = client.AdminDeleteHabitTemplateRequest
+	AdminDeleteHabitTemplateResponse = client.AdminDeleteHabitTemplateResponse
+	AdminGetHabitTemplateRequest     = client.AdminGetHabitTemplateRequest
+	AdminListHabitTemplatesRequest   = client.AdminListHabitTemplatesRequest
+	AdminListHabitTemplatesResponse  = client.AdminListHabitTemplatesResponse
+	AdminUpdateHabitTemplateRequest  = client.AdminUpdateHabitTemplateRequest
+	HabitTemplate                    = client.HabitTemplate
+	ListHabitTemplatesRequest        = client.ListHabitTemplatesRequest
+	ListHabitTemplatesResponse       = client.ListHabitTemplatesResponse
 
 	HabitTemplates interface {
 		ListHabitTemplates(ctx context.Context, in *ListHabitTemplatesRequest, opts ...grpc.CallOption) (*ListHabitTemplatesResponse, error)
+		// Admin CRUD (called by adminway via gRPC, not direct DB access).
+		AdminListHabitTemplates(ctx context.Context, in *AdminListHabitTemplatesRequest, opts ...grpc.CallOption) (*AdminListHabitTemplatesResponse, error)
+		AdminGetHabitTemplate(ctx context.Context, in *AdminGetHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+		AdminCreateHabitTemplate(ctx context.Context, in *AdminCreateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+		AdminUpdateHabitTemplate(ctx context.Context, in *AdminUpdateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error)
+		AdminDeleteHabitTemplate(ctx context.Context, in *AdminDeleteHabitTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteHabitTemplateResponse, error)
 	}
 
 	defaultHabitTemplates struct {
@@ -35,4 +49,30 @@ func NewHabitTemplates(cli zrpc.Client) HabitTemplates {
 func (m *defaultHabitTemplates) ListHabitTemplates(ctx context.Context, in *ListHabitTemplatesRequest, opts ...grpc.CallOption) (*ListHabitTemplatesResponse, error) {
 	client := client.NewHabitTemplatesClient(m.cli.Conn())
 	return client.ListHabitTemplates(ctx, in, opts...)
+}
+
+// Admin CRUD (called by adminway via gRPC, not direct DB access).
+func (m *defaultHabitTemplates) AdminListHabitTemplates(ctx context.Context, in *AdminListHabitTemplatesRequest, opts ...grpc.CallOption) (*AdminListHabitTemplatesResponse, error) {
+	client := client.NewHabitTemplatesClient(m.cli.Conn())
+	return client.AdminListHabitTemplates(ctx, in, opts...)
+}
+
+func (m *defaultHabitTemplates) AdminGetHabitTemplate(ctx context.Context, in *AdminGetHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	client := client.NewHabitTemplatesClient(m.cli.Conn())
+	return client.AdminGetHabitTemplate(ctx, in, opts...)
+}
+
+func (m *defaultHabitTemplates) AdminCreateHabitTemplate(ctx context.Context, in *AdminCreateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	client := client.NewHabitTemplatesClient(m.cli.Conn())
+	return client.AdminCreateHabitTemplate(ctx, in, opts...)
+}
+
+func (m *defaultHabitTemplates) AdminUpdateHabitTemplate(ctx context.Context, in *AdminUpdateHabitTemplateRequest, opts ...grpc.CallOption) (*HabitTemplate, error) {
+	client := client.NewHabitTemplatesClient(m.cli.Conn())
+	return client.AdminUpdateHabitTemplate(ctx, in, opts...)
+}
+
+func (m *defaultHabitTemplates) AdminDeleteHabitTemplate(ctx context.Context, in *AdminDeleteHabitTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteHabitTemplateResponse, error) {
+	client := client.NewHabitTemplatesClient(m.cli.Conn())
+	return client.AdminDeleteHabitTemplate(ctx, in, opts...)
 }

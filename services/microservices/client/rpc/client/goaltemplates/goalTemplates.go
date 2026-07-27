@@ -14,11 +14,25 @@ import (
 )
 
 type (
-	ListGoalTemplatesRequest  = client.ListGoalTemplatesRequest
-	ListGoalTemplatesResponse = client.ListGoalTemplatesResponse
+	AdminCreateGoalTemplateRequest  = client.AdminCreateGoalTemplateRequest
+	AdminDeleteGoalTemplateRequest  = client.AdminDeleteGoalTemplateRequest
+	AdminDeleteGoalTemplateResponse = client.AdminDeleteGoalTemplateResponse
+	AdminGetGoalTemplateRequest     = client.AdminGetGoalTemplateRequest
+	AdminListGoalTemplatesRequest   = client.AdminListGoalTemplatesRequest
+	AdminListGoalTemplatesResponse  = client.AdminListGoalTemplatesResponse
+	AdminUpdateGoalTemplateRequest  = client.AdminUpdateGoalTemplateRequest
+	GoalTemplate                    = client.GoalTemplate
+	ListGoalTemplatesRequest        = client.ListGoalTemplatesRequest
+	ListGoalTemplatesResponse       = client.ListGoalTemplatesResponse
 
 	GoalTemplates interface {
 		ListGoalTemplates(ctx context.Context, in *ListGoalTemplatesRequest, opts ...grpc.CallOption) (*ListGoalTemplatesResponse, error)
+		// Admin CRUD (called by adminway via gRPC, not direct DB access).
+		AdminListGoalTemplates(ctx context.Context, in *AdminListGoalTemplatesRequest, opts ...grpc.CallOption) (*AdminListGoalTemplatesResponse, error)
+		AdminGetGoalTemplate(ctx context.Context, in *AdminGetGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+		AdminCreateGoalTemplate(ctx context.Context, in *AdminCreateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+		AdminUpdateGoalTemplate(ctx context.Context, in *AdminUpdateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error)
+		AdminDeleteGoalTemplate(ctx context.Context, in *AdminDeleteGoalTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteGoalTemplateResponse, error)
 	}
 
 	defaultGoalTemplates struct {
@@ -35,4 +49,30 @@ func NewGoalTemplates(cli zrpc.Client) GoalTemplates {
 func (m *defaultGoalTemplates) ListGoalTemplates(ctx context.Context, in *ListGoalTemplatesRequest, opts ...grpc.CallOption) (*ListGoalTemplatesResponse, error) {
 	client := client.NewGoalTemplatesClient(m.cli.Conn())
 	return client.ListGoalTemplates(ctx, in, opts...)
+}
+
+// Admin CRUD (called by adminway via gRPC, not direct DB access).
+func (m *defaultGoalTemplates) AdminListGoalTemplates(ctx context.Context, in *AdminListGoalTemplatesRequest, opts ...grpc.CallOption) (*AdminListGoalTemplatesResponse, error) {
+	client := client.NewGoalTemplatesClient(m.cli.Conn())
+	return client.AdminListGoalTemplates(ctx, in, opts...)
+}
+
+func (m *defaultGoalTemplates) AdminGetGoalTemplate(ctx context.Context, in *AdminGetGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	client := client.NewGoalTemplatesClient(m.cli.Conn())
+	return client.AdminGetGoalTemplate(ctx, in, opts...)
+}
+
+func (m *defaultGoalTemplates) AdminCreateGoalTemplate(ctx context.Context, in *AdminCreateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	client := client.NewGoalTemplatesClient(m.cli.Conn())
+	return client.AdminCreateGoalTemplate(ctx, in, opts...)
+}
+
+func (m *defaultGoalTemplates) AdminUpdateGoalTemplate(ctx context.Context, in *AdminUpdateGoalTemplateRequest, opts ...grpc.CallOption) (*GoalTemplate, error) {
+	client := client.NewGoalTemplatesClient(m.cli.Conn())
+	return client.AdminUpdateGoalTemplate(ctx, in, opts...)
+}
+
+func (m *defaultGoalTemplates) AdminDeleteGoalTemplate(ctx context.Context, in *AdminDeleteGoalTemplateRequest, opts ...grpc.CallOption) (*AdminDeleteGoalTemplateResponse, error) {
+	client := client.NewGoalTemplatesClient(m.cli.Conn())
+	return client.AdminDeleteGoalTemplate(ctx, in, opts...)
 }

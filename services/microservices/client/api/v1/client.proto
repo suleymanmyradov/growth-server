@@ -925,6 +925,8 @@ service Categories {
   rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
   rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
   rpc ReorderCategories(ReorderCategoriesRequest) returns (ReorderCategoriesResponse);
+  // Admin list for template management (called by adminway via gRPC).
+  rpc AdminListCategories(AdminListCategoriesRequest) returns (AdminListCategoriesResponse);
 }
 
 // CheckIn Service
@@ -1420,6 +1422,18 @@ message HandleStripeWebhookResponse {
   bool processed = 1;
 }
 
+// RevenueCat webhook (mobile subscriptions via App Store / Play Store).
+// The gateway forwards the raw body + Authorization header; the client service
+// verifies the signature and processes the events. See pkg/revenuecat/client.go.
+message HandleRevenueCatWebhookRequest {
+  bytes rawBody = 1;
+  string authorization = 2;
+}
+
+message HandleRevenueCatWebhookResponse {
+  bool processed = 1;
+}
+
 // PlanLimitDetail is attached to gRPC status details when a plan limit is reached.
 // It is used by the gateway to render structured 402 / payment_required responses.
 message PlanLimitDetail {
@@ -1433,6 +1447,7 @@ service BillingService {
   rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
   rpc CreateCustomerPortalSession(CreateCustomerPortalSessionRequest) returns (CreateCustomerPortalSessionResponse);
   rpc HandleStripeWebhook(HandleStripeWebhookRequest) returns (HandleStripeWebhookResponse);
+  rpc HandleRevenueCatWebhook(HandleRevenueCatWebhookRequest) returns (HandleRevenueCatWebhookResponse);
   // Admin: list every user's subscription plan code + status. Used by adminway
   // to segment broadcast notifications into premium / free audiences.
   rpc ListSubscriptionStatuses(ListSubscriptionStatusesRequest) returns (ListSubscriptionStatusesResponse);
@@ -1507,8 +1522,9 @@ service SiteSettings {
 }
 
 // Habit & Goal Templates Service — admin-managed suggestion library shown on
-// the explore page. Only List RPCs are exposed to the gateway; CRUD is handled
-// by adminway via direct DB access (adminway has its own sqlc queries).
+// the explore page. List RPCs are exposed to the gateway for the explore page;
+// admin CRUD RPCs are called by adminway (replacing former direct DB access
+// that violated table ownership).
 message TemplateCategory {
   string id = 1;
   string name = 2;
@@ -1521,8 +1537,9 @@ message HabitTemplate {
   string description = 3;
   TemplateCategory category = 4;
   int32 sortOrder = 5;
-  int64 createdAt = 6;
-  int64 updatedAt = 7;
+  bool isActive = 6;
+  int64 createdAt = 7;
+  int64 updatedAt = 8;
 }
 
 message GoalTemplate {
@@ -1531,8 +1548,9 @@ message GoalTemplate {
   string description = 3;
   TemplateCategory category = 4;
   int32 sortOrder = 5;
-  int64 createdAt = 6;
-  int64 updatedAt = 7;
+  bool isActive = 6;
+  int64 createdAt = 7;
+  int64 updatedAt = 8;
 }
 
 message ListHabitTemplatesRequest {}
@@ -1547,11 +1565,77 @@ message ListGoalTemplatesResponse {
   repeated GoalTemplate templates = 1;
 }
 
+// Admin CRUD for habit templates (called by adminway, not the gateway).
+message AdminListHabitTemplatesRequest {}
+message AdminListHabitTemplatesResponse {
+  repeated HabitTemplate templates = 1;
+}
+message AdminGetHabitTemplateRequest { string id = 1; }
+message AdminCreateHabitTemplateRequest {
+  string name = 1;
+  string description = 2;
+  string categoryId = 3;
+  int32 sortOrder = 4;
+  bool isActive = 5;
+}
+message AdminUpdateHabitTemplateRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string categoryId = 4;
+  int32 sortOrder = 5;
+  bool isActive = 6;
+}
+message AdminDeleteHabitTemplateRequest { string id = 1; }
+message AdminDeleteHabitTemplateResponse { bool success = 1; }
+
+// Admin CRUD for goal templates (called by adminway, not the gateway).
+message AdminListGoalTemplatesRequest {}
+message AdminListGoalTemplatesResponse {
+  repeated GoalTemplate templates = 1;
+}
+message AdminGetGoalTemplateRequest { string id = 1; }
+message AdminCreateGoalTemplateRequest {
+  string title = 1;
+  string description = 2;
+  string categoryId = 3;
+  int32 sortOrder = 4;
+  bool isActive = 5;
+}
+message AdminUpdateGoalTemplateRequest {
+  string id = 1;
+  string title = 2;
+  string description = 3;
+  string categoryId = 4;
+  int32 sortOrder = 5;
+  bool isActive = 6;
+}
+message AdminDeleteGoalTemplateRequest { string id = 1; }
+message AdminDeleteGoalTemplateResponse { bool success = 1; }
+
+// Admin CRUD for categories (called by adminway for template management).
+message AdminListCategoriesRequest {}
+message AdminListCategoriesResponse {
+  repeated TemplateCategory categories = 1;
+}
+
 service HabitTemplates {
   rpc ListHabitTemplates(ListHabitTemplatesRequest) returns (ListHabitTemplatesResponse);
+  // Admin CRUD (called by adminway via gRPC, not direct DB access).
+  rpc AdminListHabitTemplates(AdminListHabitTemplatesRequest) returns (AdminListHabitTemplatesResponse);
+  rpc AdminGetHabitTemplate(AdminGetHabitTemplateRequest) returns (HabitTemplate);
+  rpc AdminCreateHabitTemplate(AdminCreateHabitTemplateRequest) returns (HabitTemplate);
+  rpc AdminUpdateHabitTemplate(AdminUpdateHabitTemplateRequest) returns (HabitTemplate);
+  rpc AdminDeleteHabitTemplate(AdminDeleteHabitTemplateRequest) returns (AdminDeleteHabitTemplateResponse);
 }
 
 service GoalTemplates {
   rpc ListGoalTemplates(ListGoalTemplatesRequest) returns (ListGoalTemplatesResponse);
+  // Admin CRUD (called by adminway via gRPC, not direct DB access).
+  rpc AdminListGoalTemplates(AdminListGoalTemplatesRequest) returns (AdminListGoalTemplatesResponse);
+  rpc AdminGetGoalTemplate(AdminGetGoalTemplateRequest) returns (GoalTemplate);
+  rpc AdminCreateGoalTemplate(AdminCreateGoalTemplateRequest) returns (GoalTemplate);
+  rpc AdminUpdateGoalTemplate(AdminUpdateGoalTemplateRequest) returns (GoalTemplate);
+  rpc AdminDeleteGoalTemplate(AdminDeleteGoalTemplateRequest) returns (AdminDeleteGoalTemplateResponse);
 }
 

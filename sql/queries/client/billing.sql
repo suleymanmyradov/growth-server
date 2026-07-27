@@ -11,7 +11,7 @@ WHERE code = $1 AND is_active = TRUE;
 
 -- name: GetUserSubscription :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -29,7 +29,7 @@ SELECT $1, p.id, 'free'
 FROM plans p
 WHERE p.code = 'free'
 ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
+RETURNING *;
 
 -- name: UpsertUserSubscription :one
 INSERT INTO subscriptions (
@@ -56,7 +56,7 @@ DO UPDATE SET
     cancel_at_period_end = EXCLUDED.cancel_at_period_end,
     stripe_customer_id = EXCLUDED.stripe_customer_id,
     stripe_subscription_id = EXCLUDED.stripe_subscription_id
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, stripe_subscription_id, created_at, updated_at;
+RETURNING *;
 
 -- name: CreateUpgradeEvent :one
 WITH ins AS (
@@ -73,7 +73,7 @@ LEFT JOIN plans p ON p.id = ins.plan_id;
 
 -- name: GetUserSubscriptionByStripeCustomerID :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -87,18 +87,18 @@ WHERE s.stripe_customer_id = $1;
 
 -- name: IsStripeEventProcessed :one
 SELECT EXISTS(
-    SELECT 1 FROM processed_events
+    SELECT 1 FROM billing_webhook_events
     WHERE consumer = 'stripe_webhooks' AND event_id = $1
 );
 
 -- name: MarkStripeEventProcessed :exec
-INSERT INTO processed_events (consumer, event_id)
+INSERT INTO billing_webhook_events (consumer, event_id)
 VALUES ('stripe_webhooks', $1)
 ON CONFLICT DO NOTHING;
 
 -- name: ListExpiredActiveSubscriptions :many
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -121,3 +121,56 @@ SELECT s.user_id, p.code AS plan_code, s.status
 FROM subscriptions s
 JOIN plans p ON p.id = s.plan_id
 ORDER BY s.user_id;
+
+-- ─── RevenueCat queries ─────────────────────────────────────────────────────
+-- RevenueCat webhooks deliver entitlement changes from App Store / Play Store.
+-- See migration 043 and docs/push-notifications-design.md (billing section).
+
+-- name: GetUserSubscriptionByRevenueCatCustomerID :one
+SELECT
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.revenuecat_customer_id = $1;
+
+-- name: GetUserSubscriptionByUserID :one
+-- Used by the RevenueCat webhook handler to look up the subscription by user
+-- UUID (RevenueCat's app_user_id after Purchases.logIn).
+SELECT
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.created_at, s.updated_at,
+    p.code AS plan_code,
+    p.name AS plan_name,
+    p.active_goal_limit,
+    p.active_habit_limit,
+    p.weekly_review_history_limit,
+    p.plan_adjustment_limit,
+    p.personalized_ai_enabled
+FROM subscriptions s
+JOIN plans p ON p.id = s.plan_id
+WHERE s.user_id = $1;
+
+-- name: SetRevenueCatCustomerID :exec
+-- Links a RevenueCat customer ID to an existing subscription. Called when the
+-- first RevenueCat webhook arrives for a user (the mobile app has already
+-- called Purchases.logIn(userId) on the client side).
+UPDATE subscriptions
+SET revenuecat_customer_id = $2, updated_at = now()
+WHERE user_id = $1 AND revenuecat_customer_id IS NULL;
+
+-- name: IsRevenueCatEventProcessed :one
+SELECT EXISTS(
+    SELECT 1 FROM billing_webhook_events
+    WHERE consumer = 'revenuecat_webhooks' AND event_id = $1
+);
+
+-- name: MarkRevenueCatEventProcessed :exec
+INSERT INTO billing_webhook_events (consumer, event_id)
+VALUES ('revenuecat_webhooks', $1)
+ON CONFLICT DO NOTHING;

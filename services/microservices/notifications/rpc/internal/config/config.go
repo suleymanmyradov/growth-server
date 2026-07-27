@@ -22,6 +22,15 @@ type Config struct {
 		ReminderDueTopic string
 		ConsumerGroup    string
 	}
+	// Expo push notifications configuration. See docs/push-notifications-design.md.
+	Expo struct {
+		// AccessToken is the optional Expo access token (raises rate limits).
+		// Leave empty for unauthenticated sends (sufficient for low volume).
+		AccessToken string `json:",optional" secret:"true"`
+		// Enabled toggles push delivery. When false, the push sender is a no-op
+		// so dev environments without push can run the service.
+		Enabled bool `json:",optional,default=false"`
+	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`
 }

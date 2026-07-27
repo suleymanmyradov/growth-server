@@ -8,3 +8,6 @@ DELETE FROM reminders WHERE user_id = $1;
 
 -- name: DeleteNotificationPreferencesByUser :exec
 DELETE FROM notification_preferences WHERE user_id = $1;
+
+-- name: DeleteDevicesByUser :exec
+DELETE FROM notification_devices WHERE user_id = $1;

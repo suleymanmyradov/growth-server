@@ -3,9 +3,9 @@ package habittemplates
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
+	clienthabittemplates "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habittemplates"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -27,12 +27,13 @@ func NewAdminDeleteHabitTemplateLogic(ctx context.Context, svcCtx *svc.ServiceCo
 }
 
 func (l *AdminDeleteHabitTemplateLogic) AdminDeleteHabitTemplate(req *types.DeleteHabitTemplateRequest) (resp *types.EmptyResponse, err error) {
-	id, err := uuid.Parse(req.Id)
-	if err != nil {
+	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "invalid id")
 	}
 
-	if err := l.svcCtx.Repo.HabitTemplates.Delete(l.ctx, id); err != nil {
+	if _, err := l.svcCtx.HabitTemplatesRpc.AdminDeleteHabitTemplate(l.ctx, &clienthabittemplates.AdminDeleteHabitTemplateRequest{
+		Id: req.Id,
+	}); err != nil {
 		return nil, status.Error(codes.NotFound, "habit template not found")
 	}
 

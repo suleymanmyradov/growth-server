@@ -48,6 +48,11 @@ func (s *BillingServiceServer) HandleStripeWebhook(ctx context.Context, in *clie
 	return l.HandleStripeWebhook(in)
 }
 
+func (s *BillingServiceServer) HandleRevenueCatWebhook(ctx context.Context, in *client.HandleRevenueCatWebhookRequest) (*client.HandleRevenueCatWebhookResponse, error) {
+	l := billingservicelogic.NewHandleRevenueCatWebhookLogic(ctx, s.svcCtx)
+	return l.HandleRevenueCatWebhook(in)
+}
+
 // Admin: list every user's subscription plan code + status. Used by adminway
 func (s *BillingServiceServer) ListSubscriptionStatuses(ctx context.Context, in *client.ListSubscriptionStatusesRequest) (*client.ListSubscriptionStatusesResponse, error) {
 	l := billingservicelogic.NewListSubscriptionStatusesLogic(ctx, s.svcCtx)

@@ -49,7 +49,7 @@ func TestEventsHandler_MalformedPayload(t *testing.T) {
 }
 
 func TestReminderDueHandler_InvalidEnvelope(t *testing.T) {
-	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil)
+	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil, nil)
 	err := h.Consume(context.Background(), "", "{bad")
 	if err != nil {
 		t.Fatalf("expected nil on invalid envelope, got %v", err)
@@ -57,7 +57,7 @@ func TestReminderDueHandler_InvalidEnvelope(t *testing.T) {
 }
 
 func TestReminderDueHandler_InvalidEventID(t *testing.T) {
-	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil)
+	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil, nil)
 	env := events.Envelope{EventID: "bad", EventType: string(events.TypeReminderDue)}
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
@@ -67,7 +67,7 @@ func TestReminderDueHandler_InvalidEventID(t *testing.T) {
 }
 
 func TestReminderDueHandler_UnhandledType(t *testing.T) {
-	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil)
+	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, nil, nil)
 	env, _ := events.NewEnvelope(events.TypeReminderDue, events.ReminderDue{
 		ReminderID: uuid.New().String(),
 		UserID:     uuid.New().String(),
@@ -136,7 +136,7 @@ func TestEventsHandler_InvalidEventID_RoutedToDLQ(t *testing.T) {
 
 func TestReminderDueHandler_InvalidEnvelope_RoutedToDLQ(t *testing.T) {
 	dlq := &fakeDLQ{}
-	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, dlq)
+	h := NewReminderDueHandler(&repository.Repository{}, nil, nil, dlq, nil)
 
 	err := h.Consume(context.Background(), "", "{bad")
 	if err != nil {

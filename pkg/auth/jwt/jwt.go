@@ -69,6 +69,8 @@ type TokenResponse struct {
 type RevocationRepository interface {
 	MarkTokenRevoke(ctx context.Context, tokenType TokenType, token string, ttl time.Duration) error
 	IsTokenRevoked(ctx context.Context, tokenType TokenType, token string) (bool, error)
+	MarkSessionRevoked(ctx context.Context, sessionID string, ttl time.Duration) error
+	IsSessionRevoked(ctx context.Context, sessionID string) (bool, error)
 }
 
 type TokenMaker struct {
@@ -195,7 +197,20 @@ func (tm *TokenMaker) VerifyRefreshToken(ctx context.Context, tokenString string
 	}
 
 	if tm.repo != nil {
-		revoked, err := tm.repo.IsTokenRevoked(ctx, RefreshToken, tokenString)
+		// Check session revocation first: this is the key protection against a
+		// copied refresh token surviving logout. Logout revokes the entire
+		// session by session ID, so any refresh token (including copies) issued
+		// for that session is rejected here.
+		revoked, err := tm.repo.IsSessionRevoked(ctx, claims.SessionID.String())
+		if err != nil {
+			return nil, fmt.Errorf("check session revocation: %w", err)
+		}
+		if revoked {
+			return nil, fmt.Errorf("session revoked")
+		}
+
+		// Defense-in-depth: also check token-value revocation.
+		revoked, err = tm.repo.IsTokenRevoked(ctx, RefreshToken, tokenString)
 		if err != nil {
 			return nil, fmt.Errorf("check revocation: %w", err)
 		}
@@ -284,6 +299,82 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 	}
 
 	return tm.repo.MarkTokenRevoke(ctx, AccessToken, tokenString, ttl)
+}
+
+// RevokeRefreshToken revokes a refresh token by value. Used during logout for
+// defense-in-depth alongside session-level revocation.
+func (tm *TokenMaker) RevokeRefreshToken(ctx context.Context, tokenString string) error {
+	if tm.repo == nil {
+		return fmt.Errorf("revocation not enabled")
+	}
+
+	// Parse without time validation to allow revoking expired tokens.
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrInvalidToken
+		}
+		return []byte(tm.secret), nil
+	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
+	if err != nil || !token.Valid {
+		return ErrInvalidToken
+	}
+
+	claims, ok := token.Claims.(*TokenClaims)
+	if !ok {
+		return ErrInvalidToken
+	}
+
+	if claims.Issuer != tm.issuer {
+		return ErrInvalidToken
+	}
+
+	validAudience := false
+	for _, aud := range claims.Audience {
+		if aud == tm.audience {
+			validAudience = true
+			break
+		}
+	}
+	if !validAudience {
+		return ErrInvalidToken
+	}
+
+	if claims.TokenType != RefreshToken {
+		return ErrInvalidToken
+	}
+
+	if claims.ExpiresAt == nil {
+		return ErrInvalidToken
+	}
+
+	ttl := time.Until(claims.ExpiresAt.Time)
+	if ttl < time.Minute {
+		ttl = time.Minute
+	}
+
+	return tm.repo.MarkTokenRevoke(ctx, RefreshToken, tokenString, ttl)
+}
+
+// RevokeSession marks an entire session as revoked. All refresh tokens for that
+// session will be rejected on the next refresh attempt, even if the token value
+// itself hasn't been revoked. The TTL should cover the refresh token's max
+// remaining lifetime so the entry is cleaned up automatically.
+func (tm *TokenMaker) RevokeSession(ctx context.Context, sessionID uuid.UUID, ttl time.Duration) error {
+	if tm.repo == nil {
+		return fmt.Errorf("revocation not enabled")
+	}
+	if ttl < time.Minute {
+		ttl = time.Minute
+	}
+	return tm.repo.MarkSessionRevoked(ctx, sessionID.String(), ttl)
+}
+
+// IsSessionRevoked checks whether a session has been revoked.
+func (tm *TokenMaker) IsSessionRevoked(ctx context.Context, sessionID uuid.UUID) (bool, error) {
+	if tm.repo == nil {
+		return false, nil
+	}
+	return tm.repo.IsSessionRevoked(ctx, sessionID.String())
 }
 
 func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (*TokenResponse, error) {
