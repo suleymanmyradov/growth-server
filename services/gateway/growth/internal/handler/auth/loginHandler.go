@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/auth"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -25,6 +27,14 @@ func LoginHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		l := auth.NewLoginLogic(r.Context(), svcCtx)
 		resp, err := l.Login(&req)
 		if err != nil {
+			// Wrong credentials return Unauthenticated with a user-facing message
+			// ("invalid email or password"). HandleGrpcError would sanitize that to
+			// the generic "authentication required", which is confusing on a login
+			// form — write the original message directly instead.
+			if st, ok := status.FromError(err); ok && st.Code() == codes.Unauthenticated {
+				errors.WriteError(w, http.StatusUnauthorized, st.Message())
+				return
+			}
 			errors.HandleGrpcError(w, err)
 		} else {
 			httpx.OkJsonCtx(r.Context(), w, resp)
