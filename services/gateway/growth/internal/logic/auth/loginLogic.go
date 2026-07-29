@@ -46,6 +46,15 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.AuthResponse, e
 
 	rpcResp, err := l.svcCtx.AuthRpc.Login(l.ctx, rpcReq)
 	if err != nil {
+		// The auth RPC returns Unauthenticated for wrong credentials. The generic
+		// HandleGrpcError sanitizer would turn that into "authentication required",
+		// which is confusing on the login form — re-wrap as InvalidArgument so the
+		// user sees "invalid request" → but we want a specific message, so return
+		// a typed error the handler can detect. Use Unauthenticated with a clear
+		// message and let the handler write it directly.
+		if st, ok := status.FromError(err); ok && st.Code() == codes.Unauthenticated {
+			return nil, status.Error(codes.Unauthenticated, "invalid email or password")
+		}
 		return nil, err
 	}
 
