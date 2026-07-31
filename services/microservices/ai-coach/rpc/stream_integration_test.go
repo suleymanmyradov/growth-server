@@ -33,7 +33,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/aitest"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
-	aicoachserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server"
+	aicoachserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server/aicoachservice"
 	aicoachsvc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	aicoachpb "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 	clientpb "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
