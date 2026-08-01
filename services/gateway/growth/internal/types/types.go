@@ -853,10 +853,10 @@ type UpdateSettingsRequest struct {
 	Theme               string `json:"theme,optional"`
 	Language            string `json:"language,optional"`
 	Timezone            string `json:"timezone,optional"`
-	EmailNotifications  bool   `json:"emailNotifications,optional"`
-	PushNotifications   bool   `json:"pushNotifications,optional"`
-	HabitReminders      bool   `json:"habitReminders,optional"`
-	GoalReminders       bool   `json:"goalReminders,optional"`
+	EmailNotifications  *bool  `json:"emailNotifications,optional"`
+	PushNotifications   *bool  `json:"pushNotifications,optional"`
+	HabitReminders      *bool  `json:"habitReminders,optional"`
+	GoalReminders       *bool  `json:"goalReminders,optional"`
 	AccountabilityStyle string `json:"accountabilityStyle,optional"`
 	CheckInTime         string `json:"checkInTime,optional"`
 	OnboardingCompleted bool   `json:"onboardingCompleted,optional"`

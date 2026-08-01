@@ -47,7 +47,7 @@ WITH u AS (
 -- ============================================================
 -- 3. User settings (defaults are fine for a demo)
 -- ============================================================
-INSERT INTO user_settings (user_id, onboarding_completed)
+INSERT INTO user_preferences (user_id, onboarding_completed)
 SELECT id, true FROM u
 ON CONFLICT (user_id) DO NOTHING;
 

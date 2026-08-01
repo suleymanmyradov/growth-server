@@ -482,10 +482,10 @@ type (
 		theme               string `json:"theme,optional"`
 		language            string `json:"language,optional"`
 		timezone            string `json:"timezone,optional"`
-		emailNotifications  bool   `json:"emailNotifications,optional"`
-		pushNotifications   bool   `json:"pushNotifications,optional"`
-		habitReminders      bool   `json:"habitReminders,optional"`
-		goalReminders       bool   `json:"goalReminders,optional"`
+		emailNotifications  *bool `json:"emailNotifications,optional"`
+		pushNotifications   *bool `json:"pushNotifications,optional"`
+		habitReminders      *bool `json:"habitReminders,optional"`
+		goalReminders       *bool `json:"goalReminders,optional"`
 		accountabilityStyle string `json:"accountabilityStyle,optional"`
 		checkInTime         string `json:"checkInTime,optional"`
 		onboardingCompleted bool   `json:"onboardingCompleted,optional"`

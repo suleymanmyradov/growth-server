@@ -300,6 +300,11 @@ type Querier interface {
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error)
 	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error)
 	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (UpdateHabitRow, error)
+	// The onboarding_completed flag is a one-way operation: once true, a general
+	// settings update (e.g. changing check-in time or accountability style) must
+	// never reset it to false. The protobuf bool field defaults to false when
+	// omitted, so the CASE expression preserves the existing value when the input
+	// is false and only flips to true when explicitly requested.
 	UpdateOnboardingCompleted(ctx context.Context, userID uuid.UUID, checkInTime pgtype.Time, onboardingCompleted bool) (UserPreference, error)
 	UpdatePlanAdjustmentSuggestion(ctx context.Context, arg UpdatePlanAdjustmentSuggestionParams) (PlanAdjustment, error)
 	UpdatePlanAdjustmentSuggestionStatus(ctx context.Context, iD uuid.UUID, userID uuid.UUID, status string) (PlanAdjustment, error)

@@ -76,10 +76,15 @@ INSERT INTO user_preferences (user_id, check_in_time, onboarding_completed)
 VALUES ($1, COALESCE($2::time, '09:00'::time), $3)
 ON CONFLICT (user_id) DO UPDATE
 SET check_in_time = COALESCE($2::time, user_preferences.check_in_time),
-    onboarding_completed = $3
+    onboarding_completed = CASE WHEN $3 THEN true ELSE user_preferences.onboarding_completed END
 RETURNING user_id, theme, language, timezone, check_in_time, onboarding_completed, created_at, updated_at
 `
 
+// The onboarding_completed flag is a one-way operation: once true, a general
+// settings update (e.g. changing check-in time or accountability style) must
+// never reset it to false. The protobuf bool field defaults to false when
+// omitted, so the CASE expression preserves the existing value when the input
+// is false and only flips to true when explicitly requested.
 func (q *Queries) UpdateOnboardingCompleted(ctx context.Context, userID uuid.UUID, checkInTime pgtype.Time, onboardingCompleted bool) (UserPreference, error) {
 	row := q.db.QueryRow(ctx, updateOnboardingCompleted, userID, checkInTime, onboardingCompleted)
 	var i UserPreference
