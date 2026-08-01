@@ -48,6 +48,13 @@ type Client interface {
 	// RunAgent runs the model<->tool round-trip loop. Use for Phase 5
 	// conversational coach and proactive agent.
 	RunAgent(ctx context.Context, req AgentRequest) (AgentResponse, error)
+
+	// StreamAgent runs the model<->tool round-trip loop with streaming.
+	// Content deltas are streamed in real time; tool calls during
+	// intermediate steps are surfaced as ToolCall events. Only the final
+	// step's content is included in the Complete event's FullResponse.
+	// Use for the conversational coach SSE endpoint.
+	StreamAgent(ctx context.Context, req AgentRequest) (AgentStreamReader, error)
 }
 
 // client implements Client.

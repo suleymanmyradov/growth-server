@@ -30,3 +30,18 @@ type Verdict struct {
 type Classifier interface {
 	Classify(ctx context.Context, text string) (Verdict, error)
 }
+
+// CrisisResponse is the deterministic, never-model-generated response streamed
+// to the user when the safety classifier detects a crisis or self-harm signal.
+// It is a single source of truth so the model can never hallucinate or omit
+// safety resources. Region-aware helplines can be derived from the user
+// profile location later; for now this covers the most common regions.
+const CrisisResponse = `It sounds like you're going through something really painful right now, and I'm glad you reached out.
+I'm an accountability coach, not a crisis counselor, so I want to make sure you get the right support.
+
+If you're in immediate danger, please call your local emergency number now.
+• US: call or text 988 (Suicide & Crisis Lifeline)
+• UK & ROI: call 116 123 (Samaritans)
+• Elsewhere: https://findahelpline.com
+
+You deserve support from someone trained to help. Would you like to keep talking about your goals when you're ready?`
