@@ -53,6 +53,16 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
+		// Agentic path: when the gateway has its own AI client, use
+		// StreamAgent with on-demand tool calls. The model fetches user
+		// data (goals, habits, check-ins, etc.) only when the user's
+		// message makes it relevant, instead of eagerly stuffing
+		// everything into the prompt.
+		if svcCtx.AIClient != nil {
+			streamAgenticCoaching(w, r, &req, svcCtx, p)
+			return
+		}
+
 		// If a conversationId is provided, persist the user message before
 		// opening the stream so the message is saved even if streaming fails.
 		// Also fetch prior conversation history to give the LLM context.

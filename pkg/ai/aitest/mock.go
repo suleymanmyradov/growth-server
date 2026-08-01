@@ -19,18 +19,20 @@ type ResponseRecorder struct {
 
 // MockClient implements ai.Client with recordable responses for testing.
 type MockClient struct {
-	mu        sync.Mutex
-	responses map[ai.ModelProfile][]ResponseRecorder
-	calls     []ai.GenerateRequest
-	streams   map[ai.ModelProfile][]ai.Chunk
-	err       error // if set, all calls return this error
+	mu           sync.Mutex
+	responses    map[ai.ModelProfile][]ResponseRecorder
+	calls        []ai.GenerateRequest
+	streams      map[ai.ModelProfile][]ai.Chunk
+	agentStreams map[ai.ModelProfile][]ai.AgentStreamChunk
+	err          error // if set, all calls return this error
 }
 
 // NewMockClient creates a new MockClient.
 func NewMockClient() *MockClient {
 	return &MockClient{
-		responses: make(map[ai.ModelProfile][]ResponseRecorder),
-		streams:   make(map[ai.ModelProfile][]ai.Chunk),
+		responses:    make(map[ai.ModelProfile][]ResponseRecorder),
+		streams:      make(map[ai.ModelProfile][]ai.Chunk),
+		agentStreams: make(map[ai.ModelProfile][]ai.AgentStreamChunk),
 	}
 }
 
@@ -58,6 +60,13 @@ func (m *MockClient) RecordStream(profile ai.ModelProfile, chunks ...ai.Chunk) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.streams[profile] = append(m.streams[profile], chunks...)
+}
+
+// RecordAgentStream adds canned agent stream chunks for a model profile.
+func (m *MockClient) RecordAgentStream(profile ai.ModelProfile, chunks ...ai.AgentStreamChunk) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.agentStreams[profile] = append(m.agentStreams[profile], chunks...)
 }
 
 // Calls returns all recorded Generate calls.
@@ -149,6 +158,23 @@ func (m *MockClient) RunAgent(ctx context.Context, req ai.AgentRequest) (ai.Agen
 	}, nil
 }
 
+// StreamAgent returns a mock agent stream with canned chunks.
+func (m *MockClient) StreamAgent(_ context.Context, req ai.AgentRequest) (ai.AgentStreamReader, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.err != nil {
+		return nil, m.err
+	}
+
+	chunks, ok := m.agentStreams[req.ModelProfile]
+	if !ok || len(chunks) == 0 {
+		return nil, fmt.Errorf("aitest: no recorded agent stream for profile %q", req.ModelProfile)
+	}
+
+	return &mockAgentStreamReader{chunks: chunks}, nil
+}
+
 // mockStreamReader implements ai.StreamReader with canned chunks.
 type mockStreamReader struct {
 	chunks []ai.Chunk
@@ -165,6 +191,28 @@ func (r *mockStreamReader) Recv() (ai.Chunk, error) {
 }
 
 func (r *mockStreamReader) Close() {
+	r.pos = len(r.chunks)
+}
+
+// mockAgentStreamReader implements ai.AgentStreamReader with canned chunks.
+type mockAgentStreamReader struct {
+	chunks []ai.AgentStreamChunk
+	pos    int
+}
+
+func (r *mockAgentStreamReader) Recv() (ai.AgentStreamChunk, error) {
+	if r.pos >= len(r.chunks) {
+		return ai.AgentStreamChunk{}, io.EOF
+	}
+	chunk := r.chunks[r.pos]
+	r.pos++
+	if chunk.Error != nil {
+		return chunk, chunk.Error
+	}
+	return chunk, nil
+}
+
+func (r *mockAgentStreamReader) Close() {
 	r.pos = len(r.chunks)
 }
 

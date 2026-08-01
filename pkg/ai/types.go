@@ -153,6 +153,46 @@ type AgentResponse struct {
 	CostUSD   float64   `json:"cost_usd"`
 }
 
+// AgentStreamChunk is one event from an agent stream (StreamAgent).
+//
+// A chunk is exactly one of:
+//   - Delta: a text content delta streamed in real time. Deltas from
+//     intermediate steps (model reasoning before a tool call) and the
+//     final answer are both forwarded. Only the final step's content
+//     is included in the Complete event's FullResponse.
+//   - ToolCall: a tool was called and executed during an intermediate step.
+//     The caller can surface this as a status update ("Looking up your
+//     habits...").
+//   - Complete: the agent loop is done. FullResponse carries the entire
+//     final answer; Usage carries cumulative token usage.
+//   - Error: an error occurred mid-stream. The stream ends after this.
+type AgentStreamChunk struct {
+	Delta        string         `json:"delta,omitempty"`
+	ToolCall     *ToolCallEvent `json:"tool_call,omitempty"`
+	Complete     bool           `json:"complete,omitempty"`
+	FullResponse string         `json:"full_response,omitempty"`
+	Usage        *Usage         `json:"usage,omitempty"`
+	Error        error          `json:"-"`
+}
+
+// ToolCallEvent describes a tool invocation during the agent loop.
+type ToolCallEvent struct {
+	Step   int    `json:"step"`             // 1-based step in the loop
+	Name   string `json:"name"`             // tool name
+	Args   string `json:"args,omitempty"`   // JSON arguments
+	Result string `json:"result,omitempty"` // JSON result (set after execution)
+	Error  string `json:"error,omitempty"`  // non-empty if execution failed
+}
+
+// AgentStreamReader exposes Recv/Close for streaming agent consumption.
+type AgentStreamReader interface {
+	// Recv blocks until the next chunk is available. Returns io.EOF when
+	// the stream is finished.
+	Recv() (AgentStreamChunk, error)
+	// Close releases resources. Must be called when done reading.
+	Close()
+}
+
 // toEinoMessages converts our Messages to Eino schema.Message pointers.
 func toEinoMessages(msgs []Message, system string) []*einoMessage {
 	var out []*einoMessage

@@ -1,25 +1,19 @@
 package prompts
 
-import "time"
+import (
+	"time"
+
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
+)
 
 // Note: the priority-tiered context assembler (AssembleContextWithBreakdown)
 // lives in context_assembler.go. BuildContextSummary (the shared check-in
 // digest helper) lives in pkg/ai/prompts.
 
-// CrisisResponse is the deterministic, never-model-generated response streamed
-// to the user when the safety classifier detects a crisis or self-harm signal.
-// It is a single source of truth so the model can never hallucinate or omit
-// safety resources. Region-aware helplines can be derived from the user
-// profile location later; for now this covers the most common regions.
-const CrisisResponse = `It sounds like you're going through something really painful right now, and I'm glad you reached out.
-I'm an accountability coach, not a crisis counselor, so I want to make sure you get the right support.
-
-If you're in immediate danger, please call your local emergency number now.
-• US: call or text 988 (Suicide & Crisis Lifeline)
-• UK & ROI: call 116 123 (Samaritans)
-• Elsewhere: https://findahelpline.com
-
-You deserve support from someone trained to help. Would you like to keep talking about your goals when you're ready?`
+// CrisisResponse is the deterministic crisis response. The canonical
+// definition lives in pkg/ai/safety so both the ai-coach RPC and the
+// gateway's agentic coaching path share a single source of truth.
+const CrisisResponse = safety.CrisisResponse
 
 // MemorySnippet is one retrieved long-term memory hit from the private
 // user_memory index. It is treated as untrusted user data: the assembler

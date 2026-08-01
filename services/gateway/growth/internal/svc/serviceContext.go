@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
@@ -34,6 +36,11 @@ type ServiceContext struct {
 	SearchRpc        searchservice.SearchService
 	AICoachRpc       *aicoachrpc.Service
 	FileManagerRpc   fileManagerClient.FileManager
+	// AIClient is the LLM client for the agentic coaching flow. Nil when
+	// AI.APIKey is empty — the coaching handler falls back to the legacy
+	// ai-coach RPC stream in that case.
+	AIClient   ai.Client
+	Classifier safety.Classifier
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -82,6 +89,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	limiters := middleware.BuildRateLimiters(c.RateLimit)
 
+	// AI client for the agentic coaching flow. Optional — if APIKey is
+	// empty, the coaching handler falls back to the legacy ai-coach RPC.
+	var aiClient ai.Client
+	var classifier safety.Classifier
+	if c.AI.APIKey != "" {
+		client, err := ai.New(c.AI)
+		if err != nil {
+			logx.Must(fmt.Errorf("failed to create AI client: %w", err))
+		}
+		aiClient = client
+		classifier = safety.NewLLMClassifier(aiClient)
+	}
+
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
 		Secret:   c.Auth.Secret,
 		Issuer:   c.Auth.Issuer,
@@ -106,5 +126,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SearchRpc:        searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
 		AICoachRpc:       aiCoachRpc,
 		FileManagerRpc:   fileManagerClient.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
+		AIClient:         aiClient,
+		Classifier:       classifier,
 	}
 }
