@@ -17,8 +17,6 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const verificationTokenTTL = 1 * time.Hour
@@ -41,37 +39,37 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "RegisterLogic.Register")
 	defer span.End()
 
-	l.Infof("Register attempt for email: %s, username: %s", in.Email, in.Username)
-
 	if in == nil {
 		l.Errorf("Register validation failed: request is nil")
-		return nil, status.Error(codes.InvalidArgument, "request is nil")
+		return nil, errInvalidArgument(MsgRequestIsNil)
 	}
+
+	l.Infof("Register attempt for email: %s, username: %s", in.Email, in.Username)
 
 	if in.Username == "" || in.Email == "" || in.Password == "" {
 		l.Errorf("Register validation failed: username, email and password are required")
-		return nil, status.Error(codes.InvalidArgument, "username, email and password are required")
+		return nil, errInvalidArgument(MsgUsernameEmailPasswordReq)
 	}
 
 	if !validator.IsValidUsername(in.Username) {
 		l.Errorf("Register validation failed: invalid username format: %s", in.Username)
-		return nil, status.Error(codes.InvalidArgument, "username must be lowercase, start with a letter, and only contain letters, numbers, underscores, or hyphens")
+		return nil, errInvalidArgument(MsgUsernameFormat)
 	}
 
 	if !validator.IsValidEmail(in.Email) {
 		l.Errorf("Register validation failed: invalid email format: %s", in.Email)
-		return nil, status.Error(codes.InvalidArgument, "invalid email format")
+		return nil, errInvalidArgument(MsgInvalidEmailFormat)
 	}
 
 	if !validator.IsStrongPassword(in.Password) {
 		l.Errorf("Register validation failed: weak password for email: %s", in.Email)
-		return nil, status.Error(codes.InvalidArgument, "password must be at least 8 characters and contain uppercase, lowercase, number, and special character")
+		return nil, errInvalidArgument(MsgPasswordStrength)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(in.Password), bcrypt.DefaultCost)
 	if err != nil {
 		l.Errorf("Register failed to hash password: %v", err)
-		return nil, status.Error(codes.Internal, "failed to process password")
+		return nil, errInternal(MsgFailedProcessPassword)
 	}
 
 	hashStr := string(hashedPassword)
@@ -89,10 +87,10 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 			var pgErr *pgconn.PgError
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				l.Errorf("Register failed: user already exists for email: %s", in.Email)
-				return status.Error(codes.AlreadyExists, "user already exists")
+				return ErrUserAlreadyExists
 			}
 			l.Errorf("Register failed to create user: %v", err)
-			return status.Error(codes.Internal, "failed to create user")
+			return errInternal(MsgFailedCreateUser)
 		}
 		user = db.User(row)
 		return nil
@@ -106,14 +104,22 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 	verificationRepo := repository.NewVerificationRepo(l.svcCtx.RedisClient)
 	if err := verificationRepo.Store(ctx, token, user.ID.String(), user.Email, verificationTokenTTL); err != nil {
 		l.Errorf("Register failed to store verification token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate verification token")
+		return nil, errInternal(MsgFailedGenerateVerifToken)
 	}
 	if err := verificationRepo.SetThrottle(ctx, user.Email, 60*time.Second); err != nil {
 		l.Errorf("Register failed to set verification throttle: %v", err)
 	}
 
+	// Email sending and event publishing are external/side-effecting work
+	// that must not be bounded by the short RPC deadline (2s) — a slow Resend
+	// would otherwise cancel the Kafka publish and surface as a 504 even though
+	// the user row is already committed. Detach from the request context so the
+	// RPC can return immediately, and give the email send its own generous
+	// timeout. Both best-effort: failures are logged, never returned.
 	verificationURL := l.svcCtx.Config.Email.FrontendBaseURL + "/verify-email?token=" + token
-	if err := l.svcCtx.EmailSender.Send(ctx, email.Email{
+	emailCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+	defer cancel()
+	if err := l.svcCtx.EmailSender.Send(emailCtx, email.Email{
 		To:      []string{user.Email},
 		Subject: "Verify your email",
 		HTML:    emailVerificationHTML(user.FullName, verificationURL),
@@ -125,7 +131,7 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 	l.Infof("Register successful for user %s (pending email verification)", user.ID)
 
 	// Publish so downstream services can seed their local user_profiles read model.
-	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
+	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
 
 	return &auth.RegisterResponse{
 		RequiresVerification: true,

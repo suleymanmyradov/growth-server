@@ -12,8 +12,6 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ResendVerificationLogic struct {
@@ -39,11 +37,11 @@ func (l *ResendVerificationLogic) ResendVerification(in *auth.ResendVerification
 
 	if in == nil || in.Email == "" {
 		l.Errorf("ResendVerification validation failed: email is required")
-		return nil, status.Error(codes.InvalidArgument, "email is required")
+		return nil, errInvalidArgument(MsgEmailIsRequired)
 	}
 	if !validator.IsValidEmail(in.Email) {
 		l.Errorf("ResendVerification validation failed: invalid email format: %s", in.Email)
-		return nil, status.Error(codes.InvalidArgument, "invalid email format")
+		return nil, errInvalidArgument(MsgInvalidEmailFormat)
 	}
 
 	user, err := l.svcCtx.Repo.Users.GetUserByEmail(ctx, in.Email)
@@ -65,26 +63,32 @@ func (l *ResendVerificationLogic) ResendVerification(in *auth.ResendVerification
 	}
 	if pending {
 		l.Infof("ResendVerification: throttled for email %s", in.Email)
-		return nil, status.Error(codes.ResourceExhausted, "please wait before requesting another verification email")
+		return nil, errResourceExhausted(MsgPleaseWaitBeforeResend)
 	}
 
 	token := generateRandomToken(32)
 	if err := verificationRepo.Store(ctx, token, user.ID.String(), user.Email, verificationTokenTTL); err != nil {
 		l.Errorf("ResendVerification failed to store token: %v", err)
-		return nil, status.Error(codes.Internal, "failed to generate verification token")
+		return nil, errInternal(MsgFailedGenerateVerifToken)
 	}
 	if err := verificationRepo.SetThrottle(ctx, user.Email, 60*time.Second); err != nil {
 		l.Errorf("ResendVerification failed to set throttle: %v", err)
 	}
 
 	verificationURL := l.svcCtx.Config.Email.FrontendBaseURL + "/verify-email?token=" + token
-	if err := l.svcCtx.EmailSender.Send(ctx, email.Email{
+	// Detach from the request context so a cancelled RPC (client disconnect,
+	// gateway timeout) doesn't prevent the verification email from being sent —
+	// the verification token is already stored in Redis and the user can't
+	// verify without the email. Give the email send its own generous timeout.
+	emailCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+	defer cancel()
+	if err := l.svcCtx.EmailSender.Send(emailCtx, email.Email{
 		To:      []string{user.Email},
 		Subject: "Verify your email",
 		HTML:    emailVerificationHTML(user.FullName, verificationURL),
 	}); err != nil {
 		l.Errorf("ResendVerification failed to send email to %s: %v", user.Email, err)
-		return nil, status.Error(codes.Internal, "failed to send verification email")
+		return nil, errInternal(MsgFailedSendVerificationEmail)
 	}
 
 	l.Infof("ResendVerification successful for user %s", user.ID)

@@ -29,16 +29,20 @@ func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.AuthResponse
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "AuthLoginLogic.AuthLogin")
 	defer span.End()
 
+	if req.Email == "" || req.Password == "" {
+		return nil, errInvalidArgument(MsgEmailAndPasswordRequired)
+	}
+
 	user, err := l.svcCtx.Repo.InternalUsers.GetByEmail(ctx, req.Email)
 	if err != nil {
 		l.Errorf("login failed to get internal user by email: %v", err)
-		return nil, err
+		return nil, ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
 	if err != nil {
 		l.Errorf("login password mismatch for user %s: %v", user.ID, err)
-		return nil, err
+		return nil, ErrInvalidCredentials
 	}
 
 	sessionID := uuid.New()
@@ -46,13 +50,13 @@ func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.AuthResponse
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("login failed to create access token for user %s: %v", user.ID, err)
-		return nil, err
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("login failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, err
+		return nil, ErrFailedGenRefreshToken
 	}
 
 	return &types.AuthResponse{

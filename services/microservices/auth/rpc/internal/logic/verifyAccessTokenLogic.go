@@ -8,8 +8,6 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type VerifyAccessTokenLogic struct {
@@ -34,20 +32,20 @@ func (l *VerifyAccessTokenLogic) VerifyAccessToken(in *auth.VerifyAccessTokenReq
 
 	if in == nil || in.AccessToken == "" {
 		l.Errorf("VerifyAccessToken validation failed: access token is required")
-		return nil, status.Error(codes.Unauthenticated, "access token is required")
+		return nil, errUnauthenticated(MsgAccessTokenRequired)
 	}
 
 	claims, err := l.svcCtx.TokenMaker.VerifyAccessToken(ctx, in.AccessToken)
 	if err != nil {
 		l.Errorf("VerifyAccessToken failed to verify access token: %v", err)
-		return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
+		return nil, errUnauthenticated(MsgInvalidOrExpiredAccessToken)
 	}
 
 	// Verify the user still exists and is active
 	user, err := l.svcCtx.Repo.Users.GetUserByID(ctx, claims.Subject)
 	if err != nil {
 		l.Errorf("VerifyAccessToken failed to get user %s: %v", claims.Subject, err)
-		return nil, status.Error(codes.Unauthenticated, "invalid or expired access token")
+		return nil, errUnauthenticated(MsgInvalidOrExpiredAccessToken)
 	}
 
 	var roles []string

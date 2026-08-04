@@ -9,8 +9,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type UpdateProfileLogic struct {
@@ -35,26 +33,26 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 
 	if in == nil || in.UserId == "" {
 		l.Errorf("UpdateProfile validation failed: user ID is required")
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, errInvalidArgument(MsgUserIdRequired)
 	}
 
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Errorf("UpdateProfile failed to parse user ID: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		return nil, errInvalidArgument(MsgInvalidUserId)
 	}
 
 	user, err := l.svcCtx.Repo.Users.GetUserByID(ctx, userID)
 	if err != nil {
 		l.Errorf("UpdateProfile failed to get user %s: %v", userID, err)
-		return nil, status.Error(codes.NotFound, "user not found")
+		return nil, ErrUserNotFound
 	}
 
 	if in.FullName != "" {
 		user, err = l.svcCtx.Repo.Users.UpdateUserFullName(ctx, user.ID, in.FullName)
 		if err != nil {
 			l.Errorf("UpdateProfile failed to update user full name for user %s: %v", userID, err)
-			return nil, status.Error(codes.Internal, "failed to update user")
+			return nil, errInternal(MsgFailedUpdateUser)
 		}
 	}
 
@@ -68,7 +66,7 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 	})
 	if err != nil {
 		l.Errorf("UpdateProfile failed to update profile for user %s: %v", userID, err)
-		return nil, status.Error(codes.Internal, "failed to update profile")
+		return nil, errInternal(MsgFailedUpdateProfile)
 	}
 
 	l.Infof("UpdateProfile successful for user %s", userID)

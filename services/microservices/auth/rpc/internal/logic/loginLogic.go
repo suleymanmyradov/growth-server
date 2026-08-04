@@ -10,8 +10,6 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type LoginLogic struct {
@@ -32,40 +30,40 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "LoginLogic.Login")
 	defer span.End()
 
-	l.Infof("Login attempt for email: %s", in.Email)
-
 	if in == nil || in.Email == "" || in.Password == "" {
 		l.Errorf("Login validation failed: email and password are required")
-		return nil, status.Error(codes.InvalidArgument, "email and password are required")
+		return nil, errInvalidArgument(MsgEmailAndPasswordRequired)
 	}
+
+	l.Infof("Login attempt for email: %s", in.Email)
 
 	if !validator.IsValidEmail(in.Email) {
 		l.Errorf("Login validation failed: invalid email format: %s", in.Email)
-		return nil, status.Error(codes.InvalidArgument, "invalid email format")
+		return nil, errInvalidArgument(MsgInvalidEmailFormat)
 	}
 
 	user, err := l.svcCtx.Repo.Users.GetUserByEmail(ctx, in.Email)
 	if err != nil {
 		l.Errorf("Login failed to get user by email: %v", err)
-		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
 	// OAuth-only users have no local password and must sign in via their provider.
 	if user.PasswordHash == nil {
 		l.Errorf("Login rejected: user %s has no password (OAuth-only account)", user.ID)
-		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(in.Password))
 	if err != nil {
 		l.Errorf("Login password mismatch for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+		return nil, ErrInvalidCredentials
 	}
 
 	// Block login until the email is verified.
 	if !user.EmailVerified {
 		l.Errorf("Login rejected: user %s email not verified", user.ID)
-		return nil, status.Error(codes.PermissionDenied, "email not verified")
+		return nil, ErrEmailNotVerified
 	}
 
 	sessionID := uuid.New()
@@ -73,13 +71,13 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("Login failed to create access token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate access token")
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("Login failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate refresh token")
+		return nil, ErrFailedGenRefreshTok
 	}
 
 	l.Infof("Login successful for user %s", user.ID)

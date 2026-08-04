@@ -15,8 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const googleProvider = "google"
@@ -43,7 +41,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	defer span.End()
 
 	if in == nil || in.AuthorizationCode == "" {
-		return nil, status.Error(codes.InvalidArgument, "authorization code is required")
+		return nil, errInvalidArgument(MsgAuthorizationCodeRequired)
 	}
 
 	cfg := google.Config{
@@ -53,7 +51,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	}
 	if cfg.ClientID == "" || cfg.ClientSecret == "" {
 		l.Errorf("GoogleLogin: Google OAuth not configured")
-		return nil, status.Error(codes.FailedPrecondition, "Google sign-in is not configured")
+		return nil, errFailedPrecondition(MsgGoogleNotConfigured)
 	}
 
 	redirectURI := in.RedirectUri
@@ -65,18 +63,18 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 		// configured, only the server's configured RedirectURI is accepted.
 		if !isAllowedRedirectURI(redirectURI, l.svcCtx.Config.GoogleOAuth.AllowedRedirectURIs, cfg.RedirectURI) {
 			l.Errorf("GoogleLogin: redirect URI not allowed: %s", redirectURI)
-			return nil, status.Error(codes.InvalidArgument, "redirect URI not allowed")
+			return nil, errInvalidArgument(MsgRedirectURINotAllowed)
 		}
 	}
 
 	googleUser, err := cfg.ExchangeCode(ctx, in.AuthorizationCode, redirectURI)
 	if err != nil {
 		l.Errorf("GoogleLogin: exchange failed: %v", err)
-		return nil, status.Error(codes.Unauthenticated, "failed to authenticate with Google")
+		return nil, errUnauthenticated(MsgFailedAuthGoogle)
 	}
 	if googleUser.Subject == "" || googleUser.Email == "" {
 		l.Errorf("GoogleLogin: incomplete Google profile (sub/email missing)")
-		return nil, status.Error(codes.Unauthenticated, "incomplete Google profile")
+		return nil, errUnauthenticated(MsgIncompleteGoogleProfile)
 	}
 
 	var user db.User
@@ -89,7 +87,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 		if err == nil {
 			row, gerr := q.GetUserByID(ctx, acc.UserID)
 			if gerr != nil {
-				return status.Error(codes.Internal, "failed to load linked user")
+				return errInternal(MsgFailedLoadLinkedUser)
 			}
 			user = db.User(row)
 			return nil
@@ -107,7 +105,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 					return nil
 				}
 				l.Errorf("GoogleLogin: link to existing user failed: %v", lerr)
-				return status.Error(codes.Internal, "failed to link Google account")
+				return errInternal(MsgFailedLinkGoogleAccount)
 			}
 			return nil
 		}
@@ -129,13 +127,13 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 					continue
 				}
 				l.Errorf("GoogleLogin: create user failed: %v", cerr)
-				return status.Error(codes.Internal, "failed to create user")
+				return errInternal(MsgFailedCreateUser)
 			}
 			user = db.User(oauthRow)
 			emailPtr := &googleUser.Email
 			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
 				l.Errorf("GoogleLogin: create oauth account failed: %v", lerr)
-				return status.Error(codes.Internal, "failed to link Google account")
+				return errInternal(MsgFailedLinkGoogleAccount)
 			}
 			return nil
 		}
@@ -153,13 +151,13 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("GoogleLogin: access token failed: %v", err)
-		return nil, status.Error(codes.Internal, "failed to generate access token")
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("GoogleLogin: refresh token failed: %v", err)
-		return nil, status.Error(codes.Internal, "failed to generate refresh token")
+		return nil, ErrFailedGenRefreshTok
 	}
 
 	l.Infof("GoogleLogin successful for user %s", user.ID)

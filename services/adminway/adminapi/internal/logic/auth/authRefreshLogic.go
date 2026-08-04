@@ -30,13 +30,13 @@ func (l *AuthRefreshLogic) AuthRefresh(req *types.RefreshTokenRequest) (*types.A
 	claims, err := l.svcCtx.TokenMaker.VerifyRefreshToken(ctx, req.RefreshToken)
 	if err != nil {
 		l.Errorf("refresh failed to verify refresh token: %v", err)
-		return nil, err
+		return nil, ErrInvalidExpiredRefresh
 	}
 
 	user, err := l.svcCtx.Repo.InternalUsers.GetByID(ctx, claims.Subject)
 	if err != nil {
 		l.Errorf("refresh failed to get user by id: %v", err)
-		return nil, err
+		return nil, ErrAdminNotFound
 	}
 
 	sessionID := claims.SessionID
@@ -45,13 +45,13 @@ func (l *AuthRefreshLogic) AuthRefresh(req *types.RefreshTokenRequest) (*types.A
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, roles, sessionID)
 	if err != nil {
 		l.Errorf("refresh failed to create access token: %v", err)
-		return nil, err
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, roles, sessionID)
 	if err != nil {
 		l.Errorf("refresh failed to create refresh token: %v", err)
-		return nil, err
+		return nil, ErrFailedGenRefreshToken
 	}
 
 	return &types.AuthResponse{

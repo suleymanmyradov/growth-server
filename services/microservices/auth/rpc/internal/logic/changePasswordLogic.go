@@ -9,8 +9,6 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
 	"golang.org/x/crypto/bcrypt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ChangePasswordLogic struct {
@@ -35,43 +33,43 @@ func (l *ChangePasswordLogic) ChangePassword(in *auth.ChangePasswordRequest) (*a
 
 	if in == nil || in.UserId == "" || in.OldPassword == "" || in.NewPassword == "" {
 		l.Errorf("ChangePassword validation failed: user ID, old password and new password are required")
-		return nil, status.Error(codes.InvalidArgument, "user ID, old password and new password are required")
+		return nil, errInvalidArgument(MsgUserIdOldNewPasswordReq)
 	}
 
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Errorf("ChangePassword failed to parse user ID: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		return nil, errInvalidArgument(MsgInvalidUserId)
 	}
 
 	user, err := l.svcCtx.Repo.Users.GetUserByID(ctx, userID)
 	if err != nil {
 		l.Errorf("ChangePassword failed to get user %s: %v", userID, err)
-		return nil, status.Error(codes.NotFound, "user not found")
+		return nil, ErrUserNotFound
 	}
 
 	// OAuth-only users have no local password and cannot change one here.
 	if user.PasswordHash == nil {
 		l.Errorf("ChangePassword rejected: user %s has no password (OAuth-only account)", userID)
-		return nil, status.Error(codes.FailedPrecondition, "no password set for this account")
+		return nil, errFailedPrecondition(MsgNoPasswordSetForAccount)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(in.OldPassword))
 	if err != nil {
 		l.Errorf("ChangePassword invalid old password for user %s: %v", userID, err)
-		return nil, status.Error(codes.Unauthenticated, "invalid old password")
+		return nil, errUnauthenticated(MsgInvalidOldPassword)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(in.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		l.Errorf("ChangePassword failed to hash new password for user %s: %v", userID, err)
-		return nil, status.Error(codes.Internal, "failed to process new password")
+		return nil, errInternal(MsgFailedProcessNewPassword)
 	}
 
 	_, err = l.svcCtx.Repo.Users.UpdateUserPassword(ctx, user.ID, string(hashedPassword))
 	if err != nil {
 		l.Errorf("ChangePassword failed to update password for user %s: %v", userID, err)
-		return nil, status.Error(codes.Internal, "failed to update password")
+		return nil, errInternal(MsgFailedUpdatePassword)
 	}
 
 	l.Infof("ChangePassword successful for user %s", userID)

@@ -10,8 +10,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -32,19 +30,19 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.RegisterResponse, error) {
 	if !validator.IsNotEmpty(req.Username) {
-		return nil, status.Error(codes.InvalidArgument, "username is required")
+		return nil, errInvalidArgument(MsgUsernameRequired)
 	}
 	if !validator.IsValidUsername(req.Username) {
-		return nil, status.Error(codes.InvalidArgument, "username must be lowercase, start with a letter, and only contain letters, numbers, underscores, or hyphens")
+		return nil, errInvalidArgument(MsgUsernameFormat)
 	}
 	if !validator.IsNotEmpty(req.Email) || !validator.IsValidEmail(req.Email) {
-		return nil, status.Error(codes.InvalidArgument, "valid email is required")
+		return nil, ErrValidEmailRequired
 	}
 	if !validator.IsStrongPassword(req.Password) {
-		return nil, status.Error(codes.InvalidArgument, "password must be at least 8 characters with uppercase, lowercase, number and special character")
+		return nil, errInvalidArgument(MsgPasswordStrength)
 	}
 	if !validator.IsNotEmpty(req.FullName) {
-		return nil, status.Error(codes.InvalidArgument, "full name is required")
+		return nil, errInvalidArgument(MsgFullNameRequired)
 	}
 
 	registerResp, err := l.svcCtx.AuthRpc.Register(l.ctx, &authservice.RegisterRequest{

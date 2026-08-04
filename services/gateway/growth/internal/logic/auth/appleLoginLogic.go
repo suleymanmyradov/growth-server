@@ -9,8 +9,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -31,7 +29,7 @@ func NewAppleLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AppleL
 
 func (l *AppleLoginLogic) AppleLogin(req *types.AppleLoginRequest) (*types.AuthResponse, error) {
 	if req == nil || req.IdentityToken == "" {
-		return nil, status.Error(codes.InvalidArgument, "identity token is required")
+		return nil, errInvalidArgument(MsgIdentityTokenRequired)
 	}
 
 	var fullName *authservice.AppleFullName

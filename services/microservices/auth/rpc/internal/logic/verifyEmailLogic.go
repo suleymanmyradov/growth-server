@@ -10,8 +10,6 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type VerifyEmailLogic struct {
@@ -36,30 +34,30 @@ func (l *VerifyEmailLogic) VerifyEmail(in *auth.VerifyEmailRequest) (*auth.AuthR
 
 	if in == nil || in.Token == "" {
 		l.Errorf("VerifyEmail validation failed: token is required")
-		return nil, status.Error(codes.InvalidArgument, "token is required")
+		return nil, errInvalidArgument(MsgTokenIsRequired)
 	}
 
 	verificationRepo := repository.NewVerificationRepo(l.svcCtx.RedisClient)
 	entry, exists, err := verificationRepo.Get(ctx, in.Token)
 	if err != nil {
 		l.Errorf("VerifyEmail failed to lookup token: %v", err)
-		return nil, status.Error(codes.Internal, "failed to validate token")
+		return nil, errInternal(MsgFailedValidateToken)
 	}
 	if !exists {
 		l.Errorf("VerifyEmail invalid or expired token")
-		return nil, status.Error(codes.Unauthenticated, "invalid or expired verification token")
+		return nil, errUnauthenticated(MsgInvalidOrExpiredVerifToken)
 	}
 
 	userID, err := uuid.Parse(entry.UserID)
 	if err != nil {
 		l.Errorf("VerifyEmail invalid user id in token: %v", err)
-		return nil, status.Error(codes.Internal, "invalid verification token")
+		return nil, errInternal(MsgInvalidVerificationToken)
 	}
 
 	user, err := l.svcCtx.Repo.Users.SetEmailVerified(ctx, userID)
 	if err != nil {
 		l.Errorf("VerifyEmail failed to mark user %s verified: %v", userID, err)
-		return nil, status.Error(codes.Internal, "failed to verify email")
+		return nil, errInternal(MsgFailedVerifyEmail)
 	}
 
 	if err := verificationRepo.Delete(ctx, in.Token); err != nil {
@@ -70,13 +68,13 @@ func (l *VerifyEmailLogic) VerifyEmail(in *auth.VerifyEmailRequest) (*auth.AuthR
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("VerifyEmail failed to create access token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate access token")
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("VerifyEmail failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to generate refresh token")
+		return nil, ErrFailedGenRefreshTok
 	}
 
 	l.Infof("VerifyEmail successful for user %s", user.ID)

@@ -13,9 +13,9 @@ import (
 var snakeCaseRe = regexp.MustCompile("([a-z0-9])([A-Z])")
 
 type ErrorResponse struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-	Limit   string `json:"limit,omitempty"`
+	Code           string `json:"code"`
+	Message        string `json:"message"`
+	Limit          string `json:"limit,omitempty"`
 	UpgradeTrigger string `json:"upgradeTrigger,omitempty"`
 }
 
@@ -28,7 +28,7 @@ func WriteUnauthorized(w http.ResponseWriter, message string) {
 func WriteForbidden(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)
-	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "permission_denied", Message: "forbidden"})
+	_ = json.NewEncoder(w).Encode(ErrorResponse{Code: "permission_denied", Message: "Forbidden"})
 }
 
 func WriteError(w http.ResponseWriter, code int, message string) {
@@ -54,13 +54,13 @@ func sanitizeParseError(msg string) string {
 	lower := strings.ToLower(msg)
 	switch {
 	case strings.Contains(lower, "is not set"):
-		return "missing required field"
+		return "Missing required field"
 	case strings.Contains(lower, "cannot parse") || strings.Contains(lower, "invalid character"):
-		return "invalid field format"
+		return "Invalid field format"
 	case strings.Contains(lower, "missing field"):
-		return "missing required field"
+		return "Missing required field"
 	default:
-		return "invalid request"
+		return "Invalid request"
 	}
 }
 
@@ -139,25 +139,25 @@ func GrpcToHTTPStatus(code codes.Code) int {
 func SanitizeErrorMessage(code codes.Code, _ string) string {
 	switch code {
 	case codes.InvalidArgument:
-		return "invalid request"
+		return "Invalid request"
 	case codes.NotFound:
-		return "resource not found"
+		return "Resource not found"
 	case codes.AlreadyExists:
-		return "resource already exists"
+		return "Resource already exists"
 	case codes.PermissionDenied:
-		return "permission denied"
+		return "Permission denied"
 	case codes.Unauthenticated:
-		return "authentication required"
+		return "Authentication required"
 	case codes.ResourceExhausted:
-		return "too many requests"
+		return "Too many requests"
 	case codes.FailedPrecondition:
-		return "operation not allowed"
+		return "Operation not allowed"
 	case codes.Unimplemented:
-		return "feature not implemented"
+		return "Feature not implemented"
 	case codes.Unavailable:
-		return "service unavailable"
+		return "Service unavailable"
 	default:
-		return "an error occurred"
+		return "An error occurred"
 	}
 }
 
@@ -166,7 +166,7 @@ func HandleGrpcError(w http.ResponseWriter, err error) {
 	st, ok := status.FromError(err)
 	if !ok {
 		// Not a gRPC error, fall back to generic error
-		WriteError(w, http.StatusInternalServerError, "an error occurred")
+		WriteError(w, http.StatusInternalServerError, "An error occurred")
 		return
 	}
 
@@ -199,6 +199,31 @@ func HandleGrpcError(w http.ResponseWriter, err error) {
 		Code:    grpcCodeToSnakeCase(st.Code()),
 		Message: sanitizedMessage,
 	})
+}
+
+// GrpcCodeToSnakeCase converts a gRPC codes.Code to its snake_case string
+// representation (e.g. codes.InvalidArgument → "invalid_argument").
+func GrpcCodeToSnakeCase(code codes.Code) string {
+	return grpcCodeToSnakeCase(code)
+}
+
+// GrpcErrorResponse converts a gRPC status error into an (HTTP status, JSON body)
+// pair suitable for use with go-zero's httpx.SetErrorHandlerCtx. The message is
+// passed through verbatim — callers are responsible for using consolidated
+// message constants so internal details don't leak. Non-gRPC errors get a
+// generic 500.
+func GrpcErrorResponse(err error) (int, ErrorResponse) {
+	st, ok := status.FromError(err)
+	if !ok {
+		return http.StatusInternalServerError, ErrorResponse{
+			Code:    "internal_error",
+			Message: "An error occurred",
+		}
+	}
+	return GrpcToHTTPStatus(st.Code()), ErrorResponse{
+		Code:    GrpcCodeToSnakeCase(st.Code()),
+		Message: st.Message(),
+	}
 }
 
 func grpcCodeToSnakeCase(code codes.Code) string {

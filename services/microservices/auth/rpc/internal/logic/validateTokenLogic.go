@@ -7,8 +7,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ValidateTokenLogic struct {
@@ -33,7 +31,7 @@ func (l *ValidateTokenLogic) ValidateToken(in *auth.ValidateTokenRequest) (*auth
 
 	if in == nil || in.AccessToken == "" {
 		l.Errorf("ValidateToken validation failed: access token is required")
-		return nil, status.Error(codes.InvalidArgument, "access token is required")
+		return nil, errInvalidArgument(MsgAccessTokenRequired)
 	}
 
 	claims, err := l.svcCtx.TokenMaker.VerifyAccessToken(ctx, in.AccessToken)

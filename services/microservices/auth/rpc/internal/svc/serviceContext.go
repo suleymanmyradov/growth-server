@@ -3,7 +3,10 @@ package svc
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
@@ -17,11 +20,31 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
+// TokenMakerInterface defines the token operations used by the auth logic.
+// *jwt.TokenMaker satisfies this interface; tests can provide mock implementations.
+type TokenMakerInterface interface {
+	CreateAccessToken(ctx context.Context, userID uuid.UUID, username string, roles []string, sessionID uuid.UUID) (*jwt.TokenResponse, error)
+	CreateRefreshToken(ctx context.Context, userID uuid.UUID, username string, roles []string, sessionID uuid.UUID) (*jwt.TokenResponse, error)
+	VerifyAccessToken(ctx context.Context, tokenString string) (*jwt.TokenClaims, error)
+	VerifyRefreshToken(ctx context.Context, tokenString string) (*jwt.TokenClaims, error)
+	RevokeAccessToken(ctx context.Context, tokenString string) error
+	RevokeRefreshToken(ctx context.Context, tokenString string) error
+	RevokeSession(ctx context.Context, sessionID uuid.UUID, ttl time.Duration) error
+	IsSessionRevoked(ctx context.Context, sessionID uuid.UUID) (bool, error)
+	RotateRefreshToken(ctx context.Context, oldToken string) (*jwt.TokenResponse, error)
+}
+
+// TxRunnerInterface defines the transaction runner used by the auth logic.
+// *postgres.PgxTxRunner satisfies this interface; tests can provide mock implementations.
+type TxRunnerInterface interface {
+	Run(ctx context.Context, userID string, fn func(pgx.Tx) error) error
+}
+
 type ServiceContext struct {
 	Config       config.Config
 	Repo         *repository.Repository
-	TokenMaker   *jwt.TokenMaker
-	TxRunner     *postgres.PgxTxRunner
+	TokenMaker   TokenMakerInterface
+	TxRunner     TxRunnerInterface
 	RedisClient  *redis.Client
 	EmailSender  email.Sender
 	EventsPub    *events.Publisher

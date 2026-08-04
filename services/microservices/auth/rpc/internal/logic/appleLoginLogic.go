@@ -14,8 +14,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 const appleProvider = "apple"
@@ -48,13 +46,13 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	defer span.End()
 
 	if in == nil || in.IdentityToken == "" {
-		return nil, status.Error(codes.InvalidArgument, "identity token is required")
+		return nil, errInvalidArgument(MsgIdentityTokenRequired)
 	}
 
 	cfg := l.svcCtx.Config.AppleOAuth
 	if cfg.ServiceID == "" {
 		l.Errorf("AppleLogin: Apple OAuth not configured (ServiceID missing)")
-		return nil, status.Error(codes.FailedPrecondition, "Apple sign-in is not configured")
+		return nil, errFailedPrecondition(MsgAppleNotConfigured)
 	}
 
 	// Validate a client-supplied redirect URI against the allowlist before any
@@ -62,7 +60,7 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	if in.RedirectUri != "" {
 		if !apple.IsAllowedRedirectURI(in.RedirectUri, cfg.AllowedRedirectURIs, cfg.RedirectURI) {
 			l.Errorf("AppleLogin: redirect URI not allowed: %s", in.RedirectUri)
-			return nil, status.Error(codes.InvalidArgument, "redirect URI not allowed")
+			return nil, errInvalidArgument(MsgRedirectURINotAllowed)
 		}
 	}
 
@@ -79,11 +77,11 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	appleUser, err := verifier.VerifyIDToken(ctx, in.IdentityToken, in.Nonce)
 	if err != nil {
 		l.Errorf("AppleLogin: id token verification failed: %v", err)
-		return nil, status.Error(codes.Unauthenticated, "failed to authenticate with Apple")
+		return nil, errUnauthenticated(MsgFailedAuthApple)
 	}
 	if appleUser.Subject == "" || appleUser.Email == "" {
 		l.Errorf("AppleLogin: incomplete Apple profile (sub/email missing)")
-		return nil, status.Error(codes.Unauthenticated, "incomplete Apple profile")
+		return nil, errUnauthenticated(MsgIncompleteAppleProfile)
 	}
 
 	// Apple only provides the name on the FIRST authorization, delivered in the
@@ -105,7 +103,7 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 		if err == nil {
 			row, gerr := q.GetUserByID(ctx, acc.UserID)
 			if gerr != nil {
-				return status.Error(codes.Internal, "failed to load linked user")
+				return errInternal(MsgFailedLoadLinkedUser)
 			}
 			user = db.User(row)
 			return nil
@@ -123,7 +121,7 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 					return nil
 				}
 				l.Errorf("AppleLogin: link to existing user failed: %v", lerr)
-				return status.Error(codes.Internal, "failed to link Apple account")
+				return errInternal(MsgFailedLinkAppleAccount)
 			}
 			return nil
 		}
@@ -145,13 +143,13 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 					continue
 				}
 				l.Errorf("AppleLogin: create user failed: %v", cerr)
-				return status.Error(codes.Internal, "failed to create user")
+				return errInternal(MsgFailedCreateUser)
 			}
 			user = db.User(oauthRow)
 			emailPtr := &appleUser.Email
 			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, appleProvider, appleUser.Subject, emailPtr); lerr != nil {
 				l.Errorf("AppleLogin: create oauth account failed: %v", lerr)
-				return status.Error(codes.Internal, "failed to link Apple account")
+				return errInternal(MsgFailedLinkAppleAccount)
 			}
 			return nil
 		}
@@ -178,13 +176,13 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("AppleLogin: access token failed: %v", err)
-		return nil, status.Error(codes.Internal, "failed to generate access token")
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)
 	if err != nil {
 		l.Errorf("AppleLogin: refresh token failed: %v", err)
-		return nil, status.Error(codes.Internal, "failed to generate refresh token")
+		return nil, ErrFailedGenRefreshTok
 	}
 
 	l.Infof("AppleLogin successful for user %s (relay_email=%v)", user.ID, appleUser.IsPrivateRelayEmail)
