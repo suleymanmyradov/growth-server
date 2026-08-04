@@ -10,8 +10,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -32,7 +30,7 @@ func NewForgotPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Fo
 
 func (l *ForgotPasswordLogic) ForgotPassword(req *types.ForgotPasswordRequest) (*types.EmptyResponse, error) {
 	if req == nil || !validator.IsValidEmail(req.Email) {
-		return nil, status.Error(codes.InvalidArgument, "valid email is required")
+		return nil, ErrValidEmailRequired
 	}
 
 	_, err := l.svcCtx.AuthRpc.ForgotPassword(l.ctx, &authservice.ForgotPasswordRequest{

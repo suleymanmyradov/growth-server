@@ -9,8 +9,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type DeleteUserLogic struct {
@@ -32,26 +30,26 @@ func (l *DeleteUserLogic) DeleteUser(in *auth.DeleteUserRequest) (*auth.EmptyRes
 	defer span.End()
 
 	if in == nil || in.UserId == "" {
-		return nil, status.Error(codes.InvalidArgument, "user ID is required")
+		return nil, errInvalidArgument(MsgUserIdRequired)
 	}
 
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {
 		l.Errorf("invalid user ID: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		return nil, errInvalidArgument(MsgInvalidUserId)
 	}
 
 	// Verify the user exists.
 	_, err = l.svcCtx.Repo.Users.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, "user not found")
+		return nil, ErrUserNotFound
 	}
 
 	// Delete the user row. Cross-service cleanup is handled by consumers of
 	// the user_deleted event (each service owns its own tables).
 	if err := l.svcCtx.Repo.Users.DeleteUser(ctx, userID); err != nil {
 		l.Errorf("failed to delete user %s: %v", userID, err)
-		return nil, status.Error(codes.Internal, "failed to delete user")
+		return nil, errInternal(MsgFailedDeleteUser)
 	}
 
 	l.Infof("DeleteUser successful for user %s", userID)

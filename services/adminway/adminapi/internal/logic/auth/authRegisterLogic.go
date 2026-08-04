@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -32,7 +34,7 @@ func (l *AuthRegisterLogic) AuthRegister(req *types.RegisterRequest) (*types.Aut
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		l.Errorf("register failed to hash password: %v", err)
-		return nil, err
+		return nil, errInternal(MsgFailedHashPassword)
 	}
 
 	role := "admin"
@@ -42,8 +44,13 @@ func (l *AuthRegisterLogic) AuthRegister(req *types.RegisterRequest) (*types.Aut
 
 	user, err := l.svcCtx.Repo.InternalUsers.Create(ctx, req.Email, string(hashedPassword), req.FullName, role)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			l.Errorf("register failed: admin already exists for email: %s", req.Email)
+			return nil, ErrEmailAlreadyExists
+		}
 		l.Errorf("register failed to create internal user: %v", err)
-		return nil, err
+		return nil, errInternal(MsgFailedCreateAdmin)
 	}
 
 	sessionID := uuid.New()
@@ -51,13 +58,13 @@ func (l *AuthRegisterLogic) AuthRegister(req *types.RegisterRequest) (*types.Aut
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("register failed to create access token for user %s: %v", user.ID, err)
-		return nil, err
+		return nil, ErrFailedGenAccessToken
 	}
 
 	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
 	if err != nil {
 		l.Errorf("register failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, err
+		return nil, ErrFailedGenRefreshToken
 	}
 
 	return &types.AuthResponse{

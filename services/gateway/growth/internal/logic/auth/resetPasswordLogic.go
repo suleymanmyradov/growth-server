@@ -10,8 +10,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -32,7 +30,7 @@ func NewResetPasswordLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Res
 
 func (l *ResetPasswordLogic) ResetPassword(req *types.ResetPasswordRequest) (*types.EmptyResponse, error) {
 	if req == nil || req.Token == "" || !validator.IsStrongPassword(req.NewPassword) {
-		return nil, status.Error(codes.InvalidArgument, "valid token and a strong new password are required")
+		return nil, errInvalidArgument(MsgTokenAndStrongPasswordReq)
 	}
 
 	_, err := l.svcCtx.AuthRpc.ResetPassword(l.ctx, &authservice.ResetPasswordRequest{

@@ -9,8 +9,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -31,7 +29,7 @@ func NewVerifyEmailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Verif
 
 func (l *VerifyEmailLogic) VerifyEmail(req *types.VerifyEmailRequest) (*types.AuthResponse, error) {
 	if req == nil || req.Token == "" {
-		return nil, status.Error(codes.InvalidArgument, "token is required")
+		return nil, errInvalidArgument(MsgTokenRequired)
 	}
 
 	rpcResp, err := l.svcCtx.AuthRpc.VerifyEmail(l.ctx, &authservice.VerifyEmailRequest{

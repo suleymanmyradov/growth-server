@@ -13,8 +13,6 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ForgotPasswordLogic struct {
@@ -35,12 +33,12 @@ func (l *ForgotPasswordLogic) ForgotPassword(in *auth.ForgotPasswordRequest) (*a
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ForgotPasswordLogic.ForgotPassword")
 	defer span.End()
 
-	l.Infof("ForgotPassword attempt for email: %s", in.Email)
-
 	if in == nil || in.Email == "" {
 		l.Errorf("ForgotPassword validation failed: email is required")
-		return nil, status.Error(codes.InvalidArgument, "email is required")
+		return nil, errInvalidArgument(MsgEmailIsRequired)
 	}
+
+	l.Infof("ForgotPassword attempt for email: %s", in.Email)
 
 	user, err := l.svcCtx.Repo.Users.GetUserByEmail(ctx, in.Email)
 	if err != nil {
@@ -52,11 +50,17 @@ func (l *ForgotPasswordLogic) ForgotPassword(in *auth.ForgotPasswordRequest) (*a
 	resetRepo := repository.NewPasswordResetRepo(l.svcCtx.RedisClient)
 	if err := resetRepo.Store(ctx, token, user.Email, time.Hour); err != nil {
 		l.Errorf("ForgotPassword failed to store password reset token for user %s: %v", user.ID, err)
-		return nil, status.Error(codes.Internal, "failed to process password reset")
+		return nil, errInternal(MsgFailedProcessPasswordReset)
 	}
 
 	resetURL := l.svcCtx.Config.Email.FrontendBaseURL + "/reset-password?token=" + token
-	if err := l.svcCtx.EmailSender.Send(ctx, email.Email{
+	// Detach from the request context so a cancelled RPC (client disconnect,
+	// gateway timeout) doesn't prevent the reset email from being sent — the
+	// reset token is already stored in Redis and the user can't recover without
+	// the email. Give the email send its own generous timeout.
+	emailCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+	defer cancel()
+	if err := l.svcCtx.EmailSender.Send(emailCtx, email.Email{
 		To:      []string{user.Email},
 		Subject: "Reset your password",
 		HTML:    passwordResetHTML(user.FullName, resetURL),

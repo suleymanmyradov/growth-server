@@ -32,10 +32,10 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 
 func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.AuthResponse, err error) {
 	if !validator.IsNotEmpty(req.Email) || !validator.IsValidEmail(req.Email) {
-		return nil, status.Error(codes.InvalidArgument, "valid email is required")
+		return nil, ErrValidEmailRequired
 	}
 	if !validator.IsNotEmpty(req.Password) {
-		return nil, status.Error(codes.InvalidArgument, "password is required")
+		return nil, errInvalidArgument(MsgPasswordRequired)
 	}
 
 	rpcReq := &authservice.LoginRequest{
@@ -53,7 +53,7 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.AuthResponse, e
 		// a typed error the handler can detect. Use Unauthenticated with a clear
 		// message and let the handler write it directly.
 		if st, ok := status.FromError(err); ok && st.Code() == codes.Unauthenticated {
-			return nil, status.Error(codes.Unauthenticated, "invalid email or password")
+			return nil, errUnauthenticated(MsgInvalidEmailOrPassword)
 		}
 		return nil, err
 	}

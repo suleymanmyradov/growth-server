@@ -9,8 +9,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type GetProfileLogic struct {
@@ -36,19 +34,19 @@ func (l *GetProfileLogic) GetProfile(in *auth.GetProfileRequest) (*auth.GetProfi
 	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
 		l.Errorf("GetProfile missing principal")
-		return nil, status.Error(codes.Unauthenticated, "missing principal")
+		return nil, errUnauthenticated(MsgMissingPrincipal)
 	}
 
 	userID, err := uuid.Parse(p.UserID)
 	if err != nil {
 		l.Errorf("GetProfile failed to parse user ID: %v", err)
-		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
+		return nil, errInvalidArgument(MsgInvalidUserId)
 	}
 
 	user, err := l.svcCtx.Repo.Users.GetUserByID(ctx, userID)
 	if err != nil {
 		l.Errorf("GetProfile failed to get user %s: %v", userID, err)
-		return nil, status.Error(codes.NotFound, "user not found")
+		return nil, ErrUserNotFound
 	}
 
 	l.Infof("GetProfile successful for user %s", userID)

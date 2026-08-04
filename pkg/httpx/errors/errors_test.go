@@ -55,16 +55,16 @@ func TestSanitizeErrorMessage(t *testing.T) {
 		original string
 		expected string
 	}{
-		{"InvalidArgument", codes.InvalidArgument, "some detailed error", "invalid request"},
-		{"NotFound", codes.NotFound, "user not found", "resource not found"},
-		{"AlreadyExists", codes.AlreadyExists, "user already exists", "resource already exists"},
-		{"PermissionDenied", codes.PermissionDenied, "access denied", "permission denied"},
-		{"Unauthenticated", codes.Unauthenticated, "not logged in", "authentication required"},
-		{"ResourceExhausted", codes.ResourceExhausted, "rate limit exceeded", "too many requests"},
-		{"FailedPrecondition", codes.FailedPrecondition, " precondition failed", "operation not allowed"},
-		{"Unimplemented", codes.Unimplemented, "feature not ready", "feature not implemented"},
-		{"Unavailable", codes.Unavailable, "service down", "service unavailable"},
-		{"Default", codes.Code(100), "some error", "an error occurred"},
+		{"InvalidArgument", codes.InvalidArgument, "some detailed error", "Invalid request"},
+		{"NotFound", codes.NotFound, "user not found", "Resource not found"},
+		{"AlreadyExists", codes.AlreadyExists, "user already exists", "Resource already exists"},
+		{"PermissionDenied", codes.PermissionDenied, "access denied", "Permission denied"},
+		{"Unauthenticated", codes.Unauthenticated, "not logged in", "Authentication required"},
+		{"ResourceExhausted", codes.ResourceExhausted, "rate limit exceeded", "Too many requests"},
+		{"FailedPrecondition", codes.FailedPrecondition, " precondition failed", "Operation not allowed"},
+		{"Unimplemented", codes.Unimplemented, "feature not ready", "Feature not implemented"},
+		{"Unavailable", codes.Unavailable, "service down", "Service unavailable"},
+		{"Default", codes.Code(100), "some error", "An error occurred"},
 	}
 
 	for _, tt := range tests {
@@ -100,7 +100,7 @@ func TestWriteForbidden(t *testing.T) {
 	err := json.NewDecoder(w.Body).Decode(&resp)
 	require.NoError(t, err)
 	assert.Equal(t, "permission_denied", resp.Code)
-	assert.Equal(t, "forbidden", resp.Message)
+	assert.Equal(t, "Forbidden", resp.Message)
 }
 
 func TestWriteError(t *testing.T) {
@@ -129,35 +129,35 @@ func TestHandleGrpcError(t *testing.T) {
 			name:             "InvalidArgument",
 			grpcErr:          status.Error(codes.InvalidArgument, "invalid input"),
 			expectedCode:     http.StatusBadRequest,
-			expectedMsg:      "invalid request",
+			expectedMsg:      "Invalid request",
 			expectedGrpcCode: "invalid_argument",
 		},
 		{
 			name:             "NotFound",
 			grpcErr:          status.Error(codes.NotFound, "user not found"),
 			expectedCode:     http.StatusNotFound,
-			expectedMsg:      "resource not found",
+			expectedMsg:      "Resource not found",
 			expectedGrpcCode: "not_found",
 		},
 		{
 			name:             "PermissionDenied",
 			grpcErr:          status.Error(codes.PermissionDenied, "access denied"),
 			expectedCode:     http.StatusForbidden,
-			expectedMsg:      "permission denied",
+			expectedMsg:      "Permission denied",
 			expectedGrpcCode: "permission_denied",
 		},
 		{
 			name:             "Unauthenticated",
 			grpcErr:          status.Error(codes.Unauthenticated, "not logged in"),
 			expectedCode:     http.StatusUnauthorized,
-			expectedMsg:      "authentication required",
+			expectedMsg:      "Authentication required",
 			expectedGrpcCode: "unauthenticated",
 		},
 		{
 			name:             "NonGrpcError",
 			grpcErr:          assert.AnError,
 			expectedCode:     http.StatusInternalServerError,
-			expectedMsg:      "an error occurred",
+			expectedMsg:      "An error occurred",
 			expectedGrpcCode: "internal_error",
 		},
 	}
