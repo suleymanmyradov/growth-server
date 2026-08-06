@@ -5,15 +5,19 @@ Go microservices backend for the Growth self-development platform (habits, goals
 ## Architecture
 
 ```
-clients ──HTTP──▶ gateway (go-zero API, :8888 area)      ──gRPC──▶ microservices
-admin   ──HTTP──▶ adminway (go-zero API, admin panel)    ──SQL───▶ own repo layer
+clients ──HTTP──▶ gateway    (go-zero API, :8888)         ──gRPC──▶ auth, client, search, notifications, filemanager
+clients ──HTTP──▶ ai-gateway (go-zero API, :8889)         ──gRPC──▶ auth, client, ai-coach  ──HTTPS──▶ LLM provider
+admin   ──HTTP──▶ adminway   (go-zero API, admin panel)   ──SQL───▶ own repo layer
 ```
+
+The gateway and ai-gateway share a single public origin (`/api/v1`) via ingress path-prefix routing. AI/streaming routes (coaching, weekly reviews, conversations, voice) are served by ai-gateway so they scale independently from the core CRUD routes. Both are gateway-tier API services (not RPC microservices) and may call RPC services + external APIs.
 
 Services live under `services/`:
 
 | Service | Path | Kind | Local port |
 |---|---|---|---|
 | gateway | `services/gateway/growth` | HTTP API (public, `/api/v1`) | see etc yaml |
+| ai-gateway | `services/ai-gateway/aiapi` | HTTP API (AI/streaming routes, `/api/v1`) | see etc yaml |
 | adminway | `services/adminway/adminapi` | HTTP API (admin) | see etc yaml |
 | auth | `services/microservices/auth/rpc` | gRPC | 9081 |
 | client | `services/microservices/client/rpc` | gRPC (habits, goals, check-ins, billing) | 9082 |
@@ -29,7 +33,7 @@ Shared code lives in `pkg/` (ai, analytics, auth, authz, cache, configsafe, emai
 
 ## Everything is generated from contracts — edit the source, not the output
 
-- **HTTP APIs**: `services/gateway/contract/main.api` + `types.api` (and `services/adminway/contract/`) are the source of truth. Regenerate with `make generate-api` / `make generate-admin-api`. Handlers/types under `internal/handler` and `internal/types` are goctl output; business logic goes in `internal/logic`.
+- **HTTP APIs**: `services/gateway/contract/main.api` + `types.api`, `services/ai-gateway/contract/main.api` + `types.api` (a copy of the gateway's types.api — kept in sync by `make check-types-api-sync`), and `services/adminway/contract/` are the source of truth. Regenerate with `make generate-api` / `make generate-ai-api` / `make generate-admin-api`. Handlers/types under `internal/handler` and `internal/types` are goctl output; business logic goes in `internal/logic`.
 - **gRPC**: protos live at `services/microservices/<svc>/api/v1/*.proto`. Regenerate with `make generate-<svc>-proto`. Never hand-edit `rpc/pb/` or the generated client.
 - **Repositories**: SQL queries in `sql/queries/<svc>/*.sql`, sqlc configs in `sql/conf/sqlc.<svc>.yaml`, output in `internal/repository/db`. Regenerate with `make sqlc`.
 - `make generate` runs all of the above. After changing a contract, regenerate before writing logic.
@@ -45,12 +49,13 @@ Hand edits here are overwritten by the next `make generate` and will silently dr
 | `rpc/client/**`, `rpc/<svc>service/**` (zrpc client wrappers) | `make generate-<svc>-proto` | `api/v1/*.proto` |
 | `rpc/internal/server/**` (grpc server shims) | `make generate-<svc>-proto` | `api/v1/*.proto` |
 | `internal/repository/db/**` (`*.sql.go`, `db.go`, `models.go`, `copyfrom.go`) | `make sqlc` | `sql/queries/<svc>/*.sql`, migrations |
-| gateway/adminway `internal/handler/**` incl. `routes.go` | `make generate-api` / `generate-admin-api` | `contract/main.api`, `types.api` |
-| gateway/adminway `internal/types/types.go` | `make generate-api` / `generate-admin-api` | `contract/types.api` |
+| gateway/adminway/ai-gateway `internal/handler/**` incl. `routes.go` | `make generate-api` / `generate-ai-api` / `generate-admin-api` | `contract/main.api`, `types.api` |
+| gateway/adminway/ai-gateway `internal/types/types.go` | `make generate-api` / `generate-ai-api` / `generate-admin-api` | `contract/types.api` |
 | `services/gateway/contract/swagger/swagger.json` | `make swagger-api` | `contract/main.api` |
-| `services/gateway/contract/swagger/swagger-combined.json` | `make swagger-combined` | `contract/main.api` + `swagger/custom-transports.yaml` |
+| `services/ai-gateway/contract/swagger/swagger.json` | `make swagger-ai-api` | `contract/main.api` |
+| `services/gateway/contract/swagger/swagger-combined.json` | `make swagger-combined` | gateway + ai-gateway `contract/main.api` + `swagger/custom-transports.yaml` |
 
-`swagger/custom-transports.yaml` is **not** generated — it is a hand-maintained OpenAPI 3.0 fragment that documents the three gateway routes registered manually in `services/gateway/growth/growthapi.go` (`POST /files/upload`, `POST /personalization/transcribe`, `POST /personalization/voice-turn`) because goctl's `.api` format cannot express multipart/form-data and text/event-stream transports. `make swagger-combined` regenerates the goctl Swagger 2.0 spec, converts it to OpenAPI 3.0 (swagger2openapi), and deep-merges the custom-transports paths/schemas in via `scripts/merge-swagger.sh`. The resulting `swagger-combined.json` is the OpenAPI 3.0 spec the mobile app feeds to `openapi-typescript`. When a custom-transport handler's field names, size limits, MIME restrictions, or SSE event payload shapes change, update `custom-transports.yaml` to match (the handler files are the source of truth) and rerun `make swagger-combined`.
+`swagger/custom-transports.yaml` is **not** generated — it is a hand-maintained OpenAPI 3.0 fragment that documents routes registered manually in `growthapi.go` / `aiapi.go` (`POST /files/upload` on the gateway; `POST /personalization/transcribe`, `POST /personalization/voice-turn` on the ai-gateway) because goctl's `.api` format cannot express multipart/form-data and text/event-stream transports. `make swagger-combined` regenerates both Swagger 2.0 specs, converts them to OpenAPI 3.0 (swagger2openapi), deep-merges the custom-transports paths/schemas in via `scripts/merge-swagger.sh`, and fails on duplicate paths across sources. The resulting `swagger-combined.json` is the unified OpenAPI 3.0 spec the mobile app feeds to `openapi-typescript`. When a custom-transport handler's field names, size limits, MIME restrictions, or SSE event payload shapes change, update `custom-transports.yaml` to match (the handler files are the source of truth) and rerun `make swagger-combined`.
 
 Most of these carry a `// Code generated by ... DO NOT EDIT.` header — but not all (e.g. the zrpc client wrappers under `rpc/client/` and `rpc/<svc>service/` have no header yet are still goctl output). When in doubt: if it lives in one of the paths above, regenerate rather than edit.
 
@@ -117,8 +122,9 @@ go build ./...        # quick compile check
 go test ./...         # run tests (must be run from backend/, not the parent dir)
 make lint             # golangci-lint (Uber Go style)
 make check-ownership  # table-ownership CI check
+make check-types-api-sync # verify ai-gateway types.api matches gateway types.api
 make swagger-api      # regenerate gateway Swagger spec (Swagger 2.0, goctl)
-make swagger-combined # build OpenAPI 3.0 swagger-combined.json (generated + custom transports; used by mobile openapi-typescript)
+make swagger-combined # build unified OpenAPI 3.0 spec (gateway + ai-gateway + custom transports; used by mobile openapi-typescript)
 ```
 
 ## Conventions & expectations
@@ -129,6 +135,18 @@ make swagger-combined # build OpenAPI 3.0 swagger-combined.json (generated + cus
 - Redis (`pkg/cache`, `pkg/redisutil`): set TTLs; treat as cache, not source of truth.
 - For new endpoints, the full checklist is: contract (`.api`/`.proto`) → `make generate` → logic → queries + `make sqlc` if DB access → tests → `make lint && make check-ownership`.
 - Tests live next to the code (`*_test.go`, testify). New logic and event payload changes should come with tests.
+
+## Agent tool usage — third-party calls must respect context timeout
+
+Before invoking any tool that calls a third-party service (webfetch, web_search, MCP server tools, long-running shell commands hitting external APIs, code_search subagents, etc.), first verify the call will not exceed the context/request timeout:
+
+- Prefer targeted, bounded requests over broad ones. Narrow search queries, fetch a specific URL, or scope a subagent to a single folder/question rather than launching open-ended exploration.
+- Do not fan out many parallel third-party calls that could each run long; if parallelism is needed, keep each call small and fast so the combined wall time stays well under the timeout.
+- For shell commands that hit external services (curl, go module proxy, docker pulls, `make generate` that downloads toolchains), set an explicit `timeout` and prefer backgrounding (`timeout: 0`) only when you will poll the result — never let an external call block indefinitely.
+- If a third-party call is likely to be slow (large page fetch, deep crawl, slow API), split it into smaller chunks or fetch a more specific resource first. If it cannot be split, do not issue it — find a faster alternative or ask the user.
+- Treat MCP server tools the same way: list tools first to confirm the call shape, then make the smallest possible call. Avoid MCP calls that return unbounded payloads; request filters/limits where available.
+
+The goal is to never let a single third-party invocation stall or blow the context window. When in doubt, scope it down, time-box it, or don't make the call.
 
 ## Related repos
 

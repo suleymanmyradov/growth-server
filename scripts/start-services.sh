@@ -43,6 +43,7 @@ SERVICES=(
   filemanager
   search-sync
   gateway
+  ai-gateway
   adminway
 )
 
