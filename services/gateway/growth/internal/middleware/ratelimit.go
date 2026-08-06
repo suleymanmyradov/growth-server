@@ -1,195 +1,65 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
-	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
-	"github.com/zeromicro/go-zero/core/limit"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/stores/redis"
-	"github.com/zeromicro/go-zero/rest"
+	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 )
 
-// RateLimitConfig holds per-endpoint rate limit settings backed by Redis.
-type RateLimitConfig struct {
-	Redis redis.RedisConf
-	// AuthQuota is the per-IP fixed-window quota for auth endpoints (login/register/refresh).
-	// Format: periodSeconds,quota (e.g., "60,5" means 5 requests per 60 seconds).
-	AuthQuota string `json:",default=60,5"`
-	// AIQuota is the per-user fixed-window quota for AI endpoints (RPM).
-	// Format: periodSeconds,quota (e.g., "60,10" means 10 requests per 60 seconds).
-	AIQuota string `json:",default=60,10"`
-	// SearchQuota is the per-IP fixed-window quota for public search.
-	// Format: periodSeconds,quota (e.g., "60,30" means 30 requests per 60 seconds).
-	SearchQuota string `json:",default=60,30"`
-}
+// RateLimitConfig is re-exported from the shared package so the gateway config
+// struct can embed it without changing its import path.
+type RateLimitConfig = sharedmw.RateLimitConfig
 
-// RateLimiters holds initialized go-zero PeriodLimit limiters.
-type RateLimiters struct {
-	AuthLimiter   *limit.PeriodLimit
-	AILimiter     *limit.PeriodLimit
-	SearchLimiter *limit.PeriodLimit
-}
+// RateLimiters is re-exported from the shared package.
+type RateLimiters = sharedmw.RateLimiters
 
-// BuildRateLimiters creates PeriodLimit limiters from config. If Redis is not configured,
-// it returns nil limiters (rate limiting is disabled).
+// BuildRateLimiters delegates to the shared implementation.
 func BuildRateLimiters(cfg RateLimitConfig) *RateLimiters {
-	if cfg.Redis.Host == "" {
-		logx.Info("rate limiting disabled: no Redis host configured")
-		return nil
-	}
-
-	store := cfg.Redis.NewRedis()
-	return &RateLimiters{
-		AuthLimiter:   newPeriodLimit(cfg.AuthQuota, store, "ratelimit:auth"),
-		AILimiter:     newPeriodLimit(cfg.AIQuota, store, "ratelimit:ai"),
-		SearchLimiter: newPeriodLimit(cfg.SearchQuota, store, "ratelimit:search"),
-	}
+	return sharedmw.BuildRateLimiters(cfg)
 }
 
-// RateLimitMiddleware returns a go-zero rest.Middleware that applies different
-// rate limits based on the request path. Auth endpoints are limited per-IP,
-// AI endpoints are limited per-authenticated-user, and public endpoints like
-// search are limited per-IP.
-func RateLimitMiddleware(limiters *RateLimiters) rest.Middleware {
-	if limiters == nil {
-		return func(next http.HandlerFunc) http.HandlerFunc {
-			return next
-		}
-	}
-
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			path := r.URL.Path
-			method := r.Method
-
-			switch {
-			// Auth endpoints: per-IP brute-force protection
-			case isAuthEndpoint(path, method):
-				if !allowIP(limiters.AuthLimiter, r) {
-					errors.WriteError(w, http.StatusTooManyRequests, "too many requests")
-					return
-				}
-
-			// AI endpoints: per-user RPM limit
-			case isAIEndpoint(path, method):
-				if !allowUser(limiters.AILimiter, r) {
-					errors.WriteError(w, http.StatusTooManyRequests, "too many requests")
-					return
-				}
-
-			// Public search: per-IP limit
-			case isSearchEndpoint(path, method):
-				if !allowIP(limiters.SearchLimiter, r) {
-					errors.WriteError(w, http.StatusTooManyRequests, "too many requests")
-					return
-				}
-			}
-
-			next(w, r)
-		}
-	}
+// RateLimitMiddleware applies the gateway's endpoint classification on top of
+// the shared rate-limit middleware.
+func RateLimitMiddleware(limiters *RateLimiters) func(http.HandlerFunc) http.HandlerFunc {
+	return sharedmw.RateLimitMiddleware(limiters, classifyGatewayEndpoint)
 }
 
-func isAuthEndpoint(path, method string) bool {
-	return path == "/api/v1/auth/login" ||
+// classifyGatewayEndpoint maps a request to its rate-limit bucket based on the
+// gateway's route table. After the AI/streaming routes moved to ai-gateway,
+// the only remaining AI endpoint here is check-in creation (AI feedback).
+func classifyGatewayEndpoint(path, method string) sharedmw.RateBucket {
+	// Auth endpoints: per-IP brute-force protection
+	if path == "/api/v1/auth/login" ||
 		path == "/api/v1/auth/register" ||
-		path == "/api/v1/auth/refresh"
-}
-
-func isAIEndpoint(path, method string) bool {
-	// Conversational AI
-	if strings.HasPrefix(path, "/api/v1/conversations/") && strings.HasSuffix(path, "/messages") && method == http.MethodPost {
-		return true
+		path == "/api/v1/auth/refresh" {
+		return sharedmw.RateBucketAuth
 	}
-	// Check-in AI feedback
+
+	// Check-in AI feedback: per-user RPM limit
 	if path == "/api/v1/check-ins" && method == http.MethodPost {
-		return true
+		return sharedmw.RateBucketAI
 	}
-	// Weekly review generation
-	if path == "/api/v1/weekly-reviews/generate" && method == http.MethodPost {
-		return true
+
+	// Public search: per-IP limit
+	if path == "/api/v1/search" && method == http.MethodGet {
+		return sharedmw.RateBucketSearch
 	}
-	// Personalized coaching generation
-	if path == "/api/v1/personalization/generate-coaching" && method == http.MethodPost {
-		return true
-	}
-	return false
+
+	return sharedmw.RateBucketNone
 }
 
-func isSearchEndpoint(path, method string) bool {
-	return path == "/api/v1/search" && method == http.MethodGet
+// gatewayExemptPaths are endpoints whose responses intentionally do not use
+// the standard data envelope (e.g. SSE endpoints still served by the gateway).
+var gatewayExemptPaths = map[string]bool{
+	"/api/v1/auth/register":   true,
+	"/api/v1/auth/login":      true,
+	"/api/v1/auth/refresh":    true,
+	"/api/v1/auth/logout":     true,
+	"/api/v1/billing/webhook": true,
 }
 
-func allowIP(limiter *limit.PeriodLimit, r *http.Request) bool {
-	ip := realIP(r)
-	code, err := limiter.TakeCtx(r.Context(), ip)
-	if err != nil {
-		logx.WithContext(r.Context()).Errorf("rate limit error for IP %s: %v", ip, err)
-		// Fail closed: if Redis is unreachable, block the request
-		return false
-	}
-	return code == limit.Allowed || code == limit.HitQuota
-}
-
-func allowUser(limiter *limit.PeriodLimit, r *http.Request) bool {
-	p, ok := principal.PrincipalFrom(r.Context())
-	if !ok || p.UserID == "" {
-		// No authenticated user: fall back to IP to prevent anonymous abuse
-		return allowIP(limiter, r)
-	}
-	code, err := limiter.TakeCtx(r.Context(), p.UserID)
-	if err != nil {
-		logx.WithContext(r.Context()).Errorf("rate limit error for user %s: %v", p.UserID, err)
-		return false
-	}
-	return code == limit.Allowed || code == limit.HitQuota
-}
-
-// realIP extracts the client IP, preferring X-Forwarded-For / X-Real-Ip
-// but falling back to RemoteAddr. Only the leftmost (closest to client) IP
-// is used to prevent spoofing via the rightmost proxy IPs.
-func realIP(r *http.Request) string {
-	xff := r.Header.Get("X-Forwarded-For")
-	if xff != "" {
-		// X-Forwarded-For: client, proxy1, proxy2
-		// We take the first (leftmost) as the real client IP.
-		if idx := strings.Index(xff, ","); idx != -1 {
-			xff = strings.TrimSpace(xff[:idx])
-		}
-		if xff != "" {
-			return xff
-		}
-	}
-
-	xri := r.Header.Get("X-Real-Ip")
-	if xri != "" {
-		return xri
-	}
-
-	ip := r.RemoteAddr
-	if idx := strings.LastIndex(ip, ":"); idx != -1 {
-		ip = ip[:idx]
-	}
-	return ip
-}
-
-// newPeriodLimit parses a "period,quota" string and creates a PeriodLimit.
-func newPeriodLimit(periodQuota string, store *redis.Redis, keyPrefix string) *limit.PeriodLimit {
-	parts := strings.Split(periodQuota, ",")
-	if len(parts) != 2 {
-		logx.Must(fmt.Errorf("invalid rate limit format %q, expected period,quota", periodQuota))
-	}
-	period := 0
-	quota := 0
-	if _, err := fmt.Sscanf(parts[0], "%d", &period); err != nil {
-		logx.Must(fmt.Errorf("invalid rate limit period %q: %v", parts[0], err))
-	}
-	if _, err := fmt.Sscanf(parts[1], "%d", &quota); err != nil {
-		logx.Must(fmt.Errorf("invalid rate limit quota %q: %v", parts[1], err))
-	}
-	return limit.NewPeriodLimit(period, quota, store, keyPrefix)
+// ResponseShapeMiddleware delegates to the shared implementation with the
+// gateway's exempt paths.
+func ResponseShapeMiddleware() func(http.HandlerFunc) http.HandlerFunc {
+	return sharedmw.ResponseShapeMiddleware(gatewayExemptPaths)
 }
