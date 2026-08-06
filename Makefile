@@ -1,4 +1,4 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-adminway-repo format-api validate-api swagger-api swagger-combined open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership check-openapi-drift
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-ai-api generate-adminway-repo format-api validate-api swagger-api swagger-ai-api swagger-combined open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-ai-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-ai-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership check-openapi-drift check-types-api-sync
 SQLC_VERSION ?= v1.27.0
 SQLC_SERVICES := auth client search notifications
 # Default target
@@ -16,6 +16,7 @@ help:
 	@echo "  run-search-sync     - Run search-sync worker locally"
 	@echo "  run-gateway         - Run API gateway locally"
 	@echo "  run-adminway        - Run admin API locally"
+	@echo "  run-ai-gateway      - Run ai-gateway service locally"
 	@echo "  run-all             - Run all services locally (background, no live logs)"
 	@echo "  dev-<svc>           - Hot-reload a single service with air (foreground)"
 	@echo "                        e.g. make dev-auth, make dev-gateway, make dev-aicoach"
@@ -44,6 +45,7 @@ help:
 	@echo "  build-ai-coach       - Build ai-coach service"
 	@echo "  build-search-sync    - Build search-sync service"
 	@echo "  build-gateway        - Build gateway service"
+	@echo "  build-ai-gateway     - Build ai-gateway service"
 	@echo "  build-billing-reconciler - Build billing-reconciler command"
 	@echo "  lint                 - Run golangci-lint"
 	@echo "  clean                - Clean build artifacts"
@@ -123,6 +125,12 @@ run-gateway: build-gateway
 	@mkdir -p logs
 	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml
 
+# Run ai-gateway locally (connects to docker dependencies)
+run-ai-gateway: build-ai-gateway
+	@echo "Running ai-gateway service..."
+	@mkdir -p logs
+	./bin/ai-gateway -f services/ai-gateway/aiapi/etc/aiapi.yaml
+
 # Run adminway locally (connects to docker dependencies)
 run-adminway: build-adminway
 	@echo "Running adminway service..."
@@ -139,12 +147,13 @@ run-all: build
 	./bin/ai-coach -f services/microservices/ai-coach/rpc/etc/aicoach.yaml > logs/ai-coach.log 2>&1 &
 	./bin/filemanager -f services/microservices/filemanager/rpc/etc/filemanager.yaml > logs/filemanager.log 2>&1 &
 	./bin/gateway -f services/gateway/growth/etc/growthapi.yaml > logs/gateway.log 2>&1 &
+	./bin/ai-gateway -f services/ai-gateway/aiapi/etc/aiapi.yaml > logs/ai-gateway.log 2>&1 &
 	./bin/adminway -f services/adminway/adminapi/etc/adminapi.yaml > logs/adminway.log 2>&1 &
 	./bin/ai-coach-consumer -f services/microservices/ai-coach-consumer/etc/ai-coach.yaml > logs/ai-coach-consumer.log 2>&1 &
 	./bin/notifications -f services/microservices/notifications/rpc/etc/notifications.yaml > logs/notifications.log 2>&1 &
 	./bin/search-sync -f services/microservices/search-sync/etc/search-sync.yaml > logs/search-sync.log 2>&1 &
 	@echo "All services started. Logs are in the logs/ directory."
-	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|filemanager|gateway|notifications|search-sync)'"
+	@echo "To stop all services, run: pkill -f 'bin/(auth|client|search|ai-coach|ai-coach-consumer|filemanager|gateway|ai-gateway|adminway|notifications|search-sync)'"
 
 # Start all services in a tmux session and attach automatically
 tmux-start: dev-all
@@ -189,6 +198,8 @@ dev-search-sync: air-install
 	@$(AIR) -c .air/search-sync.toml
 dev-gateway: air-install
 	@$(AIR) -c .air/gateway.toml
+dev-ai-gateway: air-install
+	@$(AIR) -c .air/ai-gateway.toml
 dev-adminway: air-install
 	@$(AIR) -c .air/adminway.toml
 # billing-reconciler is a one-shot CLI; air will re-run it on each save.
@@ -242,7 +253,11 @@ generate-admin-api:
 	@echo "Generating admin API..."
 	goctl api go -api ./services/adminway/contract/main.api -dir ./services/adminway/adminapi -style goZero
 
-generate: generate-api generate-admin-api sqlc generate-adminway-repo generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto
+generate-ai-api:
+	@echo "Generating ai-gateway API..."
+	goctl api go -api ./services/ai-gateway/contract/main.api -dir ./services/ai-gateway/aiapi -style goZero
+
+generate: generate-api generate-admin-api generate-ai-api sqlc generate-adminway-repo generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto
 	@echo "All generation complete!"
 
 format-api:
@@ -256,18 +271,24 @@ swagger-api:
 	@mkdir -p ./services/gateway/contract/swagger
 	goctl api swagger -api ./services/gateway/contract/main.api -dir ./services/gateway/contract/swagger -filename swagger
 
+swagger-ai-api:
+	@echo "Generating Swagger spec for ai-gateway..."
+	@mkdir -p ./services/ai-gateway/contract/swagger
+	goctl api swagger -api ./services/ai-gateway/contract/main.api -dir ./services/ai-gateway/contract/swagger -filename swagger
+
 open-swagger:
 	@echo "Opening Swagger UI in browser..."
 	bunx open-swagger-ui --open ./services/gateway/contract/swagger/swagger.json
 
-# swagger-combined regenerates the goctl Swagger 2.0 spec, converts it to
-# OpenAPI 3.0 (swagger2openapi), and merges in the custom-transport routes
-# (multipart upload, transcribe, voice-turn SSE) from
-# services/gateway/contract/swagger/custom-transports.yaml. The result,
-# swagger-combined.json, is the OpenAPI 3.0 spec the mobile app feeds to
-# openapi-typescript. See scripts/merge-swagger.sh for details.
+# swagger-combined regenerates the goctl Swagger 2.0 specs for both the
+# gateway and ai-gateway, converts them to OpenAPI 3.0 (swagger2openapi),
+# and merges in the custom-transport routes (multipart upload, transcribe,
+# voice-turn SSE) from services/gateway/contract/swagger/custom-transports.yaml.
+# The result, swagger-combined.json, is the unified OpenAPI 3.0 spec the mobile
+# app feeds to openapi-typescript. Clients see one origin via ingress routing.
+# See scripts/merge-swagger.sh for details.
 swagger-combined:
-	@echo "Building combined OpenAPI 3.0 spec (generated + custom transports)..."
+	@echo "Building combined OpenAPI 3.0 spec (gateway + ai-gateway + custom transports)..."
 	bash scripts/merge-swagger.sh --regen
 	
 sqlc:
@@ -315,7 +336,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-adminway build-billing-reconciler
+build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway build-billing-reconciler
 	@echo "All services built successfully!"
 
 build-auth:
@@ -359,6 +380,11 @@ build-gateway:
 	@mkdir -p bin
 	go build -o bin/gateway ./services/gateway/growth
 
+build-ai-gateway:
+	@echo "Building ai-gateway service..."
+	@mkdir -p bin
+	go build -o bin/ai-gateway ./services/ai-gateway/aiapi
+
 build-adminway:
 	@echo "Building adminway service..."
 	@mkdir -p bin
@@ -379,5 +405,9 @@ check-ownership:
 	@bash scripts/check-table-ownership.sh
 
 check-openapi-drift:
-	@echo "Running OpenAPI drift check (gateway runtime vs swagger-combined.json)..."
+	@echo "Running OpenAPI drift check (gateway + ai-gateway runtime vs swagger-combined.json)..."
 	@bash scripts/check-openapi-drift.sh
+
+check-types-api-sync:
+	@echo "Running types.api sync check (gateway vs ai-gateway)..."
+	@bash scripts/check-types-api-sync.sh

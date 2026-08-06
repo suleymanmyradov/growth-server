@@ -23,3 +23,4 @@ sql/conf/*.yaml
 .env
 .env.*
 services/microservices/client/rpc/etc/client.yaml
+services/gateway/growth/etc/growthapi.yaml
