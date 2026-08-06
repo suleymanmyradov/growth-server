@@ -43,6 +43,7 @@ func (s *AICoachServiceServer) StreamWeeklyReview(in *aicoach.WeeklyReviewReques
 	return l.StreamWeeklyReview(in, stream)
 }
 
+// Deprecated: The agentic coaching flow now streams directly from the
 func (s *AICoachServiceServer) StreamPersonalizedCoaching(in *aicoach.PersonalizedCoachingRequest, stream aicoach.AICoachService_StreamPersonalizedCoachingServer) error {
 	l := aicoachservicelogic.NewStreamPersonalizedCoachingLogic(stream.Context(), s.svcCtx)
 	return l.StreamPersonalizedCoaching(in, stream)

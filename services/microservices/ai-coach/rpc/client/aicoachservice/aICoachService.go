@@ -34,6 +34,7 @@ type (
 		GeneratePersonalizedCoaching(ctx context.Context, in *PersonalizedCoachingRequest, opts ...grpc.CallOption) (*PersonalizedCoachingResponse, error)
 		GenerateWeeklyReview(ctx context.Context, in *WeeklyReviewRequest, opts ...grpc.CallOption) (*WeeklyReviewResponse, error)
 		StreamWeeklyReview(ctx context.Context, in *WeeklyReviewRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamWeeklyReviewClient, error)
+		// Deprecated: The agentic coaching flow now streams directly from the
 		StreamPersonalizedCoaching(ctx context.Context, in *PersonalizedCoachingRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamPersonalizedCoachingClient, error)
 		GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error)
 		Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error)
@@ -71,6 +72,7 @@ func (m *defaultAICoachService) StreamWeeklyReview(ctx context.Context, in *Week
 	return client.StreamWeeklyReview(ctx, in, opts...)
 }
 
+// Deprecated: The agentic coaching flow now streams directly from the
 func (m *defaultAICoachService) StreamPersonalizedCoaching(ctx context.Context, in *PersonalizedCoachingRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamPersonalizedCoachingClient, error) {
 	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
 	return client.StreamPersonalizedCoaching(ctx, in, opts...)

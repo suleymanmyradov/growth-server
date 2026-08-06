@@ -164,7 +164,13 @@ service AICoachService {
   rpc GeneratePersonalizedCoaching(PersonalizedCoachingRequest) returns (PersonalizedCoachingResponse);
   rpc GenerateWeeklyReview(WeeklyReviewRequest) returns (WeeklyReviewResponse);
   rpc StreamWeeklyReview(WeeklyReviewRequest) returns (stream WeeklyReviewStreamChunk);
-  rpc StreamPersonalizedCoaching(PersonalizedCoachingRequest) returns (stream PersonalizedCoachingStreamChunk);
+  // Deprecated: The agentic coaching flow now streams directly from the
+  // ai-gateway API service using StreamAgent with on-demand tool calls.
+  // This RPC is still called by the voice-turn handler for voice coaching.
+  // Do not add new callers; new text coaching goes through the ai-gateway.
+  rpc StreamPersonalizedCoaching(PersonalizedCoachingRequest) returns (stream PersonalizedCoachingStreamChunk) {
+    option deprecated = true;
+  }
   rpc GenerateOnboardingHabits(GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse);
   rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
   rpc Synthesize(SynthesizeRequest) returns (SynthesizeResponse);
