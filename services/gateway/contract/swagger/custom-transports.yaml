@@ -1,21 +1,29 @@
-# Custom transport OpenAPI 3.0 overlay for the Growth gateway.
+# Custom transport OpenAPI 3.0 overlay for the Growth platform.
 #
-# These three routes are registered manually in services/gateway/growth/growthapi.go
-# (not generated from contract/main.api by goctl) because they use multipart/form-data
-# or text/event-stream transports that goctl's .api format does not express. They are
-# therefore absent from the generated swagger.json. This fragment is merged into the
-# converted OpenAPI 3.0 spec by scripts/merge-swagger.sh to produce swagger-combined.json.
+# These routes are registered manually (not generated from contract/main.api by
+# goctl) because they use multipart/form-data or text/event-stream transports
+# that goctl's .api format does not express. They are therefore absent from the
+# generated swagger.json files. This fragment is merged into the combined
+# OpenAPI 3.0 spec by scripts/merge-swagger.sh to produce swagger-combined.json.
 #
-# Source of truth for field names, size limits, MIME restrictions, SSE event payload
-# shapes, and error behavior:
+# Service ownership (routes are split across two API services behind one ingress):
+#   - gateway    (services/gateway/growth/growthapi.go):
+#       POST /files/upload
+#   - ai-gateway (services/ai-gateway/aiapi/aiapi.go):
+#       POST /personalization/transcribe
+#       POST /personalization/voice-turn
+#
+# Source of truth for field names, size limits, MIME restrictions, SSE event
+# payload shapes, and error behavior:
 #   - services/gateway/growth/internal/handler/files/uploadHandler.go
-#   - services/gateway/growth/internal/handler/voice/transcribeHandler.go
-#   - services/gateway/growth/internal/handler/voice/voiceTurnHandler.go
+#   - services/ai-gateway/aiapi/internal/handler/voice/transcribeHandler.go
+#   - services/ai-gateway/aiapi/internal/handler/voice/voiceTurnHandler.go
 #
 # All three routes require the Auth middleware (Bearer access token).
 #
-# This is an OpenAPI 3.0 fragment (paths + components.schemas). It is NOT a standalone
-# document — it is merged into the converted output of the generated Swagger 2.0 spec.
+# This is an OpenAPI 3.0 fragment (paths + components.schemas). It is NOT a
+# standalone document — it is merged into the converted output of the generated
+# Swagger 2.0 specs from both services.
 
 paths:
   /api/v1/files/upload:

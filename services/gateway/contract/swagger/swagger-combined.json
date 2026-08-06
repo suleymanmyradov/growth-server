@@ -3142,749 +3142,6 @@
         ]
       }
     },
-    "/api/v1/conversations": {
-      "get": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "ListConversations",
-        "operationId": "conversationsListConversations",
-        "parameters": [
-          {
-            "name": "type",
-            "in": "query",
-            "allowEmptyValue": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "example": 1,
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "default": 1
-            }
-          },
-          {
-            "example": 20,
-            "name": "limit",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "default": 20
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "id",
-                          "title",
-                          "type",
-                          "lastMessage",
-                          "userId",
-                          "archived",
-                          "createdAt",
-                          "updatedAt"
-                        ],
-                        "properties": {
-                          "archived": {
-                            "type": "boolean"
-                          },
-                          "createdAt": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "lastMessage": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
-                          },
-                          "updatedAt": {
-                            "type": "string"
-                          },
-                          "userId": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    },
-                    "page": {
-                      "type": "object",
-                      "required": [
-                        "total",
-                        "page",
-                        "limit",
-                        "totalPages"
-                      ],
-                      "properties": {
-                        "limit": {
-                          "type": "integer",
-                          "example": 20
-                        },
-                        "page": {
-                          "type": "integer",
-                          "example": 1
-                        },
-                        "total": {
-                          "type": "integer",
-                          "example": 100
-                        },
-                        "totalPages": {
-                          "type": "integer",
-                          "example": 5
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "StartConversation",
-        "operationId": "conversationsStartConversation",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "initialMessage": {
-                    "type": "string"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "type",
-                        "lastMessage",
-                        "userId",
-                        "archived",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "properties": {
-                        "archived": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "lastMessage": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "initialMessage": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "conversationId",
-                        "role",
-                        "content",
-                        "createdAt"
-                      ],
-                      "properties": {
-                        "content": {
-                          "type": "string"
-                        },
-                        "conversationId": {
-                          "type": "string"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "role": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/conversations/{id}": {
-      "get": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "GetConversation",
-        "operationId": "conversationsGetConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "type",
-                        "lastMessage",
-                        "userId",
-                        "archived",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "properties": {
-                        "archived": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "lastMessage": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "DeleteConversation",
-        "operationId": "conversationsDeleteConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/conversations/{id}/archive": {
-      "put": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "ArchiveConversation",
-        "operationId": "conversationsArchiveConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "type",
-                        "lastMessage",
-                        "userId",
-                        "archived",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "properties": {
-                        "archived": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "lastMessage": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/conversations/{id}/messages": {
-      "get": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "GetMessages",
-        "operationId": "conversationsGetMessages",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "example": 1,
-            "name": "page",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "default": 1
-            }
-          },
-          {
-            "example": 50,
-            "name": "limit",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "default": 50
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "id",
-                          "conversationId",
-                          "role",
-                          "content",
-                          "createdAt"
-                        ],
-                        "properties": {
-                          "content": {
-                            "type": "string"
-                          },
-                          "conversationId": {
-                            "type": "string"
-                          },
-                          "createdAt": {
-                            "type": "string"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "role": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    },
-                    "page": {
-                      "type": "object",
-                      "required": [
-                        "total",
-                        "page",
-                        "limit",
-                        "totalPages"
-                      ],
-                      "properties": {
-                        "limit": {
-                          "type": "integer",
-                          "example": 20
-                        },
-                        "page": {
-                          "type": "integer",
-                          "example": 1
-                        },
-                        "total": {
-                          "type": "integer",
-                          "example": 100
-                        },
-                        "totalPages": {
-                          "type": "integer",
-                          "example": 5
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "AppendMessage",
-        "operationId": "conversationsAppendMessage",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "content"
-                ],
-                "properties": {
-                  "content": {
-                    "type": "string"
-                  },
-                  "role": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "conversation": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "type",
-                        "lastMessage",
-                        "userId",
-                        "archived",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "properties": {
-                        "archived": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "lastMessage": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string"
-                        }
-                      }
-                    },
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "conversationId",
-                        "role",
-                        "content",
-                        "createdAt"
-                      ],
-                      "properties": {
-                        "content": {
-                          "type": "string"
-                        },
-                        "conversationId": {
-                          "type": "string"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "role": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/conversations/{id}/unarchive": {
-      "put": {
-        "tags": [
-          "Conversations"
-        ],
-        "summary": "UnarchiveConversation",
-        "operationId": "conversationsUnarchiveConversation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "type",
-                        "lastMessage",
-                        "userId",
-                        "archived",
-                        "createdAt",
-                        "updatedAt"
-                      ],
-                      "properties": {
-                        "archived": {
-                          "type": "boolean"
-                        },
-                        "createdAt": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "lastMessage": {
-                          "type": "string"
-                        },
-                        "title": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "updatedAt": {
-                          "type": "string"
-                        },
-                        "userId": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
     "/api/v1/devices/{installationId}": {
       "put": {
         "tags": [
@@ -5802,45 +5059,6 @@
         ]
       }
     },
-    "/api/v1/personalization/coaching": {
-      "post": {
-        "tags": [
-          "Personalization"
-        ],
-        "summary": "GeneratePersonalizedCoaching",
-        "operationId": "personalizationGeneratePersonalizedCoaching",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "coachingResponse": {
-                      "type": "string",
-                      "example": "I noticed you've missed a few check-ins lately..."
-                    },
-                    "context": {
-                      "type": "string",
-                      "example": "User has been struggling with motivation"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
     "/api/v1/personalization/coaching-profile": {
       "get": {
         "tags": [
@@ -6164,45 +5382,6 @@
                           "example": "user-123"
                         }
                       }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/personalization/coaching-stream": {
-      "post": {
-        "tags": [
-          "Personalization"
-        ],
-        "summary": "StreamPersonalizedCoaching",
-        "operationId": "personalizationStreamPersonalizedCoaching",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "coachingResponse": {
-                      "type": "string",
-                      "example": "I noticed you've missed a few check-ins lately..."
-                    },
-                    "context": {
-                      "type": "string",
-                      "example": "User has been struggling with motivation"
                     }
                   }
                 }
@@ -6740,94 +5919,6 @@
                                 "example": "user-123"
                               }
                             }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/personalization/onboarding-habits": {
-      "post": {
-        "tags": [
-          "Personalization"
-        ],
-        "summary": "GenerateOnboardingHabits",
-        "operationId": "personalizationGenerateOnboardingHabits",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "goalTitle",
-                  "dailyMinutes"
-                ],
-                "properties": {
-                  "accountabilityStyle": {
-                    "type": "string",
-                    "example": "balanced"
-                  },
-                  "blocker": {
-                    "type": "string",
-                    "example": "Lack of time in the morning"
-                  },
-                  "dailyMinutes": {
-                    "type": "integer",
-                    "maximum": 600,
-                    "minimum": 1,
-                    "example": 30
-                  },
-                  "goalCategory": {
-                    "type": "string",
-                    "example": "fitness"
-                  },
-                  "goalTitle": {
-                    "type": "string",
-                    "example": "Run a 5k"
-                  },
-                  "motivation": {
-                    "type": "string",
-                    "example": "Improve my health and energy"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "required": [
-                          "name",
-                          "description"
-                        ],
-                        "properties": {
-                          "description": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
                           }
                         }
                       }
@@ -9028,6 +8119,1116 @@
         ]
       }
     },
+    "/api/v1/weekly-reviews/{weekStart}": {
+      "get": {
+        "tags": [
+          "Weekly Review"
+        ],
+        "summary": "GetWeeklyReview",
+        "operationId": "weeklyreviewGetWeeklyReview",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "userId",
+                        "weekStart",
+                        "weekEnd",
+                        "totalHabits",
+                        "completedCheckIns",
+                        "missedCheckIns",
+                        "completionRate",
+                        "moodSummary",
+                        "energySummary",
+                        "habitBreakdown",
+                        "suggestedAdjustments",
+                        "nextWeekPlan",
+                        "generatedAt"
+                      ],
+                      "properties": {
+                        "aiSummary": {
+                          "type": "string"
+                        },
+                        "bestDay": {
+                          "type": "string"
+                        },
+                        "completedCheckIns": {
+                          "type": "integer"
+                        },
+                        "completionRate": {
+                          "type": "number"
+                        },
+                        "energySummary": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "generatedAt": {
+                          "type": "string"
+                        },
+                        "habitBreakdown": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "habitId",
+                              "habitName",
+                              "totalCheckIns",
+                              "completedCount",
+                              "missedCount",
+                              "completionRate"
+                            ],
+                            "properties": {
+                              "category": {
+                                "type": "string"
+                              },
+                              "completedCount": {
+                                "type": "integer"
+                              },
+                              "completionRate": {
+                                "type": "number"
+                              },
+                              "habitId": {
+                                "type": "string"
+                              },
+                              "habitName": {
+                                "type": "string"
+                              },
+                              "lastCheckInAt": {
+                                "type": "string"
+                              },
+                              "missedCount": {
+                                "type": "integer"
+                              },
+                              "totalCheckIns": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "hardestDay": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "missedCheckIns": {
+                          "type": "integer"
+                        },
+                        "moodSummary": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "integer"
+                          }
+                        },
+                        "nextWeekPlan": {
+                          "type": "object",
+                          "required": [
+                            "focus",
+                            "commitments",
+                            "risks",
+                            "recoveryActions"
+                          ],
+                          "properties": {
+                            "commitments": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "focus": {
+                              "type": "string"
+                            },
+                            "recoveryActions": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "risks": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "suggestedAdjustments": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "habitName",
+                              "adjustmentType",
+                              "reason",
+                              "suggestion"
+                            ],
+                            "properties": {
+                              "adjustmentType": {
+                                "type": "string"
+                              },
+                              "habitId": {
+                                "type": "string"
+                              },
+                              "habitName": {
+                                "type": "string"
+                              },
+                              "reason": {
+                                "type": "string"
+                              },
+                              "suggestion": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "topBlocker": {
+                          "type": "string"
+                        },
+                        "totalHabits": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "weekEnd": {
+                          "type": "string"
+                        },
+                        "weekStart": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ListConversations",
+        "operationId": "conversationsListConversations",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "allowEmptyValue": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "example": 20,
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "title",
+                          "type",
+                          "lastMessage",
+                          "userId",
+                          "archived",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "lastMessage": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "page",
+                        "limit",
+                        "totalPages"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 100
+                        },
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 5
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "StartConversation",
+        "operationId": "conversationsStartConversation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "initialMessage": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "type",
+                        "lastMessage",
+                        "userId",
+                        "archived",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "archived": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "lastMessage": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "initialMessage": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "conversationId",
+                        "role",
+                        "content",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "content": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "GetConversation",
+        "operationId": "conversationsGetConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "type",
+                        "lastMessage",
+                        "userId",
+                        "archived",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "archived": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "lastMessage": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "DeleteConversation",
+        "operationId": "conversationsDeleteConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/archive": {
+      "put": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ArchiveConversation",
+        "operationId": "conversationsArchiveConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "type",
+                        "lastMessage",
+                        "userId",
+                        "archived",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "archived": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "lastMessage": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/messages": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "GetMessages",
+        "operationId": "conversationsGetMessages",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "example": 50,
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "conversationId",
+                          "role",
+                          "content",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "content": {
+                            "type": "string"
+                          },
+                          "conversationId": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "role": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "page",
+                        "limit",
+                        "totalPages"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 100
+                        },
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 5
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "AppendMessage",
+        "operationId": "conversationsAppendMessage",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversation": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "type",
+                        "lastMessage",
+                        "userId",
+                        "archived",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "archived": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "lastMessage": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "conversationId",
+                        "role",
+                        "content",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "content": {
+                          "type": "string"
+                        },
+                        "conversationId": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/conversations/{id}/unarchive": {
+      "put": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "UnarchiveConversation",
+        "operationId": "conversationsUnarchiveConversation",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "type",
+                        "lastMessage",
+                        "userId",
+                        "archived",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "archived": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "lastMessage": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "type": "string"
+                        },
+                        "userId": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/personalization/coaching": {
+      "post": {
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GeneratePersonalizedCoaching",
+        "operationId": "personalizationGeneratePersonalizedCoaching",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "coachingResponse": {
+                      "type": "string",
+                      "example": "I noticed you've missed a few check-ins lately..."
+                    },
+                    "context": {
+                      "type": "string",
+                      "example": "User has been struggling with motivation"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/personalization/coaching-stream": {
+      "post": {
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "StreamPersonalizedCoaching",
+        "operationId": "personalizationStreamPersonalizedCoaching",
+        "requestBody": {
+          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "coachingResponse": {
+                      "type": "string",
+                      "example": "I noticed you've missed a few check-ins lately..."
+                    },
+                    "context": {
+                      "type": "string",
+                      "example": "User has been struggling with motivation"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/personalization/onboarding-habits": {
+      "post": {
+        "tags": [
+          "Personalization"
+        ],
+        "summary": "GenerateOnboardingHabits",
+        "operationId": "personalizationGenerateOnboardingHabits",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "goalTitle",
+                  "dailyMinutes"
+                ],
+                "properties": {
+                  "accountabilityStyle": {
+                    "type": "string",
+                    "example": "balanced"
+                  },
+                  "blocker": {
+                    "type": "string",
+                    "example": "Lack of time in the morning"
+                  },
+                  "dailyMinutes": {
+                    "type": "integer",
+                    "maximum": 600,
+                    "minimum": 1,
+                    "example": 30
+                  },
+                  "goalCategory": {
+                    "type": "string",
+                    "example": "fitness"
+                  },
+                  "goalTitle": {
+                    "type": "string",
+                    "example": "Run a 5k"
+                  },
+                  "motivation": {
+                    "type": "string",
+                    "example": "Improve my health and energy"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "description"
+                        ],
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
     "/api/v1/weekly-reviews/generate": {
       "post": {
         "tags": [
@@ -9242,207 +9443,6 @@
         "requestBody": {
           "$ref": "#/components/requestBodies/weeklyreviewGenerateWeeklyReviewBody"
         },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "userId",
-                        "weekStart",
-                        "weekEnd",
-                        "totalHabits",
-                        "completedCheckIns",
-                        "missedCheckIns",
-                        "completionRate",
-                        "moodSummary",
-                        "energySummary",
-                        "habitBreakdown",
-                        "suggestedAdjustments",
-                        "nextWeekPlan",
-                        "generatedAt"
-                      ],
-                      "properties": {
-                        "aiSummary": {
-                          "type": "string"
-                        },
-                        "bestDay": {
-                          "type": "string"
-                        },
-                        "completedCheckIns": {
-                          "type": "integer"
-                        },
-                        "completionRate": {
-                          "type": "number"
-                        },
-                        "energySummary": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "integer"
-                          }
-                        },
-                        "generatedAt": {
-                          "type": "string"
-                        },
-                        "habitBreakdown": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "habitId",
-                              "habitName",
-                              "totalCheckIns",
-                              "completedCount",
-                              "missedCount",
-                              "completionRate"
-                            ],
-                            "properties": {
-                              "category": {
-                                "type": "string"
-                              },
-                              "completedCount": {
-                                "type": "integer"
-                              },
-                              "completionRate": {
-                                "type": "number"
-                              },
-                              "habitId": {
-                                "type": "string"
-                              },
-                              "habitName": {
-                                "type": "string"
-                              },
-                              "lastCheckInAt": {
-                                "type": "string"
-                              },
-                              "missedCount": {
-                                "type": "integer"
-                              },
-                              "totalCheckIns": {
-                                "type": "integer"
-                              }
-                            }
-                          }
-                        },
-                        "hardestDay": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "missedCheckIns": {
-                          "type": "integer"
-                        },
-                        "moodSummary": {
-                          "type": "object",
-                          "additionalProperties": {
-                            "type": "integer"
-                          }
-                        },
-                        "nextWeekPlan": {
-                          "type": "object",
-                          "required": [
-                            "focus",
-                            "commitments",
-                            "risks",
-                            "recoveryActions"
-                          ],
-                          "properties": {
-                            "commitments": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "focus": {
-                              "type": "string"
-                            },
-                            "recoveryActions": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            },
-                            "risks": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        "suggestedAdjustments": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "required": [
-                              "habitName",
-                              "adjustmentType",
-                              "reason",
-                              "suggestion"
-                            ],
-                            "properties": {
-                              "adjustmentType": {
-                                "type": "string"
-                              },
-                              "habitId": {
-                                "type": "string"
-                              },
-                              "habitName": {
-                                "type": "string"
-                              },
-                              "reason": {
-                                "type": "string"
-                              },
-                              "suggestion": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        },
-                        "topBlocker": {
-                          "type": "string"
-                        },
-                        "totalHabits": {
-                          "type": "integer"
-                        },
-                        "userId": {
-                          "type": "string"
-                        },
-                        "weekEnd": {
-                          "type": "string"
-                        },
-                        "weekStart": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/weekly-reviews/{weekStart}": {
-      "get": {
-        "tags": [
-          "Weekly Review"
-        ],
-        "summary": "GetWeeklyReview",
-        "operationId": "weeklyreviewGetWeeklyReview",
         "responses": {
           "200": {
             "description": "",
@@ -9978,7 +9978,7 @@
       }
     }
   },
-  "x-date": "2026-07-31 17:18:43",
+  "x-date": "2026-08-06 09:58:19",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
@@ -9990,25 +9990,6 @@
   ],
   "components": {
     "requestBodies": {
-      "authForgotPasswordBody": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "required": [
-                "email"
-              ],
-              "properties": {
-                "email": {
-                  "type": "string",
-                  "example": "john@example.com"
-                }
-              }
-            }
-          }
-        },
-        "required": true
-      },
       "weeklyreviewGenerateWeeklyReviewBody": {
         "content": {
           "application/json": {

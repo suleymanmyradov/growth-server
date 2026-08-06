@@ -375,23 +375,8 @@ service growthapi {
 	@handler GetCurrentWeeklyReview
 	get /weekly-reviews/current returns (WeeklyReviewResponse)
 
-	@handler GenerateWeeklyReview
-	post /weekly-reviews/generate (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
-
 	@handler GetWeeklyReview
 	get /weekly-reviews/:weekStart returns (WeeklyReviewResponse)
-}
-
-@server (
-	sse:        true
-	prefix:     /api/v1
-	group:      weeklyreview
-	middleware: Auth
-	tags:       "Weekly Review"
-)
-service growthapi {
-	@handler StreamWeeklyReview
-	post /weekly-reviews/generate-stream (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
 }
 
 @server (
@@ -413,9 +398,6 @@ service growthapi {
 	@handler GetPersonalizationContext
 	get /personalization/context (GetPersonalizationContextRequest) returns (PersonalizationContextResponse)
 
-	@handler GeneratePersonalizedCoaching
-	post /personalization/coaching (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
-
 	@handler ListPendingPlanAdjustmentSuggestions
 	get /personalization/plan-adjustments returns (PlanAdjustmentSuggestionsResponse)
 
@@ -427,52 +409,5 @@ service growthapi {
 
 	@handler ApplyPlanAdjustmentSuggestion
 	post /personalization/plan-adjustments/:id/apply returns (PlanAdjustmentSuggestionResponse)
-
-	@handler GenerateOnboardingHabits
-	post /personalization/onboarding-habits (GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse)
-}
-
-@server (
-	sse:        true
-	prefix:     /api/v1
-	group:      personalization
-	middleware: Auth
-	tags:       "Personalization"
-)
-service growthapi {
-	@handler StreamPersonalizedCoaching
-	post /personalization/coaching-stream (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
-}
-
-@server (
-	prefix:     /api/v1
-	group:      conversations
-	middleware: Auth
-	tags:       "Conversations"
-)
-service growthapi {
-	@handler ListConversations
-	get /conversations (ListConversationsRequest) returns (ListConversationsResponse)
-
-	@handler StartConversation
-	post /conversations (StartConversationRequest) returns (StartConversationResponse)
-
-	@handler GetConversation
-	get /conversations/:id (ConversationRequest) returns (GetConversationResponse)
-
-	@handler GetMessages
-	get /conversations/:id/messages (GetMessagesRequest) returns (GetMessagesResponse)
-
-	@handler AppendMessage
-	post /conversations/:id/messages (AppendMessageRequest) returns (AppendMessageResponse)
-
-	@handler ArchiveConversation
-	put /conversations/:id/archive (ConversationRequest) returns (GetConversationResponse)
-
-	@handler UnarchiveConversation
-	put /conversations/:id/unarchive (ConversationRequest) returns (GetConversationResponse)
-
-	@handler DeleteConversation
-	delete /conversations/:id (ConversationRequest) returns (DeleteConversationResponse)
 }
 
