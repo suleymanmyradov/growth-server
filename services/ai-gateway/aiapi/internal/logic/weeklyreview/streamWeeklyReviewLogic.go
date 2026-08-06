@@ -1,0 +1,33 @@
+// Code scaffolded by goctl. Safe to edit.
+// goctl 1.10.1
+
+package weeklyreview
+
+import (
+	"context"
+
+	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"
+	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/types"
+
+	"github.com/zeromicro/go-zero/core/logx"
+)
+
+type StreamWeeklyReviewLogic struct {
+	logx.Logger
+	ctx    context.Context
+	svcCtx *svc.ServiceContext
+}
+
+func NewStreamWeeklyReviewLogic(ctx context.Context, svcCtx *svc.ServiceContext) *StreamWeeklyReviewLogic {
+	return &StreamWeeklyReviewLogic{
+		Logger: logx.WithContext(ctx),
+		ctx:    ctx,
+		svcCtx: svcCtx,
+	}
+}
+
+func (l *StreamWeeklyReviewLogic) StreamWeeklyReview(req *types.GenerateWeeklyReviewRequest, client chan<- *types.WeeklyReviewResponse) error {
+	// todo: add your logic here and delete this line
+
+	return nil
+}

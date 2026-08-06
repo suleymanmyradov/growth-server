@@ -1,0 +1,98 @@
+syntax = "v1"
+
+info (
+	title:    "Growth AI Gateway"
+	desc:     "AI/streaming routes for personalization, coaching, weekly reviews, conversations, and voice"
+	author:   "suleymanmyradov"
+	version:  "v1.0"
+	schemes:  "http"
+	host:     "localhost"
+	basePath: "/api/v1"
+)
+
+import "types.api"
+
+// NOTE: types.api is a copy of services/gateway/contract/types.api. The two
+// files MUST stay in sync. A CI check (scripts/check-types-api-sync.sh) verifies
+// this. Do not edit one without the other.
+@server (
+	prefix:     /api/v1
+	group:      weeklyreview
+	middleware: Auth
+	tags:       "Weekly Review"
+)
+service aiapi {
+	@handler GenerateWeeklyReview
+	post /weekly-reviews/generate (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
+}
+
+@server (
+	sse:        true
+	prefix:     /api/v1
+	group:      weeklyreview
+	middleware: Auth
+	tags:       "Weekly Review"
+)
+service aiapi {
+	@handler StreamWeeklyReview
+	post /weekly-reviews/generate-stream (GenerateWeeklyReviewRequest) returns (WeeklyReviewResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      personalization
+	middleware: Auth
+	tags:       "Personalization"
+)
+service aiapi {
+	@handler GeneratePersonalizedCoaching
+	post /personalization/coaching (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
+
+	@handler GenerateOnboardingHabits
+	post /personalization/onboarding-habits (GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse)
+}
+
+@server (
+	sse:        true
+	prefix:     /api/v1
+	group:      personalization
+	middleware: Auth
+	tags:       "Personalization"
+)
+service aiapi {
+	@handler StreamPersonalizedCoaching
+	post /personalization/coaching-stream (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
+}
+
+@server (
+	prefix:     /api/v1
+	group:      conversations
+	middleware: Auth
+	tags:       "Conversations"
+)
+service aiapi {
+	@handler ListConversations
+	get /conversations (ListConversationsRequest) returns (ListConversationsResponse)
+
+	@handler StartConversation
+	post /conversations (StartConversationRequest) returns (StartConversationResponse)
+
+	@handler GetConversation
+	get /conversations/:id (ConversationRequest) returns (GetConversationResponse)
+
+	@handler GetMessages
+	get /conversations/:id/messages (GetMessagesRequest) returns (GetMessagesResponse)
+
+	@handler AppendMessage
+	post /conversations/:id/messages (AppendMessageRequest) returns (AppendMessageResponse)
+
+	@handler ArchiveConversation
+	put /conversations/:id/archive (ConversationRequest) returns (GetConversationResponse)
+
+	@handler UnarchiveConversation
+	put /conversations/:id/unarchive (ConversationRequest) returns (GetConversationResponse)
+
+	@handler DeleteConversation
+	delete /conversations/:id (ConversationRequest) returns (DeleteConversationResponse)
+}
+
