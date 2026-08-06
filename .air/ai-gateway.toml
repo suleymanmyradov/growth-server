@@ -1,0 +1,18 @@
+root = "."
+tmp_dir = "tmp/air-ai-gateway"
+
+[build]
+cmd = "go build -o ./bin/ai-gateway ./services/ai-gateway/aiapi"
+entrypoint = ["./bin/ai-gateway", "-f", "services/ai-gateway/aiapi/etc/aiapi.yaml"]
+include_ext = ["go", "yaml", "yml", "tpl", "tmpl", "html"]
+include_dir = ["services/ai-gateway", "pkg"]
+exclude_dir = ["tmp", "bin", "logs", "deploy", "docs", "sql", "scripts", "vendor", "testdata", "node_modules"]
+exclude_regex = ["_test\\.go"]
+delay = 1000
+stop_on_error = true
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = true
