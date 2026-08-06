@@ -9,6 +9,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
+	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/config"
@@ -98,7 +99,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config: c,
-		Auth: middleware.JWTMiddleware(middleware.JWTVerifierConfig{
+		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
 			Secret:   c.Auth.Secret,
 			Issuer:   c.Auth.Issuer,
 			Audience: c.Auth.Audience,

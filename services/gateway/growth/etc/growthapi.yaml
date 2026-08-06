@@ -9,7 +9,7 @@ Port: 8888
 # Connection / DoS hardening
 MaxConns: 10000
 MaxBytes: 1048576   # 1 MB
-Timeout: 300000    # 300 seconds (weekly review generation can be slow)
+Timeout: 300000    # 300 seconds
 
 # Middleware toggles (go-zero defaults are generally safe)
 Middlewares:
@@ -41,11 +41,6 @@ SearchRpc:
     - 127.0.0.1:9083
   NonBlock: true
 
-AICoachRpc:
-  Endpoints:
-    - 127.0.0.1:9086
-  NonBlock: true
-
 NotificationsRpc:
   Endpoints:
     - 127.0.0.1:8080
@@ -71,7 +66,7 @@ RateLimit:
     Type: "node"
     Pass: ""
   AuthQuota: "60,10"             # 10 requests per 60 sec per IP (login/register/refresh)
-  AIQuota: "60,10"              # 10 AI requests per 60 sec per user
+  AIQuota: "60,10"              # 10 AI requests per 60 sec per user (check-in AI feedback)
   SearchQuota: "60,30"          # 30 search requests per 60 sec per IP
 
 # Distributed tracing (OTLP / Zipkin / Jaeger)
