@@ -17,8 +17,8 @@ func BenchmarkResponseShapeMiddleware(b *testing.B) {
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/articles", nil)
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		rec := httptest.NewRecorder()
 		handler(rec, req)
 	}
@@ -26,16 +26,16 @@ func BenchmarkResponseShapeMiddleware(b *testing.B) {
 
 func BenchmarkJSONHasTopLevelKey(b *testing.B) {
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = jsonHasTopLevelKey(benchBody, "data")
 	}
 }
 
 func BenchmarkOldUnmarshal(b *testing.B) {
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		var parsed map[string]interface{}
 		_ = fmt.Sprintf("%v", parsed) // prevent optimization
 	}
