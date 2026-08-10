@@ -2,7 +2,6 @@ package goals
 
 import (
 	"context"
-	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
@@ -43,19 +42,7 @@ func (l *ListGoalsLogic) ListGoals(req *types.PageRequest) (resp *types.GoalsRes
 
 	goals := make([]types.Goal, 0, len(rpcResp.Goals))
 	for _, g := range rpcResp.Goals {
-		goals = append(goals, types.Goal{
-			Id:              g.Id,
-			Title:           g.Title,
-			Description:     g.Description,
-			Category:        g.Category,
-			DueDate:         formatTime(g.DueDate),
-			Progress:        int(g.Progress),
-			Completed:       g.Completed,
-			RelatedHabitIds: nonNilHabitIds(g.RelatedHabitIds),
-			UserId:          g.UserId,
-			CreatedAt:       formatTime(g.CreatedAt),
-			UpdatedAt:       formatTime(g.UpdatedAt),
-		})
+		goals = append(goals, rpcGoalToType(g))
 	}
 
 	totalPages := int(rpcResp.Total) / req.Limit
@@ -72,20 +59,4 @@ func (l *ListGoalsLogic) ListGoals(req *types.PageRequest) (resp *types.GoalsRes
 			TotalPages: totalPages,
 		},
 	}, nil
-}
-
-func formatTime(unix int64) string {
-	if unix == 0 {
-		return ""
-	}
-	return time.Unix(unix, 0).Format(time.RFC3339)
-}
-
-// nonNilHabitIds returns the slice if non-nil, otherwise an empty slice so
-// JSON serialization produces [] instead of null.
-func nonNilHabitIds(ids []string) []string {
-	if ids == nil {
-		return []string{}
-	}
-	return ids
 }

@@ -3406,6 +3406,9 @@
                             "type": "string",
                             "example": "2024-01-01T00:00:00Z"
                           },
+                          "currentValue": {
+                            "type": "number"
+                          },
                           "description": {
                             "type": "string",
                             "example": "Complete a 42.195km marathon race"
@@ -3418,6 +3421,44 @@
                             "type": "string",
                             "example": "goal-123"
                           },
+                          "measurement": {
+                            "type": "string",
+                            "example": "milestone"
+                          },
+                          "milestones": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "required": [
+                                "id",
+                                "goalId",
+                                "title",
+                                "sortOrder"
+                              ],
+                              "properties": {
+                                "doneAt": {
+                                  "type": "string",
+                                  "example": "2024-01-15T00:00:00Z"
+                                },
+                                "goalId": {
+                                  "type": "string",
+                                  "example": "goal-123"
+                                },
+                                "id": {
+                                  "type": "string",
+                                  "example": "ms-123"
+                                },
+                                "sortOrder": {
+                                  "type": "integer",
+                                  "example": 0
+                                },
+                                "title": {
+                                  "type": "string",
+                                  "example": "Pick a race date"
+                                }
+                              }
+                            }
+                          },
                           "progress": {
                             "type": "integer",
                             "example": 50
@@ -3429,9 +3470,19 @@
                             },
                             "example": "[\"habit-1\""
                           },
+                          "startValue": {
+                            "type": "number"
+                          },
+                          "targetValue": {
+                            "type": "number"
+                          },
                           "title": {
                             "type": "string",
                             "example": "Run a marathon"
+                          },
+                          "unit": {
+                            "type": "string",
+                            "example": "kg"
                           },
                           "updatedAt": {
                             "type": "string",
@@ -3504,6 +3555,9 @@
                     "type": "string",
                     "example": "fitness"
                   },
+                  "currentValue": {
+                    "type": "number"
+                  },
                   "description": {
                     "type": "string",
                     "example": "Complete a 42.195km marathon race"
@@ -3512,6 +3566,17 @@
                     "type": "string",
                     "example": "2024-12-31T00:00:00Z"
                   },
+                  "measurement": {
+                    "type": "string",
+                    "example": "milestone"
+                  },
+                  "milestoneTitles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": "[\"Pick a race date\""
+                  },
                   "relatedHabitIds": {
                     "type": "array",
                     "items": {
@@ -3519,9 +3584,19 @@
                     },
                     "example": "[\"habit-1\""
                   },
+                  "startValue": {
+                    "type": "number"
+                  },
+                  "targetValue": {
+                    "type": "number"
+                  },
                   "title": {
                     "type": "string",
                     "example": "Run a marathon"
+                  },
+                  "unit": {
+                    "type": "string",
+                    "example": "kg"
                   }
                 }
               }
@@ -3563,6 +3638,9 @@
                           "type": "string",
                           "example": "2024-01-01T00:00:00Z"
                         },
+                        "currentValue": {
+                          "type": "number"
+                        },
                         "description": {
                           "type": "string",
                           "example": "Complete a 42.195km marathon race"
@@ -3575,6 +3653,44 @@
                           "type": "string",
                           "example": "goal-123"
                         },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
                         "progress": {
                           "type": "integer",
                           "example": 50
@@ -3586,9 +3702,19 @@
                           },
                           "example": "[\"habit-1\""
                         },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
                         "title": {
                           "type": "string",
                           "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
                         },
                         "updatedAt": {
                           "type": "string",
@@ -3664,6 +3790,9 @@
                           "type": "string",
                           "example": "2024-01-01T00:00:00Z"
                         },
+                        "currentValue": {
+                          "type": "number"
+                        },
                         "description": {
                           "type": "string",
                           "example": "Complete a 42.195km marathon race"
@@ -3676,6 +3805,44 @@
                           "type": "string",
                           "example": "goal-123"
                         },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
                         "progress": {
                           "type": "integer",
                           "example": 50
@@ -3687,9 +3854,19 @@
                           },
                           "example": "[\"habit-1\""
                         },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
                         "title": {
                           "type": "string",
                           "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
                         },
                         "updatedAt": {
                           "type": "string",
@@ -3738,11 +3915,42 @@
                   "category": {
                     "type": "string"
                   },
+                  "currentValue": {
+                    "type": "number"
+                  },
                   "description": {
                     "type": "string"
                   },
                   "dueDate": {
                     "type": "string"
+                  },
+                  "measurement": {
+                    "type": "string"
+                  },
+                  "milestoneTitles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "milestones": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "title"
+                      ],
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "ms-123"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Pick a race date"
+                        }
+                      }
+                    }
                   },
                   "relatedHabitIds": {
                     "type": "array",
@@ -3750,7 +3958,16 @@
                       "type": "string"
                     }
                   },
+                  "startValue": {
+                    "type": "number"
+                  },
+                  "targetValue": {
+                    "type": "number"
+                  },
                   "title": {
+                    "type": "string"
+                  },
+                  "unit": {
                     "type": "string"
                   }
                 }
@@ -3793,6 +4010,9 @@
                           "type": "string",
                           "example": "2024-01-01T00:00:00Z"
                         },
+                        "currentValue": {
+                          "type": "number"
+                        },
                         "description": {
                           "type": "string",
                           "example": "Complete a 42.195km marathon race"
@@ -3805,6 +4025,44 @@
                           "type": "string",
                           "example": "goal-123"
                         },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
                         "progress": {
                           "type": "integer",
                           "example": 50
@@ -3816,9 +4074,19 @@
                           },
                           "example": "[\"habit-1\""
                         },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
                         "title": {
                           "type": "string",
                           "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
                         },
                         "updatedAt": {
                           "type": "string",
@@ -3865,6 +4133,388 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}/milestones": {
+      "post": {
+        "tags": [
+          "Goals"
+        ],
+        "summary": "CreateMilestone",
+        "operationId": "goalsCreateMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title"
+                ],
+                "properties": {
+                  "sortOrder": {
+                    "type": "integer"
+                  },
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "category",
+                        "progress",
+                        "completed",
+                        "userId",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "example": "fitness"
+                        },
+                        "completed": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "example": "2024-01-01T00:00:00Z"
+                        },
+                        "currentValue": {
+                          "type": "number"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Complete a 42.195km marathon race"
+                        },
+                        "dueDate": {
+                          "type": "string",
+                          "example": "2024-12-31T00:00:00Z"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "goal-123"
+                        },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "example": 50
+                        },
+                        "relatedHabitIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": "[\"habit-1\""
+                        },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "example": "user-123"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}/milestones/{milestoneId}": {
+      "delete": {
+        "tags": [
+          "Goals"
+        ],
+        "summary": "DeleteMilestone",
+        "operationId": "goalsDeleteMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "milestoneId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}/milestones/{milestoneId}/toggle": {
+      "post": {
+        "tags": [
+          "Goals"
+        ],
+        "summary": "ToggleMilestone",
+        "operationId": "goalsToggleMilestone",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "milestoneId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "category",
+                        "progress",
+                        "completed",
+                        "userId",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "example": "fitness"
+                        },
+                        "completed": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "example": "2024-01-01T00:00:00Z"
+                        },
+                        "currentValue": {
+                          "type": "number"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Complete a 42.195km marathon race"
+                        },
+                        "dueDate": {
+                          "type": "string",
+                          "example": "2024-12-31T00:00:00Z"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "goal-123"
+                        },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "example": 50
+                        },
+                        "relatedHabitIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": "[\"habit-1\""
+                        },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "example": "user-123"
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -3946,6 +4596,9 @@
                           "type": "string",
                           "example": "2024-01-01T00:00:00Z"
                         },
+                        "currentValue": {
+                          "type": "number"
+                        },
                         "description": {
                           "type": "string",
                           "example": "Complete a 42.195km marathon race"
@@ -3958,6 +4611,44 @@
                           "type": "string",
                           "example": "goal-123"
                         },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
                         "progress": {
                           "type": "integer",
                           "example": 50
@@ -3969,9 +4660,19 @@
                           },
                           "example": "[\"habit-1\""
                         },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
                         "title": {
                           "type": "string",
                           "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
                         },
                         "updatedAt": {
                           "type": "string",
@@ -4047,6 +4748,9 @@
                           "type": "string",
                           "example": "2024-01-01T00:00:00Z"
                         },
+                        "currentValue": {
+                          "type": "number"
+                        },
                         "description": {
                           "type": "string",
                           "example": "Complete a 42.195km marathon race"
@@ -4059,6 +4763,44 @@
                           "type": "string",
                           "example": "goal-123"
                         },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
                         "progress": {
                           "type": "integer",
                           "example": 50
@@ -4070,9 +4812,189 @@
                           },
                           "example": "[\"habit-1\""
                         },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
                         "title": {
                           "type": "string",
                           "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "example": "user-123"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/goals/{id}/value": {
+      "put": {
+        "tags": [
+          "Goals"
+        ],
+        "summary": "LogGoalValue",
+        "operationId": "goalsLogGoalValue",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "value"
+                ],
+                "properties": {
+                  "value": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "title",
+                        "description",
+                        "category",
+                        "progress",
+                        "completed",
+                        "userId",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "example": "fitness"
+                        },
+                        "completed": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "example": "2024-01-01T00:00:00Z"
+                        },
+                        "currentValue": {
+                          "type": "number"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "Complete a 42.195km marathon race"
+                        },
+                        "dueDate": {
+                          "type": "string",
+                          "example": "2024-12-31T00:00:00Z"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "goal-123"
+                        },
+                        "measurement": {
+                          "type": "string",
+                          "example": "milestone"
+                        },
+                        "milestones": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "id",
+                              "goalId",
+                              "title",
+                              "sortOrder"
+                            ],
+                            "properties": {
+                              "doneAt": {
+                                "type": "string",
+                                "example": "2024-01-15T00:00:00Z"
+                              },
+                              "goalId": {
+                                "type": "string",
+                                "example": "goal-123"
+                              },
+                              "id": {
+                                "type": "string",
+                                "example": "ms-123"
+                              },
+                              "sortOrder": {
+                                "type": "integer",
+                                "example": 0
+                              },
+                              "title": {
+                                "type": "string",
+                                "example": "Pick a race date"
+                              }
+                            }
+                          }
+                        },
+                        "progress": {
+                          "type": "integer",
+                          "example": 50
+                        },
+                        "relatedHabitIds": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": "[\"habit-1\""
+                        },
+                        "startValue": {
+                          "type": "number"
+                        },
+                        "targetValue": {
+                          "type": "number"
+                        },
+                        "title": {
+                          "type": "string",
+                          "example": "Run a marathon"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "kg"
                         },
                         "updatedAt": {
                           "type": "string",
@@ -5461,6 +6383,9 @@
                                 "type": "string",
                                 "example": "2024-01-01T00:00:00Z"
                               },
+                              "currentValue": {
+                                "type": "number"
+                              },
                               "description": {
                                 "type": "string",
                                 "example": "Complete a 42.195km marathon race"
@@ -5473,6 +6398,44 @@
                                 "type": "string",
                                 "example": "goal-123"
                               },
+                              "measurement": {
+                                "type": "string",
+                                "example": "milestone"
+                              },
+                              "milestones": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "id",
+                                    "goalId",
+                                    "title",
+                                    "sortOrder"
+                                  ],
+                                  "properties": {
+                                    "doneAt": {
+                                      "type": "string",
+                                      "example": "2024-01-15T00:00:00Z"
+                                    },
+                                    "goalId": {
+                                      "type": "string",
+                                      "example": "goal-123"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "ms-123"
+                                    },
+                                    "sortOrder": {
+                                      "type": "integer",
+                                      "example": 0
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "example": "Pick a race date"
+                                    }
+                                  }
+                                }
+                              },
                               "progress": {
                                 "type": "integer",
                                 "example": 50
@@ -5484,9 +6447,19 @@
                                 },
                                 "example": "[\"habit-1\""
                               },
+                              "startValue": {
+                                "type": "number"
+                              },
+                              "targetValue": {
+                                "type": "number"
+                              },
                               "title": {
                                 "type": "string",
                                 "example": "Run a marathon"
+                              },
+                              "unit": {
+                                "type": "string",
+                                "example": "kg"
                               },
                               "updatedAt": {
                                 "type": "string",
@@ -7047,6 +8020,9 @@
                                 "type": "string",
                                 "example": "2024-01-01T00:00:00Z"
                               },
+                              "currentValue": {
+                                "type": "number"
+                              },
                               "description": {
                                 "type": "string",
                                 "example": "Complete a 42.195km marathon race"
@@ -7059,6 +8035,44 @@
                                 "type": "string",
                                 "example": "goal-123"
                               },
+                              "measurement": {
+                                "type": "string",
+                                "example": "milestone"
+                              },
+                              "milestones": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "required": [
+                                    "id",
+                                    "goalId",
+                                    "title",
+                                    "sortOrder"
+                                  ],
+                                  "properties": {
+                                    "doneAt": {
+                                      "type": "string",
+                                      "example": "2024-01-15T00:00:00Z"
+                                    },
+                                    "goalId": {
+                                      "type": "string",
+                                      "example": "goal-123"
+                                    },
+                                    "id": {
+                                      "type": "string",
+                                      "example": "ms-123"
+                                    },
+                                    "sortOrder": {
+                                      "type": "integer",
+                                      "example": 0
+                                    },
+                                    "title": {
+                                      "type": "string",
+                                      "example": "Pick a race date"
+                                    }
+                                  }
+                                }
+                              },
                               "progress": {
                                 "type": "integer",
                                 "example": 50
@@ -7070,9 +8084,19 @@
                                 },
                                 "example": "[\"habit-1\""
                               },
+                              "startValue": {
+                                "type": "number"
+                              },
+                              "targetValue": {
+                                "type": "number"
+                              },
                               "title": {
                                 "type": "string",
                                 "example": "Run a marathon"
+                              },
+                              "unit": {
+                                "type": "string",
+                                "example": "kg"
                               },
                               "updatedAt": {
                                 "type": "string",
@@ -9978,7 +11002,7 @@
       }
     }
   },
-  "x-date": "2026-08-06 09:58:19",
+  "x-date": "2026-08-10 11:55:26",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

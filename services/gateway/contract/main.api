@@ -127,6 +127,18 @@ service growthapi {
 
 	@handler UpdateGoalProgress
 	put /goals/:id/progress (UpdateProgressRequest) returns (GoalResponse)
+
+	@handler LogGoalValue
+	put /goals/:id/value (LogGoalValueRequest) returns (GoalResponse)
+
+	@handler CreateMilestone
+	post /goals/:id/milestones (CreateMilestoneRequest) returns (GoalResponse)
+
+	@handler ToggleMilestone
+	post /goals/:id/milestones/:milestoneId/toggle (MilestoneRequest) returns (GoalResponse)
+
+	@handler DeleteMilestone
+	delete /goals/:id/milestones/:milestoneId (MilestoneRequest) returns (DeleteMilestoneResponse)
 }
 
 @server (

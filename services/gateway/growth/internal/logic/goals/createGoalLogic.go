@@ -46,24 +46,18 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 		Description:     req.Description,
 		Category:        req.Category,
 		RelatedHabitIds: req.RelatedHabitIds,
+		Measurement:     req.Measurement,
+		StartValue:      req.StartValue,
+		CurrentValue:    req.CurrentValue,
+		TargetValue:     req.TargetValue,
+		Unit:            req.Unit,
+		MilestoneTitles: req.MilestoneTitles,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.GoalResponse{
-		Data: types.Goal{
-			Id:              rpcResp.Goal.Id,
-			Title:           rpcResp.Goal.Title,
-			Description:     rpcResp.Goal.Description,
-			Category:        req.Category,
-			DueDate:         formatTime(rpcResp.Goal.DueDate),
-			Progress:        int(rpcResp.Goal.Progress),
-			Completed:       rpcResp.Goal.Completed,
-			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
-			UserId:          rpcResp.Goal.UserId,
-			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
-			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),
-		},
+		Data: rpcGoalToType(rpcResp.Goal),
 	}, nil
 }

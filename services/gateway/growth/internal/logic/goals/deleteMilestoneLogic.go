@@ -10,29 +10,30 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetGoalLogic struct {
+type DeleteMilestoneLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetGoalLogic {
-	return &GetGoalLogic{
+func NewDeleteMilestoneLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DeleteMilestoneLogic {
+	return &DeleteMilestoneLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetGoalLogic) GetGoal(req *types.GoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.ClientRpc.Goals.GetGoal(l.ctx, &clientgoals.GetGoalRequest{
-		GoalId: req.Id,
+func (l *DeleteMilestoneLogic) DeleteMilestone(req *types.MilestoneRequest) (resp *types.DeleteMilestoneResponse, err error) {
+	_, err = l.svcCtx.ClientRpc.Goals.DeleteMilestone(l.ctx, &clientgoals.DeleteMilestoneRequest{
+		GoalId:      req.Id,
+		MilestoneId: req.MilestoneId,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.GoalResponse{
-		Data: rpcGoalToType(rpcResp.Goal),
+	return &types.DeleteMilestoneResponse{
+		Success: true,
 	}, nil
 }
