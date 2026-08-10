@@ -67,3 +67,14 @@ WHERE user_id = $1;
 -- name: CountCheckInsByHabit :one
 SELECT COUNT(*) FROM check_ins
 WHERE habit_id = $1;
+
+-- name: CountCompletedCheckInDays :one
+-- Distinct local_date values with a completed check-in for any of the given
+-- habits, within the [from_date, to_date] window (inclusive). Used by the
+-- habit-driven goal progress formula (called via ICheckIns from goals logic).
+SELECT COUNT(DISTINCT local_date) AS days
+FROM check_ins
+WHERE habit_id = ANY($1::uuid[])
+  AND status = 'completed'
+  AND local_date >= $2
+  AND local_date <= $3;

@@ -70,6 +70,7 @@ SELECT
     h.id AS habit_id,
     h.name AS habit_name,
     h.category_id AS habit_category_id,
+    h.created_at AS habit_created_at,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
