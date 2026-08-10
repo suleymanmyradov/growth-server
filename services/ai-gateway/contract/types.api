@@ -144,18 +144,35 @@ type (
 
 // Goal types
 type (
+	GoalMilestone {
+		id        string `json:"id,example=ms-123"`
+		goalId    string `json:"goalId,example=goal-123"`
+		title     string `json:"title,example=Pick a race date"`
+		sortOrder int    `json:"sortOrder,example=0"`
+		doneAt    string `json:"doneAt,optional,example=2024-01-15T00:00:00Z"`
+	}
+	MilestoneInput {
+		id    string `json:"id,optional,example=ms-123"`
+		title string `json:"title,example=Pick a race date"`
+	}
 	Goal {
-		id              string   `json:"id,example=goal-123"`
-		title           string   `json:"title,example=Run a marathon"`
-		description     string   `json:"description,example=Complete a 42.195km marathon race"`
-		category        string   `json:"category,example=fitness"`
-		dueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
-		progress        int      `json:"progress,example=50"`
-		completed       bool     `json:"completed,example=false"`
-		relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
-		userId          string   `json:"userId,example=user-123"`
-		createdAt       string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
-		updatedAt       string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+		id              string         `json:"id,example=goal-123"`
+		title           string         `json:"title,example=Run a marathon"`
+		description     string         `json:"description,example=Complete a 42.195km marathon race"`
+		category        string         `json:"category,example=fitness"`
+		dueDate         string         `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+		progress        int            `json:"progress,example=50"`
+		completed       bool           `json:"completed,example=false"`
+		relatedHabitIds []string       `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+		measurement     string         `json:"measurement,optional,example=milestone"`
+		startValue      float64        `json:"startValue,optional"`
+		currentValue    float64        `json:"currentValue,optional"`
+		targetValue     float64        `json:"targetValue,optional"`
+		unit            string         `json:"unit,optional,example=kg"`
+		milestones      []GoalMilestone `json:"milestones,optional"`
+		userId          string         `json:"userId,example=user-123"`
+		createdAt       string         `json:"createdAt,example=2024-01-01T00:00:00Z"`
+		updatedAt       string         `json:"updatedAt,example=2024-01-15T00:00:00Z"`
 	}
 	GoalResponse {
 		data Goal `json:"data"`
@@ -170,6 +187,12 @@ type (
 		category        string   `json:"category,example=fitness"`
 		dueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
 		relatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+		measurement     string   `json:"measurement,optional,example=milestone"`
+		startValue      float64  `json:"startValue,optional"`
+		currentValue    float64  `json:"currentValue,optional"`
+		targetValue     float64  `json:"targetValue,optional"`
+		unit            string   `json:"unit,optional,example=kg"`
+		milestoneTitles []string `json:"milestoneTitles,optional,example=[\"Pick a race date\",\"Start training\"]"`
 	}
 	UpdateGoalRequest {
 		id              string   `path:"id"`
@@ -178,6 +201,13 @@ type (
 		category        string   `json:"category,optional"`
 		dueDate         string   `json:"dueDate,optional"`
 		relatedHabitIds []string `json:"relatedHabitIds,optional"`
+		measurement     string   `json:"measurement,optional"`
+		startValue      float64  `json:"startValue,optional"`
+		currentValue    float64  `json:"currentValue,optional"`
+		targetValue     float64  `json:"targetValue,optional"`
+		unit            string          `json:"unit,optional"`
+		milestoneTitles []string        `json:"milestoneTitles,optional"`
+		milestones      []MilestoneInput `json:"milestones,optional"`
 	}
 	GoalRequest {
 		id string `path:"id"`
@@ -185,6 +215,22 @@ type (
 	UpdateProgressRequest {
 		id       string `path:"id"`
 		progress int    `json:"progress"`
+	}
+	LogGoalValueRequest {
+		id    string  `path:"id"`
+		value float64 `json:"value"`
+	}
+	CreateMilestoneRequest {
+		id        string `path:"id"`
+		title     string `json:"title"`
+		sortOrder int    `json:"sortOrder,optional"`
+	}
+	MilestoneRequest {
+		id          string `path:"id"`
+		milestoneId string `path:"milestoneId"`
+	}
+	DeleteMilestoneResponse {
+		success bool `json:"success"`
 	}
 )
 

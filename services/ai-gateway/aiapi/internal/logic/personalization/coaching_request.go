@@ -30,16 +30,26 @@ func BuildPersonalizedCoachingRequest(
 		activeHabits[i] = habit.Name
 	}
 
-	// Calculate recent check-in summary
+	// Calculate recent check-in summary. The completion rate must account
+	// for days where the user did not log any check-in at all — those are
+	// gaps, not passes. Expected check-ins = active habits × days in the
+	// recent check-in window (last 30 days). Missing days count as missed.
 	completedCount := 0
 	for _, checkIn := range ctx.RecentCheckIns {
 		if checkIn.Status == "completed" {
 			completedCount++
 		}
 	}
+	activeHabitCount := len(ctx.ActiveHabits)
+	// The personalization context fetches check-ins for the last 30 days.
+	const recentCheckInWindowDays = 30
+	expectedCheckIns := activeHabitCount * recentCheckInWindowDays
 	completionRate := 0.0
-	if len(ctx.RecentCheckIns) > 0 {
-		completionRate = float64(completedCount) / float64(len(ctx.RecentCheckIns)) * 100
+	if expectedCheckIns > 0 {
+		completionRate = float64(completedCount) / float64(expectedCheckIns) * 100
+		if completionRate > 100 {
+			completionRate = 100
+		}
 	}
 
 	patternInsights := make(map[string]string, len(ctx.PatternInsights))
@@ -50,8 +60,14 @@ func BuildPersonalizedCoachingRequest(
 	// Build an aggregate check-in digest (counts + trend + top blocker) instead
 	// of enumerating raw check-in rows. Trend/top-blocker come from the
 	// pre-computed pattern insights so this stays near-constant size.
+	// Use expectedCheckIns (not len(RecentCheckIns)) so the count reflects the
+	// true denominator — days with no check-in at all are gaps, not passes.
+	checkInCountForSummary := expectedCheckIns
+	if checkInCountForSummary == 0 {
+		checkInCountForSummary = len(ctx.RecentCheckIns)
+	}
 	recentCheckInsSummary := aiprompts.BuildContextSummary(
-		len(ctx.RecentCheckIns),
+		checkInCountForSummary,
 		completionRate,
 		patternInsights["top_blocker"],
 		patternInsights["completion_pattern"],
