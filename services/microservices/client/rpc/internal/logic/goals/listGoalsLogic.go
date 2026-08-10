@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -74,9 +75,28 @@ func (l *ListGoalsLogic) ListGoals(in *client.ListGoalsRequest) (*client.ListGoa
 		habitsByGoal[r.GoalID] = append(habitsByGoal[r.GoalID], r.HabitID.String())
 	}
 
+	// Batch-fetch milestones for milestone-type goals (avoids N+1).
+	goalIDs := make([]uuid.UUID, 0, len(goals))
+	for _, g := range goals {
+		if g.Measurement == MeasurementMilestone {
+			goalIDs = append(goalIDs, g.ID)
+		}
+	}
+	milestonesByGoal := make(map[uuid.UUID][]db.GoalMilestone)
+	if len(goalIDs) > 0 {
+		allMilestones, err := l.svcCtx.Repo.Goals.ListGoalMilestonesByGoals(ctx, goalIDs)
+		if err != nil {
+			l.Errorf("Failed to list goal milestones: %v", err)
+			return nil, status.Error(codes.Internal, "failed to list goal milestones")
+		}
+		for _, m := range allMilestones {
+			milestonesByGoal[m.GoalID] = append(milestonesByGoal[m.GoalID], m)
+		}
+	}
+
 	pbGoals := make([]*client.Goal, len(goals))
 	for i, g := range goals {
-		pbGoals[i] = goalToProto(g, habitsByGoal[g.ID])
+		pbGoals[i] = goalToProto(g, habitsByGoal[g.ID], milestonesByGoal[g.ID])
 	}
 
 	return &client.ListGoalsResponse{

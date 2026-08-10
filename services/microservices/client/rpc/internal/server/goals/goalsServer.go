@@ -57,3 +57,23 @@ func (s *GoalsServer) UpdateGoalProgress(ctx context.Context, in *client.UpdateG
 	l := goalslogic.NewUpdateGoalProgressLogic(ctx, s.svcCtx)
 	return l.UpdateGoalProgress(in)
 }
+
+func (s *GoalsServer) LogGoalValue(ctx context.Context, in *client.LogGoalValueRequest) (*client.LogGoalValueResponse, error) {
+	l := goalslogic.NewLogGoalValueLogic(ctx, s.svcCtx)
+	return l.LogGoalValue(in)
+}
+
+func (s *GoalsServer) CreateMilestone(ctx context.Context, in *client.CreateMilestoneRequest) (*client.CreateMilestoneResponse, error) {
+	l := goalslogic.NewCreateMilestoneLogic(ctx, s.svcCtx)
+	return l.CreateMilestone(in)
+}
+
+func (s *GoalsServer) ToggleMilestone(ctx context.Context, in *client.ToggleMilestoneRequest) (*client.ToggleMilestoneResponse, error) {
+	l := goalslogic.NewToggleMilestoneLogic(ctx, s.svcCtx)
+	return l.ToggleMilestone(in)
+}
+
+func (s *GoalsServer) DeleteMilestone(ctx context.Context, in *client.DeleteMilestoneRequest) (*client.DeleteMilestoneResponse, error) {
+	l := goalslogic.NewDeleteMilestoneLogic(ctx, s.svcCtx)
+	return l.DeleteMilestone(in)
+}

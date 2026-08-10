@@ -46,6 +46,12 @@ type Querier interface {
 	CountCategories(ctx context.Context) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	// Distinct local_date values with a completed check-in for any of the given
+	// habits, within the [from_date, to_date] window (inclusive). Used by the
+	// habit-driven goal progress formula (called via ICheckIns from goals logic).
+	CountCompletedCheckInDays(ctx context.Context, column1 []uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) (int64, error)
+	// Returns (total, done) counts for a goal's milestone progress.
+	CountGoalMilestones(ctx context.Context, goalID uuid.UUID) (CountGoalMilestonesRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountHabitsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountPendingPlanAdjustmentSuggestions(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -64,6 +70,7 @@ type Querier interface {
 	CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (CheckIn, error)
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (Subscription, error)
 	CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateGoalRow, error)
+	CreateGoalMilestone(ctx context.Context, goalID uuid.UUID, title string, sortOrder int32) (GoalMilestone, error)
 	CreateHabit(ctx context.Context, name string, description *string, slug string, userID uuid.UUID) (CreateHabitRow, error)
 	CreatePlanAdjustmentSuggestion(ctx context.Context, arg CreatePlanAdjustmentSuggestionParams) (PlanAdjustment, error)
 	CreateReport(ctx context.Context, arg CreateReportParams) (Report, error)
@@ -90,6 +97,8 @@ type Querier interface {
 	DeleteCheckInsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteCoachingProfile(ctx context.Context, userID uuid.UUID) error
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
+	// Scoped to goal_id to prevent cross-goal milestone deletion.
+	DeleteGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) error
 	DeleteGoalsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
 	// Bulk cleanup queries for user_deleted event consumers.
@@ -234,9 +243,18 @@ type Querier interface {
 	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]ListGoalHabitIDsRow, error)
 	// Fetch habit IDs linked to a single goal.
 	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
+	// Fetch goal IDs linked to a single habit. Drives recompute-on-check-in.
+	ListGoalIDsByHabit(ctx context.Context, habitID uuid.UUID) ([]uuid.UUID, error)
+	// ─── Goal milestones ────────────────────────────────────────────────────────
+	ListGoalMilestones(ctx context.Context, goalID uuid.UUID) ([]GoalMilestone, error)
+	// Batch-fetch milestones for multiple goals (avoids N+1 in ListGoals).
+	// $1 = array of goal_ids.
+	ListGoalMilestonesByGoals(ctx context.Context, dollar_1 []uuid.UUID) ([]GoalMilestone, error)
 	ListGoalTemplates(ctx context.Context) ([]ListGoalTemplatesRow, error)
 	// Goal rows are returned with a resolved category slug and a derived
 	// `completed` flag so callers never deal with category_id directly.
+	// All goal SELECTs include the typed-measurement columns so the logic
+	// layer can compute/return progress per measurement type.
 	ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error)
 	// Keyset pagination: pass last_created_at from the previous page (or NULL).
 	ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListGoalsKeysetRow, error)
@@ -275,9 +293,17 @@ type Querier interface {
 	ListTags(ctx context.Context) ([]ListTagsRow, error)
 	ListWeeklyReviews(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListWeeklyReviewsRow, error)
 	LogActivity(ctx context.Context, arg LogActivityParams) (Activity, error)
+	// Writes a new current_value for a numeric goal. Progress recomputation is
+	// handled by the logic layer via RecomputeGoalProgressWithRepo (single source
+	// of truth in ComputeProgress), not inline SQL.
+	LogGoalValue(ctx context.Context, iD uuid.UUID, currentValue pgtype.Numeric) (LogGoalValueRow, error)
 	MarkClientEventProcessed(ctx context.Context, eventID string) error
 	MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error
 	MarkStripeEventProcessed(ctx context.Context, eventID string) error
+	// Writes a computed progress value and flips status accordingly. Called by
+	// the progress engine after any write that can move the needle (milestone
+	// toggle, habit link change, check-in create/delete).
+	RecomputeGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (RecomputeGoalProgressRow, error)
 	ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error
 	// "Uncompletes" all of today's habits by deleting today's completed check-ins.
 	// The streak is derived from check_ins history, so it recomputes automatically
@@ -288,7 +314,16 @@ type Querier interface {
 	// first RevenueCat webhook arrives for a user (the mobile app has already
 	// called Purchases.logIn(userId) on the client side).
 	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
+	// Toggles status between active/completed. For binary goals this is the
+	// progress input (done/not done); for derived types the caller recomputes
+	// progress after toggling back to active. Progress is set to 100 when
+	// completing and reset to 0 when reactivating — for manual goals 0 is the
+	// correct value (the user explicitly un-completed it), and for derived
+	// types the recompute in the logic layer overwrites it with the true value.
 	ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error)
+	// Flips done_at between NULL and now(). Scoped to goal_id to prevent
+	// cross-goal milestone access via a mismatched (goalId, milestoneId) pair.
+	ToggleGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) (GoalMilestone, error)
 	// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
@@ -298,6 +333,11 @@ type Querier interface {
 	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UpdateCoachingProfileNotesRow, error)
 	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, coachTone string, difficulty string) (UpdateCoachingProfilePreferencesRow, error)
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error)
+	// Updates title and sort_order for an existing milestone. Scoped to goal_id
+	// to prevent cross-goal access. done_at is preserved (not in SET clause).
+	UpdateGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID, title string, sortOrder int32) (GoalMilestone, error)
+	// Manual progress update (only valid for measurement='manual'; the logic
+	// layer rejects other types with FailedPrecondition).
 	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error)
 	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (UpdateHabitRow, error)
 	// The onboarding_completed flag is a one-way operation: once true, a general

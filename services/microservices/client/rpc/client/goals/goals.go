@@ -16,14 +16,22 @@ import (
 type (
 	CreateGoalRequest          = client.CreateGoalRequest
 	CreateGoalResponse         = client.CreateGoalResponse
+	CreateMilestoneRequest     = client.CreateMilestoneRequest
+	CreateMilestoneResponse    = client.CreateMilestoneResponse
 	DeleteGoalRequest          = client.DeleteGoalRequest
 	DeleteGoalResponse         = client.DeleteGoalResponse
+	DeleteMilestoneRequest     = client.DeleteMilestoneRequest
+	DeleteMilestoneResponse    = client.DeleteMilestoneResponse
 	GetGoalRequest             = client.GetGoalRequest
 	GetGoalResponse            = client.GetGoalResponse
 	ListGoalsRequest           = client.ListGoalsRequest
 	ListGoalsResponse          = client.ListGoalsResponse
+	LogGoalValueRequest        = client.LogGoalValueRequest
+	LogGoalValueResponse       = client.LogGoalValueResponse
 	ToggleGoalRequest          = client.ToggleGoalRequest
 	ToggleGoalResponse         = client.ToggleGoalResponse
+	ToggleMilestoneRequest     = client.ToggleMilestoneRequest
+	ToggleMilestoneResponse    = client.ToggleMilestoneResponse
 	UpdateGoalProgressRequest  = client.UpdateGoalProgressRequest
 	UpdateGoalProgressResponse = client.UpdateGoalProgressResponse
 	UpdateGoalRequest          = client.UpdateGoalRequest
@@ -37,6 +45,10 @@ type (
 		DeleteGoal(ctx context.Context, in *DeleteGoalRequest, opts ...grpc.CallOption) (*DeleteGoalResponse, error)
 		ToggleGoal(ctx context.Context, in *ToggleGoalRequest, opts ...grpc.CallOption) (*ToggleGoalResponse, error)
 		UpdateGoalProgress(ctx context.Context, in *UpdateGoalProgressRequest, opts ...grpc.CallOption) (*UpdateGoalProgressResponse, error)
+		LogGoalValue(ctx context.Context, in *LogGoalValueRequest, opts ...grpc.CallOption) (*LogGoalValueResponse, error)
+		CreateMilestone(ctx context.Context, in *CreateMilestoneRequest, opts ...grpc.CallOption) (*CreateMilestoneResponse, error)
+		ToggleMilestone(ctx context.Context, in *ToggleMilestoneRequest, opts ...grpc.CallOption) (*ToggleMilestoneResponse, error)
+		DeleteMilestone(ctx context.Context, in *DeleteMilestoneRequest, opts ...grpc.CallOption) (*DeleteMilestoneResponse, error)
 	}
 
 	defaultGoals struct {
@@ -83,4 +95,24 @@ func (m *defaultGoals) ToggleGoal(ctx context.Context, in *ToggleGoalRequest, op
 func (m *defaultGoals) UpdateGoalProgress(ctx context.Context, in *UpdateGoalProgressRequest, opts ...grpc.CallOption) (*UpdateGoalProgressResponse, error) {
 	client := client.NewGoalsClient(m.cli.Conn())
 	return client.UpdateGoalProgress(ctx, in, opts...)
+}
+
+func (m *defaultGoals) LogGoalValue(ctx context.Context, in *LogGoalValueRequest, opts ...grpc.CallOption) (*LogGoalValueResponse, error) {
+	client := client.NewGoalsClient(m.cli.Conn())
+	return client.LogGoalValue(ctx, in, opts...)
+}
+
+func (m *defaultGoals) CreateMilestone(ctx context.Context, in *CreateMilestoneRequest, opts ...grpc.CallOption) (*CreateMilestoneResponse, error) {
+	client := client.NewGoalsClient(m.cli.Conn())
+	return client.CreateMilestone(ctx, in, opts...)
+}
+
+func (m *defaultGoals) ToggleMilestone(ctx context.Context, in *ToggleMilestoneRequest, opts ...grpc.CallOption) (*ToggleMilestoneResponse, error) {
+	client := client.NewGoalsClient(m.cli.Conn())
+	return client.ToggleMilestone(ctx, in, opts...)
+}
+
+func (m *defaultGoals) DeleteMilestone(ctx context.Context, in *DeleteMilestoneRequest, opts ...grpc.CallOption) (*DeleteMilestoneResponse, error) {
+	client := client.NewGoalsClient(m.cli.Conn())
+	return client.DeleteMilestone(ctx, in, opts...)
 }

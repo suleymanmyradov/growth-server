@@ -13,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
+	goalslogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/goals"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -166,6 +167,21 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		})
 		if err != nil {
 			return fmt.Errorf("create activity: %w", err)
+		}
+
+		// Recompute progress for any habit-driven goals linked to this habit.
+		// Only 'completed' check-ins move the needle (the habit formula counts
+		// completed days), but we recompute on both statuses so a 'missed'
+		// check-in that replaces a previous 'completed' for the same day is
+		// handled correctly by the distinct-day count.
+		linkedGoalIDs, gErr := txRepo.Goals.ListGoalIDsByHabit(ctx, habitID)
+		if gErr != nil {
+			return fmt.Errorf("list linked goals: %w", gErr)
+		}
+		for _, gid := range linkedGoalIDs {
+			if _, rErr := goalslogic.RecomputeGoalProgressWithRepo(ctx, txRepo.Goals, txRepo.CheckIns, gid); rErr != nil {
+				return fmt.Errorf("recompute goal %s progress: %w", gid, rErr)
+			}
 		}
 		return nil
 	})

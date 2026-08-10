@@ -92,3 +92,10 @@ func (r *checkInsRepo) CountCheckInsByHabit(ctx context.Context, habitID uuid.UU
 
 	return r.db.CountCheckInsByHabit(ctx, habitID)
 }
+
+func (r *checkInsRepo) CountCompletedCheckInDays(ctx context.Context, habitIDs []uuid.UUID, from, to pgtype.Date) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.CountCompletedCheckInDays")
+	defer span.End()
+
+	return r.db.CountCompletedCheckInDays(ctx, habitIDs, from, to)
+}

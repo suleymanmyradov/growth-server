@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -83,6 +84,22 @@ func (r *goalsRepo) UpdateGoalProgress(ctx context.Context, id uuid.UUID, progre
 	return db.GetGoalRow(row), err
 }
 
+func (r *goalsRepo) LogGoalValue(ctx context.Context, id uuid.UUID, currentValue pgtype.Numeric) (db.GetGoalRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.LogGoalValue")
+	defer span.End()
+
+	row, err := r.db.LogGoalValue(ctx, id, currentValue)
+	return db.GetGoalRow(row), err
+}
+
+func (r *goalsRepo) RecomputeGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.RecomputeGoalProgress")
+	defer span.End()
+
+	row, err := r.db.RecomputeGoalProgress(ctx, id, progress)
+	return db.GetGoalRow(row), err
+}
+
 func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.CountGoalsByUser")
 	defer span.End()
@@ -123,4 +140,60 @@ func (r *goalsRepo) LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, h
 	defer span.End()
 
 	return r.db.LinkGoalHabitsBatch(ctx, goalID, habitIDs)
+}
+
+func (r *goalsRepo) ListGoalIDsByHabit(ctx context.Context, habitID uuid.UUID) ([]uuid.UUID, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalIDsByHabit")
+	defer span.End()
+
+	return r.db.ListGoalIDsByHabit(ctx, habitID)
+}
+
+func (r *goalsRepo) CountGoalMilestones(ctx context.Context, goalID uuid.UUID) (db.CountGoalMilestonesRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.CountGoalMilestones")
+	defer span.End()
+
+	return r.db.CountGoalMilestones(ctx, goalID)
+}
+
+func (r *goalsRepo) ListGoalMilestones(ctx context.Context, goalID uuid.UUID) ([]db.GoalMilestone, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalMilestones")
+	defer span.End()
+
+	return r.db.ListGoalMilestones(ctx, goalID)
+}
+
+func (r *goalsRepo) ListGoalMilestonesByGoals(ctx context.Context, goalIDs []uuid.UUID) ([]db.GoalMilestone, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ListGoalMilestonesByGoals")
+	defer span.End()
+
+	return r.db.ListGoalMilestonesByGoals(ctx, goalIDs)
+}
+
+func (r *goalsRepo) CreateGoalMilestone(ctx context.Context, goalID uuid.UUID, title string, sortOrder int32) (db.GoalMilestone, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.CreateGoalMilestone")
+	defer span.End()
+
+	return r.db.CreateGoalMilestone(ctx, goalID, title, sortOrder)
+}
+
+func (r *goalsRepo) UpdateGoalMilestone(ctx context.Context, id, goalID uuid.UUID, title string, sortOrder int32) (db.GoalMilestone, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.UpdateGoalMilestone")
+	defer span.End()
+
+	return r.db.UpdateGoalMilestone(ctx, id, goalID, title, sortOrder)
+}
+
+func (r *goalsRepo) ToggleGoalMilestone(ctx context.Context, id, goalID uuid.UUID) (db.GoalMilestone, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.ToggleGoalMilestone")
+	defer span.End()
+
+	return r.db.ToggleGoalMilestone(ctx, id, goalID)
+}
+
+func (r *goalsRepo) DeleteGoalMilestone(ctx context.Context, id, goalID uuid.UUID) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.DeleteGoalMilestone")
+	defer span.End()
+
+	return r.db.DeleteGoalMilestone(ctx, id, goalID)
 }

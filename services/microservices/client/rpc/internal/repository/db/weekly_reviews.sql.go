@@ -196,6 +196,7 @@ SELECT
     h.id AS habit_id,
     h.name AS habit_name,
     h.category_id AS habit_category_id,
+    h.created_at AS habit_created_at,
     COUNT(ci.id) AS total_check_ins,
     COUNT(*) FILTER (WHERE ci.status = 'completed') AS completed_count,
     COUNT(*) FILTER (WHERE ci.status = 'missed') AS missed_count,
@@ -219,14 +220,15 @@ ORDER BY h.created_at DESC
 `
 
 type GetCheckInStatsForWeekRow struct {
-	HabitID         uuid.UUID      `db:"habit_id" json:"habit_id"`
-	HabitName       string         `db:"habit_name" json:"habit_name"`
-	HabitCategoryID uuid.NullUUID  `db:"habit_category_id" json:"habit_category_id"`
-	TotalCheckIns   int64          `db:"total_check_ins" json:"total_check_ins"`
-	CompletedCount  int64          `db:"completed_count" json:"completed_count"`
-	MissedCount     int64          `db:"missed_count" json:"missed_count"`
-	CompletionRate  pgtype.Numeric `db:"completion_rate" json:"completion_rate"`
-	LastCheckInAt   interface{}    `db:"last_check_in_at" json:"last_check_in_at"`
+	HabitID         uuid.UUID          `db:"habit_id" json:"habit_id"`
+	HabitName       string             `db:"habit_name" json:"habit_name"`
+	HabitCategoryID uuid.NullUUID      `db:"habit_category_id" json:"habit_category_id"`
+	HabitCreatedAt  pgtype.Timestamptz `db:"habit_created_at" json:"habit_created_at"`
+	TotalCheckIns   int64              `db:"total_check_ins" json:"total_check_ins"`
+	CompletedCount  int64              `db:"completed_count" json:"completed_count"`
+	MissedCount     int64              `db:"missed_count" json:"missed_count"`
+	CompletionRate  pgtype.Numeric     `db:"completion_rate" json:"completion_rate"`
+	LastCheckInAt   interface{}        `db:"last_check_in_at" json:"last_check_in_at"`
 }
 
 func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetCheckInStatsForWeekRow, error) {
@@ -242,6 +244,7 @@ func (q *Queries) GetCheckInStatsForWeek(ctx context.Context, userID uuid.UUID, 
 			&i.HabitID,
 			&i.HabitName,
 			&i.HabitCategoryID,
+			&i.HabitCreatedAt,
 			&i.TotalCheckIns,
 			&i.CompletedCount,
 			&i.MissedCount,

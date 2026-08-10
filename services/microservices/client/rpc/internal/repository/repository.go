@@ -117,12 +117,22 @@ type IGoals interface {
 	DeleteGoal(ctx context.Context, id uuid.UUID) error
 	ToggleGoal(ctx context.Context, id uuid.UUID) (db.GetGoalRow, error)
 	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
+	LogGoalValue(ctx context.Context, id uuid.UUID, currentValue pgtype.Numeric) (db.GetGoalRow, error)
+	RecomputeGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error)
 	ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) ([]uuid.UUID, error)
+	ListGoalIDsByHabit(ctx context.Context, habitID uuid.UUID) ([]uuid.UUID, error)
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
 	LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, habitIDs []uuid.UUID) error
+	CountGoalMilestones(ctx context.Context, goalID uuid.UUID) (db.CountGoalMilestonesRow, error)
+	ListGoalMilestones(ctx context.Context, goalID uuid.UUID) ([]db.GoalMilestone, error)
+	ListGoalMilestonesByGoals(ctx context.Context, goalIDs []uuid.UUID) ([]db.GoalMilestone, error)
+	CreateGoalMilestone(ctx context.Context, goalID uuid.UUID, title string, sortOrder int32) (db.GoalMilestone, error)
+	UpdateGoalMilestone(ctx context.Context, id, goalID uuid.UUID, title string, sortOrder int32) (db.GoalMilestone, error)
+	ToggleGoalMilestone(ctx context.Context, id, goalID uuid.UUID) (db.GoalMilestone, error)
+	DeleteGoalMilestone(ctx context.Context, id, goalID uuid.UUID) error
 }
 
 type ICategories interface {
@@ -149,6 +159,7 @@ type ICheckIns interface {
 	HasCheckedInToday(ctx context.Context, userID, habitID uuid.UUID, timezone string) (bool, error)
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
+	CountCompletedCheckInDays(ctx context.Context, habitIDs []uuid.UUID, from, to pgtype.Date) (int64, error)
 }
 
 type IWeeklyReviews interface {

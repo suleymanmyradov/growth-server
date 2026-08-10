@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -62,7 +63,16 @@ func (l *GetGoalLogic) GetGoal(in *client.GetGoalRequest) (*client.GetGoalRespon
 		return nil, status.Error(codes.Internal, "failed to list goal-habit links")
 	}
 
+	var milestones []db.GoalMilestone
+	if goal.Measurement == MeasurementMilestone {
+		milestones, err = l.svcCtx.Repo.Goals.ListGoalMilestones(ctx, goalID)
+		if err != nil {
+			l.Errorf("Failed to list goal milestones: %v", err)
+			return nil, status.Error(codes.Internal, "failed to list goal milestones")
+		}
+	}
+
 	return &client.GetGoalResponse{
-		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
+		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs), milestones),
 	}, nil
 }
