@@ -3,6 +3,8 @@ package weeklyreviewservicelogic
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,7 +175,7 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 		goalTitles[i] = g.Title
 	}
 
-	detectedPatterns := make([]string, 0, 6+len(patternInsights.RiskFactors))
+	detectedPatterns := make([]string, 0, 8+len(patternInsights.RiskFactors))
 	if patternInsights.CompletionPattern != "" {
 		detectedPatterns = append(detectedPatterns, "Completion pattern: "+patternInsights.CompletionPattern)
 	}
@@ -191,6 +193,22 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 	}
 	for _, risk := range patternInsights.RiskFactors {
 		detectedPatterns = append(detectedPatterns, "Risk factor: "+risk)
+	}
+
+	// Add daily coverage so the coach can describe temporal patterns (e.g.
+	// "you started strong on Monday but trailed off by Thursday"). Days with
+	// no check-in rows at all are shown as 0/expected so gaps are visible.
+	if len(stats.dailyCoverage) > 0 {
+		var dailySB strings.Builder
+		dailySB.WriteString("Daily activity (completed/expected, missing = no check-in logged):")
+		for _, d := range stats.dailyCoverage {
+			if d.Missing > 0 {
+				fmt.Fprintf(&dailySB, " %s %d/%d (%d missing)", d.DayName, d.Completed, d.Expected, d.Missing)
+			} else {
+				fmt.Fprintf(&dailySB, " %s %d/%d", d.DayName, d.Completed, d.Expected)
+			}
+		}
+		detectedPatterns = append(detectedPatterns, dailySB.String())
 	}
 
 	// Build habit breakdowns (reusing the existing WeeklyReviewHabitBreakdown proto)
@@ -274,4 +292,3 @@ func (l *PrepareWeeklyReviewLogic) PrepareWeeklyReview(in *client.PrepareWeeklyR
 }
 
 // computeWeeklyStats is provided by the embedded weeklyStatsLogic.
-

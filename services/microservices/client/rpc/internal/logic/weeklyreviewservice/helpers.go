@@ -94,6 +94,22 @@ type weeklyStats struct {
 	energyStats          []prompts.EnergyInput
 	moodMap              map[string]int
 	energyMap            map[string]int
+	dailyCoverage        []dailyCoverageEntry
+}
+
+// dailyCoverageEntry represents one day's check-in activity within the week.
+// expectedCheckIns = number of habits that existed on that day (created before
+// or on that day). missingCheckIns = expected - (completed + missed + skipped).
+// A day with no check-in rows at all will have completed=0, missed=0, and
+// missing=expected, making the gap visible to the coach.
+type dailyCoverageEntry struct {
+	Date           string // "2006-01-02"
+	DayName        string // "Monday"
+	Expected       int
+	Completed      int
+	Missed         int
+	Missing        int // expected but no check-in row was created
+	CompletionRate float64
 }
 
 type habitBreakdownDB struct {
@@ -166,12 +182,57 @@ func (l *weeklyStatsLogic) computeWeeklyStats(ctx context.Context, userID uuid.U
 		}
 	}
 
+	// Cap the "expected" window at today (in UTC) so we don't count future
+	// days as missed. For past weeks, now is after weekEnd so the full week
+	// is counted.
+	now := time.Now().UTC()
+	weekEndCapped := end
+	if now.Before(weekEndCapped) {
+		weekEndCapped = now
+	}
+
 	stats.totalHabits = len(habitStats)
 	stats.habitBreakdowns = make([]prompts.HabitBreakdownInput, 0, len(habitStats))
 	stats.habitBreakdownsForDB = make([]habitBreakdownDB, 0, len(habitStats))
 	for _, h := range habitStats {
 		completed := int(h.CompletedCount)
 		missed := int(h.MissedCount)
+
+		// Compute expected check-in days for this habit: from the later of
+		// (habit creation date, week start) to the earlier of (now, week end).
+		// Days with no check-in row at all are "missing" — they should count
+		// as missed so the completion rate reflects actual engagement, not
+		// just the days the user happened to open the app.
+		habitStart := start
+		if h.HabitCreatedAt.Valid {
+			createdDate := h.HabitCreatedAt.Time.In(start.Location()).Truncate(24 * time.Hour)
+			if createdDate.After(habitStart) {
+				habitStart = createdDate
+			}
+		}
+		expectedDays := 0
+		if weekEndCapped.After(habitStart) {
+			expectedDays = int(weekEndCapped.Sub(habitStart).Hours() / 24)
+			// Round up partial days — if the habit was created at noon, the
+			// creation day still counts as an expected day.
+			if weekEndCapped.Sub(habitStart).Hours()/24 > float64(expectedDays) {
+				expectedDays++
+			}
+		}
+		// Cap at 7 (week length) to avoid off-by-one from timezone rounding.
+		if expectedDays > 7 {
+			expectedDays = 7
+		}
+		if expectedDays < 0 {
+			expectedDays = 0
+		}
+
+		missing := expectedDays - completed - missed
+		if missing < 0 {
+			missing = 0
+		}
+		// Treat missing days as missed so they lower the completion rate.
+		missed += missing
 		total := completed + missed
 		var rate float64
 		if total > 0 {
@@ -220,23 +281,72 @@ func (l *weeklyStatsLogic) computeWeeklyStats(ctx context.Context, userID uuid.U
 		return stats, err
 	}
 
+	// Build a daily coverage map: for each day in the week, show expected vs
+	// actual check-ins. Days with no check-in rows at all are explicitly
+	// included so the coach can see gaps and describe temporal patterns
+	// (e.g. "you started strong on Monday but trailed off by Thursday").
+	dailyByDate := make(map[string]db.GetDailyCheckInStatsForWeekRow, len(dailyStats))
+	for _, d := range dailyStats {
+		dailyByDate[d.Day.Time.Format("2006-01-02")] = d
+	}
+	stats.dailyCoverage = make([]dailyCoverageEntry, 0, 7)
+	for day := start; day.Before(end); day = day.AddDate(0, 0, 1) {
+		dayKey := day.Format("2006-01-02")
+		if day.After(weekEndCapped) || dayKey == weekEndCapped.Format("2006-01-02") {
+			// Don't include today (it's not over yet) or future days.
+			if !day.Before(weekEndCapped) {
+				break
+			}
+		}
+		// Count how many habits were expected on this day.
+		dayExpected := 0
+		for _, h := range habitStats {
+			if h.HabitCreatedAt.Valid {
+				createdDate := h.HabitCreatedAt.Time.In(start.Location()).Truncate(24 * time.Hour)
+				if createdDate.After(day) {
+					continue
+				}
+			}
+			dayExpected++
+		}
+		dayCompleted := 0
+		dayMissed := 0
+		if d, ok := dailyByDate[dayKey]; ok {
+			dayCompleted = int(d.CompletedCount)
+			dayMissed = int(d.MissedCount)
+		}
+		dayMissing := dayExpected - dayCompleted - dayMissed
+		if dayMissing < 0 {
+			dayMissing = 0
+		}
+		dayRate := 0.0
+		if dayExpected > 0 {
+			dayRate = float64(dayCompleted) / float64(dayExpected) * 100
+		}
+		stats.dailyCoverage = append(stats.dailyCoverage, dailyCoverageEntry{
+			Date:           dayKey,
+			DayName:        day.Format("Monday"),
+			Expected:       dayExpected,
+			Completed:      dayCompleted,
+			Missed:         dayMissed,
+			Missing:        dayMissing,
+			CompletionRate: dayRate,
+		})
+	}
+
 	var bestRate float64 = -1
 	var hardestRate float64 = 101
-	for _, d := range dailyStats {
-		dayTotal := int(d.TotalCheckIns)
-		dayCompleted := int(d.CompletedCount)
-		var dayRate float64
-		if dayTotal > 0 {
-			dayRate = float64(dayCompleted) / float64(dayTotal) * 100
+	for _, d := range stats.dailyCoverage {
+		if d.Expected == 0 {
+			continue
 		}
-		dayStr := d.Day.Time.Format("Monday")
-		if dayRate > bestRate && dayTotal > 0 {
-			bestRate = dayRate
-			stats.bestDay = dayStr
+		if d.CompletionRate > bestRate {
+			bestRate = d.CompletionRate
+			stats.bestDay = d.DayName
 		}
-		if dayRate < hardestRate && dayTotal > 0 {
-			hardestRate = dayRate
-			stats.hardestDay = dayStr
+		if d.CompletionRate < hardestRate {
+			hardestRate = d.CompletionRate
+			stats.hardestDay = d.DayName
 		}
 	}
 
