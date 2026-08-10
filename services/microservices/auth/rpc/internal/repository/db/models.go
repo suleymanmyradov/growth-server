@@ -132,21 +132,35 @@ type ConversationMessage struct {
 }
 
 type Goal struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
 }
 
 type GoalHabit struct {
 	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
 	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type GoalMilestone struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
+	Title     string             `db:"title" json:"title"`
+	SortOrder int32              `db:"sort_order" json:"sort_order"`
+	DoneAt    pgtype.Timestamptz `db:"done_at" json:"done_at"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
