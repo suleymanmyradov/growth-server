@@ -16,6 +16,9 @@ import (
 // StreamAgent runs the model<->tool round-trip loop with streaming.
 //
 // The loop mirrors RunAgent but uses the streaming model API per step:
+//   - Reasoning deltas (msg.ReasoningContent) are forwarded as Reasoning
+//     events in real time. Only reasoning models emit these; for
+//     non-reasoning models the field is always empty.
 //   - Intermediate steps (model emits tool calls): tool calls are executed
 //     and surfaced as ToolCall events. Content deltas emitted during
 //     intermediate steps ARE forwarded in real time — with OpenAI-compatible
@@ -135,6 +138,18 @@ func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFu
 				return
 			}
 
+			if msg.ReasoningContent != "" {
+				// Forward reasoning/thinking delta to caller in real time.
+				// Only reasoning models emit this; for non-reasoning models
+				// it is always empty. The caller can surface it as the
+				// model's live "thinking" process.
+				select {
+				case ch <- AgentStreamChunk{Reasoning: msg.ReasoningContent}:
+				case <-ctx.Done():
+					einoStream.Close()
+					return
+				}
+			}
 			if msg.Content != "" {
 				contentBuf.WriteString(msg.Content)
 				// Forward content delta to caller in real time.

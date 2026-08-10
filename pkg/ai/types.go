@@ -156,6 +156,10 @@ type AgentResponse struct {
 // AgentStreamChunk is one event from an agent stream (StreamAgent).
 //
 // A chunk is exactly one of:
+//   - Reasoning: a reasoning/thinking content delta streamed in real time.
+//     Only reasoning models (e.g. DeepSeek R1, GPT-5 with reasoning) emit
+//     this; for non-reasoning models it is never set. Surfaced to the user
+//     as the model's live "thinking" process.
 //   - Delta: a text content delta streamed in real time. Deltas from
 //     intermediate steps (model reasoning before a tool call) and the
 //     final answer are both forwarded. Only the final step's content
@@ -167,6 +171,7 @@ type AgentResponse struct {
 //     final answer; Usage carries cumulative token usage.
 //   - Error: an error occurred mid-stream. The stream ends after this.
 type AgentStreamChunk struct {
+	Reasoning    string         `json:"reasoning,omitempty"`
 	Delta        string         `json:"delta,omitempty"`
 	ToolCall     *ToolCallEvent `json:"tool_call,omitempty"`
 	Complete     bool           `json:"complete,omitempty"`

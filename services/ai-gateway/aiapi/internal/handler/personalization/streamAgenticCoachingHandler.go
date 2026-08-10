@@ -46,6 +46,7 @@ type historyEntry struct {
 // check-ins, etc.) only when the user's message makes it relevant.
 //
 // SSE event types (same as the legacy path, plus tool-status thinking):
+//   - reasoning: {"text": "..."} — model's live reasoning/thinking deltas (reasoning models only)
 //   - thinking:  {"message": "..."} — status updates while tools execute
 //   - delta:     {"text": "..."} — incremental coaching text
 //   - complete:  {"fullResponse": "..."} — final full response
@@ -197,6 +198,20 @@ func streamAgenticCoaching(w http.ResponseWriter, r *http.Request, req *types.Ge
 			logx.WithContext(ctx).Errorf("agentic coaching: stream recv error after %d deltas, %v elapsed: %v", deltaCount, time.Since(streamStart), recvErr)
 			writeCoachingSSEError(w, flush, coachingGrpcErrMsg(recvErr))
 			return
+		}
+
+		// Reasoning delta → forward as "reasoning" SSE event.
+		// Only reasoning models emit this; for non-reasoning models it
+		// is never set. The frontend surfaces it as the model's live
+		// "thinking" process.
+		if chunk.Reasoning != "" {
+			signalFirstEvent()
+			reasoningData, _ := json.Marshal(map[string]string{"text": chunk.Reasoning})
+			if _, err := fmt.Fprintf(w, "event: reasoning\ndata: %s\n\n", reasoningData); err != nil {
+				return
+			}
+			flush()
+			continue
 		}
 
 		// Tool call event → send as "thinking" SSE event.

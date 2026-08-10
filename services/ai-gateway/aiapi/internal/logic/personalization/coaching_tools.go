@@ -40,7 +40,7 @@ func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
 	return []ai.Tool{
 		getActiveGoalsTool(deps.Goals),
 		getActiveHabitsTool(deps.Habits),
-		getRecentCheckInsTool(userID, deps.CheckIns),
+		getRecentCheckInsTool(userID, deps.CheckIns, deps.Habits),
 		getLatestWeeklyReviewTool(userID, deps.WeeklyReviews),
 		getPendingSuggestionsTool(userID, deps.Personalization),
 		getCoachingProfileTool(userID, deps.Personalization),
@@ -83,8 +83,19 @@ type checkInSummary struct {
 	Date    string `json:"date,omitempty"`
 }
 
+type dailyCoverageEntry struct {
+	DayName   string `json:"dayName"`
+	Date      string `json:"date"`
+	Completed int    `json:"completed"`
+	Missed    int    `json:"missed"`
+	Missing   int    `json:"missing"`
+	Expected  int    `json:"expected"`
+}
+
 type checkInsOutput struct {
-	CheckIns []checkInSummary `json:"checkIns"`
+	CheckIns       []checkInSummary     `json:"checkIns"`
+	DailyCoverage  []dailyCoverageEntry `json:"dailyCoverage,omitempty"`
+	CompletionRate float64              `json:"completionRate"`
 }
 
 type weeklyReviewSummary struct {
@@ -181,10 +192,10 @@ func getActiveHabitsTool(habits clienthabits.Habits) ai.Tool {
 	})
 }
 
-func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService) ai.Tool {
+func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService, habits clienthabits.Habits) ai.Tool {
 	return ai.NewTool[noInput, checkInsOutput](ai.ToolSpec{
 		Name:        "get_recent_check_ins",
-		Description: "Fetch the user's recent check-ins (last 30 days, up to 50) with status, mood, energy, blocker, and note. Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
+		Description: "Fetch the user's recent check-ins (last 30 days, up to 50) with status, mood, energy, blocker, and note. Also includes a day-by-day coverage summary for the last 7 days showing which days had check-ins and which were missed (no check-in logged at all). Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
 		Handler: func(ctx context.Context, _ noInput) (checkInsOutput, error) {
 			resp, err := checkIns.GetCheckInHistory(ctx, &clientcheckin.GetCheckInHistoryRequest{
 				UserId: userID,
@@ -208,6 +219,66 @@ func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService)
 				}
 				out.CheckIns = append(out.CheckIns, summary)
 			}
+
+			// Build a daily coverage summary for the last 7 days so the coach
+			// can see which days had no check-ins at all (gaps). Fetch the
+			// active habits count to know the expected check-ins per day.
+			habitsResp, hErr := habits.ListHabits(ctx, &clienthabits.ListHabitsRequest{
+				Page:  1,
+				Limit: 50,
+			})
+			activeHabitCount := 0
+			if hErr == nil {
+				activeHabitCount = len(habitsResp.Habits)
+			}
+
+			// Group check-ins by date for the last 7 days.
+			now := time.Now().UTC()
+			sevenDaysAgo := now.AddDate(0, 0, -7)
+			byDate := make(map[string]*dailyCoverageEntry, 7)
+			var dateOrder []string
+			for d := sevenDaysAgo; d.Before(now); d = d.AddDate(0, 0, 1) {
+				dateKey := d.Format("2006-01-02")
+				byDate[dateKey] = &dailyCoverageEntry{
+					DayName:  d.Format("Monday"),
+					Date:     dateKey,
+					Expected: activeHabitCount,
+				}
+				dateOrder = append(dateOrder, dateKey)
+			}
+			completedTotal := 0
+			expectedTotal := 0
+			for _, c := range resp.CheckIns {
+				if c.CreatedAt == 0 {
+					continue
+				}
+				dateKey := time.Unix(c.CreatedAt, 0).UTC().Format("2006-01-02")
+				entry, ok := byDate[dateKey]
+				if !ok {
+					continue
+				}
+				switch c.Status {
+				case "completed":
+					entry.Completed++
+				case "missed":
+					entry.Missed++
+				}
+			}
+			out.DailyCoverage = make([]dailyCoverageEntry, 0, len(dateOrder))
+			for _, dateKey := range dateOrder {
+				entry := byDate[dateKey]
+				entry.Missing = entry.Expected - entry.Completed - entry.Missed
+				if entry.Missing < 0 {
+					entry.Missing = 0
+				}
+				completedTotal += entry.Completed
+				expectedTotal += entry.Expected
+				out.DailyCoverage = append(out.DailyCoverage, *entry)
+			}
+			if expectedTotal > 0 {
+				out.CompletionRate = float64(completedTotal) / float64(expectedTotal) * 100
+			}
+
 			return out, nil
 		},
 	})
