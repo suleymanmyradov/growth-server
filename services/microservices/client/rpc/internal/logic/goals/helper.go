@@ -1,6 +1,7 @@
 package goalslogic
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,8 +12,9 @@ import (
 
 // goalToProto builds the proto Goal from a DB row. relatedHabitIds is the list
 // of habit IDs linked to this goal (from goal_habits table); pass nil/empty
-// for a goal with no links.
-func goalToProto(g db.GetGoalRow, relatedHabitIds []string) *client.Goal {
+// for a goal with no links. milestones is the list of milestone steps for this
+// goal (from goal_milestones table); pass nil/empty for non-milestone goals.
+func goalToProto(g db.GetGoalRow, relatedHabitIds []string, milestones []db.GoalMilestone) *client.Goal {
 	description := ""
 	if g.Description != nil {
 		description = *g.Description
@@ -23,6 +25,17 @@ func goalToProto(g db.GetGoalRow, relatedHabitIds []string) *client.Goal {
 	}
 	if relatedHabitIds == nil {
 		relatedHabitIds = []string{}
+	}
+	unit := ""
+	if g.Unit != nil {
+		unit = *g.Unit
+	}
+	var pbMilestones []*client.GoalMilestone
+	if milestones != nil {
+		pbMilestones = make([]*client.GoalMilestone, len(milestones))
+		for i, m := range milestones {
+			pbMilestones[i] = milestoneToProto(m)
+		}
 	}
 	return &client.Goal{
 		Id:              g.ID.String(),
@@ -36,10 +49,32 @@ func goalToProto(g db.GetGoalRow, relatedHabitIds []string) *client.Goal {
 		CreatedAt:       g.CreatedAt.Time.Unix(),
 		UpdatedAt:       g.UpdatedAt.Time.Unix(),
 		RelatedHabitIds: relatedHabitIds,
+		Measurement:     g.Measurement,
+		StartValue:      numericToFloat(g.StartValue),
+		CurrentValue:    numericToFloat(g.CurrentValue),
+		TargetValue:     numericToFloat(g.TargetValue),
+		Unit:            unit,
+		Milestones:      pbMilestones,
 	}
 }
 
-func protoToGoalParams(title, description, category string, dueDate int64, userID uuid.UUID) db.CreateGoalParams {
+func milestoneToProto(m db.GoalMilestone) *client.GoalMilestone {
+	doneAt := int64(0)
+	if m.DoneAt.Valid {
+		doneAt = m.DoneAt.Time.Unix()
+	}
+	return &client.GoalMilestone{
+		Id:        m.ID.String(),
+		GoalId:    m.GoalID.String(),
+		Title:     m.Title,
+		SortOrder: m.SortOrder,
+		DoneAt:    doneAt,
+	}
+}
+
+// protoToGoalParams converts the create request fields to db.CreateGoalParams.
+func protoToGoalParams(title, description, category string, dueDate int64, userID uuid.UUID,
+	measurement string, startValue, currentValue, targetValue float64, unit string) db.CreateGoalParams {
 	var desc *string
 	if description != "" {
 		desc = &description
@@ -48,13 +83,32 @@ func protoToGoalParams(title, description, category string, dueDate int64, userI
 	if dueDate > 0 {
 		dueTime = pgtype.Timestamptz{Time: time.Unix(dueDate, 0), Valid: true}
 	}
-	return db.CreateGoalParams{
-		Title:       title,
-		Description: desc,
-		Slug:        category,
-		DueDate:     dueTime,
-		UserID:      userID,
+	var unitPtr *string
+	if unit != "" {
+		unitPtr = &unit
 	}
+	if measurement == "" {
+		measurement = MeasurementManual
+	}
+	return db.CreateGoalParams{
+		Title:        title,
+		Description:  desc,
+		Slug:         category,
+		DueDate:      dueTime,
+		UserID:       userID,
+		Measurement:  measurement,
+		StartValue:   floatToNumeric(startValue),
+		CurrentValue: floatToNumeric(currentValue),
+		TargetValue:  floatToNumeric(targetValue),
+		Unit:         unitPtr,
+	}
+}
+
+// floatToNumeric converts a float64 to a pgtype.Numeric via its string form.
+func floatToNumeric(f float64) pgtype.Numeric {
+	n := pgtype.Numeric{}
+	_ = n.Scan(strconv.FormatFloat(f, 'f', -1, 64))
+	return n
 }
 
 // parseHabitIDs converts a slice of string habit IDs to uuid.UUIDs, skipping

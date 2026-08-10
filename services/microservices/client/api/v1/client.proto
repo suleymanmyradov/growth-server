@@ -782,6 +782,29 @@ message Goal {
   int64 createdAt = 9;
   int64 updatedAt = 10;
   repeated string relatedHabitIds = 11;
+  string measurement = 12;   // binary|numeric|milestone|habit|manual
+  double startValue = 13;
+  double currentValue = 14;
+  double targetValue = 15;
+  string unit = 16;
+  repeated GoalMilestone milestones = 17;
+}
+
+message GoalMilestone {
+  string id = 1;
+  string goalId = 2;
+  string title = 3;
+  int32 sortOrder = 4;
+  int64 doneAt = 5;   // 0 = not done
+}
+
+// MilestoneInput is the client-facing shape for creating/updating milestones.
+// On update, a non-empty id identifies an existing milestone to update (preserving
+// done_at); an empty id means a new milestone. This avoids the title-keying
+// problem where renaming a milestone would lose its completion state.
+message MilestoneInput {
+  string id = 1;      // empty = new milestone (create only)
+  string title = 2;
 }
 
 message ListGoalsRequest {
@@ -808,6 +831,12 @@ message CreateGoalRequest {
   string category = 3;
   int64 dueDate = 4;
   repeated string relatedHabitIds = 5;
+  string measurement = 6;   // defaults to manual if empty
+  double startValue = 7;
+  double currentValue = 8;
+  double targetValue = 9;
+  string unit = 10;
+  repeated string milestoneTitles = 11;  // initial milestone steps (measurement=milestone)
 }
 
 message CreateGoalResponse {
@@ -821,6 +850,13 @@ message UpdateGoalRequest {
   string category = 4;
   int64 dueDate = 5;
   repeated string relatedHabitIds = 6;
+  string measurement = 7;
+  double startValue = 8;
+  double currentValue = 9;
+  double targetValue = 10;
+  string unit = 11;
+  repeated string milestoneTitles = 12;  // deprecated: use milestones (field 13) for update
+  repeated MilestoneInput milestones = 13;  // reconcile milestones by id (update only)
 }
 
 message UpdateGoalResponse {
@@ -852,6 +888,43 @@ message UpdateGoalProgressResponse {
   Goal goal = 1;
 }
 
+message LogGoalValueRequest {
+  string goalId = 1;
+  double value = 2;
+}
+
+message LogGoalValueResponse {
+  Goal goal = 1;
+}
+
+message CreateMilestoneRequest {
+  string goalId = 1;
+  string title = 2;
+  int32 sortOrder = 3;  // optional; 0 = auto (append to end)
+}
+
+message CreateMilestoneResponse {
+  Goal goal = 1;
+}
+
+message ToggleMilestoneRequest {
+  string goalId = 1;
+  string milestoneId = 2;
+}
+
+message ToggleMilestoneResponse {
+  Goal goal = 1;
+}
+
+message DeleteMilestoneRequest {
+  string goalId = 1;
+  string milestoneId = 2;
+}
+
+message DeleteMilestoneResponse {
+  bool success = 1;
+}
+
 service Goals {
   rpc ListGoals(ListGoalsRequest) returns (ListGoalsResponse);
   rpc GetGoal(GetGoalRequest) returns (GetGoalResponse);
@@ -860,6 +933,10 @@ service Goals {
   rpc DeleteGoal(DeleteGoalRequest) returns (DeleteGoalResponse);
   rpc ToggleGoal(ToggleGoalRequest) returns (ToggleGoalResponse);
   rpc UpdateGoalProgress(UpdateGoalProgressRequest) returns (UpdateGoalProgressResponse);
+  rpc LogGoalValue(LogGoalValueRequest) returns (LogGoalValueResponse);
+  rpc CreateMilestone(CreateMilestoneRequest) returns (CreateMilestoneResponse);
+  rpc ToggleMilestone(ToggleMilestoneRequest) returns (ToggleMilestoneResponse);
+  rpc DeleteMilestone(DeleteMilestoneRequest) returns (DeleteMilestoneResponse);
 }
 
 // Categories Service

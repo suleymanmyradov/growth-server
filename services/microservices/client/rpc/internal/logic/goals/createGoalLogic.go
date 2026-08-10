@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	commonlogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/common"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -63,7 +64,23 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		}
 	}
 
-	params := protoToGoalParams(in.Title, in.Description, in.Category, in.DueDate, userID)
+	// Validate measurement type and type-specific requirements.
+	measurement := in.Measurement
+	if measurement == "" {
+		measurement = MeasurementManual
+	}
+	if !validMeasurement(measurement) {
+		return nil, status.Error(codes.InvalidArgument, "measurement must be one of: binary, numeric, milestone, habit, manual")
+	}
+	if measurement == MeasurementHabit && len(in.RelatedHabitIds) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "habit goals require at least one linked habit")
+	}
+	if measurement == MeasurementNumeric && in.TargetValue == in.StartValue {
+		return nil, status.Error(codes.InvalidArgument, "numeric goals require a target value different from start value")
+	}
+
+	params := protoToGoalParams(in.Title, in.Description, in.Category, in.DueDate, userID,
+		measurement, in.StartValue, in.CurrentValue, in.TargetValue, in.Unit)
 	goal, err := l.svcCtx.Repo.Goals.CreateGoal(ctx, params)
 	if err != nil {
 		l.Errorf("Failed to create goal: %v", err)
@@ -79,9 +96,37 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		}
 	}
 
+	// Create initial milestones for milestone-type goals.
+	var milestones []db.GoalMilestone
+	if measurement == MeasurementMilestone && len(in.MilestoneTitles) > 0 {
+		milestones = make([]db.GoalMilestone, 0, len(in.MilestoneTitles))
+		for i, title := range in.MilestoneTitles {
+			m, mErr := l.svcCtx.Repo.Goals.CreateGoalMilestone(ctx, goal.ID, title, int32(i))
+			if mErr != nil {
+				l.Errorf("Failed to create milestone: %v", mErr)
+				continue
+			}
+			milestones = append(milestones, m)
+		}
+	}
+
+	// Recompute progress for all non-manual types. numeric goals may have
+	// current_value already at target (100%), habit goals derive from check-ins,
+	// milestone goals from the initial milestones. binary starts at 0 (not
+	// completed) which matches the DB default, but recompute is harmless.
+	if measurement != MeasurementManual {
+		goal, err = recomputeAndPersist(ctx, l.svcCtx, goal.ID)
+		if err != nil {
+			l.Errorf("Failed to recompute goal progress: %v", err)
+		}
+		if measurement == MeasurementMilestone && milestones == nil {
+			milestones, _ = l.svcCtx.Repo.Goals.ListGoalMilestones(ctx, goal.ID)
+		}
+	}
+
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
 
 	return &client.CreateGoalResponse{
-		Goal: goalToProto(goal, in.RelatedHabitIds),
+		Goal: goalToProto(goal, in.RelatedHabitIds, milestones),
 	}, nil
 }

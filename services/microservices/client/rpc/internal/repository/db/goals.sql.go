@@ -23,6 +23,26 @@ func (q *Queries) CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) 
 	return count, err
 }
 
+const countGoalMilestones = `-- name: CountGoalMilestones :one
+SELECT COUNT(*) AS total,
+       COUNT(*) FILTER (WHERE done_at IS NOT NULL) AS done
+FROM goal_milestones
+WHERE goal_id = $1
+`
+
+type CountGoalMilestonesRow struct {
+	Total int64 `db:"total" json:"total"`
+	Done  int64 `db:"done" json:"done"`
+}
+
+// Returns (total, done) counts for a goal's milestone progress.
+func (q *Queries) CountGoalMilestones(ctx context.Context, goalID uuid.UUID) (CountGoalMilestonesRow, error) {
+	row := q.db.QueryRow(ctx, countGoalMilestones, goalID)
+	var i CountGoalMilestonesRow
+	err := row.Scan(&i.Total, &i.Done)
+	return i, err
+}
+
 const countGoalsByUser = `-- name: CountGoalsByUser :one
 SELECT COUNT(*) FROM goals WHERE user_id = $1
 `
@@ -36,11 +56,15 @@ func (q *Queries) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64
 
 const createGoal = `-- name: CreateGoal :one
 WITH ins AS (
-    INSERT INTO goals (title, description, category_id, due_date, user_id)
-    VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4, $5)
-    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+    INSERT INTO goals (title, description, category_id, due_date, user_id,
+                       measurement, start_value, current_value, target_value, unit)
+    VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4, $5,
+            $6, $7, $8, $9, $10)
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
 )
 SELECT ins.id, ins.user_id, ins.category_id, ins.title, ins.description, ins.status, ins.progress, ins.due_date, ins.created_at, ins.updated_at,
+       ins.measurement, ins.start_value, ins.current_value, ins.target_value, ins.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (ins.status = 'completed') AS completed
 FROM ins
@@ -48,26 +72,36 @@ LEFT JOIN categories c ON c.id = ins.category_id
 `
 
 type CreateGoalParams struct {
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Slug        string             `db:"slug" json:"slug"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Slug         string             `db:"slug" json:"slug"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
 }
 
 type CreateGoalRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateGoalRow, error) {
@@ -77,6 +111,11 @@ func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateG
 		arg.Slug,
 		arg.DueDate,
 		arg.UserID,
+		arg.Measurement,
+		arg.StartValue,
+		arg.CurrentValue,
+		arg.TargetValue,
+		arg.Unit,
 	)
 	var i CreateGoalRow
 	err := row.Scan(
@@ -90,8 +129,33 @@ func (q *Queries) CreateGoal(ctx context.Context, arg CreateGoalParams) (CreateG
 		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
 		&i.Category,
 		&i.Completed,
+	)
+	return i, err
+}
+
+const createGoalMilestone = `-- name: CreateGoalMilestone :one
+INSERT INTO goal_milestones (goal_id, title, sort_order)
+VALUES ($1, $2, $3)
+RETURNING id, goal_id, title, sort_order, done_at, created_at
+`
+
+func (q *Queries) CreateGoalMilestone(ctx context.Context, goalID uuid.UUID, title string, sortOrder int32) (GoalMilestone, error) {
+	row := q.db.QueryRow(ctx, createGoalMilestone, goalID, title, sortOrder)
+	var i GoalMilestone
+	err := row.Scan(
+		&i.ID,
+		&i.GoalID,
+		&i.Title,
+		&i.SortOrder,
+		&i.DoneAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -105,8 +169,19 @@ func (q *Queries) DeleteGoal(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const deleteGoalMilestone = `-- name: DeleteGoalMilestone :exec
+DELETE FROM goal_milestones WHERE id = $1 AND goal_id = $2
+`
+
+// Scoped to goal_id to prevent cross-goal milestone deletion.
+func (q *Queries) DeleteGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteGoalMilestone, iD, goalID)
+	return err
+}
+
 const getGoal = `-- name: GetGoal :one
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       g.measurement, g.start_value, g.current_value, g.target_value, g.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (g.status = 'completed') AS completed
 FROM goals g
@@ -115,18 +190,23 @@ WHERE g.id = $1
 `
 
 type GetGoalRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error) {
@@ -143,6 +223,11 @@ func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error)
 		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
 		&i.Category,
 		&i.Completed,
 	)
@@ -151,6 +236,7 @@ func (q *Queries) GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error)
 
 const getGoalsByIDs = `-- name: GetGoalsByIDs :many
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       g.measurement, g.start_value, g.current_value, g.target_value, g.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (g.status = 'completed') AS completed
 FROM goals g
@@ -159,18 +245,23 @@ WHERE g.id = ANY($1::uuid[])
 `
 
 type GetGoalsByIDsRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGoalsByIDsRow, error) {
@@ -193,6 +284,11 @@ func (q *Queries) GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]Ge
 			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Measurement,
+			&i.StartValue,
+			&i.CurrentValue,
+			&i.TargetValue,
+			&i.Unit,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -280,9 +376,107 @@ func (q *Queries) ListGoalHabitIDsByGoal(ctx context.Context, goalID uuid.UUID) 
 	return items, nil
 }
 
+const listGoalIDsByHabit = `-- name: ListGoalIDsByHabit :many
+SELECT goal_id FROM goal_habits WHERE habit_id = $1
+`
+
+// Fetch goal IDs linked to a single habit. Drives recompute-on-check-in.
+func (q *Queries) ListGoalIDsByHabit(ctx context.Context, habitID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listGoalIDsByHabit, habitID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var goal_id uuid.UUID
+		if err := rows.Scan(&goal_id); err != nil {
+			return nil, err
+		}
+		items = append(items, goal_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGoalMilestones = `-- name: ListGoalMilestones :many
+
+SELECT id, goal_id, title, sort_order, done_at, created_at
+FROM goal_milestones
+WHERE goal_id = $1
+ORDER BY sort_order, created_at
+`
+
+// ─── Goal milestones ────────────────────────────────────────────────────────
+func (q *Queries) ListGoalMilestones(ctx context.Context, goalID uuid.UUID) ([]GoalMilestone, error) {
+	rows, err := q.db.Query(ctx, listGoalMilestones, goalID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalMilestone{}
+	for rows.Next() {
+		var i GoalMilestone
+		if err := rows.Scan(
+			&i.ID,
+			&i.GoalID,
+			&i.Title,
+			&i.SortOrder,
+			&i.DoneAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listGoalMilestonesByGoals = `-- name: ListGoalMilestonesByGoals :many
+SELECT id, goal_id, title, sort_order, done_at, created_at
+FROM goal_milestones
+WHERE goal_id = ANY($1::uuid[])
+ORDER BY goal_id, sort_order, created_at
+`
+
+// Batch-fetch milestones for multiple goals (avoids N+1 in ListGoals).
+// $1 = array of goal_ids.
+func (q *Queries) ListGoalMilestonesByGoals(ctx context.Context, dollar_1 []uuid.UUID) ([]GoalMilestone, error) {
+	rows, err := q.db.Query(ctx, listGoalMilestonesByGoals, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GoalMilestone{}
+	for rows.Next() {
+		var i GoalMilestone
+		if err := rows.Scan(
+			&i.ID,
+			&i.GoalID,
+			&i.Title,
+			&i.SortOrder,
+			&i.DoneAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listGoals = `-- name: ListGoals :many
 
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       g.measurement, g.start_value, g.current_value, g.target_value, g.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (g.status = 'completed') AS completed
 FROM goals g
@@ -293,22 +487,29 @@ LIMIT $2 OFFSET $3
 `
 
 type ListGoalsRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 // Goal rows are returned with a resolved category slug and a derived
 // `completed` flag so callers never deal with category_id directly.
+// All goal SELECTs include the typed-measurement columns so the logic
+// layer can compute/return progress per measurement type.
 func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListGoalsRow, error) {
 	rows, err := q.db.Query(ctx, listGoals, userID, limit, offset)
 	if err != nil {
@@ -329,6 +530,11 @@ func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, 
 			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Measurement,
+			&i.StartValue,
+			&i.CurrentValue,
+			&i.TargetValue,
+			&i.Unit,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -344,6 +550,7 @@ func (q *Queries) ListGoals(ctx context.Context, userID uuid.UUID, limit int32, 
 
 const listGoalsKeyset = `-- name: ListGoalsKeyset :many
 SELECT g.id, g.user_id, g.category_id, g.title, g.description, g.status, g.progress, g.due_date, g.created_at, g.updated_at,
+       g.measurement, g.start_value, g.current_value, g.target_value, g.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (g.status = 'completed') AS completed
 FROM goals g
@@ -355,18 +562,23 @@ LIMIT $3
 `
 
 type ListGoalsKeysetRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 // Keyset pagination: pass last_created_at from the previous page (or NULL).
@@ -390,6 +602,11 @@ func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2
 			&i.DueDate,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Measurement,
+			&i.StartValue,
+			&i.CurrentValue,
+			&i.TargetValue,
+			&i.Unit,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -403,15 +620,148 @@ func (q *Queries) ListGoalsKeyset(ctx context.Context, userID uuid.UUID, column2
 	return items, nil
 }
 
+const logGoalValue = `-- name: LogGoalValue :one
+WITH upd AS (
+    UPDATE goals
+    SET current_value = $2
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
+`
+
+type LogGoalValueRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
+}
+
+// Writes a new current_value for a numeric goal. Progress recomputation is
+// handled by the logic layer via RecomputeGoalProgressWithRepo (single source
+// of truth in ComputeProgress), not inline SQL.
+func (q *Queries) LogGoalValue(ctx context.Context, iD uuid.UUID, currentValue pgtype.Numeric) (LogGoalValueRow, error) {
+	row := q.db.QueryRow(ctx, logGoalValue, iD, currentValue)
+	var i LogGoalValueRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Title,
+		&i.Description,
+		&i.Status,
+		&i.Progress,
+		&i.DueDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
+		&i.Category,
+		&i.Completed,
+	)
+	return i, err
+}
+
+const recomputeGoalProgress = `-- name: RecomputeGoalProgress :one
+WITH upd AS (
+    UPDATE goals
+    SET progress = $2,
+        status = CASE WHEN $2 >= 100 THEN 'completed'
+                      WHEN status = 'completed' AND $2 < 100 THEN 'active'
+                      ELSE status END
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
+`
+
+type RecomputeGoalProgressRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
+}
+
+// Writes a computed progress value and flips status accordingly. Called by
+// the progress engine after any write that can move the needle (milestone
+// toggle, habit link change, check-in create/delete).
+func (q *Queries) RecomputeGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (RecomputeGoalProgressRow, error) {
+	row := q.db.QueryRow(ctx, recomputeGoalProgress, iD, progress)
+	var i RecomputeGoalProgressRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Title,
+		&i.Description,
+		&i.Status,
+		&i.Progress,
+		&i.DueDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
+		&i.Category,
+		&i.Completed,
+	)
+	return i, err
+}
+
 const toggleGoal = `-- name: ToggleGoal :one
 WITH upd AS (
     UPDATE goals
     SET status = CASE WHEN status = 'completed' THEN 'active' ELSE 'completed' END,
         progress = CASE WHEN status = 'completed' THEN 0 ELSE 100 END
     WHERE goals.id = $1
-    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (upd.status = 'completed') AS completed
 FROM upd
@@ -419,20 +769,31 @@ LEFT JOIN categories c ON c.id = upd.category_id
 `
 
 type ToggleGoalRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
+// Toggles status between active/completed. For binary goals this is the
+// progress input (done/not done); for derived types the caller recomputes
+// progress after toggling back to active. Progress is set to 100 when
+// completing and reset to 0 when reactivating — for manual goals 0 is the
+// correct value (the user explicitly un-completed it), and for derived
+// types the recompute in the logic layer overwrites it with the true value.
 func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, error) {
 	row := q.db.QueryRow(ctx, toggleGoal, id)
 	var i ToggleGoalRow
@@ -447,8 +808,36 @@ func (q *Queries) ToggleGoal(ctx context.Context, id uuid.UUID) (ToggleGoalRow, 
 		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
 		&i.Category,
 		&i.Completed,
+	)
+	return i, err
+}
+
+const toggleGoalMilestone = `-- name: ToggleGoalMilestone :one
+UPDATE goal_milestones
+SET done_at = CASE WHEN done_at IS NULL THEN now() ELSE NULL END
+WHERE id = $1 AND goal_id = $2
+RETURNING id, goal_id, title, sort_order, done_at, created_at
+`
+
+// Flips done_at between NULL and now(). Scoped to goal_id to prevent
+// cross-goal milestone access via a mismatched (goalId, milestoneId) pair.
+func (q *Queries) ToggleGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) (GoalMilestone, error) {
+	row := q.db.QueryRow(ctx, toggleGoalMilestone, iD, goalID)
+	var i GoalMilestone
+	err := row.Scan(
+		&i.ID,
+		&i.GoalID,
+		&i.Title,
+		&i.SortOrder,
+		&i.DoneAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -468,11 +857,18 @@ WITH upd AS (
     UPDATE goals
     SET title = $2, description = $3,
         category_id = (SELECT c2.id FROM categories c2 WHERE c2.slug = $4),
-        due_date = $5
+        due_date = $5,
+        measurement = $6,
+        start_value = $7,
+        current_value = $8,
+        target_value = $9,
+        unit = $10
     WHERE goals.id = $1
-    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (upd.status = 'completed') AS completed
 FROM upd
@@ -480,26 +876,36 @@ LEFT JOIN categories c ON c.id = upd.category_id
 `
 
 type UpdateGoalParams struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Slug        string             `db:"slug" json:"slug"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Slug         string             `db:"slug" json:"slug"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
 }
 
 type UpdateGoalRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error) {
@@ -509,6 +915,11 @@ func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateG
 		arg.Description,
 		arg.Slug,
 		arg.DueDate,
+		arg.Measurement,
+		arg.StartValue,
+		arg.CurrentValue,
+		arg.TargetValue,
+		arg.Unit,
 	)
 	var i UpdateGoalRow
 	err := row.Scan(
@@ -522,8 +933,41 @@ func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateG
 		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
 		&i.Category,
 		&i.Completed,
+	)
+	return i, err
+}
+
+const updateGoalMilestone = `-- name: UpdateGoalMilestone :one
+UPDATE goal_milestones
+SET title = $3, sort_order = $4
+WHERE id = $1 AND goal_id = $2
+RETURNING id, goal_id, title, sort_order, done_at, created_at
+`
+
+// Updates title and sort_order for an existing milestone. Scoped to goal_id
+// to prevent cross-goal access. done_at is preserved (not in SET clause).
+func (q *Queries) UpdateGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID, title string, sortOrder int32) (GoalMilestone, error) {
+	row := q.db.QueryRow(ctx, updateGoalMilestone,
+		iD,
+		goalID,
+		title,
+		sortOrder,
+	)
+	var i GoalMilestone
+	err := row.Scan(
+		&i.ID,
+		&i.GoalID,
+		&i.Title,
+		&i.SortOrder,
+		&i.DoneAt,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -534,9 +978,11 @@ WITH upd AS (
     SET progress = $2,
         status = CASE WHEN $2 >= 100 THEN 'completed' ELSE status END
     WHERE goals.id = $1
-    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
 )
 SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
        COALESCE(c.slug, '')::varchar AS category,
        (upd.status = 'completed') AS completed
 FROM upd
@@ -544,20 +990,27 @@ LEFT JOIN categories c ON c.id = upd.category_id
 `
 
 type UpdateGoalProgressRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
+// Manual progress update (only valid for measurement='manual'; the logic
+// layer rejects other types with FailedPrecondition).
 func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error) {
 	row := q.db.QueryRow(ctx, updateGoalProgress, iD, progress)
 	var i UpdateGoalProgressRow
@@ -572,6 +1025,11 @@ func (q *Queries) UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress
 		&i.DueDate,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
 		&i.Category,
 		&i.Completed,
 	)

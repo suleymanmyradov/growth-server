@@ -2602,6 +2602,10 @@ const (
 	Goals_DeleteGoal_FullMethodName         = "/client.Goals/DeleteGoal"
 	Goals_ToggleGoal_FullMethodName         = "/client.Goals/ToggleGoal"
 	Goals_UpdateGoalProgress_FullMethodName = "/client.Goals/UpdateGoalProgress"
+	Goals_LogGoalValue_FullMethodName       = "/client.Goals/LogGoalValue"
+	Goals_CreateMilestone_FullMethodName    = "/client.Goals/CreateMilestone"
+	Goals_ToggleMilestone_FullMethodName    = "/client.Goals/ToggleMilestone"
+	Goals_DeleteMilestone_FullMethodName    = "/client.Goals/DeleteMilestone"
 )
 
 // GoalsClient is the client API for Goals service.
@@ -2615,6 +2619,10 @@ type GoalsClient interface {
 	DeleteGoal(ctx context.Context, in *DeleteGoalRequest, opts ...grpc.CallOption) (*DeleteGoalResponse, error)
 	ToggleGoal(ctx context.Context, in *ToggleGoalRequest, opts ...grpc.CallOption) (*ToggleGoalResponse, error)
 	UpdateGoalProgress(ctx context.Context, in *UpdateGoalProgressRequest, opts ...grpc.CallOption) (*UpdateGoalProgressResponse, error)
+	LogGoalValue(ctx context.Context, in *LogGoalValueRequest, opts ...grpc.CallOption) (*LogGoalValueResponse, error)
+	CreateMilestone(ctx context.Context, in *CreateMilestoneRequest, opts ...grpc.CallOption) (*CreateMilestoneResponse, error)
+	ToggleMilestone(ctx context.Context, in *ToggleMilestoneRequest, opts ...grpc.CallOption) (*ToggleMilestoneResponse, error)
+	DeleteMilestone(ctx context.Context, in *DeleteMilestoneRequest, opts ...grpc.CallOption) (*DeleteMilestoneResponse, error)
 }
 
 type goalsClient struct {
@@ -2695,6 +2703,46 @@ func (c *goalsClient) UpdateGoalProgress(ctx context.Context, in *UpdateGoalProg
 	return out, nil
 }
 
+func (c *goalsClient) LogGoalValue(ctx context.Context, in *LogGoalValueRequest, opts ...grpc.CallOption) (*LogGoalValueResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LogGoalValueResponse)
+	err := c.cc.Invoke(ctx, Goals_LogGoalValue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalsClient) CreateMilestone(ctx context.Context, in *CreateMilestoneRequest, opts ...grpc.CallOption) (*CreateMilestoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateMilestoneResponse)
+	err := c.cc.Invoke(ctx, Goals_CreateMilestone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalsClient) ToggleMilestone(ctx context.Context, in *ToggleMilestoneRequest, opts ...grpc.CallOption) (*ToggleMilestoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ToggleMilestoneResponse)
+	err := c.cc.Invoke(ctx, Goals_ToggleMilestone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *goalsClient) DeleteMilestone(ctx context.Context, in *DeleteMilestoneRequest, opts ...grpc.CallOption) (*DeleteMilestoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMilestoneResponse)
+	err := c.cc.Invoke(ctx, Goals_DeleteMilestone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GoalsServer is the server API for Goals service.
 // All implementations must embed UnimplementedGoalsServer
 // for forward compatibility.
@@ -2706,6 +2754,10 @@ type GoalsServer interface {
 	DeleteGoal(context.Context, *DeleteGoalRequest) (*DeleteGoalResponse, error)
 	ToggleGoal(context.Context, *ToggleGoalRequest) (*ToggleGoalResponse, error)
 	UpdateGoalProgress(context.Context, *UpdateGoalProgressRequest) (*UpdateGoalProgressResponse, error)
+	LogGoalValue(context.Context, *LogGoalValueRequest) (*LogGoalValueResponse, error)
+	CreateMilestone(context.Context, *CreateMilestoneRequest) (*CreateMilestoneResponse, error)
+	ToggleMilestone(context.Context, *ToggleMilestoneRequest) (*ToggleMilestoneResponse, error)
+	DeleteMilestone(context.Context, *DeleteMilestoneRequest) (*DeleteMilestoneResponse, error)
 	mustEmbedUnimplementedGoalsServer()
 }
 
@@ -2736,6 +2788,18 @@ func (UnimplementedGoalsServer) ToggleGoal(context.Context, *ToggleGoalRequest) 
 }
 func (UnimplementedGoalsServer) UpdateGoalProgress(context.Context, *UpdateGoalProgressRequest) (*UpdateGoalProgressResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateGoalProgress not implemented")
+}
+func (UnimplementedGoalsServer) LogGoalValue(context.Context, *LogGoalValueRequest) (*LogGoalValueResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LogGoalValue not implemented")
+}
+func (UnimplementedGoalsServer) CreateMilestone(context.Context, *CreateMilestoneRequest) (*CreateMilestoneResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMilestone not implemented")
+}
+func (UnimplementedGoalsServer) ToggleMilestone(context.Context, *ToggleMilestoneRequest) (*ToggleMilestoneResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ToggleMilestone not implemented")
+}
+func (UnimplementedGoalsServer) DeleteMilestone(context.Context, *DeleteMilestoneRequest) (*DeleteMilestoneResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMilestone not implemented")
 }
 func (UnimplementedGoalsServer) mustEmbedUnimplementedGoalsServer() {}
 func (UnimplementedGoalsServer) testEmbeddedByValue()               {}
@@ -2884,6 +2948,78 @@ func _Goals_UpdateGoalProgress_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Goals_LogGoalValue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LogGoalValueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalsServer).LogGoalValue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Goals_LogGoalValue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalsServer).LogGoalValue(ctx, req.(*LogGoalValueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Goals_CreateMilestone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMilestoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalsServer).CreateMilestone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Goals_CreateMilestone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalsServer).CreateMilestone(ctx, req.(*CreateMilestoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Goals_ToggleMilestone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ToggleMilestoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalsServer).ToggleMilestone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Goals_ToggleMilestone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalsServer).ToggleMilestone(ctx, req.(*ToggleMilestoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Goals_DeleteMilestone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMilestoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GoalsServer).DeleteMilestone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Goals_DeleteMilestone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GoalsServer).DeleteMilestone(ctx, req.(*DeleteMilestoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Goals_ServiceDesc is the grpc.ServiceDesc for Goals service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -2918,6 +3054,22 @@ var Goals_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateGoalProgress",
 			Handler:    _Goals_UpdateGoalProgress_Handler,
+		},
+		{
+			MethodName: "LogGoalValue",
+			Handler:    _Goals_LogGoalValue_Handler,
+		},
+		{
+			MethodName: "CreateMilestone",
+			Handler:    _Goals_CreateMilestone_Handler,
+		},
+		{
+			MethodName: "ToggleMilestone",
+			Handler:    _Goals_ToggleMilestone_Handler,
+		},
+		{
+			MethodName: "DeleteMilestone",
+			Handler:    _Goals_DeleteMilestone_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -36,6 +36,25 @@ func (q *Queries) CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (in
 	return count, err
 }
 
+const countCompletedCheckInDays = `-- name: CountCompletedCheckInDays :one
+SELECT COUNT(DISTINCT local_date) AS days
+FROM check_ins
+WHERE habit_id = ANY($1::uuid[])
+  AND status = 'completed'
+  AND local_date >= $2
+  AND local_date <= $3
+`
+
+// Distinct local_date values with a completed check-in for any of the given
+// habits, within the [from_date, to_date] window (inclusive). Used by the
+// habit-driven goal progress formula (called via ICheckIns from goals logic).
+func (q *Queries) CountCompletedCheckInDays(ctx context.Context, column1 []uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) (int64, error) {
+	row := q.db.QueryRow(ctx, countCompletedCheckInDays, column1, localDate, localDate_2)
+	var days int64
+	err := row.Scan(&days)
+	return days, err
+}
+
 const createCheckIn = `-- name: CreateCheckIn :one
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,

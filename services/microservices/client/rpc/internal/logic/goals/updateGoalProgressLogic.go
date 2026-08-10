@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -37,6 +38,29 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 		return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
+	// Reject manual progress updates for derived measurement types — a stale
+	// client must not desync a computed value. Only measurement='manual' (and
+	// the legacy default) accepts a client-supplied progress number.
+	existing, err := l.svcCtx.Repo.Goals.GetGoalByID(ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to get goal: %v", err)
+		return nil, status.Error(codes.NotFound, "goal not found")
+	}
+
+	// Ownership check: verify the caller owns this goal before mutating.
+	p, ok := principal.PrincipalFrom(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	if existing.UserID.String() != p.UserID {
+		return nil, status.Error(codes.PermissionDenied, "access denied")
+	}
+
+	if existing.Measurement != MeasurementManual {
+		return nil, status.Error(codes.FailedPrecondition,
+			"progress is derived for this goal type; use the appropriate endpoint (log value, toggle milestone, or check in)")
+	}
+
 	goal, err := l.svcCtx.Repo.Goals.UpdateGoalProgress(ctx, goalID, in.Progress)
 	if err != nil {
 		l.Errorf("Failed to update goal progress: %v", err)
@@ -52,6 +76,6 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(in *client.UpdateGoalProgre
 	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
 
 	return &client.UpdateGoalProgressResponse{
-		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs)),
+		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs), nil),
 	}, nil
 }

@@ -38,18 +38,31 @@ func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.Dele
 		return nil, status.Error(codes.Internal, "invalid goal id")
 	}
 
+	// Ownership check: verify the caller owns this goal before deleting.
+	// DeleteGoal SQL has no WHERE user_id clause, so without this check any
+	// authenticated user could delete any other user's goal by ID.
+	p, ok := principal.PrincipalFrom(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+	existing, err := l.svcCtx.Repo.Goals.GetGoalByID(ctx, goalID)
+	if err != nil {
+		l.Errorf("Failed to get goal: %v", err)
+		return nil, status.Error(codes.NotFound, "goal not found")
+	}
+	if existing.UserID.String() != p.UserID {
+		return nil, status.Error(codes.PermissionDenied, "access denied")
+	}
+
 	err = l.svcCtx.Repo.Goals.DeleteGoal(ctx, goalID)
 	if err != nil {
 		l.Errorf("Failed to delete goal: %v", err)
 		return nil, status.Error(codes.Internal, "failed to delete goal")
 	}
 
-	// Invalidate the cached personalization context for the owning user. The
-	// goal row is gone, so derive the user from the authenticated principal.
-	if p, ok := principal.PrincipalFrom(ctx); ok {
-		if uid, pErr := uuid.Parse(p.UserID); pErr == nil {
-			l.svcCtx.InvalidatePersonalizationContext(ctx, uid)
-		}
+	// Invalidate the cached personalization context for the owning user.
+	if uid, pErr := uuid.Parse(p.UserID); pErr == nil {
+		l.svcCtx.InvalidatePersonalizationContext(ctx, uid)
 	}
 
 	return &client.DeleteGoalResponse{
