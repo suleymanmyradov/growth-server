@@ -285,6 +285,21 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: goals.DeleteGoalHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodPost,
+					Path:    "/goals/:id/milestones",
+					Handler: goals.CreateMilestoneHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/goals/:id/milestones/:milestoneId",
+					Handler: goals.DeleteMilestoneHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/goals/:id/milestones/:milestoneId/toggle",
+					Handler: goals.ToggleMilestoneHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodPut,
 					Path:    "/goals/:id/progress",
 					Handler: goals.UpdateGoalProgressHandler(serverCtx),
@@ -293,6 +308,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPost,
 					Path:    "/goals/:id/toggle",
 					Handler: goals.ToggleGoalHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPut,
+					Path:    "/goals/:id/value",
+					Handler: goals.LogGoalValueHandler(serverCtx),
 				},
 			}...,
 		),

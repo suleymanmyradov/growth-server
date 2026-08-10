@@ -10,23 +10,24 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetGoalLogic struct {
+type LogGoalValueLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetGoalLogic {
-	return &GetGoalLogic{
+func NewLogGoalValueLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogGoalValueLogic {
+	return &LogGoalValueLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetGoalLogic) GetGoal(req *types.GoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.ClientRpc.Goals.GetGoal(l.ctx, &clientgoals.GetGoalRequest{
+func (l *LogGoalValueLogic) LogGoalValue(req *types.LogGoalValueRequest) (resp *types.GoalResponse, err error) {
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.LogGoalValue(l.ctx, &clientgoals.LogGoalValueRequest{
 		GoalId: req.Id,
+		Value:  req.Value,
 	})
 	if err != nil {
 		return nil, err

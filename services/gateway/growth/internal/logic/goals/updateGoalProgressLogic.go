@@ -34,18 +34,6 @@ func (l *UpdateGoalProgressLogic) UpdateGoalProgress(req *types.UpdateProgressRe
 	}
 
 	return &types.GoalResponse{
-		Data: types.Goal{
-			Id:              rpcResp.Goal.Id,
-			Title:           rpcResp.Goal.Title,
-			Description:     rpcResp.Goal.Description,
-			Category:        rpcResp.Goal.Category,
-			DueDate:         formatTime(rpcResp.Goal.DueDate),
-			Progress:        int(rpcResp.Goal.Progress),
-			Completed:       rpcResp.Goal.Completed,
-			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
-			UserId:          rpcResp.Goal.UserId,
-			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
-			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),
-		},
+		Data: rpcGoalToType(rpcResp.Goal),
 	}, nil
 }

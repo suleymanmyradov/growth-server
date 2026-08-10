@@ -10,23 +10,24 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type GetGoalLogic struct {
+type ToggleMilestoneLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewGetGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetGoalLogic {
-	return &GetGoalLogic{
+func NewToggleMilestoneLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ToggleMilestoneLogic {
+	return &ToggleMilestoneLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *GetGoalLogic) GetGoal(req *types.GoalRequest) (resp *types.GoalResponse, err error) {
-	rpcResp, err := l.svcCtx.ClientRpc.Goals.GetGoal(l.ctx, &clientgoals.GetGoalRequest{
-		GoalId: req.Id,
+func (l *ToggleMilestoneLogic) ToggleMilestone(req *types.MilestoneRequest) (resp *types.GoalResponse, err error) {
+	rpcResp, err := l.svcCtx.ClientRpc.Goals.ToggleMilestone(l.ctx, &clientgoals.ToggleMilestoneRequest{
+		GoalId:      req.Id,
+		MilestoneId: req.MilestoneId,
 	})
 	if err != nil {
 		return nil, err

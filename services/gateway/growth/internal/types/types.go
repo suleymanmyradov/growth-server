@@ -214,12 +214,24 @@ type CreateGoalRequest struct {
 	Category        string   `json:"category,example=fitness"`
 	DueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
 	RelatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+	Measurement     string   `json:"measurement,optional,example=milestone"`
+	StartValue      float64  `json:"startValue,optional"`
+	CurrentValue    float64  `json:"currentValue,optional"`
+	TargetValue     float64  `json:"targetValue,optional"`
+	Unit            string   `json:"unit,optional,example=kg"`
+	MilestoneTitles []string `json:"milestoneTitles,optional,example=[\"Pick a race date\",\"Start training\"]"`
 }
 
 type CreateHabitRequest struct {
 	Name        string `json:"name,example=Morning Exercise"`
 	Description string `json:"description,example=30 minutes of cardio every morning"`
 	Category    string `json:"category,example=fitness"`
+}
+
+type CreateMilestoneRequest struct {
+	Id        string `path:"id"`
+	Title     string `json:"title"`
+	SortOrder int    `json:"sortOrder,optional"`
 }
 
 type CreatePlanAdjustmentSuggestionRequest struct {
@@ -233,6 +245,10 @@ type CreatePlanAdjustmentSuggestionRequest struct {
 }
 
 type DeleteConversationResponse struct {
+}
+
+type DeleteMilestoneResponse struct {
+	Success bool `json:"success"`
 }
 
 type EmptyResponse struct {
@@ -337,17 +353,31 @@ type GetWeeklyReviewRequest struct {
 }
 
 type Goal struct {
-	Id              string   `json:"id,example=goal-123"`
-	Title           string   `json:"title,example=Run a marathon"`
-	Description     string   `json:"description,example=Complete a 42.195km marathon race"`
-	Category        string   `json:"category,example=fitness"`
-	DueDate         string   `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
-	Progress        int      `json:"progress,example=50"`
-	Completed       bool     `json:"completed,example=false"`
-	RelatedHabitIds []string `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
-	UserId          string   `json:"userId,example=user-123"`
-	CreatedAt       string   `json:"createdAt,example=2024-01-01T00:00:00Z"`
-	UpdatedAt       string   `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+	Id              string          `json:"id,example=goal-123"`
+	Title           string          `json:"title,example=Run a marathon"`
+	Description     string          `json:"description,example=Complete a 42.195km marathon race"`
+	Category        string          `json:"category,example=fitness"`
+	DueDate         string          `json:"dueDate,optional,example=2024-12-31T00:00:00Z"`
+	Progress        int             `json:"progress,example=50"`
+	Completed       bool            `json:"completed,example=false"`
+	RelatedHabitIds []string        `json:"relatedHabitIds,optional,example=[\"habit-1\",\"habit-2\"]"`
+	Measurement     string          `json:"measurement,optional,example=milestone"`
+	StartValue      float64         `json:"startValue,optional"`
+	CurrentValue    float64         `json:"currentValue,optional"`
+	TargetValue     float64         `json:"targetValue,optional"`
+	Unit            string          `json:"unit,optional,example=kg"`
+	Milestones      []GoalMilestone `json:"milestones,optional"`
+	UserId          string          `json:"userId,example=user-123"`
+	CreatedAt       string          `json:"createdAt,example=2024-01-01T00:00:00Z"`
+	UpdatedAt       string          `json:"updatedAt,example=2024-01-15T00:00:00Z"`
+}
+
+type GoalMilestone struct {
+	Id        string `json:"id,example=ms-123"`
+	GoalId    string `json:"goalId,example=goal-123"`
+	Title     string `json:"title,example=Pick a race date"`
+	SortOrder int    `json:"sortOrder,example=0"`
+	DoneAt    string `json:"doneAt,optional,example=2024-01-15T00:00:00Z"`
 }
 
 type GoalRequest struct {
@@ -461,6 +491,11 @@ type ListConversationsResponse struct {
 	Page PageResponse   `json:"page"`
 }
 
+type LogGoalValueRequest struct {
+	Id    string  `path:"id"`
+	Value float64 `json:"value"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email,example=john@example.com"`
 	Password string `json:"password,example=securePassword123"`
@@ -470,6 +505,16 @@ type LoginRequest struct {
 type LogoutRequest struct {
 	RefreshToken string `json:"refreshToken,optional,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	DeviceId     string `header:"X-Device-Id,optional,example=device-12345"`
+}
+
+type MilestoneInput struct {
+	Id    string `json:"id,optional,example=ms-123"`
+	Title string `json:"title,example=Pick a race date"`
+}
+
+type MilestoneRequest struct {
+	Id          string `path:"id"`
+	MilestoneId string `path:"milestoneId"`
 }
 
 type Notification struct {
@@ -811,12 +856,19 @@ type UpdateCoachingProfilePreferencesRequest struct {
 }
 
 type UpdateGoalRequest struct {
-	Id              string   `path:"id"`
-	Title           string   `json:"title,optional"`
-	Description     string   `json:"description,optional"`
-	Category        string   `json:"category,optional"`
-	DueDate         string   `json:"dueDate,optional"`
-	RelatedHabitIds []string `json:"relatedHabitIds,optional"`
+	Id              string           `path:"id"`
+	Title           string           `json:"title,optional"`
+	Description     string           `json:"description,optional"`
+	Category        string           `json:"category,optional"`
+	DueDate         string           `json:"dueDate,optional"`
+	RelatedHabitIds []string         `json:"relatedHabitIds,optional"`
+	Measurement     string           `json:"measurement,optional"`
+	StartValue      float64          `json:"startValue,optional"`
+	CurrentValue    float64          `json:"currentValue,optional"`
+	TargetValue     float64          `json:"targetValue,optional"`
+	Unit            string           `json:"unit,optional"`
+	MilestoneTitles []string         `json:"milestoneTitles,optional"`
+	Milestones      []MilestoneInput `json:"milestones,optional"`
 }
 
 type UpdateHabitRequest struct {

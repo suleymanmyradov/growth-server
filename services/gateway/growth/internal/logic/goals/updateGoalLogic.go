@@ -6,6 +6,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -25,30 +26,33 @@ func NewUpdateGoalLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Update
 }
 
 func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.GoalResponse, err error) {
+	// Map MilestoneInput (gateway type) to MilestoneInput (proto type).
+	var milestoneInputs []*client.MilestoneInput
+	for _, mi := range req.Milestones {
+		milestoneInputs = append(milestoneInputs, &client.MilestoneInput{
+			Id:    mi.Id,
+			Title: mi.Title,
+		})
+	}
 	rpcResp, err := l.svcCtx.ClientRpc.Goals.UpdateGoal(l.ctx, &clientgoals.UpdateGoalRequest{
 		GoalId:          req.Id,
 		Title:           req.Title,
 		Description:     req.Description,
 		Category:        req.Category,
 		RelatedHabitIds: req.RelatedHabitIds,
+		Measurement:     req.Measurement,
+		StartValue:      req.StartValue,
+		CurrentValue:    req.CurrentValue,
+		TargetValue:     req.TargetValue,
+		Unit:            req.Unit,
+		MilestoneTitles: req.MilestoneTitles,
+		Milestones:      milestoneInputs,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.GoalResponse{
-		Data: types.Goal{
-			Id:              rpcResp.Goal.Id,
-			Title:           rpcResp.Goal.Title,
-			Description:     rpcResp.Goal.Description,
-			Category:        rpcResp.Goal.Category,
-			DueDate:         formatTime(rpcResp.Goal.DueDate),
-			Progress:        int(rpcResp.Goal.Progress),
-			Completed:       rpcResp.Goal.Completed,
-			RelatedHabitIds: nonNilHabitIds(rpcResp.Goal.RelatedHabitIds),
-			UserId:          rpcResp.Goal.UserId,
-			CreatedAt:       formatTime(rpcResp.Goal.CreatedAt),
-			UpdatedAt:       formatTime(rpcResp.Goal.UpdatedAt),
-		},
+		Data: rpcGoalToType(rpcResp.Goal),
 	}, nil
 }
