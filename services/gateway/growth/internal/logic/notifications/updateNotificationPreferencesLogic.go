@@ -39,6 +39,8 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(req *
 			PushEnabled:           req.Preferences.PushEnabled,
 			HabitRemindersEnabled: req.Preferences.HabitRemindersEnabled,
 			GoalRemindersEnabled:  req.Preferences.GoalRemindersEnabled,
+			StreakWarningsEnabled: req.Preferences.StreakWarningsEnabled,
+			SundayReviewEnabled:   req.Preferences.SundayReviewEnabled,
 		},
 	})
 	if err != nil {

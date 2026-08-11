@@ -63,6 +63,8 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 		PushNotifications:  in.Preferences.PushEnabled,
 		HabitReminders:     in.Preferences.HabitRemindersEnabled,
 		GoalReminders:      in.Preferences.GoalRemindersEnabled,
+		StreakWarnings:     in.Preferences.StreakWarningsEnabled,
+		SundayReview:       in.Preferences.SundayReviewEnabled,
 	})
 	if err != nil {
 		logx.WithContext(ctx).Errorf("Failed to upsert notification preferences: %v", err)
@@ -107,6 +109,8 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 			PushEnabled:           pref.PushNotifications,
 			HabitRemindersEnabled: pref.HabitReminders,
 			GoalRemindersEnabled:  pref.GoalReminders,
+			StreakWarningsEnabled: pref.StreakWarnings,
+			SundayReviewEnabled:   pref.SundayReview,
 		},
 	}, nil
 }

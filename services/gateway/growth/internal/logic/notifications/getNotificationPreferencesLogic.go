@@ -54,5 +54,7 @@ func notificationPreferencesFromRPC(p *notificationsClient.NotificationPreferenc
 		PushEnabled:           p.PushEnabled,
 		HabitRemindersEnabled: p.HabitRemindersEnabled,
 		GoalRemindersEnabled:  p.GoalRemindersEnabled,
+		StreakWarningsEnabled: p.StreakWarningsEnabled,
+		SundayReviewEnabled:   p.SundayReviewEnabled,
 	}
 }

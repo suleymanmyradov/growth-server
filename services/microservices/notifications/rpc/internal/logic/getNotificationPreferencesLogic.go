@@ -54,6 +54,8 @@ func (l *GetNotificationPreferencesLogic) GetNotificationPreferences(in *notific
 			PushEnabled:           pref.PushNotifications,
 			HabitRemindersEnabled: pref.HabitReminders,
 			GoalRemindersEnabled:  pref.GoalReminders,
+			StreakWarningsEnabled: pref.StreakWarnings,
+			SundayReviewEnabled:   pref.SundayReview,
 		},
 	}, nil
 }

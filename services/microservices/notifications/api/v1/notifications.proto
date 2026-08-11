@@ -82,6 +82,8 @@ message NotificationPreferences {
   bool pushEnabled = 2;
   bool habitRemindersEnabled = 3;
   bool goalRemindersEnabled = 4;
+  bool streakWarningsEnabled = 5;
+  bool sundayReviewEnabled = 6;
 }
 
 message GetNotificationPreferencesRequest {}
