@@ -21,7 +21,7 @@ func (q *Queries) DeleteNotificationPreferences(ctx context.Context, userID uuid
 }
 
 const getNotificationPreferences = `-- name: GetNotificationPreferences :one
-SELECT user_id, email_notifications, push_notifications, habit_reminders, goal_reminders, created_at, updated_at
+SELECT user_id, email_notifications, push_notifications, habit_reminders, goal_reminders, created_at, updated_at, streak_warnings, sunday_review
 FROM notification_preferences
 WHERE user_id = $1
 `
@@ -37,19 +37,23 @@ func (q *Queries) GetNotificationPreferences(ctx context.Context, userID uuid.UU
 		&i.GoalReminders,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StreakWarnings,
+		&i.SundayReview,
 	)
 	return i, err
 }
 
 const upsertNotificationPreferences = `-- name: UpsertNotificationPreferences :one
-INSERT INTO notification_preferences (user_id, email_notifications, push_notifications, habit_reminders, goal_reminders)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO notification_preferences (user_id, email_notifications, push_notifications, habit_reminders, goal_reminders, streak_warnings, sunday_review)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT (user_id) DO UPDATE SET
     email_notifications = EXCLUDED.email_notifications,
     push_notifications = EXCLUDED.push_notifications,
     habit_reminders = EXCLUDED.habit_reminders,
-    goal_reminders = EXCLUDED.goal_reminders
-RETURNING user_id, email_notifications, push_notifications, habit_reminders, goal_reminders, created_at, updated_at
+    goal_reminders = EXCLUDED.goal_reminders,
+    streak_warnings = EXCLUDED.streak_warnings,
+    sunday_review = EXCLUDED.sunday_review
+RETURNING user_id, email_notifications, push_notifications, habit_reminders, goal_reminders, created_at, updated_at, streak_warnings, sunday_review
 `
 
 type UpsertNotificationPreferencesParams struct {
@@ -58,6 +62,8 @@ type UpsertNotificationPreferencesParams struct {
 	PushNotifications  bool      `db:"push_notifications" json:"push_notifications"`
 	HabitReminders     bool      `db:"habit_reminders" json:"habit_reminders"`
 	GoalReminders      bool      `db:"goal_reminders" json:"goal_reminders"`
+	StreakWarnings     bool      `db:"streak_warnings" json:"streak_warnings"`
+	SundayReview       bool      `db:"sunday_review" json:"sunday_review"`
 }
 
 func (q *Queries) UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error) {
@@ -67,6 +73,8 @@ func (q *Queries) UpsertNotificationPreferences(ctx context.Context, arg UpsertN
 		arg.PushNotifications,
 		arg.HabitReminders,
 		arg.GoalReminders,
+		arg.StreakWarnings,
+		arg.SundayReview,
 	)
 	var i NotificationPreference
 	err := row.Scan(
@@ -77,6 +85,8 @@ func (q *Queries) UpsertNotificationPreferences(ctx context.Context, arg UpsertN
 		&i.GoalReminders,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.StreakWarnings,
+		&i.SundayReview,
 	)
 	return i, err
 }

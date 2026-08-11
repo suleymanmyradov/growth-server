@@ -243,6 +243,8 @@ type NotificationPreference struct {
 	GoalReminders      bool               `db:"goal_reminders" json:"goal_reminders"`
 	CreatedAt          pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	StreakWarnings     bool               `db:"streak_warnings" json:"streak_warnings"`
+	SundayReview       bool               `db:"sunday_review" json:"sunday_review"`
 }
 
 type Plan struct {

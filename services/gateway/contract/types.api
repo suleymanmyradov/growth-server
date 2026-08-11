@@ -455,6 +455,8 @@ type (
 		pushEnabled           bool `json:"pushEnabled,example=false"`
 		habitRemindersEnabled bool `json:"habitRemindersEnabled,example=true"`
 		goalRemindersEnabled  bool `json:"goalRemindersEnabled,example=false"`
+		streakWarningsEnabled bool `json:"streakWarningsEnabled,example=false"`
+		sundayReviewEnabled   bool `json:"sundayReviewEnabled,example=false"`
 	}
 
 	NotificationPreferencesResponse {

@@ -532,6 +532,8 @@ type NotificationPreferences struct {
 	PushEnabled           bool `json:"pushEnabled,example=false"`
 	HabitRemindersEnabled bool `json:"habitRemindersEnabled,example=true"`
 	GoalRemindersEnabled  bool `json:"goalRemindersEnabled,example=false"`
+	StreakWarningsEnabled bool `json:"streakWarningsEnabled,example=false"`
+	SundayReviewEnabled   bool `json:"sundayReviewEnabled,example=false"`
 }
 
 type NotificationPreferencesResponse struct {
