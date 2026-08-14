@@ -151,6 +151,7 @@ type ICategories interface {
 
 type ICheckIns interface {
 	CreateCheckIn(ctx context.Context, params db.CreateCheckInParams) (db.CheckIn, error)
+	UpsertCheckIn(ctx context.Context, params db.UpsertCheckInParams) (db.CheckIn, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]db.CheckIn, error)
 	GetCheckInsByHabit(ctx context.Context, habitID, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
@@ -160,6 +161,7 @@ type ICheckIns interface {
 	CountCheckInsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountCheckInsByHabit(ctx context.Context, habitID uuid.UUID) (int64, error)
 	CountCompletedCheckInDays(ctx context.Context, habitIDs []uuid.UUID, from, to pgtype.Date) (int64, error)
+	DeleteTodayCheckIn(ctx context.Context, userID, habitID uuid.UUID, timezone string) (int64, error)
 }
 
 type IWeeklyReviews interface {

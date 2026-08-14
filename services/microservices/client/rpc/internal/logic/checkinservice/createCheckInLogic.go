@@ -3,13 +3,11 @@ package checkinservicelogic
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
@@ -22,9 +20,7 @@ import (
 	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-)
-
-// backgroundSem caps the number of concurrent fire-and-forget goroutines
+) // backgroundSem caps the number of concurrent fire-and-forget goroutines
 // spawned by CreateCheckIn to prevent goroutine exhaustion under load.
 var backgroundSem = make(chan struct{}, 100)
 
@@ -117,27 +113,15 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 			return status.Error(codes.PermissionDenied, "access denied")
 		}
 
-		// Check for duplicate check-in
-		alreadyCheckedIn, err := txRepo.CheckIns.HasCheckedInToday(ctx, userID, habitID, timezone)
-		if err != nil {
-			return fmt.Errorf("check existing check-in: %w", err)
-		}
-		if alreadyCheckedIn {
-			return status.Error(codes.AlreadyExists, "already checked in on this habit today")
-		}
-
-		// Create check-in record. The UNIQUE(habit_id, local_date) constraint is
-		// the last line of defense against a concurrent duplicate; surface that
-		// race as AlreadyExists (409) instead of a generic Internal (500).
-		params := protoToCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
+		// Upsert check-in record. If a check-in already exists for today
+		// (UNIQUE(habit_id, local_date)), update its status/mood/energy/
+		// blocker/note instead of failing with 409. This lets users re-check-in
+		// to change status (missed → completed) or add details after the fact.
+		params := protoToUpsertCheckInParams(userID, habitID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)
 		params.Timezone = timezone
-		checkIn, err = txRepo.CheckIns.CreateCheckIn(ctx, params)
+		checkIn, err = txRepo.CheckIns.UpsertCheckIn(ctx, params)
 		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-				return status.Error(codes.AlreadyExists, "already checked in on this habit today")
-			}
-			return fmt.Errorf("create check-in: %w", err)
+			return fmt.Errorf("upsert check-in: %w", err)
 		}
 
 		// Streak is derived from check_ins history (consecutive completed days),

@@ -145,6 +145,20 @@ func (l *StreamWeeklyReviewLogic) StreamWeeklyReview(in *aicoach.WeeklyReviewReq
 			break
 		}
 
+		if chunk.Delta == "" && chunk.Reasoning == "" {
+			continue
+		}
+
+		// Forward reasoning/thinking content from <thought> tags (Gemma-4
+		// fallbacks) directly — it doesn't go through delimiter parsing.
+		if chunk.Reasoning != "" {
+			if err := stream.Send(&aicoach.WeeklyReviewStreamChunk{
+				Reasoning: chunk.Reasoning,
+			}); err != nil {
+				return err
+			}
+		}
+
 		if chunk.Delta == "" {
 			continue
 		}

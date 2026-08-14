@@ -126,6 +126,7 @@ func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFu
 		var contentBuf strings.Builder
 		var toolCalls []schema.ToolCall
 		var stepUsage Usage
+		thoughtFilt := newThoughtFilter()
 
 		for {
 			msg, recvErr := einoStream.Recv()
@@ -151,17 +152,32 @@ func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFu
 				}
 			}
 			if msg.Content != "" {
-				contentBuf.WriteString(msg.Content)
-				// Forward content delta to caller in real time.
-				// NOTE: this forwards content from ALL steps, including
-				// intermediate ones. fullResponse (used for the Complete
-				// event) is reset below for intermediate steps so only
-				// the final answer is persisted.
-				select {
-				case ch <- AgentStreamChunk{Delta: msg.Content}:
-				case <-ctx.Done():
-					einoStream.Close()
-					return
+				// Split <thought> tags from Gemma-4 models: thought content
+				// → Reasoning (surfaced as the model's live thinking process),
+				// rest → Delta (the actual response). The filter is stateful
+				// across deltas within this step.
+				parts := thoughtFilt.filter(msg.Content)
+				contentBuf.WriteString(parts.Content)
+				if parts.Reasoning != "" {
+					select {
+					case ch <- AgentStreamChunk{Reasoning: parts.Reasoning}:
+					case <-ctx.Done():
+						einoStream.Close()
+						return
+					}
+				}
+				if parts.Content != "" {
+					// Forward content delta to caller in real time.
+					// NOTE: this forwards content from ALL steps, including
+					// intermediate ones. fullResponse (used for the Complete
+					// event) is reset below for intermediate steps so only
+					// the final answer is persisted.
+					select {
+					case ch <- AgentStreamChunk{Delta: parts.Content}:
+					case <-ctx.Done():
+						einoStream.Close()
+						return
+					}
 				}
 			}
 			if len(msg.ToolCalls) > 0 {
@@ -177,6 +193,27 @@ func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFu
 			}
 		}
 		einoStream.Close()
+
+		// Flush the thought filter — if the stream ended while still inside a
+		// <thought> block (truncated), the buffered content is routed as
+		// reasoning. If there's remaining non-thought content, forward it as delta.
+		if remaining := thoughtFilt.flush(); remaining.Content != "" || remaining.Reasoning != "" {
+			contentBuf.WriteString(remaining.Content)
+			if remaining.Reasoning != "" {
+				select {
+				case ch <- AgentStreamChunk{Reasoning: remaining.Reasoning}:
+				case <-ctx.Done():
+					return
+				}
+			}
+			if remaining.Content != "" {
+				select {
+				case ch <- AgentStreamChunk{Delta: remaining.Content}:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
 
 		totalUsage.PromptTokens += stepUsage.PromptTokens
 		totalUsage.CompletionTokens += stepUsage.CompletionTokens

@@ -16,6 +16,8 @@ import (
 type (
 	CreateCheckInRequest      = client.CreateCheckInRequest
 	CreateCheckInResponse     = client.CreateCheckInResponse
+	DeleteCheckInRequest      = client.DeleteCheckInRequest
+	DeleteCheckInResponse     = client.DeleteCheckInResponse
 	GetCheckInHistoryRequest  = client.GetCheckInHistoryRequest
 	GetCheckInHistoryResponse = client.GetCheckInHistoryResponse
 	GetTodayCheckInsRequest   = client.GetTodayCheckInsRequest
@@ -28,6 +30,7 @@ type (
 		GetTodayCheckIns(ctx context.Context, in *GetTodayCheckInsRequest, opts ...grpc.CallOption) (*GetTodayCheckInsResponse, error)
 		GetCheckInHistory(ctx context.Context, in *GetCheckInHistoryRequest, opts ...grpc.CallOption) (*GetCheckInHistoryResponse, error)
 		HasCheckedInToday(ctx context.Context, in *HasCheckedInTodayRequest, opts ...grpc.CallOption) (*HasCheckedInTodayResponse, error)
+		DeleteCheckIn(ctx context.Context, in *DeleteCheckInRequest, opts ...grpc.CallOption) (*DeleteCheckInResponse, error)
 	}
 
 	defaultCheckInService struct {
@@ -59,4 +62,9 @@ func (m *defaultCheckInService) GetCheckInHistory(ctx context.Context, in *GetCh
 func (m *defaultCheckInService) HasCheckedInToday(ctx context.Context, in *HasCheckedInTodayRequest, opts ...grpc.CallOption) (*HasCheckedInTodayResponse, error) {
 	client := client.NewCheckInServiceClient(m.cli.Conn())
 	return client.HasCheckedInToday(ctx, in, opts...)
+}
+
+func (m *defaultCheckInService) DeleteCheckIn(ctx context.Context, in *DeleteCheckInRequest, opts ...grpc.CallOption) (*DeleteCheckInResponse, error) {
+	client := client.NewCheckInServiceClient(m.cli.Conn())
+	return client.DeleteCheckIn(ctx, in, opts...)
 }

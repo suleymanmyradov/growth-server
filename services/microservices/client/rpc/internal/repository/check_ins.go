@@ -31,6 +31,13 @@ func (r *checkInsRepo) CreateCheckIn(ctx context.Context, params db.CreateCheckI
 	return r.db.CreateCheckIn(ctx, params)
 }
 
+func (r *checkInsRepo) UpsertCheckIn(ctx context.Context, params db.UpsertCheckInParams) (db.CheckIn, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.UpsertCheckIn")
+	defer span.End()
+
+	return r.db.UpsertCheckIn(ctx, params)
+}
+
 func (r *checkInsRepo) GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]db.CheckIn, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetTodayCheckIns")
 	defer span.End()
@@ -98,4 +105,11 @@ func (r *checkInsRepo) CountCompletedCheckInDays(ctx context.Context, habitIDs [
 	defer span.End()
 
 	return r.db.CountCompletedCheckInDays(ctx, habitIDs, from, to)
+}
+
+func (r *checkInsRepo) DeleteTodayCheckIn(ctx context.Context, userID, habitID uuid.UUID, timezone string) (int64, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.DeleteTodayCheckIn")
+	defer span.End()
+
+	return r.db.DeleteTodayCheckIn(ctx, userID, habitID, timezone)
 }

@@ -60,6 +60,33 @@ func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, block
 	return params
 }
 
+// protoToUpsertCheckInParams is the upsert counterpart of
+// protoToCheckInParams. The param structs are identical; this exists so the
+// caller doesn't need to import db.UpsertCheckInParams directly.
+func protoToUpsertCheckInParams(userID, habitID uuid.UUID, status, mood, energy, blocker, note string) db.UpsertCheckInParams {
+	params := db.UpsertCheckInParams{
+		UserID:  userID,
+		HabitID: habitID,
+		Status:  (status),
+	}
+	if mood != "" {
+		m := (mood)
+		params.Mood = &m
+	}
+	if energy != "" {
+		e := (energy)
+		params.Energy = &e
+	}
+	if blocker != "" {
+		b := (blocker)
+		params.Blocker = &b
+	}
+	if note != "" {
+		params.Note = &note
+	}
+	return params
+}
+
 // habitToProto builds the proto Habit from a DB row. The streak is derived
 // from check_ins history (not stored on the habit), so the caller must pass
 // it in.

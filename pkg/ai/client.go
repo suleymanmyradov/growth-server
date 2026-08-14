@@ -59,10 +59,11 @@ type Client interface {
 
 // client implements Client.
 type client struct {
-	cfg      Config
-	models   map[ModelProfile]openaiModel // profile → eino model
-	opts     clientOptions
-	breakers sync.Map // modelID → *breaker.Breaker
+	cfg            Config
+	models         map[ModelProfile]openaiModel   // profile → eino model (primary provider)
+	fallbackModels []map[ModelProfile]openaiModel // ordered chain: fallback provider index → profile → eino model
+	opts           clientOptions
+	breakers       sync.Map // modelID → *breaker.Breaker
 }
 
 // openaiModel wraps an Eino ChatModel with its model ID.
@@ -119,7 +120,43 @@ func New(cfg Config, opts ...Option) (Client, error) {
 		models[profile] = openaiModel{modelID: modelID, chat: cm}
 	}
 
-	return &client{cfg: cfg, models: models, opts: o}, nil
+	// Build cross-provider fallback models if FallbackProviders is configured.
+	// Each provider in the chain gets its own HTTP transport with its API key
+	// and base URL. Fallbacks try providers in list order until one succeeds.
+	var fallbackModels []map[ModelProfile]openaiModel
+	for i := range cfg.FallbackProviders {
+		fbCfg := &cfg.FallbackProviders[i]
+		fbHTTPClient := &http.Client{}
+		fbOrigTransport := fbHTTPClient.Transport
+		if fbOrigTransport == nil {
+			fbOrigTransport = http.DefaultTransport
+		}
+		fbHTTPClient.Transport = &openRouterTransport{
+			apiKey:      fbCfg.APIKey,
+			httpReferer: fbCfg.HTTPReferer,
+			xTitle:      fbCfg.XTitle,
+			base:        fbOrigTransport,
+		}
+
+		providerModels := make(map[ModelProfile]openaiModel, len(fbCfg.Models))
+		for profileStr, modelID := range fbCfg.Models {
+			profile := ModelProfile(profileStr)
+			cm, err := openaimodel.NewChatModel(context.Background(), &openaimodel.ChatModelConfig{
+				APIKey:     fbCfg.APIKey,
+				BaseURL:    fbCfg.BaseURL,
+				Model:      modelID,
+				HTTPClient: fbHTTPClient,
+				Timeout:    cfg.DefaultTimeout,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("ai.New: create fallback model for provider %d profile %q: %w", i, profile, err)
+			}
+			providerModels[profile] = openaiModel{modelID: modelID, chat: cm}
+		}
+		fallbackModels = append(fallbackModels, providerModels)
+	}
+
+	return &client{cfg: cfg, models: models, fallbackModels: fallbackModels, opts: o}, nil
 }
 
 // breakerFor returns the circuit breaker for the given modelID, creating one if necessary.
@@ -141,10 +178,22 @@ func (c *client) modelFor(p ModelProfile) (openaiModel, error) {
 	return m, nil
 }
 
-// fallbackModel returns the fallback model if configured.
-func (c *client) fallbackModel() (openaiModel, bool) {
-	m, ok := c.models[ModelFallback]
-	return m, ok
+// fallbackModelsFor returns the ordered chain of fallback models for the
+// given profile. Cross-provider fallbacks (FallbackProviders) come first,
+// in list order, followed by the same-provider ModelFallback profile if
+// configured. The caller tries each in order until one succeeds.
+func (c *client) fallbackModelsFor(profile ModelProfile) []openaiModel {
+	var chain []openaiModel
+	for _, providerModels := range c.fallbackModels {
+		if m, ok := providerModels[profile]; ok {
+			chain = append(chain, m)
+		}
+	}
+	// Same-provider fallback (original behaviour) as the last resort.
+	if m, ok := c.models[ModelFallback]; ok {
+		chain = append(chain, m)
+	}
+	return chain
 }
 
 // checkQuota checks per-user and global quotas before making a call.

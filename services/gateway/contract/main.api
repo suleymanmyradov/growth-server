@@ -332,6 +332,9 @@ service growthapi {
 
 	@handler HasCheckedInToday
 	get /check-ins/checked-today (HasCheckedInTodayRequest) returns (HasCheckedInTodayResponse)
+
+	@handler DeleteCheckIn
+	delete /check-ins/today/:habitId (DeleteCheckInRequest) returns (DeleteCheckInResponse)
 }
 
 @server (

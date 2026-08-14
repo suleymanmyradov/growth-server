@@ -92,40 +92,55 @@ func (c *client) generateWithTools(ctx context.Context, m openaiModel, req Gener
 	}, nil
 }
 
-// tryFallback attempts the fallback model if the primary model fails.
+// tryFallback attempts fallback models in chain order if the primary model fails.
+// It tries each cross-provider fallback (in FallbackProviders list order) and
+// finally the same-provider ModelFallback profile, until one succeeds.
 func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*schema.Message, opts []model.Option, primaryErr error, primaryLatencyMS int64) (GenerateResponse, error) {
 	if !c.cfg.FallbackPolicy.Enabled {
 		return GenerateResponse{}, primaryErr
 	}
-	fb, ok := c.fallbackModel()
-	if !ok {
+	chain := c.fallbackModelsFor(req.ModelProfile)
+	if len(chain) == 0 {
 		return GenerateResponse{}, primaryErr
 	}
 
-	logx.WithContext(ctx).Infof("ai: primary model failed, trying fallback: %v", primaryErr)
+	logx.WithContext(ctx).Infof("ai: primary model %s failed, trying %d fallback(s): %v", req.ModelProfile, len(chain), primaryErr)
 
-	start := time.Now()
-	result, err := c.callGenerate(ctx, fb, msgs, opts)
-	latencyMS := time.Since(start).Milliseconds()
-	if err != nil {
-		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
-		recordMetrics(ModelFallback, fb.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
-		return GenerateResponse{}, fmt.Errorf("ai.Generate fallback also failed: %w (primary: %v)", err, primaryErr)
+	var lastErr error = primaryErr
+	totalFallbackLatency := primaryLatencyMS
+
+	for i, fb := range chain {
+		logx.WithContext(ctx).Infof("ai: trying fallback %d/%d: %s", i+1, len(chain), fb.modelID)
+
+		start := time.Now()
+		result, err := c.callGenerate(ctx, fb, msgs, opts)
+		latencyMS := time.Since(start).Milliseconds()
+		totalFallbackLatency += latencyMS
+
+		if err != nil {
+			lastErr = err
+			c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, err)
+			recordMetrics(ModelFallback, fb.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
+			logx.WithContext(ctx).Infof("ai: fallback %d/%d (%s) also failed: %v", i+1, len(chain), fb.modelID, err)
+			continue
+		}
+
+		usage := extractUsage(result)
+		costUSD := c.cfg.ComputeCost(fb.modelID, usage.PromptTokens, usage.CompletionTokens)
+		c.recordUsage(ctx, req.Metadata, usage, costUSD)
+		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
+		recordMetrics(ModelFallback, fb.modelID, "ok", req.Metadata.Feature, usage, costUSD, latencyMS)
+
+		return GenerateResponse{
+			Message:   fromEinoMessage(result),
+			Usage:     usage,
+			ModelID:   fb.modelID,
+			LatencyMS: totalFallbackLatency,
+			CostUSD:   costUSD,
+		}, nil
 	}
 
-	usage := extractUsage(result)
-	costUSD := c.cfg.ComputeCost(fb.modelID, usage.PromptTokens, usage.CompletionTokens)
-	c.recordUsage(ctx, req.Metadata, usage, costUSD)
-	c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, usage, latencyMS, costUSD, nil)
-	recordMetrics(ModelFallback, fb.modelID, "ok", req.Metadata.Feature, usage, costUSD, latencyMS)
-
-	return GenerateResponse{
-		Message:   fromEinoMessage(result),
-		Usage:     usage,
-		ModelID:   fb.modelID,
-		LatencyMS: primaryLatencyMS + latencyMS,
-		CostUSD:   costUSD,
-	}, nil
+	return GenerateResponse{}, fmt.Errorf("ai.Generate all %d fallback(s) failed: %w (primary: %v)", len(chain), lastErr, primaryErr)
 }
 
 // GenerateStructured wraps Generate + JSON schema validation.

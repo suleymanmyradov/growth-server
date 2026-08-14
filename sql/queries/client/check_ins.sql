@@ -5,6 +5,23 @@ VALUES ($1, $2, $3, $4, $5, $6, $7,
         (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date)
 RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at;
 
+-- name: UpsertCheckIn :one
+-- Insert a check-in for today, or update the existing one if already present
+-- (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
+-- change status (missed → completed) or add/update mood/energy/blocker/note.
+-- created_at is preserved on update (the original check-in timestamp).
+-- Timezone is passed by the caller.
+INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date)
+ON CONFLICT (habit_id, local_date) DO UPDATE SET
+    status  = EXCLUDED.status,
+    mood    = EXCLUDED.mood,
+    energy  = EXCLUDED.energy,
+    blocker = EXCLUDED.blocker,
+    note    = EXCLUDED.note
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at;
+
 -- name: GetTodayCheckIns :many
 -- Timezone is passed by the caller.
 SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at
@@ -78,3 +95,12 @@ WHERE habit_id = ANY($1::uuid[])
   AND status = 'completed'
   AND local_date >= $2
   AND local_date <= $3;
+
+-- name: DeleteTodayCheckIn :execrows
+-- Deletes today's check-in for a specific habit (undo). The streak is derived
+-- from check_ins history, so it recomputes automatically once today's
+-- check-in is gone. Returns the number of rows deleted (0 = nothing to undo).
+DELETE FROM check_ins
+WHERE user_id = $1
+  AND habit_id = $2
+  AND local_date = (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date;

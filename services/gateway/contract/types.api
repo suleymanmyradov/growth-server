@@ -279,6 +279,12 @@ type (
 	HasCheckedInTodayResponse {
 		checkedIn bool `json:"checkedIn"`
 	}
+	DeleteCheckInRequest {
+		habitId string `path:"habitId"`
+	}
+	DeleteCheckInResponse {
+		habit Habit `json:"habit"`
+	}
 )
 
 // Article types

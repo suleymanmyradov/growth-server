@@ -1064,11 +1064,21 @@ message HasCheckedInTodayResponse {
   bool checkedIn = 1;
 }
 
+message DeleteCheckInRequest {
+  string userId = 1;
+  string habitId = 2;
+}
+
+message DeleteCheckInResponse {
+  Habit habit = 1;  // updated habit after undo (completed=false, streak recomputed)
+}
+
 service CheckInService {
   rpc CreateCheckIn(CreateCheckInRequest) returns (CreateCheckInResponse);
   rpc GetTodayCheckIns(GetTodayCheckInsRequest) returns (GetTodayCheckInsResponse);
   rpc GetCheckInHistory(GetCheckInHistoryRequest) returns (GetCheckInHistoryResponse);
   rpc HasCheckedInToday(HasCheckedInTodayRequest) returns (HasCheckedInTodayResponse);
+  rpc DeleteCheckIn(DeleteCheckInRequest) returns (DeleteCheckInResponse);
 }
 
 message WeeklyReviewHabitBreakdown {
