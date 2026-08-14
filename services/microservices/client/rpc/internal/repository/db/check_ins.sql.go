@@ -101,6 +101,24 @@ func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (C
 	return i, err
 }
 
+const deleteTodayCheckIn = `-- name: DeleteTodayCheckIn :execrows
+DELETE FROM check_ins
+WHERE user_id = $1
+  AND habit_id = $2
+  AND local_date = (NOW() AT TIME ZONE $3::text)::date
+`
+
+// Deletes today's check-in for a specific habit (undo). The streak is derived
+// from check_ins history, so it recomputes automatically once today's
+// check-in is gone. Returns the number of rows deleted (0 = nothing to undo).
+func (q *Queries) DeleteTodayCheckIn(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, timezone string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTodayCheckIn, userID, habitID, timezone)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getCheckInHistory = `-- name: GetCheckInHistory :many
 SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
 FROM check_ins
@@ -373,4 +391,60 @@ func (q *Queries) HasCheckedInToday(ctx context.Context, userID uuid.UUID, habit
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const upsertCheckIn = `-- name: UpsertCheckIn :one
+INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
+VALUES ($1, $2, $3, $4, $5, $6, $7,
+        (NOW() AT TIME ZONE $8::text)::date)
+ON CONFLICT (habit_id, local_date) DO UPDATE SET
+    status  = EXCLUDED.status,
+    mood    = EXCLUDED.mood,
+    energy  = EXCLUDED.energy,
+    blocker = EXCLUDED.blocker,
+    note    = EXCLUDED.note
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+`
+
+type UpsertCheckInParams struct {
+	UserID   uuid.UUID `db:"user_id" json:"user_id"`
+	HabitID  uuid.UUID `db:"habit_id" json:"habit_id"`
+	Status   string    `db:"status" json:"status"`
+	Mood     *string   `db:"mood" json:"mood"`
+	Energy   *string   `db:"energy" json:"energy"`
+	Blocker  *string   `db:"blocker" json:"blocker"`
+	Note     *string   `db:"note" json:"note"`
+	Timezone string    `db:"timezone" json:"timezone"`
+}
+
+// Insert a check-in for today, or update the existing one if already present
+// (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
+// change status (missed → completed) or add/update mood/energy/blocker/note.
+// created_at is preserved on update (the original check-in timestamp).
+// Timezone is passed by the caller.
+func (q *Queries) UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (CheckIn, error) {
+	row := q.db.QueryRow(ctx, upsertCheckIn,
+		arg.UserID,
+		arg.HabitID,
+		arg.Status,
+		arg.Mood,
+		arg.Energy,
+		arg.Blocker,
+		arg.Note,
+		arg.Timezone,
+	)
+	var i CheckIn
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.HabitID,
+		&i.LocalDate,
+		&i.Status,
+		&i.Mood,
+		&i.Energy,
+		&i.Blocker,
+		&i.Note,
+		&i.CreatedAt,
+	)
+	return i, err
 }

@@ -53,6 +53,26 @@ type FallbackPolicy struct {
 	MaxFailures int `json:"max_failures,optional"`
 }
 
+// ProviderConfig holds connection details for a separate LLM provider.
+// Used for FallbackProviders to enable cross-provider fallback (e.g.
+// NVIDIA primary → Google AI Studio fallback) when the primary provider
+// is down or rate-limited.
+type ProviderConfig struct {
+	// APIKey is the provider-specific API key.
+	APIKey string `json:"api_key"`
+	// BaseURL is the provider's OpenAI-compatible API base URL.
+	BaseURL string `json:"base_url,optional"`
+	// Models maps profile name (e.g. "cheap", "chat") to model ID on this
+	// provider. When a primary profile fails, the fallback looks up the
+	// same profile here. Profiles not listed here have no cross-provider
+	// fallback (they fall through to same-provider fallback if configured).
+	Models map[string]string `json:"models"`
+	// HTTPReferer is the analytics HTTP-Referer header (optional, OpenRouter-specific).
+	HTTPReferer string `json:"http_referer,optional"`
+	// XTitle is the analytics X-Title header (optional, OpenRouter-specific).
+	XTitle string `json:"x_title,optional"`
+}
+
 // Config holds all configuration for the AI client. It is loadable from
 // go-zero YAML configs via conf.MustLoad.
 type Config struct {
@@ -79,6 +99,14 @@ type Config struct {
 	XTitle string `json:"x_title,optional"`
 	// FallbackPolicy controls automatic retry with a fallback model.
 	FallbackPolicy FallbackPolicy `json:"fallback_policy,optional"`
+	// FallbackProviders is an ordered list of separate providers for
+	// cross-provider fallback. When the primary provider fails, fallbacks
+	// try each provider's model for the same profile in list order until
+	// one succeeds. This enables chaining multiple fallback models/providers
+	// (e.g. NVIDIA → Google gemini-flash-lite → Google gemini-flash →
+	// HuggingFace). If empty, same-provider fallback via ModelFallback
+	// profile is used (the original behaviour).
+	FallbackProviders []ProviderConfig `json:"fallback_providers,optional"`
 	// LogPrompts enables logging of prompt/completion contents at info level.
 	// Only use in development; never enable in production.
 	LogPrompts bool `json:"log_prompts,optional"`
@@ -143,6 +171,18 @@ func (c *Config) Validate() error {
 	}
 	if c.FallbackPolicy.Enabled && c.FallbackPolicy.MaxFailures == 0 {
 		c.FallbackPolicy.MaxFailures = 2
+	}
+	for i := range c.FallbackProviders {
+		fp := &c.FallbackProviders[i]
+		if fp.APIKey == "" {
+			return fmt.Errorf("ai.Config: FallbackProviders[%d].APIKey is required", i)
+		}
+		if fp.BaseURL == "" {
+			fp.BaseURL = "https://openrouter.ai/api/v1"
+		}
+		if len(fp.Models) == 0 {
+			return fmt.Errorf("ai.Config: FallbackProviders[%d].Models is required (map profile names to model IDs on the fallback provider)", i)
+		}
 	}
 	return nil
 }

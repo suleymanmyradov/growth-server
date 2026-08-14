@@ -178,8 +178,13 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 
 		if chunk.Delta != "" {
 			fullResponse.WriteString(chunk.Delta)
+		}
+		// Forward reasoning/thinking content from <thought> tags (Gemma-4
+		// fallbacks) so the frontend's reasoning UI can display it.
+		if chunk.Delta != "" || chunk.Reasoning != "" {
 			if err := stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
-				Delta: chunk.Delta,
+				Delta:     chunk.Delta,
+				Reasoning: chunk.Reasoning,
 			}); err != nil {
 				return err
 			}

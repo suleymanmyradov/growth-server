@@ -42,3 +42,8 @@ func (s *CheckInServiceServer) HasCheckedInToday(ctx context.Context, in *client
 	l := checkinservicelogic.NewHasCheckedInTodayLogic(ctx, s.svcCtx)
 	return l.HasCheckedInToday(in)
 }
+
+func (s *CheckInServiceServer) DeleteCheckIn(ctx context.Context, in *client.DeleteCheckInRequest) (*client.DeleteCheckInResponse, error) {
+	l := checkinservicelogic.NewDeleteCheckInLogic(ctx, s.svcCtx)
+	return l.DeleteCheckIn(in)
+}

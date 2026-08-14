@@ -45,6 +45,7 @@ func (l *CreateGoalLogic) CreateGoal(req *types.CreateGoalRequest) (resp *types.
 		Title:           req.Title,
 		Description:     req.Description,
 		Category:        req.Category,
+		DueDate:         parseDueDate(req.DueDate),
 		RelatedHabitIds: req.RelatedHabitIds,
 		Measurement:     req.Measurement,
 		StartValue:      req.StartValue,

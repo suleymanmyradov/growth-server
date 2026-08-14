@@ -39,6 +39,7 @@ func (l *UpdateGoalLogic) UpdateGoal(req *types.UpdateGoalRequest) (resp *types.
 		Title:           req.Title,
 		Description:     req.Description,
 		Category:        req.Category,
+		DueDate:         parseDueDate(req.DueDate),
 		RelatedHabitIds: req.RelatedHabitIds,
 		Measurement:     req.Measurement,
 		StartValue:      req.StartValue,

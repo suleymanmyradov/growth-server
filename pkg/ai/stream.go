@@ -58,65 +58,82 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 	logx.WithContext(ctx).Infof("ai.Stream: model %s stream opened after %v", m.modelID, time.Since(start))
 
 	return &einoStreamReader{
-		ctx:     ctx,
-		stream:  einoStream,
-		profile: req.ModelProfile,
-		modelID: m.modelID,
-		meta:    req.Metadata,
-		client:  c,
-		start:   start,
+		ctx:           ctx,
+		stream:        einoStream,
+		profile:       req.ModelProfile,
+		modelID:       m.modelID,
+		meta:          req.Metadata,
+		client:        c,
+		start:         start,
+		thoughtFilter: newThoughtFilter(),
 	}, nil
 }
 
-// tryFallbackStream attempts the fallback model for stream setup.
+// tryFallbackStream attempts fallback models in chain order for stream setup.
+// It tries each cross-provider fallback (in FallbackProviders list order) and
+// finally the same-provider ModelFallback profile, until one successfully
+// opens a stream.
 func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msgs []*schema.Message, opts []model.Option, primaryErr error, start time.Time) (StreamReader, error) {
 	if !c.cfg.FallbackPolicy.Enabled {
 		return nil, primaryErr
 	}
-	fb, ok := c.fallbackModel()
-	if !ok {
+	chain := c.fallbackModelsFor(req.ModelProfile)
+	if len(chain) == 0 {
 		return nil, primaryErr
 	}
 
-	logx.WithContext(ctx).Infof("ai: primary stream failed, trying fallback: %v", primaryErr)
+	logx.WithContext(ctx).Infof("ai: primary stream %s failed, trying %d fallback(s): %v", req.ModelProfile, len(chain), primaryErr)
 
-	var einoStream *schema.StreamReader[*schema.Message]
-	streamErr := c.withRetry(ctx, fb.modelID, func(attemptCtx context.Context) error {
-		var genErr error
-		// Use ctx, not attemptCtx — see Stream() for why the stream connection
-		// must outlive the per-attempt context.
-		einoStream, genErr = fb.chat.Stream(ctx, msgs, opts...)
-		return genErr
-	})
-	if streamErr != nil {
-		latencyMS := time.Since(start).Milliseconds()
-		c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
-		recordMetrics(ModelFallback, fb.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
-		return nil, fmt.Errorf("ai.Stream fallback also failed: %w (primary: %v)", streamErr, primaryErr)
+	var lastErr error = primaryErr
+
+	for i, fb := range chain {
+		logx.WithContext(ctx).Infof("ai: trying stream fallback %d/%d: %s", i+1, len(chain), fb.modelID)
+
+		var einoStream *schema.StreamReader[*schema.Message]
+		streamErr := c.withRetry(ctx, fb.modelID, func(attemptCtx context.Context) error {
+			var genErr error
+			// Use ctx, not attemptCtx — see Stream() for why the stream connection
+			// must outlive the per-attempt context.
+			einoStream, genErr = fb.chat.Stream(ctx, msgs, opts...)
+			return genErr
+		})
+		if streamErr != nil {
+			lastErr = streamErr
+			latencyMS := time.Since(start).Milliseconds()
+			c.logCall(ctx, ModelFallback, fb.modelID, req.Metadata, Usage{}, latencyMS, 0, streamErr)
+			recordMetrics(ModelFallback, fb.modelID, "error", req.Metadata.Feature, Usage{}, 0, latencyMS)
+			logx.WithContext(ctx).Infof("ai: stream fallback %d/%d (%s) also failed: %v", i+1, len(chain), fb.modelID, streamErr)
+			continue
+		}
+
+		return &einoStreamReader{
+			ctx:           ctx,
+			stream:        einoStream,
+			profile:       ModelFallback,
+			modelID:       fb.modelID,
+			meta:          req.Metadata,
+			client:        c,
+			start:         start,
+			thoughtFilter: newThoughtFilter(),
+		}, nil
 	}
 
-	return &einoStreamReader{
-		ctx:     ctx,
-		stream:  einoStream,
-		profile: ModelFallback,
-		modelID: fb.modelID,
-		meta:    req.Metadata,
-		client:  c,
-		start:   start,
-	}, nil
+	return nil, fmt.Errorf("ai.Stream all %d fallback(s) failed: %w (primary: %v)", len(chain), lastErr, primaryErr)
 }
 
 // einoStreamReader adapts Eino's StreamReader[*schema.Message] to our StreamReader.
 type einoStreamReader struct {
-	ctx     context.Context
-	stream  *schema.StreamReader[*schema.Message]
-	profile ModelProfile
-	modelID string
-	meta    Metadata
-	client  *client
-	start   time.Time
-	total   Usage
-	done    atomic.Bool
+	ctx           context.Context
+	stream        *schema.StreamReader[*schema.Message]
+	profile       ModelProfile
+	modelID       string
+	meta          Metadata
+	client        *client
+	start         time.Time
+	total         Usage
+	done          atomic.Bool
+	thoughtFilter *thoughtFilter
+	pendingFlush  thoughtParts // content from thoughtFilter.flush() to return before EOF
 }
 
 // Recv returns the next Chunk from the stream.
@@ -125,10 +142,30 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 		return Chunk{}, io.EOF
 	}
 
+	// If we have pending flush content (from thoughtFilter), return it first
+	// before delivering the final EOF.
+	if r.pendingFlush.Content != "" || r.pendingFlush.Reasoning != "" {
+		flush := r.pendingFlush
+		r.pendingFlush = thoughtParts{}
+		r.done.Store(true)
+		costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
+		r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
+		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), costUSD, nil)
+		recordMetrics(r.profile, r.modelID, "ok", r.meta.Feature, r.total, costUSD, time.Since(r.start).Milliseconds())
+		return Chunk{Delta: flush.Content, Reasoning: flush.Reasoning, FinishReason: "stop"}, io.EOF
+	}
+
 	msg, err := r.stream.Recv()
 	if err != nil {
 		latencyMS := time.Since(r.start).Milliseconds()
 		if err == io.EOF {
+			// Flush the thought filter — if there's remaining content or
+			// reasoning, return it before the stop chunk.
+			remaining := r.thoughtFilter.flush()
+			if remaining.Content != "" || remaining.Reasoning != "" {
+				r.pendingFlush = remaining
+				return Chunk{Delta: remaining.Content, Reasoning: remaining.Reasoning}, nil
+			}
 			r.done.Store(true)
 			costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
 			r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
@@ -145,11 +182,14 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 		return Chunk{}, err
 	}
 
+	// Sanitize at the source: some LLM streaming APIs (especially free-tier
+	// models on OpenRouter) emit invalid UTF-8 sequences that would cause
+	// gRPC marshaling errors downstream. Then split <thought> tags from
+	// Gemma-4 models: thought content → Reasoning, rest → Delta.
+	parts := r.thoughtFilter.filter(sanitizeUTF8(msg.Content))
 	chunk := Chunk{
-		// Sanitize at the source: some LLM streaming APIs (especially free-tier
-		// models on OpenRouter) emit invalid UTF-8 sequences that would cause
-		// gRPC marshaling errors downstream.
-		Delta: sanitizeUTF8(msg.Content),
+		Delta:     parts.Content,
+		Reasoning: parts.Reasoning,
 	}
 
 	// Extract tool call deltas if present.

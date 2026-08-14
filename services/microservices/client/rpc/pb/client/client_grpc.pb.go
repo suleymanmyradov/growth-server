@@ -3375,6 +3375,7 @@ const (
 	CheckInService_GetTodayCheckIns_FullMethodName  = "/client.CheckInService/GetTodayCheckIns"
 	CheckInService_GetCheckInHistory_FullMethodName = "/client.CheckInService/GetCheckInHistory"
 	CheckInService_HasCheckedInToday_FullMethodName = "/client.CheckInService/HasCheckedInToday"
+	CheckInService_DeleteCheckIn_FullMethodName     = "/client.CheckInService/DeleteCheckIn"
 )
 
 // CheckInServiceClient is the client API for CheckInService service.
@@ -3385,6 +3386,7 @@ type CheckInServiceClient interface {
 	GetTodayCheckIns(ctx context.Context, in *GetTodayCheckInsRequest, opts ...grpc.CallOption) (*GetTodayCheckInsResponse, error)
 	GetCheckInHistory(ctx context.Context, in *GetCheckInHistoryRequest, opts ...grpc.CallOption) (*GetCheckInHistoryResponse, error)
 	HasCheckedInToday(ctx context.Context, in *HasCheckedInTodayRequest, opts ...grpc.CallOption) (*HasCheckedInTodayResponse, error)
+	DeleteCheckIn(ctx context.Context, in *DeleteCheckInRequest, opts ...grpc.CallOption) (*DeleteCheckInResponse, error)
 }
 
 type checkInServiceClient struct {
@@ -3435,6 +3437,16 @@ func (c *checkInServiceClient) HasCheckedInToday(ctx context.Context, in *HasChe
 	return out, nil
 }
 
+func (c *checkInServiceClient) DeleteCheckIn(ctx context.Context, in *DeleteCheckInRequest, opts ...grpc.CallOption) (*DeleteCheckInResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteCheckInResponse)
+	err := c.cc.Invoke(ctx, CheckInService_DeleteCheckIn_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CheckInServiceServer is the server API for CheckInService service.
 // All implementations must embed UnimplementedCheckInServiceServer
 // for forward compatibility.
@@ -3443,6 +3455,7 @@ type CheckInServiceServer interface {
 	GetTodayCheckIns(context.Context, *GetTodayCheckInsRequest) (*GetTodayCheckInsResponse, error)
 	GetCheckInHistory(context.Context, *GetCheckInHistoryRequest) (*GetCheckInHistoryResponse, error)
 	HasCheckedInToday(context.Context, *HasCheckedInTodayRequest) (*HasCheckedInTodayResponse, error)
+	DeleteCheckIn(context.Context, *DeleteCheckInRequest) (*DeleteCheckInResponse, error)
 	mustEmbedUnimplementedCheckInServiceServer()
 }
 
@@ -3464,6 +3477,9 @@ func (UnimplementedCheckInServiceServer) GetCheckInHistory(context.Context, *Get
 }
 func (UnimplementedCheckInServiceServer) HasCheckedInToday(context.Context, *HasCheckedInTodayRequest) (*HasCheckedInTodayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HasCheckedInToday not implemented")
+}
+func (UnimplementedCheckInServiceServer) DeleteCheckIn(context.Context, *DeleteCheckInRequest) (*DeleteCheckInResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteCheckIn not implemented")
 }
 func (UnimplementedCheckInServiceServer) mustEmbedUnimplementedCheckInServiceServer() {}
 func (UnimplementedCheckInServiceServer) testEmbeddedByValue()                        {}
@@ -3558,6 +3574,24 @@ func _CheckInService_HasCheckedInToday_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CheckInService_DeleteCheckIn_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteCheckInRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CheckInServiceServer).DeleteCheckIn(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CheckInService_DeleteCheckIn_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CheckInServiceServer).DeleteCheckIn(ctx, req.(*DeleteCheckInRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CheckInService_ServiceDesc is the grpc.ServiceDesc for CheckInService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -3580,6 +3614,10 @@ var CheckInService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HasCheckedInToday",
 			Handler:    _CheckInService_HasCheckedInToday_Handler,
+		},
+		{
+			MethodName: "DeleteCheckIn",
+			Handler:    _CheckInService_DeleteCheckIn_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

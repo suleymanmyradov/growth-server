@@ -244,6 +244,14 @@ type CreatePlanAdjustmentSuggestionRequest struct {
 	Metadata       map[string]string `json:"metadata,optional"`
 }
 
+type DeleteCheckInRequest struct {
+	HabitId string `path:"habitId"`
+}
+
+type DeleteCheckInResponse struct {
+	Habit Habit `json:"habit"`
+}
+
 type DeleteConversationResponse struct {
 }
 

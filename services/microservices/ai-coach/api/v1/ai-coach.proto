@@ -130,6 +130,7 @@ message WeeklyReviewStreamChunk {
   bool complete = 2;             // true when the stream is finished
   WeeklyReviewResponse review = 3; // full structured response (only set when complete=true)
   bool finalizing = 4;           // true when text is done, backend is parsing JSON
+  string reasoning = 5;          // reasoning/thinking delta from <thought> tags (Gemma-4 fallbacks)
 }
 
 // Streaming personalized coaching
@@ -137,6 +138,7 @@ message PersonalizedCoachingStreamChunk {
   string delta = 1;              // text delta (coaching response as it's generated)
   bool complete = 2;             // true when the stream is finished
   string full_response = 3;      // full coaching response (only set when complete=true)
+  string reasoning = 4;          // reasoning/thinking delta from <thought> tags (Gemma-4 fallbacks)
 }
 
 // Onboarding Habit Generation

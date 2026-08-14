@@ -115,6 +115,10 @@ type Querier interface {
 	DeleteSiteSetting(ctx context.Context, key string) error
 	DeleteSubscriptionsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteTag(ctx context.Context, id uuid.UUID) error
+	// Deletes today's check-in for a specific habit (undo). The streak is derived
+	// from check_ins history, so it recomputes automatically once today's
+	// check-in is gone. Returns the number of rows deleted (0 = nothing to undo).
+	DeleteTodayCheckIn(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, timezone string) (int64, error)
 	DeleteUpgradeEventsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteUserPreferences(ctx context.Context, userID uuid.UUID) error
 	DeleteUserProfile(ctx context.Context, id uuid.UUID) error
@@ -351,6 +355,12 @@ type Querier interface {
 	UpdateReportStatus(ctx context.Context, iD uuid.UUID, status string, adminNotes *string) (Report, error)
 	UpdateTag(ctx context.Context, iD uuid.UUID, name string, slug string) (Tag, error)
 	UpdateUserPreferences(ctx context.Context, userID uuid.UUID, theme string, language string, timezone string) (UserPreference, error)
+	// Insert a check-in for today, or update the existing one if already present
+	// (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
+	// change status (missed → completed) or add/update mood/energy/blocker/note.
+	// created_at is preserved on update (the original check-in timestamp).
+	// Timezone is passed by the caller.
+	UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (CheckIn, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error)
 	UpsertSiteSetting(ctx context.Context, key string, value []byte) (SiteSetting, error)
 	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)

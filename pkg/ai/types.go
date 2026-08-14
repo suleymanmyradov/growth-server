@@ -40,6 +40,7 @@ type ToolCallDelta struct {
 type Message struct {
 	Role       Role       `json:"role"`
 	Content    string     `json:"content"`
+	Reasoning  string     `json:"reasoning,omitempty"` // thinking content from <thought> tags (Gemma-4)
 	Name       string     `json:"name,omitempty"`
 	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
 	ToolCallID string     `json:"tool_call_id,omitempty"`
@@ -106,6 +107,7 @@ type Usage struct {
 // Chunk is a streaming delta.
 type Chunk struct {
 	Delta         string         `json:"delta,omitempty"`
+	Reasoning     string         `json:"reasoning,omitempty"` // thinking delta from <thought> tags (Gemma-4)
 	ToolCallDelta *ToolCallDelta `json:"tool_call_delta,omitempty"`
 	FinishReason  string         `json:"finish_reason,omitempty"`
 	Usage         *Usage         `json:"usage,omitempty"`
@@ -243,11 +245,16 @@ func toEinoMessage(m Message) *einoMessage {
 }
 
 // fromEinoMessage converts an Eino schema.Message to our Message.
+// Splits <thought>...</thought> tags that Gemma-4 models emit inline in the
+// content field into the Reasoning field (thinking mode cannot be disabled
+// for these models). The frontend's existing reasoning UI displays it.
 func fromEinoMessage(em *einoMessage) Message {
+	parts := splitThoughtTags(em.Content)
 	m := Message{
-		Role:    fromEinoRole(em.Role),
-		Content: em.Content,
-		Name:    em.Name,
+		Role:      fromEinoRole(em.Role),
+		Content:   parts.Content,
+		Reasoning: parts.Reasoning,
+		Name:      em.Name,
 	}
 	if em.ToolCallID != "" {
 		m.ToolCallID = em.ToolCallID

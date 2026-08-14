@@ -1,6 +1,7 @@
 package goals
 
 import (
+	"strings"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
@@ -47,6 +48,25 @@ func formatTime(unix int64) string {
 		return ""
 	}
 	return time.Unix(unix, 0).Format(time.RFC3339)
+}
+
+// parseDueDate converts a date string to a Unix timestamp (seconds). Accepts
+// both RFC3339 ("2024-12-31T00:00:00Z") and date-only ("2024-12-31") formats.
+// Returns 0 for empty strings (meaning "no due date" / "don't update").
+func parseDueDate(s string) int64 {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return 0
+	}
+	// Try RFC3339 first (full timestamp from the API response).
+	if t, err := time.Parse(time.RFC3339, s); err == nil {
+		return t.Unix()
+	}
+	// Fall back to date-only (from <input type="date">).
+	if t, err := time.Parse("2006-01-02", s); err == nil {
+		return t.Unix()
+	}
+	return 0
 }
 
 // nonNilHabitIds returns the slice if non-nil, otherwise an empty slice so

@@ -250,6 +250,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/check-ins/today",
 					Handler: checkin.GetTodayCheckInsHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/check-ins/today/:habitId",
+					Handler: checkin.DeleteCheckInHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),
