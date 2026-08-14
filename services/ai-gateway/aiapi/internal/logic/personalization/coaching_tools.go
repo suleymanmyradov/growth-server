@@ -5,24 +5,33 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
 	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
 	clientweekly "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 )
 
 // CoachingToolDeps wraps the RPC clients the coaching tools need. Tools
 // that require an explicit user ID (check-ins, weekly reviews, suggestions,
 // coaching profile) close over it; goals and habits are scoped via the
 // propagated JWT in gRPC metadata.
+//
+// Search and Articles are used by the search_articles tool (article
+// reference). Search may be nil — the tool then returns an error and the
+// coach falls back to a text-only reply.
 type CoachingToolDeps struct {
 	Goals           clientgoals.Goals
 	Habits          clienthabits.Habits
 	CheckIns        clientcheckin.CheckInService
 	WeeklyReviews   clientweekly.WeeklyReviewService
 	Personalization clientpersonalization.PersonalizationService
+	Search          searchservice.SearchService
+	Articles        clientarticles.Articles
 }
 
 // BuildCoachingTools creates the set of on-demand retrieval tools for the
@@ -44,6 +53,19 @@ func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
 		getLatestWeeklyReviewTool(userID, deps.WeeklyReviews),
 		getPendingSuggestionsTool(userID, deps.Personalization),
 		getCoachingProfileTool(userID, deps.Personalization),
+		// Proposal tools (non-mutating). The agent calls these to prepare a
+		// goal/habit create/update/delete for the user to confirm in-chat.
+		// The handler emits a "proposal" SSE event; the client renders a
+		// confirm card and calls the existing CRUD endpoint on accept.
+		proposeCreateGoalTool(),
+		proposeUpdateGoalTool(),
+		proposeDeleteGoalTool(),
+		proposeCreateHabitTool(),
+		proposeUpdateHabitTool(),
+		proposeDeleteHabitTool(),
+		// Article reference (read-only). Searches published articles by
+		// topic so the coach can cite relevant reading in its reply.
+		searchArticlesTool(deps.Search, deps.Articles),
 	}
 }
 
@@ -365,6 +387,312 @@ func getCoachingProfileTool(userID string, personalization clientpersonalization
 					CommonBlockers:       p.CommonBlockers,
 				},
 			}, nil
+		},
+	})
+}
+
+// --- Proposal tools (non-mutating) ---
+//
+// These tools do NOT call any RPC. They validate the agent's input and
+// return a proposalOutput describing the action the user can confirm
+// in-chat. The handler emits a "proposal" SSE event from the tool result;
+// the client renders a confirm card and calls the existing CRUD endpoint
+// on accept. The payload shape matches the client's Create*/Update*
+// request schemas (dueDate as ISO date string, etc.).
+
+// proposalOutput is the shared output of every propose_* tool. The handler
+// parses this from the tool result JSON to emit the SSE proposal event.
+type proposalOutput struct {
+	Id      string         `json:"id"`      // unique proposal id (uuid)
+	Action  string         `json:"action"`  // create_goal|update_goal|delete_goal|create_habit|update_habit|delete_habit
+	Payload map[string]any `json:"payload"` // fields the client CRUD function expects
+}
+
+// newProposalID generates a unique id for a proposal so the client can
+// track it across confirm/cancel lifecycle.
+func newProposalID() string { return uuid.NewString() }
+
+// --- Goal proposal input types ---
+
+type createGoalInput struct {
+	Title           string   `json:"title"`
+	Description     string   `json:"description,omitempty"`
+	Category        string   `json:"category,omitempty"`
+	DueDate         string   `json:"dueDate,omitempty"` // ISO date string (YYYY-MM-DD)
+	RelatedHabitIds []string `json:"relatedHabitIds,omitempty"`
+}
+
+type updateGoalInput struct {
+	GoalId          string   `json:"goalId"`
+	Title           string   `json:"title,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	Category        string   `json:"category,omitempty"`
+	DueDate         string   `json:"dueDate,omitempty"`
+	RelatedHabitIds []string `json:"relatedHabitIds,omitempty"`
+}
+
+type deleteGoalInput struct {
+	GoalId string `json:"goalId"`
+}
+
+// --- Habit proposal input types ---
+
+type createHabitInput struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Category    string `json:"category,omitempty"`
+}
+
+type updateHabitInput struct {
+	HabitId     string `json:"habitId"`
+	Name        string `json:"name,omitempty"`
+	Description string `json:"description,omitempty"`
+	Category    string `json:"category,omitempty"`
+}
+
+type deleteHabitInput struct {
+	HabitId string `json:"habitId"`
+}
+
+// --- Goal proposal tool implementations ---
+
+func proposeCreateGoalTool() ai.Tool {
+	return ai.NewTool[createGoalInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_create_goal",
+		Description: "Prepare a new goal for the user to confirm. Call this when the user asks to create or add a goal. The goal is NOT created yet — a confirmation card is shown to the user. Required: title. Optional: description, category, dueDate (YYYY-MM-DD), relatedHabitIds.",
+		Handler: func(ctx context.Context, in createGoalInput) (proposalOutput, error) {
+			if in.Title == "" {
+				return proposalOutput{}, fmt.Errorf("propose_create_goal: title is required")
+			}
+			payload := map[string]any{"title": in.Title}
+			if in.Description != "" {
+				payload["description"] = in.Description
+			}
+			if in.Category != "" {
+				payload["category"] = in.Category
+			}
+			if in.DueDate != "" {
+				payload["dueDate"] = in.DueDate
+			}
+			if len(in.RelatedHabitIds) > 0 {
+				payload["relatedHabitIds"] = in.RelatedHabitIds
+			}
+			return proposalOutput{Id: newProposalID(), Action: "create_goal", Payload: payload}, nil
+		},
+	})
+}
+
+func proposeUpdateGoalTool() ai.Tool {
+	return ai.NewTool[updateGoalInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_update_goal",
+		Description: "Prepare changes to an existing goal for the user to confirm. Call this when the user asks to edit, rename, or change a goal. The goal is NOT updated yet — a confirmation card is shown. Required: goalId. At least one of: title, description, category, dueDate, relatedHabitIds.",
+		Handler: func(ctx context.Context, in updateGoalInput) (proposalOutput, error) {
+			if in.GoalId == "" {
+				return proposalOutput{}, fmt.Errorf("propose_update_goal: goalId is required")
+			}
+			payload := map[string]any{"goalId": in.GoalId}
+			if in.Title != "" {
+				payload["title"] = in.Title
+			}
+			if in.Description != "" {
+				payload["description"] = in.Description
+			}
+			if in.Category != "" {
+				payload["category"] = in.Category
+			}
+			if in.DueDate != "" {
+				payload["dueDate"] = in.DueDate
+			}
+			if len(in.RelatedHabitIds) > 0 {
+				payload["relatedHabitIds"] = in.RelatedHabitIds
+			}
+			return proposalOutput{Id: newProposalID(), Action: "update_goal", Payload: payload}, nil
+		},
+	})
+}
+
+func proposeDeleteGoalTool() ai.Tool {
+	return ai.NewTool[deleteGoalInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_delete_goal",
+		Description: "Prepare deletion of a goal for the user to confirm. Call this when the user asks to delete or remove a goal. The goal is NOT deleted yet — a confirmation card is shown. Required: goalId.",
+		Handler: func(ctx context.Context, in deleteGoalInput) (proposalOutput, error) {
+			if in.GoalId == "" {
+				return proposalOutput{}, fmt.Errorf("propose_delete_goal: goalId is required")
+			}
+			return proposalOutput{
+				Id:      newProposalID(),
+				Action:  "delete_goal",
+				Payload: map[string]any{"goalId": in.GoalId},
+			}, nil
+		},
+	})
+}
+
+// --- Habit proposal tool implementations ---
+
+func proposeCreateHabitTool() ai.Tool {
+	return ai.NewTool[createHabitInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_create_habit",
+		Description: "Prepare a new habit for the user to confirm. Call this when the user asks to create or add a habit. The habit is NOT created yet — a confirmation card is shown. Required: name. Optional: description, category.",
+		Handler: func(ctx context.Context, in createHabitInput) (proposalOutput, error) {
+			if in.Name == "" {
+				return proposalOutput{}, fmt.Errorf("propose_create_habit: name is required")
+			}
+			payload := map[string]any{"name": in.Name}
+			if in.Description != "" {
+				payload["description"] = in.Description
+			}
+			if in.Category != "" {
+				payload["category"] = in.Category
+			}
+			return proposalOutput{Id: newProposalID(), Action: "create_habit", Payload: payload}, nil
+		},
+	})
+}
+
+func proposeUpdateHabitTool() ai.Tool {
+	return ai.NewTool[updateHabitInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_update_habit",
+		Description: "Prepare changes to an existing habit for the user to confirm. Call this when the user asks to edit, rename, or change a habit. The habit is NOT updated yet — a confirmation card is shown. Required: habitId. At least one of: name, description, category.",
+		Handler: func(ctx context.Context, in updateHabitInput) (proposalOutput, error) {
+			if in.HabitId == "" {
+				return proposalOutput{}, fmt.Errorf("propose_update_habit: habitId is required")
+			}
+			payload := map[string]any{"habitId": in.HabitId}
+			if in.Name != "" {
+				payload["name"] = in.Name
+			}
+			if in.Description != "" {
+				payload["description"] = in.Description
+			}
+			if in.Category != "" {
+				payload["category"] = in.Category
+			}
+			return proposalOutput{Id: newProposalID(), Action: "update_habit", Payload: payload}, nil
+		},
+	})
+}
+
+func proposeDeleteHabitTool() ai.Tool {
+	return ai.NewTool[deleteHabitInput, proposalOutput](ai.ToolSpec{
+		Name:        "propose_delete_habit",
+		Description: "Prepare deletion of a habit for the user to confirm. Call this when the user asks to delete or remove a habit. The habit is NOT deleted yet — a confirmation card is shown. Required: habitId.",
+		Handler: func(ctx context.Context, in deleteHabitInput) (proposalOutput, error) {
+			if in.HabitId == "" {
+				return proposalOutput{}, fmt.Errorf("propose_delete_habit: habitId is required")
+			}
+			return proposalOutput{
+				Id:      newProposalID(),
+				Action:  "delete_habit",
+				Payload: map[string]any{"habitId": in.HabitId},
+			}, nil
+		},
+	})
+}
+
+// --- Article search tool (read-only) ---
+
+type searchArticlesInput struct {
+	Query    string `json:"query"`
+	Category string `json:"category,omitempty"`
+	Limit    int32  `json:"limit,omitempty"`
+}
+
+type articleSummary struct {
+	Id       string `json:"id"`
+	Title    string `json:"title"`
+	Summary  string `json:"summary,omitempty"`
+	Url      string `json:"url,omitempty"`
+	ReadTime int32  `json:"readTime,omitempty"`
+	Category string `json:"category,omitempty"`
+}
+
+type articlesOutput struct {
+	Articles []articleSummary `json:"articles"`
+}
+
+// searchArticlesTool searches published articles by topic via the search
+// RPC, then hydrates the top results with full article metadata via the
+// client Articles RPC. Returns lean summaries the coach can cite.
+// If search is nil (not configured), returns an error so the coach falls
+// back to a text-only reply.
+func searchArticlesTool(search searchservice.SearchService, articles clientarticles.Articles) ai.Tool {
+	return ai.NewTool[searchArticlesInput, articlesOutput](ai.ToolSpec{
+		Name:        "search_articles",
+		Description: "Search published articles by topic to recommend relevant reading. Call this when the user asks for articles, reading, resources, or references on a topic. Returns article titles, summaries, and IDs you can cite in your reply.",
+		Handler: func(ctx context.Context, in searchArticlesInput) (articlesOutput, error) {
+			if in.Query == "" {
+				return articlesOutput{}, fmt.Errorf("search_articles: query is required")
+			}
+			if search == nil {
+				return articlesOutput{}, fmt.Errorf("search_articles: search service not configured")
+			}
+			limit := in.Limit
+			if limit <= 0 || limit > 10 {
+				limit = 5
+			}
+			resp, err := search.Search(ctx, &searchservice.SearchRequest{
+				Query:  in.Query,
+				Types:  []string{"articles"},
+				Status: "published",
+				Limit:  limit,
+			})
+			if err != nil {
+				return articlesOutput{}, fmt.Errorf("search_articles: %w", err)
+			}
+			if len(resp.Results) == 0 {
+				return articlesOutput{Articles: []articleSummary{}}, nil
+			}
+
+			// Hydrate via the client Articles RPC for full metadata (summary,
+			// readTime, category). Fall back to search-result fields if
+			// hydration fails or an article is missing.
+			ids := make([]string, 0, len(resp.Results))
+			for _, r := range resp.Results {
+				if r.Id != "" {
+					ids = append(ids, r.Id)
+				}
+			}
+
+			out := articlesOutput{Articles: make([]articleSummary, 0, len(resp.Results))}
+			// hydrated maps article ID → enriched summary (from the client
+			// Articles RPC). We store pre-built articleSummary values so we
+			// don't need to reference the generated Article proto type here.
+			hydrated := make(map[string]articleSummary)
+			if articles != nil && len(ids) > 0 {
+				if hResp, hErr := articles.GetArticlesByIds(ctx, &clientarticles.GetArticlesByIdsRequest{Ids: ids}); hErr == nil && hResp != nil {
+					for _, a := range hResp.Articles {
+						s := articleSummary{
+							Id:       a.Id,
+							Title:    a.Title,
+							Summary:  a.Summary,
+							ReadTime: a.ReadTime,
+						}
+						if a.Category != nil {
+							s.Category = a.Category.Name
+						}
+						hydrated[a.Id] = s
+					}
+				}
+			}
+
+			for _, r := range resp.Results {
+				if h, ok := hydrated[r.Id]; ok {
+					// Use the hydrated summary but keep the search-result URL
+					// (the article proto doesn't carry a public URL).
+					h.Url = r.Url
+					out.Articles = append(out.Articles, h)
+				} else {
+					// Fall back to search-result fields only.
+					out.Articles = append(out.Articles, articleSummary{
+						Id:      r.Id,
+						Title:   r.Title,
+						Summary: r.Description,
+						Url:     r.Url,
+					})
+				}
+			}
+			return out, nil
 		},
 	})
 }

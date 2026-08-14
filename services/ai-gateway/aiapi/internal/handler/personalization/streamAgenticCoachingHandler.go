@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -31,6 +32,13 @@ var toolStatusMessages = map[string]string{
 	"get_latest_weekly_review": "Reviewing your weekly summary...",
 	"get_pending_suggestions":  "Checking your plan suggestions...",
 	"get_coaching_profile":     "Reviewing your coaching preferences...",
+	"propose_create_goal":      "Preparing a new goal for you to confirm...",
+	"propose_update_goal":      "Preparing goal changes for you to confirm...",
+	"propose_delete_goal":      "Preparing goal deletion for you to confirm...",
+	"propose_create_habit":     "Preparing a new habit for you to confirm...",
+	"propose_update_habit":     "Preparing habit changes for you to confirm...",
+	"propose_delete_habit":     "Preparing habit deletion for you to confirm...",
+	"search_articles":          "Searching articles...",
 }
 
 // historyEntry is a single prior conversation message (role + content),
@@ -84,13 +92,15 @@ func streamAgenticCoaching(w http.ResponseWriter, r *http.Request, req *types.Ge
 		agenticCtx.UserLocation = profileResp.User.Location
 	}
 
-	// --- Build coaching tools (on-demand data retrieval) ---
+	// --- Build coaching tools (on-demand data retrieval + proposals) ---
 	tools := personalization.BuildCoachingTools(p.UserID, personalization.CoachingToolDeps{
 		Goals:           svcCtx.ClientRpc.Goals,
 		Habits:          svcCtx.ClientRpc.Habits,
 		CheckIns:        svcCtx.ClientRpc.CheckInService,
 		WeeklyReviews:   svcCtx.ClientRpc.WeeklyReviewService,
 		Personalization: svcCtx.ClientRpc.PersonalizationService,
+		Search:          svcCtx.SearchRpc,
+		Articles:        svcCtx.ClientRpc.Articles,
 	})
 
 	// --- Build lean system prompt (no goals/habits/check-ins stuffed in) ---
@@ -226,6 +236,24 @@ func streamAgenticCoaching(w http.ResponseWriter, r *http.Request, req *types.Ge
 				return
 			}
 			flush()
+
+			// Proposal tools: emit a "proposal" SSE event so the client can
+			// render a confirm/cancel card. The tool result (JSON) carries
+			// the {id, action, payload} shape from proposalOutput. We
+			// forward it verbatim — the client uses the action to pick the
+			// CRUD endpoint and the payload as the request body.
+			if strings.HasPrefix(chunk.ToolCall.Name, "propose_") && chunk.ToolCall.Error == "" && chunk.ToolCall.Result != "" {
+				proposalData, pErr := parseProposalResult(chunk.ToolCall.Result)
+				if pErr == nil {
+					if _, err := fmt.Fprintf(w, "event: proposal\ndata: %s\n\n", proposalData); err != nil {
+						return
+					}
+					flush()
+				} else {
+					logx.WithContext(ctx).Errorf("agentic coaching: failed to parse proposal result for %s: %v", chunk.ToolCall.Name, pErr)
+				}
+			}
+
 			continue
 		}
 
@@ -374,4 +402,31 @@ func coachingGrpcErrMsg(err error) string {
 		return st.Message()
 	}
 	return err.Error()
+}
+
+// proposalPayload is the shape of a propose_* tool result, used to validate
+// and re-marshal the result before forwarding it as an SSE "proposal" event.
+type proposalPayload struct {
+	Id      string         `json:"id"`
+	Action  string         `json:"action"`
+	Payload map[string]any `json:"payload"`
+}
+
+// parseProposalResult validates the tool result JSON is a well-formed
+// proposal ({id, action, payload}) and returns the re-marshaled JSON for
+// the SSE event. Returns an error if the result is malformed or missing
+// required fields.
+func parseProposalResult(resultJSON string) (string, error) {
+	var p proposalPayload
+	if err := json.Unmarshal([]byte(resultJSON), &p); err != nil {
+		return "", fmt.Errorf("unmarshal proposal result: %w", err)
+	}
+	if p.Id == "" || p.Action == "" {
+		return "", fmt.Errorf("proposal result missing id or action")
+	}
+	b, err := json.Marshal(p)
+	if err != nil {
+		return "", fmt.Errorf("marshal proposal event: %w", err)
+	}
+	return string(b), nil
 }

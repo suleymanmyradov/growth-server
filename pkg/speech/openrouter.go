@@ -251,6 +251,8 @@ func newClients(cfg Config) (STTClient, TTSClient) {
 	switch cfg.STT.Provider {
 	case "", "openrouter":
 		stt = newOpenRouterSTT(cfg, hc)
+	case "gemini":
+		stt = newGeminiSTT(cfg)
 	}
 	switch cfg.TTS.Provider {
 	case "", "openrouter":
