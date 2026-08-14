@@ -18,6 +18,7 @@ import (
 	aicoachrpc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 	clientrpc "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client"
+	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
@@ -31,6 +32,11 @@ type ServiceContext struct {
 	AuthRpc    authservice.AuthService
 	ClientRpc  *clientrpc.Service
 	AICoachRpc *aicoachrpc.Service
+	// SearchRpc is the search microservice client, used by the article
+	// reference coaching tool. Optional — nil when SearchRpc is not
+	// configured, in which case the search_articles tool returns an error
+	// and the coach falls back to a text-only reply.
+	SearchRpc searchservice.SearchService
 	// AIClient is the LLM client for the agentic coaching flow.
 	AIClient   ai.Client
 	Classifier safety.Classifier
@@ -97,6 +103,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(fmt.Errorf("init token maker: %w", err))
 	}
 
+	// Search RPC (optional). Used by the article reference coaching tool.
+	// Nil when SearchRpc.Endpoints is empty — the search_articles tool then
+	// returns an error and the coach falls back to a text-only reply.
+	var searchRpc searchservice.SearchService
+	if len(c.SearchRpc.Endpoints) > 0 {
+		searchRpc = searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...))
+	}
+
 	return &ServiceContext{
 		Config: c,
 		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
@@ -109,6 +123,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		AuthRpc:    authRpc,
 		ClientRpc:  clientRpc,
 		AICoachRpc: aiCoachRpc,
+		SearchRpc:  searchRpc,
 		AIClient:   aiClient,
 		Classifier: classifier,
 	}

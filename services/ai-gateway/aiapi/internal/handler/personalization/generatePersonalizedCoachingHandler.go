@@ -4,8 +4,9 @@
 package personalization
 
 import (
-	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
+
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/personalization"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"

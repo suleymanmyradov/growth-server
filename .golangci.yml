@@ -23,6 +23,14 @@ linters:
     - errcheck
     - govet
     - staticcheck
+  # go-zero config structs use `json:"...,optional"` which go-zero's config
+  # loader recognizes but staticcheck (SA5008) does not — suppress only that
+  # specific false positive, not all invalid-tag warnings.
+  exclusions:
+    rules:
+      - linters:
+          - staticcheck
+        text: "unknown `optional` tag option"
 
 issues:
   max-issues-per-linter: 0

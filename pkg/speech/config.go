@@ -104,9 +104,9 @@ func (c *Config) Validate() error {
 	}
 	for _, p := range []string{c.STT.Provider, c.TTS.Provider} {
 		switch p {
-		case "", "openrouter":
+		case "", "openrouter", "gemini":
 		default:
-			return fmt.Errorf("speech.Config: unsupported provider %q (supported: openrouter)", p)
+			return fmt.Errorf("speech.Config: unsupported provider %q (supported: openrouter, gemini)", p)
 		}
 	}
 	return nil
