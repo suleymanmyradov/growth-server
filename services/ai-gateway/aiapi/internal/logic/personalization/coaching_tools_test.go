@@ -340,6 +340,9 @@ func TestBuildCoachingToolsIncludesAllTools(t *testing.T) {
 	assert.True(t, names["get_latest_weekly_review"])
 	assert.True(t, names["get_pending_suggestions"])
 	assert.True(t, names["get_coaching_profile"])
+	// Detail retrieval tools.
+	assert.True(t, names["get_goal"])
+	assert.True(t, names["get_habit"])
 	// Proposal tools.
 	assert.True(t, names["propose_create_goal"])
 	assert.True(t, names["propose_update_goal"])

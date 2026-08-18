@@ -71,7 +71,7 @@ func (c *client) StreamAgent(ctx context.Context, req AgentRequest) (AgentStream
 	loopCtx, cancel := context.WithCancel(ctx)
 	ch := make(chan AgentStreamChunk, 64)
 
-	go c.runAgentStreamLoop(loopCtx, cancel, ch, agentStreamParams{
+	go c.runAgentStreamLoop(loopCtx, ch, agentStreamParams{
 		tooledModel: tooledModel,
 		modelID:     m.modelID,
 		profile:     req.ModelProfile,
@@ -99,18 +99,37 @@ type agentStreamParams struct {
 }
 
 // runAgentStreamLoop is the goroutine that drives the model<->tool loop and
-// sends chunks to the channel. It closes the channel on exit and cancels
-// the loop context.
-func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFunc, ch chan<- AgentStreamChunk, p agentStreamParams) {
+// sends chunks to the channel. It closes the channel on exit.
+//
+// It intentionally does NOT receive or call the context's cancel func. The
+// context is canceled only by the reader's Close() (for early termination).
+// Closing the channel is sufficient to deliver io.EOF to a waiting Recv().
+// If the goroutine also canceled the context, a Recv() select with both a
+// buffered chunk and ctx.Done() ready would non-deterministically pick
+// ctx.Done() and drop the buffered chunk — truncating the stream. Keeping
+// cancellation under the reader's sole control eliminates that race.
+func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams) {
 	defer close(ch)
-	defer cancel()
 
 	start := time.Now()
 	var totalUsage Usage
 
+	// Captured thought_signatures from the previous step's tool calls.
+	// Gemini requires these to be present on assistant tool_calls in the
+	// conversation history; the transport injects them into the request.
+	var prevSignatures map[string]string
+
 	for step := 1; step <= p.maxSteps; step++ {
+		// Per-step context: carry a fresh capture for the response, and
+		// the previous step's signatures for request injection.
+		capture := newThoughtSignatureCapture()
+		stepCtx := withCapture(ctx, capture)
+		if len(prevSignatures) > 0 {
+			stepCtx = withInject(stepCtx, prevSignatures)
+		}
+
 		// Open a streaming call with tools bound.
-		einoStream, err := p.tooledModel.Stream(ctx, p.msgs, p.opts...)
+		einoStream, err := p.tooledModel.Stream(stepCtx, p.msgs, p.opts...)
 		if err != nil {
 			c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent step %d: stream open: %w", step, err))
 			return
@@ -227,12 +246,17 @@ func (c *client) runAgentStreamLoop(ctx context.Context, cancel context.CancelFu
 		}
 
 		// Build the assistant message for the conversation history.
+		// Preserve captured thought_signatures on the tool calls so the
+		// transport can inject them into the next request for Gemini.
 		assistantMsg := &schema.Message{
 			Role:    schema.Assistant,
 			Content: contentBuf.String(),
 		}
 		if len(toolCalls) > 0 {
 			assistantMsg.ToolCalls = toolCalls
+			prevSignatures = capture.all()
+		} else {
+			prevSignatures = nil
 		}
 		p.msgs = append(p.msgs, assistantMsg)
 

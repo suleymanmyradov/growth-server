@@ -84,7 +84,7 @@ func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msg
 
 	logx.WithContext(ctx).Infof("ai: primary stream %s failed, trying %d fallback(s): %v", req.ModelProfile, len(chain), primaryErr)
 
-	var lastErr error = primaryErr
+	var lastErr = primaryErr
 
 	for i, fb := range chain {
 		logx.WithContext(ctx).Infof("ai: trying stream fallback %d/%d: %s", i+1, len(chain), fb.modelID)

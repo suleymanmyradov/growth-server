@@ -297,6 +297,41 @@ func TestErrors(t *testing.T) {
 		assert.ErrorIs(t, e, ErrSafetyBlock)
 		assert.Contains(t, e.Error(), "self_harm")
 	})
+
+	t.Run("UserFacingMessage", func(t *testing.T) {
+		// nil → empty
+		assert.Equal(t, "", UserFacingMessage(nil))
+
+		// Known sentinel errors → tailored messages, never leak internals.
+		assert.NotContains(t, UserFacingMessage(ErrMaxSteps), "ai.StreamAgent")
+		assert.NotContains(t, UserFacingMessage(ErrMaxSteps), "token")
+		assert.NotContains(t, UserFacingMessage(ErrMaxSteps), "step")
+
+		assert.NotContains(t, UserFacingMessage(ErrQuotaExceeded), "quota")
+		assert.NotContains(t, UserFacingMessage(ErrQuotaExceeded), "cap")
+
+		assert.NotContains(t, UserFacingMessage(ErrSafetyBlock), "safety")
+		assert.NotContains(t, UserFacingMessage(ErrModelUnavailable), "model")
+
+		// Wrapped sentinel (the real shape from agent_stream.go).
+		wrapped := fmt.Errorf("ai.StreamAgent: max total tokens exceeded (8406 > 8000): %w", ErrMaxSteps)
+		msg := UserFacingMessage(wrapped)
+		assert.NotContains(t, msg, "8406")
+		assert.NotContains(t, msg, "8000")
+		assert.NotContains(t, msg, "ai.StreamAgent")
+		assert.NotEmpty(t, msg)
+
+		// QuotaError (implements Unwrap → ErrQuotaExceeded).
+		qe := &QuotaError{Limit: "user_daily", Used: 1000, Cap: 500}
+		assert.NotContains(t, UserFacingMessage(qe), "user_daily")
+		assert.NotContains(t, UserFacingMessage(qe), "1000")
+
+		// Unknown error → generic fallback, never the raw message.
+		raw := fmt.Errorf("connection refused: dial tcp 127.0.0.1:8080: connect: connection refused")
+		assert.NotContains(t, UserFacingMessage(raw), "connection refused")
+		assert.NotContains(t, UserFacingMessage(raw), "127.0.0.1")
+		assert.NotEmpty(t, UserFacingMessage(raw))
+	})
 }
 
 func TestIsRetryable(t *testing.T) {

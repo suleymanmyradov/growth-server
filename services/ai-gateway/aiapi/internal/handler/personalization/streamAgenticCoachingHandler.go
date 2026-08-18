@@ -28,6 +28,8 @@ import (
 var toolStatusMessages = map[string]string{
 	"get_active_goals":         "Looking up your goals...",
 	"get_active_habits":        "Looking up your habits...",
+	"get_goal":                 "Getting goal details...",
+	"get_habit":                "Getting habit details...",
 	"get_recent_check_ins":     "Reviewing your recent check-ins...",
 	"get_latest_weekly_review": "Reviewing your weekly summary...",
 	"get_pending_suggestions":  "Checking your plan suggestions...",
@@ -121,14 +123,24 @@ func streamAgenticCoaching(w http.ResponseWriter, r *http.Request, req *types.Ge
 	aiMessages = append(aiMessages, ai.Message{Role: ai.RoleUser, Content: req.UserMessage})
 
 	// --- Open the agent stream ---
-	logx.WithContext(ctx).Infof("agentic coaching: opening StreamAgent for user=%s", p.UserID)
+	// Coaching limits are configurable via YAML (Coaching.MaxSteps,
+	// Coaching.MaxTotalTokens); defaults applied here when unset.
+	maxSteps := svcCtx.Config.Coaching.MaxSteps
+	if maxSteps == 0 {
+		maxSteps = 6
+	}
+	maxTotalTokens := svcCtx.Config.Coaching.MaxTotalTokens
+	if maxTotalTokens == 0 {
+		maxTotalTokens = 100000
+	}
+	logx.WithContext(ctx).Infof("agentic coaching: opening StreamAgent for user=%s (maxSteps=%d, maxTotalTokens=%d)", p.UserID, maxSteps, maxTotalTokens)
 	agentStream, err := svcCtx.AIClient.StreamAgent(ctx, ai.AgentRequest{
 		ModelProfile:   ai.ModelChat,
 		System:         systemPrompt,
 		Messages:       aiMessages,
 		Tools:          tools,
-		MaxSteps:       6,
-		MaxTotalTokens: 8000,
+		MaxSteps:       maxSteps,
+		MaxTotalTokens: maxTotalTokens,
 		Metadata: ai.Metadata{
 			UserID:  p.UserID,
 			Feature: "agentic_coaching_stream",
@@ -398,10 +410,11 @@ func writeCoachingSSEError(w http.ResponseWriter, flush func(), msg string) {
 }
 
 func coachingGrpcErrMsg(err error) string {
-	if st, ok := status.FromError(err); ok {
-		return st.Message()
-	}
-	return err.Error()
+	// Map known ai package errors to user-friendly messages so internal
+	// details (token counts, step limits, library names) never leak to the
+	// chat UI. UserFacingMessage returns a generic fallback for unknown
+	// errors, so this always returns a display-safe string.
+	return ai.UserFacingMessage(err)
 }
 
 // proposalPayload is the shape of a propose_* tool result, used to validate

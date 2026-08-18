@@ -106,7 +106,7 @@ func (c *client) tryFallback(ctx context.Context, req GenerateRequest, msgs []*s
 
 	logx.WithContext(ctx).Infof("ai: primary model %s failed, trying %d fallback(s): %v", req.ModelProfile, len(chain), primaryErr)
 
-	var lastErr error = primaryErr
+	var lastErr = primaryErr
 	totalFallbackLatency := primaryLatencyMS
 
 	for i, fb := range chain {

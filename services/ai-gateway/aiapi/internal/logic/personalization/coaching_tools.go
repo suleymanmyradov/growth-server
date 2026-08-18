@@ -49,6 +49,8 @@ func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
 	return []ai.Tool{
 		getActiveGoalsTool(deps.Goals),
 		getActiveHabitsTool(deps.Habits),
+		getGoalTool(deps.Goals),
+		getHabitTool(deps.Habits),
 		getRecentCheckInsTool(userID, deps.CheckIns, deps.Habits),
 		getLatestWeeklyReviewTool(userID, deps.WeeklyReviews),
 		getPendingSuggestionsTool(userID, deps.Personalization),
@@ -74,6 +76,7 @@ func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
 type noInput struct{}
 
 type goalSummary struct {
+	Id        string `json:"id"`
 	Title     string `json:"title"`
 	Category  string `json:"category,omitempty"`
 	Progress  int32  `json:"progress,omitempty"`
@@ -86,6 +89,7 @@ type goalsOutput struct {
 }
 
 type habitSummary struct {
+	Id             string `json:"id"`
 	Name           string `json:"name"`
 	Category       string `json:"category,omitempty"`
 	Streak         int32  `json:"streak,omitempty"`
@@ -161,11 +165,11 @@ type coachingProfileOutput struct {
 func getActiveGoalsTool(goals clientgoals.Goals) ai.Tool {
 	return ai.NewTool[noInput, goalsOutput](ai.ToolSpec{
 		Name:        "get_active_goals",
-		Description: "Fetch the user's active goals with title, category, progress, and due date. Call this when the user asks about goals, progress, priorities, or what they're working toward.",
+		Description: "Fetch the user's active goals (up to 10) with id, title, category, progress, and due date. Call this when the user asks about goals, progress, priorities, or what they're working toward. Returns a summary list — use get_goal to fetch full details (description, milestones, measurement) for a specific goal when needed.",
 		Handler: func(ctx context.Context, _ noInput) (goalsOutput, error) {
 			resp, err := goals.ListGoals(ctx, &clientgoals.ListGoalsRequest{
 				Page:  1,
-				Limit: 50,
+				Limit: 10,
 			})
 			if err != nil {
 				return goalsOutput{}, fmt.Errorf("get_active_goals: %w", err)
@@ -173,6 +177,7 @@ func getActiveGoalsTool(goals clientgoals.Goals) ai.Tool {
 			out := goalsOutput{Goals: make([]goalSummary, 0, len(resp.Goals))}
 			for _, g := range resp.Goals {
 				summary := goalSummary{
+					Id:        g.Id,
 					Title:     g.Title,
 					Category:  g.Category,
 					Progress:  g.Progress,
@@ -191,11 +196,11 @@ func getActiveGoalsTool(goals clientgoals.Goals) ai.Tool {
 func getActiveHabitsTool(habits clienthabits.Habits) ai.Tool {
 	return ai.NewTool[noInput, habitsOutput](ai.ToolSpec{
 		Name:        "get_active_habits",
-		Description: "Fetch the user's active habits with name, category, current streak, and whether completed today. Call this when the user asks about habits, routines, streaks, or daily practices.",
+		Description: "Fetch the user's active habits (up to 10) with id, name, category, current streak, and whether completed today. Call this when the user asks about habits, routines, streaks, or daily practices. Returns a summary list — use get_habit to fetch full details (description, recent history) for a specific habit when needed.",
 		Handler: func(ctx context.Context, _ noInput) (habitsOutput, error) {
 			resp, err := habits.ListHabits(ctx, &clienthabits.ListHabitsRequest{
 				Page:  1,
-				Limit: 50,
+				Limit: 10,
 			})
 			if err != nil {
 				return habitsOutput{}, fmt.Errorf("get_active_habits: %w", err)
@@ -203,6 +208,7 @@ func getActiveHabitsTool(habits clienthabits.Habits) ai.Tool {
 			out := habitsOutput{Habits: make([]habitSummary, 0, len(resp.Habits))}
 			for _, h := range resp.Habits {
 				out.Habits = append(out.Habits, habitSummary{
+					Id:             h.Id,
 					Name:           h.Name,
 					Category:       h.Category,
 					Streak:         h.Streak,
@@ -214,15 +220,157 @@ func getActiveHabitsTool(habits clienthabits.Habits) ai.Tool {
 	})
 }
 
+// --- Detail types for get_goal / get_habit ---
+
+type milestoneDetail struct {
+	Id        string `json:"id,omitempty"`
+	Title     string `json:"title"`
+	SortOrder int32  `json:"sortOrder,omitempty"`
+	Completed bool   `json:"completed,omitempty"`
+}
+
+type goalDetail struct {
+	Id              string            `json:"id"`
+	Title           string            `json:"title"`
+	Description     string            `json:"description,omitempty"`
+	Category        string            `json:"category,omitempty"`
+	Progress        int32             `json:"progress,omitempty"`
+	Completed       bool              `json:"completed,omitempty"`
+	DueDate         string            `json:"dueDate,omitempty"`
+	Measurement     string            `json:"measurement,omitempty"`
+	StartValue      float64           `json:"startValue,omitempty"`
+	CurrentValue    float64           `json:"currentValue,omitempty"`
+	TargetValue     float64           `json:"targetValue,omitempty"`
+	Unit            string            `json:"unit,omitempty"`
+	RelatedHabitIds []string          `json:"relatedHabitIds,omitempty"`
+	Milestones      []milestoneDetail `json:"milestones,omitempty"`
+}
+
+type goalDetailOutput struct {
+	Goal *goalDetail `json:"goal,omitempty"`
+}
+
+type habitDetail struct {
+	Id             string `json:"id"`
+	Name           string `json:"name"`
+	Description    string `json:"description,omitempty"`
+	Category       string `json:"category,omitempty"`
+	Streak         int32  `json:"streak,omitempty"`
+	CompletedToday bool   `json:"completedToday,omitempty"`
+}
+
+type habitDetailOutput struct {
+	Habit *habitDetail `json:"habit,omitempty"`
+}
+
+// getGoalByIdInput is the input for the get_goal tool.
+type getGoalByIdInput struct {
+	GoalId string `json:"goalId"`
+}
+
+// getHabitByIdInput is the input for the get_habit tool.
+type getHabitByIdInput struct {
+	HabitId string `json:"habitId"`
+}
+
+// getGoalTool fetches a single goal by ID with full details (description,
+// milestones, measurement, values). The model calls this after
+// get_active_goals when it needs more than the summary list provides.
+func getGoalTool(goals clientgoals.Goals) ai.Tool {
+	return ai.NewTool[getGoalByIdInput, goalDetailOutput](ai.ToolSpec{
+		Name:        "get_goal",
+		Description: "Fetch a single goal by ID with full details: description, measurement type, start/current/target values, unit, related habit IDs, and milestones. Call this after get_active_goals when you need more detail about a specific goal (e.g. the user asks about a particular goal's milestones, progress values, or description). Required: goalId (from get_active_goals).",
+		Handler: func(ctx context.Context, in getGoalByIdInput) (goalDetailOutput, error) {
+			if in.GoalId == "" {
+				return goalDetailOutput{}, fmt.Errorf("get_goal: goalId is required")
+			}
+			resp, err := goals.GetGoal(ctx, &clientgoals.GetGoalRequest{
+				GoalId: in.GoalId,
+			})
+			if err != nil {
+				return goalDetailOutput{}, fmt.Errorf("get_goal: %w", err)
+			}
+			if resp.Goal == nil {
+				return goalDetailOutput{}, nil
+			}
+			g := resp.Goal
+			detail := goalDetail{
+				Id:           g.Id,
+				Title:        g.Title,
+				Description:  g.Description,
+				Category:     g.Category,
+				Progress:     g.Progress,
+				Completed:    g.Completed,
+				Measurement:  g.Measurement,
+				StartValue:   g.StartValue,
+				CurrentValue: g.CurrentValue,
+				TargetValue:  g.TargetValue,
+				Unit:         g.Unit,
+			}
+			if g.DueDate > 0 {
+				detail.DueDate = time.Unix(g.DueDate, 0).Format("2006-01-02")
+			}
+			if len(g.RelatedHabitIds) > 0 {
+				detail.RelatedHabitIds = g.RelatedHabitIds
+			}
+			if len(g.Milestones) > 0 {
+				detail.Milestones = make([]milestoneDetail, 0, len(g.Milestones))
+				for _, m := range g.Milestones {
+					detail.Milestones = append(detail.Milestones, milestoneDetail{
+						Id:        m.Id,
+						Title:     m.Title,
+						SortOrder: m.SortOrder,
+						Completed: m.DoneAt > 0,
+					})
+				}
+			}
+			return goalDetailOutput{Goal: &detail}, nil
+		},
+	})
+}
+
+// getHabitTool fetches a single habit by ID with full details (description,
+// streak, completion status). The model calls this after get_active_habits
+// when it needs more than the summary list provides.
+func getHabitTool(habits clienthabits.Habits) ai.Tool {
+	return ai.NewTool[getHabitByIdInput, habitDetailOutput](ai.ToolSpec{
+		Name:        "get_habit",
+		Description: "Fetch a single habit by ID with full details: description, category, current streak, and whether completed today. Call this after get_active_habits when you need more detail about a specific habit (e.g. the user asks about a particular habit's description or details). Required: habitId (from get_active_habits).",
+		Handler: func(ctx context.Context, in getHabitByIdInput) (habitDetailOutput, error) {
+			if in.HabitId == "" {
+				return habitDetailOutput{}, fmt.Errorf("get_habit: habitId is required")
+			}
+			resp, err := habits.GetHabit(ctx, &clienthabits.GetHabitRequest{
+				HabitId: in.HabitId,
+			})
+			if err != nil {
+				return habitDetailOutput{}, fmt.Errorf("get_habit: %w", err)
+			}
+			if resp.Habit == nil {
+				return habitDetailOutput{}, nil
+			}
+			h := resp.Habit
+			return habitDetailOutput{Habit: &habitDetail{
+				Id:             h.Id,
+				Name:           h.Name,
+				Description:    h.Description,
+				Category:       h.Category,
+				Streak:         h.Streak,
+				CompletedToday: h.CompletedToday,
+			}}, nil
+		},
+	})
+}
+
 func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService, habits clienthabits.Habits) ai.Tool {
 	return ai.NewTool[noInput, checkInsOutput](ai.ToolSpec{
 		Name:        "get_recent_check_ins",
-		Description: "Fetch the user's recent check-ins (last 30 days, up to 50) with status, mood, energy, blocker, and note. Also includes a day-by-day coverage summary for the last 7 days showing which days had check-ins and which were missed (no check-in logged at all). Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
+		Description: "Fetch the user's recent check-ins (last 30 days, up to 10) with status, mood, energy, blocker, and note. Also includes a day-by-day coverage summary for the last 7 days showing which days had check-ins and which were missed (no check-in logged at all). Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
 		Handler: func(ctx context.Context, _ noInput) (checkInsOutput, error) {
 			resp, err := checkIns.GetCheckInHistory(ctx, &clientcheckin.GetCheckInHistoryRequest{
 				UserId: userID,
 				Page:   1,
-				Limit:  50,
+				Limit:  10,
 			})
 			if err != nil {
 				return checkInsOutput{}, fmt.Errorf("get_recent_check_ins: %w", err)
@@ -345,7 +493,7 @@ func getPendingSuggestionsTool(userID string, personalization clientpersonalizat
 		Handler: func(ctx context.Context, _ noInput) (suggestionsOutput, error) {
 			resp, err := personalization.ListPendingPlanAdjustmentSuggestions(ctx, &clientpersonalization.ListPendingPlanAdjustmentSuggestionsRequest{
 				UserId: userID,
-				Limit:  20,
+				Limit:  10,
 			})
 			if err != nil {
 				return suggestionsOutput{}, fmt.Errorf("get_pending_suggestions: %w", err)

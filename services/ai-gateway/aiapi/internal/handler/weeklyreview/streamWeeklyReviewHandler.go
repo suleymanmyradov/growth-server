@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/weeklyreview"
@@ -290,8 +291,8 @@ func writeSSEError(w http.ResponseWriter, flush func(), msg string) {
 }
 
 func grpcErrMsg(err error) string {
-	if st, ok := status.FromError(err); ok {
-		return st.Message()
-	}
-	return err.Error()
+	// Map known ai package errors to user-friendly messages; for everything
+	// else (gRPC transport errors, etc.) return a generic fallback so raw
+	// internal error text never reaches the UI.
+	return ai.UserFacingMessage(err)
 }

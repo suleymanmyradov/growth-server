@@ -61,3 +61,26 @@ func (e *SafetyError) Error() string {
 func (e *SafetyError) Unwrap() error {
 	return ErrSafetyBlock
 }
+
+// UserFacingMessage converts an ai package error into a short, user-friendly
+// message suitable for display in chat/UI. Internal implementation details
+// (token counts, step limits, library names, gRPC codes) never leak to end
+// users — known sentinel errors get a tailored message, everything else gets
+// a generic fallback.
+func UserFacingMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	switch {
+	case errors.Is(err, ErrMaxSteps):
+		return "I'm having trouble putting my thoughts together on this one. Could you try rephrasing your message or asking something more specific?"
+	case errors.Is(err, ErrQuotaExceeded):
+		return "You've reached your daily coaching limit. I'll be here to help again tomorrow — see you then!"
+	case errors.Is(err, ErrSafetyBlock):
+		return "I'm not able to help with that, but I'm here if you'd like to talk about your goals or habits."
+	case errors.Is(err, ErrModelUnavailable):
+		return "I'm having trouble connecting right now. Please try again in a moment."
+	default:
+		return "Something went wrong on my end. Please try sending your message again."
+	}
+}
