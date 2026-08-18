@@ -41,12 +41,14 @@ func (l *StartConversationLogic) StartConversation(in *aicoach.StartConversation
 
 	title := in.Title
 	if title == "" && in.InitialMessage != "" {
-		// Auto-title from first message (truncated).
+		// Auto-title from first message.
 		title = strings.TrimSpace(in.InitialMessage)
-		if len(title) > 60 {
-			title = title[:60] + "..."
-		}
 	}
+	// Always clamp the title to fit the conversations.title varchar(255)
+	// column. The frontend sends the full user message as the title for new
+	// conversations, so without this guard long opening messages exceed the
+	// column limit and the whole StartConversation fails with a 500.
+	title = truncateTitle(title, 252)
 
 	userID, err := parseUUID(in.UserId)
 	if err != nil {
@@ -83,4 +85,24 @@ func (l *StartConversationLogic) StartConversation(in *aicoach.StartConversation
 
 	l.Infof("started conversation: user=%s conv=%s", in.UserId, conv.ID)
 	return resp, nil
+}
+
+// truncateTitle clamps a conversation title to maxLen characters (counting
+// the trailing "..." when truncated). It trims surrounding whitespace first
+// and collapses internal newlines/whitespace so multi-line opening messages
+// produce a clean single-line title.
+func truncateTitle(s string, maxLen int) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return s
+	}
+	// Collapse newlines and runs of whitespace into single spaces.
+	s = strings.Join(strings.Fields(s), " ")
+	if len(s) <= maxLen {
+		return s
+	}
+	if maxLen <= 3 {
+		return s[:maxLen]
+	}
+	return s[:maxLen-3] + "..."
 }

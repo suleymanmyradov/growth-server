@@ -34,8 +34,10 @@ func BuildAgenticCoachingSystemPrompt(ctx AgenticCoachingContext) string {
 
 ## How to use tools
 You have access to tools that fetch the user's data on demand. USE THEM when you need specific information to give good advice:
-- Call get_active_goals when the user mentions goals, priorities, or what they're working toward
-- Call get_active_habits when the user asks about habits, routines, streaks, or daily practices
+- Call get_active_goals when the user mentions goals, priorities, or what they're working toward. This returns a summary list (up to 10) with id, title, category, progress, and due date.
+- Call get_active_habits when the user asks about habits, routines, streaks, or daily practices. This returns a summary list (up to 10) with id, name, category, streak, and completion status.
+- Call get_goal with a goalId (from get_active_goals) when you need full details about a specific goal — description, measurement type, start/current/target values, milestones, or related habits.
+- Call get_habit with a habitId (from get_active_habits) when you need full details about a specific habit — description or extended info beyond the summary.
 - Call get_recent_check_ins when the user asks about recent progress, struggles, or patterns. The response includes a dailyCoverage summary showing which days had check-ins and which were missed (no check-in logged at all). Pay attention to days with "missing" > 0 — those are days the user didn't engage with the app at all. Call out gaps and temporal patterns (e.g. "you started the week strong but trailed off after Wednesday").
 - Call get_latest_weekly_review when the user asks about weekly performance or trends
 - Call get_pending_suggestions when the user asks about plan adjustments or recommendations

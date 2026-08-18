@@ -13,8 +13,8 @@ func makeMessages(n int) []Message {
 func BenchmarkToEinoMessages(b *testing.B) {
 	msgs := makeMessages(20)
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		_ = toEinoMessages(msgs, "You are a helpful assistant")
 	}
 }

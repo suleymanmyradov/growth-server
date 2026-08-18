@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/personalization"
@@ -117,7 +118,7 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		cancel()
 		if err != nil {
 			logx.WithContext(ctx).Errorf("voice turn: transcribe failed after %v: %v", time.Since(start), err)
-			writeError("transcribe failed: " + err.Error())
+			writeError("I couldn't understand your audio. Please try speaking again.")
 			return
 		}
 		userText := transResp.Text
@@ -169,7 +170,7 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		})
 		if err != nil {
 			logx.WithContext(ctx).Errorf("voice turn: personalization context: %v", err)
-			writeError("personalization context: " + err.Error())
+			writeError(ai.UserFacingMessage(err))
 			return
 		}
 
@@ -178,7 +179,7 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		stream, err := svcCtx.AICoachRpc.AICoachService.StreamPersonalizedCoaching(ctx, aiReq)
 		if err != nil {
 			logx.WithContext(ctx).Errorf("voice turn: coaching stream open: %v", err)
-			writeError("coaching stream open: " + err.Error())
+			writeError(ai.UserFacingMessage(err))
 			return
 		}
 
@@ -191,7 +192,7 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 					break
 				}
 				logx.WithContext(ctx).Errorf("voice turn: coaching stream recv: %v", recvErr)
-				writeError("coaching stream: " + recvErr.Error())
+				writeError(ai.UserFacingMessage(recvErr))
 				return
 			}
 			if chunk.Complete {

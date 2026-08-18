@@ -203,9 +203,12 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 	}
 
 	// Link the Stripe subscription ID and upgrade to the pro plan.
-	// Don't set status to "active" here — the DB requires period dates for
-	// active status (CHECK constraint), and those arrive via the
-	// customer.subscription.updated event. Keep the current status until then.
+	// The customer.subscription.updated event (which carries period dates
+	// and sets status to "active") may arrive before OR after this event.
+	// The DB has a CHECK constraint requiring period dates for active/trialing
+	// status, so we must preserve the existing period data and billing
+	// interval when carrying forward an already-active status — otherwise the
+	// upsert nulls those columns and the constraint fires.
 	if checkout.Object.Subscription != "" {
 		proPlan, planErr := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "pro")
 		if planErr != nil {
@@ -219,6 +222,11 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 			UserID:               existingSub.UserID,
 			PlanID:               proPlan.ID,
 			Status:               existingSub.Status,
+			BillingInterval:      existingSub.BillingInterval,
+			CurrentPeriodStart:   existingSub.CurrentPeriodStart,
+			CurrentPeriodEnd:     existingSub.CurrentPeriodEnd,
+			TrialEnd:             existingSub.TrialEnd,
+			CancelAtPeriodEnd:    existingSub.CancelAtPeriodEnd,
 			StripeCustomerID:     &checkout.Object.Customer,
 			StripeSubscriptionID: &checkout.Object.Subscription,
 		})

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -198,6 +199,53 @@ func TestHandleCheckoutCompleted_HappyPath(t *testing.T) {
 	assert.Equal(t, testUserID, m.upsertCalls[0].UserID)
 	assert.Equal(t, testProPlanID, m.upsertCalls[0].PlanID)
 	assert.Equal(t, "free", m.upsertCalls[0].Status) // not "active" — period dates come later
+	assert.Equal(t, testSubID, *m.upsertCalls[0].StripeSubscriptionID)
+}
+
+// TestHandleCheckoutCompleted_AlreadyActivePreservesPeriodDates reproduces the
+// race condition where customer.subscription.created (or .updated) arrives
+// BEFORE checkout.session.completed and has already flipped the subscription
+// to "active" with period dates. The checkout handler must carry forward the
+// existing period data and billing interval — otherwise the upsert nulls
+// those columns and the DB CHECK constraint
+// (subscriptions_active_has_period) rejects the write with a 500.
+func TestHandleCheckoutCompleted_AlreadyActivePreservesPeriodDates(t *testing.T) {
+	periodStart := pgtype.Timestamptz{Time: time.Unix(1700000000, 0), Valid: true}
+	periodEnd := pgtype.Timestamptz{Time: time.Unix(1702678400, 0), Valid: true}
+	activeSub := testExistingSub
+	activeSub.Status = "active"
+	activeSub.PlanID = testProPlanID
+	activeSub.BillingInterval = strPtr("annual")
+	activeSub.CurrentPeriodStart = periodStart
+	activeSub.CurrentPeriodEnd = periodEnd
+
+	m := &mockBilling{
+		getPlanByCode:          map[string]db.Plan{"pro": testProPlan},
+		getSubByStripeCustomer: map[string]db.GetUserSubscriptionByStripeCustomerIDRow{testCustomerID: activeSub},
+	}
+	l := newTestLogic(m).withRepo(m)
+
+	data := mustJSON(t, stripeCheckoutData{
+		Object: stripeCheckoutSession{
+			ID:           "cs_test_1",
+			Customer:     testCustomerID,
+			Subscription: testSubID,
+		},
+	})
+
+	resp, err := l.handleCheckoutCompleted(data)
+	require.NoError(t, err)
+	assert.True(t, resp.Processed)
+
+	require.Len(t, m.upsertCalls, 1)
+	// Status carried forward as "active" — NOT reset to "free" or nulled.
+	assert.Equal(t, "active", m.upsertCalls[0].Status)
+	// Period dates and billing interval preserved so the CHECK constraint passes.
+	assert.Equal(t, periodStart, m.upsertCalls[0].CurrentPeriodStart)
+	assert.Equal(t, periodEnd, m.upsertCalls[0].CurrentPeriodEnd)
+	require.NotNil(t, m.upsertCalls[0].BillingInterval)
+	assert.Equal(t, "annual", *m.upsertCalls[0].BillingInterval)
+	// Subscription ID linked.
 	assert.Equal(t, testSubID, *m.upsertCalls[0].StripeSubscriptionID)
 }
 

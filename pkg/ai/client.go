@@ -92,16 +92,19 @@ func New(cfg Config, opts ...Option) (Client, error) {
 		httpClient = &http.Client{}
 	}
 
-	// Always wrap the transport to inject OpenRouter analytics headers.
+	// Always wrap the transport to inject OpenRouter analytics headers
+	// and capture/inject Gemini thought_signatures (see thought_signature.go).
 	origTransport := httpClient.Transport
 	if origTransport == nil {
 		origTransport = http.DefaultTransport
 	}
-	httpClient.Transport = &openRouterTransport{
-		apiKey:      cfg.APIKey,
-		httpReferer: cfg.HTTPReferer,
-		xTitle:      cfg.XTitle,
-		base:        origTransport,
+	httpClient.Transport = &thoughtSignatureTransport{
+		base: &openRouterTransport{
+			apiKey:      cfg.APIKey,
+			httpReferer: cfg.HTTPReferer,
+			xTitle:      cfg.XTitle,
+			base:        origTransport,
+		},
 	}
 
 	models := make(map[ModelProfile]openaiModel, len(cfg.Models))
@@ -131,11 +134,13 @@ func New(cfg Config, opts ...Option) (Client, error) {
 		if fbOrigTransport == nil {
 			fbOrigTransport = http.DefaultTransport
 		}
-		fbHTTPClient.Transport = &openRouterTransport{
-			apiKey:      fbCfg.APIKey,
-			httpReferer: fbCfg.HTTPReferer,
-			xTitle:      fbCfg.XTitle,
-			base:        fbOrigTransport,
+		fbHTTPClient.Transport = &thoughtSignatureTransport{
+			base: &openRouterTransport{
+				apiKey:      fbCfg.APIKey,
+				httpReferer: fbCfg.HTTPReferer,
+				xTitle:      fbCfg.XTitle,
+				base:        fbOrigTransport,
+			},
 		}
 
 		providerModels := make(map[ModelProfile]openaiModel, len(fbCfg.Models))

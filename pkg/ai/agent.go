@@ -44,10 +44,23 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 	var allMessages []Message
 	steps := 0
 
+	// Captured thought_signatures from the previous step's tool calls.
+	// Gemini requires these on assistant tool_calls in the conversation
+	// history; the transport injects them into the request.
+	var prevSignatures map[string]string
+
 	for step := 0; step < req.MaxSteps; step++ {
 		steps++
 
-		result, err := c.callGenerateWithTools(ctx, m, msgs, toolInfos, opts)
+		// Per-step context: carry a fresh capture for the response, and
+		// the previous step's signatures for request injection.
+		capture := newThoughtSignatureCapture()
+		stepCtx := withCapture(ctx, capture)
+		if len(prevSignatures) > 0 {
+			stepCtx = withInject(stepCtx, prevSignatures)
+		}
+
+		result, err := c.callGenerateWithTools(stepCtx, m, msgs, toolInfos, opts)
 		if err != nil {
 			latencyMS := time.Since(start).Milliseconds()
 			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, 0, err)
@@ -79,6 +92,10 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 		if len(result.ToolCalls) == 0 {
 			break
 		}
+
+		// Preserve captured thought_signatures for the next step's
+		// request injection (Gemini requires them on tool_calls).
+		prevSignatures = capture.all()
 
 		// Execute each tool call and append results.
 		for _, tc := range result.ToolCalls {
