@@ -165,9 +165,12 @@ func TestClient_StreamAgent_UnknownTool(t *testing.T) {
 
 	deltas, toolCalls, complete, streamErr := drainStream(t, sr)
 	require.NoError(t, streamErr)
-	require.Len(t, toolCalls, 1)
+	require.Len(t, toolCalls, 2, "started + completed events")
 	assert.Equal(t, "does_not_exist", toolCalls[0].Name)
-	assert.Contains(t, toolCalls[0].Error, "unknown tool")
+	assert.Equal(t, ToolStatusStarted, toolCalls[0].Status)
+	assert.Equal(t, "does_not_exist", toolCalls[1].Name)
+	assert.Equal(t, ToolStatusCompleted, toolCalls[1].Status)
+	assert.Contains(t, toolCalls[1].Error, "unknown tool")
 	assert.Equal(t, "recovered", deltas)
 	require.NotNil(t, complete)
 	assert.Equal(t, "recovered", complete.FullResponse)
@@ -209,9 +212,12 @@ func TestClient_StreamAgent_ToolExecutionError(t *testing.T) {
 
 	_, toolCalls, complete, streamErr := drainStream(t, sr)
 	require.NoError(t, streamErr)
-	require.Len(t, toolCalls, 1)
+	require.Len(t, toolCalls, 2, "started + completed events")
 	assert.Equal(t, "failing_tool", toolCalls[0].Name)
-	assert.Contains(t, toolCalls[0].Error, "boom")
+	assert.Equal(t, ToolStatusStarted, toolCalls[0].Status)
+	assert.Equal(t, "failing_tool", toolCalls[1].Name)
+	assert.Equal(t, ToolStatusCompleted, toolCalls[1].Status)
+	assert.Contains(t, toolCalls[1].Error, "boom")
 	require.NotNil(t, complete)
 	assert.Equal(t, "handled", complete.FullResponse)
 }
@@ -249,7 +255,7 @@ func TestClient_StreamAgent_MaxSteps(t *testing.T) {
 
 // TestClient_StreamAgent_MaxTotalTokens verifies that exceeding the
 // cumulative token budget mid-stream surfaces an Error event wrapping
-// ErrMaxSteps with the "max total tokens exceeded" message.
+// ErrMaxTokens (not ErrMaxSteps) with the "max total tokens exceeded" message.
 func TestClient_StreamAgent_MaxTotalTokens(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -279,7 +285,7 @@ func TestClient_StreamAgent_MaxTotalTokens(t *testing.T) {
 
 	_, _, _, streamErr := drainStream(t, sr)
 	require.Error(t, streamErr)
-	assert.ErrorIs(t, streamErr, ErrMaxSteps)
+	assert.ErrorIs(t, streamErr, ErrMaxTokens)
 	assert.Contains(t, streamErr.Error(), "max total tokens exceeded")
 }
 
@@ -322,11 +328,19 @@ func TestClient_StreamAgent_MultipleToolCallsInOneStep(t *testing.T) {
 
 	deltas, toolCalls, complete, streamErr := drainStream(t, sr)
 	require.NoError(t, streamErr)
-	require.Len(t, toolCalls, 2, "expected two ToolCall events from one step")
+	require.Len(t, toolCalls, 4, "two tool calls × (started + completed)")
+	// First tool: started then completed
 	assert.Equal(t, "echo", toolCalls[0].Name)
+	assert.Equal(t, ToolStatusStarted, toolCalls[0].Status)
 	assert.Equal(t, "echo", toolCalls[1].Name)
-	assert.Contains(t, toolCalls[0].Result, "first")
-	assert.Contains(t, toolCalls[1].Result, "second")
+	assert.Equal(t, ToolStatusCompleted, toolCalls[1].Status)
+	assert.Contains(t, toolCalls[1].Result, "first")
+	// Second tool: started then completed
+	assert.Equal(t, "echo", toolCalls[2].Name)
+	assert.Equal(t, ToolStatusStarted, toolCalls[2].Status)
+	assert.Equal(t, "echo", toolCalls[3].Name)
+	assert.Equal(t, ToolStatusCompleted, toolCalls[3].Status)
+	assert.Contains(t, toolCalls[3].Result, "second")
 	assert.Equal(t, "got both", deltas)
 	require.NotNil(t, complete)
 	assert.Equal(t, "got both", complete.FullResponse)
@@ -372,9 +386,17 @@ func TestClient_StreamAgent_MultiStepChain(t *testing.T) {
 
 	deltas, toolCalls, complete, streamErr := drainStream(t, sr)
 	require.NoError(t, streamErr)
-	require.Len(t, toolCalls, 2)
+	require.Len(t, toolCalls, 4, "two tool calls across two steps × (started + completed)")
+	// Step 1 tool: started then completed
 	assert.Equal(t, 1, toolCalls[0].Step)
-	assert.Equal(t, 2, toolCalls[1].Step)
+	assert.Equal(t, ToolStatusStarted, toolCalls[0].Status)
+	assert.Equal(t, 1, toolCalls[1].Step)
+	assert.Equal(t, ToolStatusCompleted, toolCalls[1].Status)
+	// Step 2 tool: started then completed
+	assert.Equal(t, 2, toolCalls[2].Step)
+	assert.Equal(t, ToolStatusStarted, toolCalls[2].Status)
+	assert.Equal(t, 2, toolCalls[3].Step)
+	assert.Equal(t, ToolStatusCompleted, toolCalls[3].Status)
 	assert.Equal(t, "final answer", deltas)
 	require.NotNil(t, complete)
 	assert.Equal(t, "final answer", complete.FullResponse)

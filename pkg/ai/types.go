@@ -2,6 +2,8 @@ package ai
 
 import (
 	"encoding/json"
+
+	"github.com/cloudwego/eino/schema"
 )
 
 // Role enumerates message roles.
@@ -35,15 +37,25 @@ type ToolCallDelta struct {
 	FnArgs string `json:"function_arguments,omitempty"`
 }
 
+// Attachment is a user-supplied file that should be passed to the model as
+// a multimodal content part. Data is base64-encoded.
+type Attachment struct {
+	Type        string `json:"type"`        // "image" or "document"
+	Name        string `json:"name"`
+	ContentType string `json:"content_type"`
+	Data        string `json:"data"` // base64-encoded bytes
+}
+
 // Message is the standard role/content shape. It mirrors Eino's schema.Message
 // but keeps our own type so the framework is swappable.
 type Message struct {
-	Role       Role       `json:"role"`
-	Content    string     `json:"content"`
-	Reasoning  string     `json:"reasoning,omitempty"` // thinking content from <thought> tags (Gemma-4)
-	Name       string     `json:"name,omitempty"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"`
-	ToolCallID string     `json:"tool_call_id,omitempty"`
+	Role        Role         `json:"role"`
+	Content     string       `json:"content"`
+	Reasoning   string       `json:"reasoning,omitempty"` // thinking content from <thought> tags (Gemma-4)
+	Name        string       `json:"name,omitempty"`
+	ToolCalls   []ToolCall   `json:"tool_calls,omitempty"`
+	ToolCallID  string       `json:"tool_call_id,omitempty"`
+	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
 // Metadata carries call-level context for logging and spend tracking.
@@ -178,18 +190,37 @@ type AgentStreamChunk struct {
 	ToolCall     *ToolCallEvent `json:"tool_call,omitempty"`
 	Complete     bool           `json:"complete,omitempty"`
 	FullResponse string         `json:"full_response,omitempty"`
-	Usage        *Usage         `json:"usage,omitempty"`
-	Error        error          `json:"-"`
+	// FinishReason carries the provider's finish_reason for the final step
+	// (e.g. "stop", "length", "tool_calls"). On the Complete chunk, a value
+	// of "length" signals that the provider truncated the output at its
+	// max_tokens limit — the caller should log a warning or retry, since
+	// FullResponse is incomplete. Empty when the provider doesn't report
+	// a finish_reason.
+	FinishReason string `json:"finish_reason,omitempty"`
+	Usage        *Usage `json:"usage,omitempty"`
+	Error        error  `json:"-"`
 }
 
 // ToolCallEvent describes a tool invocation during the agent loop.
+// Two events are emitted per tool call:
+//   - Status "started": emitted before tool.Execute, carries Name and Args
+//     only. Lets the caller show a "Looking up..." status immediately.
+//   - Status "completed": emitted after tool.Execute returns, carries
+//     Result and Error. The caller can render proposals or error states.
 type ToolCallEvent struct {
 	Step   int    `json:"step"`             // 1-based step in the loop
 	Name   string `json:"name"`             // tool name
+	Status string `json:"status"`           // "started" or "completed"
 	Args   string `json:"args,omitempty"`   // JSON arguments
-	Result string `json:"result,omitempty"` // JSON result (set after execution)
-	Error  string `json:"error,omitempty"`  // non-empty if execution failed
+	Result string `json:"result,omitempty"` // JSON result (set on "completed")
+	Error  string `json:"error,omitempty"`  // non-empty if execution failed (set on "completed")
 }
+
+// Tool status values for ToolCallEvent.Status.
+const (
+	ToolStatusStarted   = "started"
+	ToolStatusCompleted = "completed"
+)
 
 // AgentStreamReader exposes Recv/Close for streaming agent consumption.
 type AgentStreamReader interface {
@@ -219,11 +250,27 @@ func toEinoMessages(msgs []Message, system string) []*einoMessage {
 }
 
 // toEinoMessage converts a single Message to an Eino schema.Message.
+// When the message has attachments, the text becomes the first part of a
+// multimodal user_input_multi_content array (Eino's native multimodal shape).
 func toEinoMessage(m Message) *einoMessage {
 	em := &einoMessage{
-		Role:    toEinoRole(m.Role),
-		Content: m.Content,
-		Name:    m.Name,
+		Role: toEinoRole(m.Role),
+		Name: m.Name,
+	}
+	if len(m.Attachments) > 0 {
+		parts := make([]schema.MessageInputPart, 0, len(m.Attachments)+1)
+		if m.Content != "" {
+			parts = append(parts, schema.MessageInputPart{
+				Type: schema.ChatMessagePartTypeText,
+				Text: m.Content,
+			})
+		}
+		for _, a := range m.Attachments {
+			parts = append(parts, toEinoAttachmentPart(a))
+		}
+		em.UserInputMultiContent = parts
+	} else {
+		em.Content = m.Content
 	}
 	if m.ToolCallID != "" {
 		em.ToolCallID = m.ToolCallID
@@ -242,6 +289,33 @@ func toEinoMessage(m Message) *einoMessage {
 		}
 	}
 	return em
+}
+
+// toEinoAttachmentPart converts an ai.Attachment to an Eino MessageInputPart.
+// Images are emitted as image_url parts, all other files as file_url parts.
+func toEinoAttachmentPart(a Attachment) schema.MessageInputPart {
+	switch a.Type {
+	case "image":
+		return schema.MessageInputPart{
+			Type: schema.ChatMessagePartTypeImageURL,
+			Image: &schema.MessageInputImage{
+				MessagePartCommon: schema.MessagePartCommon{
+					Base64Data: &a.Data,
+					MIMEType:   a.ContentType,
+				},
+			},
+		}
+	}
+	return schema.MessageInputPart{
+		Type: schema.ChatMessagePartTypeFileURL,
+		File: &schema.MessageInputFile{
+			MessagePartCommon: schema.MessagePartCommon{
+				Base64Data: &a.Data,
+				MIMEType:   a.ContentType,
+			},
+			Name: a.Name,
+		},
+	}
 }
 
 // fromEinoMessage converts an Eino schema.Message to our Message.

@@ -220,7 +220,7 @@ func TestClient_RunAgent_MaxSteps(t *testing.T) {
 }
 
 // TestClient_RunAgent_MaxTotalTokens verifies that exceeding the cumulative
-// token budget aborts the loop with an error wrapping ErrMaxSteps.
+// token budget aborts the loop with an error wrapping ErrMaxTokens.
 func TestClient_RunAgent_MaxTotalTokens(t *testing.T) {
 	server := mockOpenRouterServer(func(w http.ResponseWriter, _ *http.Request) {
 		// First (and only) step returns a tool call with usage that already
@@ -244,7 +244,7 @@ func TestClient_RunAgent_MaxTotalTokens(t *testing.T) {
 		MaxTotalTokens: 100, // usage total_tokens=110 exceeds this
 	})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrMaxSteps)
+	assert.ErrorIs(t, err, ErrMaxTokens)
 	assert.Contains(t, err.Error(), "max total tokens exceeded")
 }
 
