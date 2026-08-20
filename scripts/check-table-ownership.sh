@@ -25,14 +25,19 @@ cd "$(dirname "$0")/.."
 #   - billing-reconciler has no sql/queries/ dir (hand-written SQL in Go), so
 #     it is not scanned by this script.
 #   - ai-coach-consumer likewise has no sql/queries/ dir.
+#   - analytics rollup tables (user_lifecycle_events, daily_metrics,
+#     retention_cohorts, conversion_funnels) are written by analytics-consumer
+#     and read by adminway for metrics endpoints. adminway only runs SELECTs
+#     against them; analytics-consumer owns all writes.
 # ---------------------------------------------------------------------------
 get_allowed_tables() {
     case "$1" in
         auth)          echo "users user_oauth_accounts" ;;
-        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits goal_milestones check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events user_profiles reports report_comments site_settings goal_templates habit_templates billing_webhook_events client_processed_events" ;;
+        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits goal_milestones check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events user_profiles reports report_comments site_settings goal_templates habit_templates billing_webhook_events client_processed_events habit_missed_streaks" ;;
         notifications) echo "notifications reminders notification_preferences reminder_state processed_events notification_devices push_tickets" ;;
-        adminway)      echo "internal_users" ;;
+        adminway)      echo "internal_users user_lifecycle_events daily_metrics retention_cohorts conversion_funnels" ;;
         conversations) echo "conversations conversation_messages" ;;
+        analytics-consumer) echo "user_lifecycle_events daily_metrics retention_cohorts conversion_funnels analytics_processed_events" ;;
         *)             echo "" ;;
     esac
 }
