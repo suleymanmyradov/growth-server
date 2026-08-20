@@ -145,6 +145,18 @@ func (t *thoughtSignatureTransport) RoundTrip(req *http.Request) (*http.Response
 		return nil, err
 	}
 
+	// --- Error response normalization: unwrap array-wrapped errors ---
+	// Google's Gemini OpenAI-compat endpoint sometimes returns errors as
+	// a JSON array ([{"error":{...}}]) instead of the standard object
+	// form ({"error":{...}}). The go-openai client can't unmarshal arrays
+	// into its ErrorResponse struct, so the real error (status code,
+	// message) is masked behind a JSON parse error. Normalize the body
+	// before the upstream client sees it. This applies to ALL error
+	// responses, not just agent calls with capture context.
+	if resp.StatusCode >= 400 {
+		resp = normalizeErrorResponse(resp)
+	}
+
 	// --- Response side: capture signatures from the response body ---
 	capture := captureFromContext(req.Context())
 	if capture == nil || resp.Body == nil {

@@ -25,8 +25,20 @@ var (
 	// ErrMaxSteps is returned when the agent loop exceeds MaxSteps.
 	ErrMaxSteps = errors.New("ai: agent exceeded max steps")
 
+	// ErrMaxTokens is returned when the agent loop exceeds the cumulative
+	// MaxTotalTokens budget. This is distinct from ErrMaxSteps so callers
+	// can differentiate between "too many round-trips" and "too many
+	// tokens" — the former suggests the model is stuck in a tool-call
+	// loop, the latter suggests the conversation is too long or the
+	// budget is too small.
+	ErrMaxTokens = errors.New("ai: agent exceeded max total tokens")
+
 	// ErrStreamClosed is returned when reading from a closed stream.
 	ErrStreamClosed = errors.New("ai: stream closed")
+
+	// ErrStreamIncomplete is returned when a provider ends a stream without
+	// confirming a normal completion.
+	ErrStreamIncomplete = errors.New("ai: stream incomplete")
 
 	// ErrConfigInvalid is returned when config validation fails.
 	ErrConfigInvalid = errors.New("ai: config invalid")
@@ -74,12 +86,16 @@ func UserFacingMessage(err error) string {
 	switch {
 	case errors.Is(err, ErrMaxSteps):
 		return "I'm having trouble putting my thoughts together on this one. Could you try rephrasing your message or asking something more specific?"
+	case errors.Is(err, ErrMaxTokens):
+		return "This conversation is getting quite long. Could you try starting a new conversation or asking something more specific?"
 	case errors.Is(err, ErrQuotaExceeded):
 		return "You've reached your daily coaching limit. I'll be here to help again tomorrow — see you then!"
 	case errors.Is(err, ErrSafetyBlock):
 		return "I'm not able to help with that, but I'm here if you'd like to talk about your goals or habits."
 	case errors.Is(err, ErrModelUnavailable):
 		return "I'm having trouble connecting right now. Please try again in a moment."
+	case errors.Is(err, ErrStreamIncomplete):
+		return "I lost my response before I could finish. Please try sending your message again."
 	default:
 		return "Something went wrong on my end. Please try sending your message again."
 	}

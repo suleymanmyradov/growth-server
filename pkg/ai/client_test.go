@@ -307,6 +307,9 @@ func TestErrors(t *testing.T) {
 		assert.NotContains(t, UserFacingMessage(ErrMaxSteps), "token")
 		assert.NotContains(t, UserFacingMessage(ErrMaxSteps), "step")
 
+		assert.NotContains(t, UserFacingMessage(ErrMaxTokens), "ai.StreamAgent")
+		assert.NotContains(t, UserFacingMessage(ErrMaxTokens), "token")
+
 		assert.NotContains(t, UserFacingMessage(ErrQuotaExceeded), "quota")
 		assert.NotContains(t, UserFacingMessage(ErrQuotaExceeded), "cap")
 
@@ -314,7 +317,7 @@ func TestErrors(t *testing.T) {
 		assert.NotContains(t, UserFacingMessage(ErrModelUnavailable), "model")
 
 		// Wrapped sentinel (the real shape from agent_stream.go).
-		wrapped := fmt.Errorf("ai.StreamAgent: max total tokens exceeded (8406 > 8000): %w", ErrMaxSteps)
+		wrapped := fmt.Errorf("ai.StreamAgent: max total tokens exceeded (8406 > 8000): %w", ErrMaxTokens)
 		msg := UserFacingMessage(wrapped)
 		assert.NotContains(t, msg, "8406")
 		assert.NotContains(t, msg, "8000")

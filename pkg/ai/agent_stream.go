@@ -33,37 +33,14 @@ import (
 // The caller reads events via Recv() until io.EOF. Close() cancels the
 // loop and releases resources.
 func (c *client) StreamAgent(ctx context.Context, req AgentRequest) (AgentStreamReader, error) {
-	if len(req.Tools) == 0 {
-		return nil, ErrNoTools
-	}
-	if req.MaxSteps <= 0 {
-		req.MaxSteps = 10
-	}
-
-	if err := c.checkQuota(ctx, req.Metadata); err != nil {
-		return nil, err
-	}
-
-	m, err := c.modelFor(req.ModelProfile)
+	prep, err := c.prepareAgent(ctx, &req)
 	if err != nil {
 		return nil, err
 	}
 
-	toolInfos := buildToolInfos(req.Tools)
-	toolMap := make(map[string]Tool, len(req.Tools))
-	for _, t := range req.Tools {
-		toolMap[t.Name()] = t
-	}
-
-	msgs := toEinoMessages(req.Messages, req.System)
-	opts := einoModelOptions(GenerateRequest{
-		Temperature: req.Temperature,
-		MaxTokens:   req.MaxTokens,
-	})
-
 	// Bind tools once — the tooled model supports both Generate and Stream
 	// (ToolCallingChatModel extends BaseChatModel).
-	tooledModel, err := m.chat.WithTools(toolInfos)
+	tooledModel, err := prep.m.chat.WithTools(prep.toolInfos)
 	if err != nil {
 		return nil, fmt.Errorf("ai.StreamAgent: bind tools: %w", err)
 	}
@@ -73,11 +50,13 @@ func (c *client) StreamAgent(ctx context.Context, req AgentRequest) (AgentStream
 
 	go c.runAgentStreamLoop(loopCtx, ch, agentStreamParams{
 		tooledModel: tooledModel,
-		modelID:     m.modelID,
+		toolInfos:   prep.toolInfos,
+		modelID:     prep.m.modelID,
 		profile:     req.ModelProfile,
-		toolMap:     toolMap,
-		msgs:        msgs,
-		opts:        opts,
+		origProfile: req.ModelProfile,
+		toolMap:     prep.toolMap,
+		msgs:        prep.msgs,
+		opts:        prep.opts,
 		maxSteps:    req.MaxSteps,
 		maxTokens:   req.MaxTotalTokens,
 		meta:        req.Metadata,
@@ -88,8 +67,10 @@ func (c *client) StreamAgent(ctx context.Context, req AgentRequest) (AgentStream
 
 type agentStreamParams struct {
 	tooledModel model.ToolCallingChatModel
+	toolInfos   []*schema.ToolInfo
 	modelID     string
-	profile     ModelProfile
+	profile     ModelProfile // current model's profile (updated on fallback)
+	origProfile ModelProfile // originally requested profile (stable for fallback chain lookup)
 	toolMap     map[string]Tool
 	msgs        []*schema.Message
 	opts        []model.Option
@@ -97,6 +78,8 @@ type agentStreamParams struct {
 	maxTokens   int
 	meta        Metadata
 }
+
+const agentContinuationPrompt = "The previous assistant response was interrupted. Continue exactly where it stopped. Do not repeat any text, do not mention the interruption, and finish within 80 words."
 
 // runAgentStreamLoop is the goroutine that drives the model<->tool loop and
 // sends chunks to the channel. It closes the channel on exit.
@@ -113,6 +96,8 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 
 	start := time.Now()
 	var totalUsage Usage
+	var continuationPrefix strings.Builder
+	continuationAttempts := 0
 
 	// Captured thought_signatures from the previous step's tool calls.
 	// Gemini requires these to be present on assistant tool_calls in the
@@ -128,8 +113,14 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 			stepCtx = withInject(stepCtx, prevSignatures)
 		}
 
-		// Open a streaming call with tools bound.
-		einoStream, err := p.tooledModel.Stream(stepCtx, p.msgs, p.opts...)
+		// Open a streaming call with tools bound, falling back through
+		// c.fallbackModelsFor(p.origProfile) if the primary fails to open
+		// (e.g. provider 503/429). On a successful fallback, p is rebound
+		// in place so subsequent steps and final metrics/usage attribute
+		// to the fallback model. This mirrors tryFallbackStream for the
+		// non-agent Stream path — without it, a single 503 from the
+		// primary model kills the whole agentic turn.
+		einoStream, err := c.openAgentStream(stepCtx, &p, step)
 		if err != nil {
 			c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent step %d: stream open: %w", step, err))
 			return
@@ -145,6 +136,7 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 		var contentBuf strings.Builder
 		var toolCalls []schema.ToolCall
 		var stepUsage Usage
+		var finishReason string
 		thoughtFilt := newThoughtFilter()
 
 		for {
@@ -210,6 +202,14 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 					TotalTokens:      u.TotalTokens,
 				}
 			}
+			// Capture the provider's finish_reason for this step. On the
+			// final step (no tool calls), this is surfaced on the Complete
+			// chunk so the caller can detect truncation (finish_reason=
+			// "length" means the provider capped the output at max_tokens
+			// and FullResponse is incomplete).
+			if msg.ResponseMeta != nil && msg.ResponseMeta.FinishReason != "" {
+				finishReason = msg.ResponseMeta.FinishReason
+			}
 		}
 		einoStream.Close()
 
@@ -234,14 +234,12 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 			}
 		}
 
-		totalUsage.PromptTokens += stepUsage.PromptTokens
-		totalUsage.CompletionTokens += stepUsage.CompletionTokens
-		totalUsage.TotalTokens += stepUsage.TotalTokens
+		accumulateUsage(&totalUsage, stepUsage)
 
 		// Enforce cumulative token budget.
 		if p.maxTokens > 0 && totalUsage.TotalTokens > p.maxTokens {
 			c.finishAgentStreamError(ctx, ch, p, start, totalUsage,
-				fmt.Errorf("ai.StreamAgent: max total tokens exceeded (%d > %d): %w", totalUsage.TotalTokens, p.maxTokens, ErrMaxSteps))
+				fmt.Errorf("ai.StreamAgent: max total tokens exceeded (%d > %d): %w", totalUsage.TotalTokens, p.maxTokens, ErrMaxTokens))
 			return
 		}
 
@@ -254,18 +252,48 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 		}
 		if len(toolCalls) > 0 {
 			assistantMsg.ToolCalls = toolCalls
-			prevSignatures = capture.all()
+			// Merge this step's signatures into prevSignatures rather than
+			// replacing them. The conversation history accumulates tool
+			// calls from ALL steps, and Gemini 3.x requires every
+			// assistant tool_call in the current turn to carry its
+			// thought_signature. If we replace instead of merge, earlier
+			// steps' tool calls lose their signatures and the next
+			// request fails with 400 "Function call is missing a
+			// thought_signature in functionCall parts".
+			if prevSignatures == nil {
+				prevSignatures = make(map[string]string)
+			}
+			for k, v := range capture.all() {
+				prevSignatures[k] = v
+			}
 		} else {
 			prevSignatures = nil
 		}
 		p.msgs = append(p.msgs, assistantMsg)
 
 		// No tool calls → this is the final answer. Emit Complete with
-		// this step's content. Do NOT check finishReason — if the model
-		// emitted tool calls, we must execute them regardless of
-		// finish_reason.
+		// this step's content only after the provider explicitly confirms
+		// normal completion. A clean transport EOF alone is not enough:
+		// providers can close a partial response without a finish reason.
+		// Do NOT apply this check to tool-call steps — tools must be
+		// executed whenever they are present, regardless of finish_reason.
 		if len(toolCalls) == 0 {
-			c.finishAgentStreamOK(ctx, ch, p, start, totalUsage, contentBuf.String())
+			if !strings.EqualFold(finishReason, "stop") {
+				if contentBuf.Len() > 0 && continuationAttempts == 0 && step < p.maxSteps && isRecoverableIncompleteFinish(finishReason) {
+					continuationPrefix.WriteString(contentBuf.String())
+					p.msgs = append(p.msgs, &schema.Message{
+						Role:    schema.User,
+						Content: agentContinuationPrompt,
+					})
+					continuationAttempts++
+					logx.WithContext(ctx).Infof("ai.StreamAgent step %d: incomplete stream with finish_reason %q; attempting continuation", step, finishReason)
+					continue
+				}
+				c.finishAgentStreamError(ctx, ch, p, start, totalUsage,
+					fmt.Errorf("ai.StreamAgent step %d: stream ended with finish_reason %q: %w", step, finishReason, ErrStreamIncomplete))
+				return
+			}
+			c.finishAgentStreamOK(ctx, ch, p, start, totalUsage, continuationPrefix.String()+contentBuf.String(), finishReason)
 			return
 		}
 
@@ -273,48 +301,39 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 		// deltas from this step (if any) were already forwarded to the
 		// caller in real time; they are not included in the Complete
 		// event's FullResponse (only the final step's content is).
-		// Execute each tool call, emit ToolCall events,
-		// and append tool results to the conversation.
+		// For each tool call, emit a "started" event before execution
+		// (so the caller can show a status message immediately) and a
+		// "completed" event after execution (carrying the result).
 		for _, tc := range toolCalls {
-			tool, ok := p.toolMap[tc.Function.Name]
-			if !ok {
-				logx.WithContext(ctx).Errorf("ai.StreamAgent: unknown tool %q called", tc.Function.Name)
-				errResult := fmt.Sprintf(`{"error":"unknown tool %q"}`, tc.Function.Name)
-				select {
-				case ch <- AgentStreamChunk{ToolCall: &ToolCallEvent{
-					Step:  step,
-					Name:  tc.Function.Name,
-					Args:  tc.Function.Arguments,
-					Error: errResult,
-				}}:
-				case <-ctx.Done():
-					return
-				}
-				p.msgs = append(p.msgs, toEinoMessage(toolResultMessage(tc.ID, errResult)))
-				continue
-			}
-
-			output, execErr := tool.Execute(ctx, tc.Function.Arguments)
-			errMsg := ""
-			if execErr != nil {
-				logx.WithContext(ctx).Errorf("ai.StreamAgent: tool %q execution error: %v", tc.Function.Name, execErr)
-				output = fmt.Sprintf(`{"error":%q}`, execErr.Error())
-				errMsg = execErr.Error()
-			}
-
+			// Emit "started" before execution so the caller can show
+			// a "Looking up..." status while the tool runs.
 			select {
 			case ch <- AgentStreamChunk{ToolCall: &ToolCallEvent{
 				Step:   step,
 				Name:   tc.Function.Name,
+				Status: ToolStatusStarted,
 				Args:   tc.Function.Arguments,
-				Result: output,
-				Error:  errMsg,
 			}}:
 			case <-ctx.Done():
 				return
 			}
 
-			p.msgs = append(p.msgs, toEinoMessage(toolResultMessage(tc.ID, output)))
+			execRes := executeToolCall(ctx, p.toolMap, tc.Function.Name, tc.Function.Arguments, "ai.StreamAgent")
+
+			select {
+			case ch <- AgentStreamChunk{ToolCall: &ToolCallEvent{
+				Step:   step,
+				Name:   tc.Function.Name,
+				Status: ToolStatusCompleted,
+				Args:   tc.Function.Arguments,
+				Result: execRes.Output,
+				Error:  execRes.ErrMsg,
+			}}:
+			case <-ctx.Done():
+				return
+			}
+
+			p.msgs = append(p.msgs, toEinoMessage(toolResultMessage(tc.ID, execRes.Output)))
 		}
 	}
 
@@ -323,8 +342,73 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 	c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent: %w (max %d steps)", ErrMaxSteps, p.maxSteps))
 }
 
+func isRecoverableIncompleteFinish(finishReason string) bool {
+	return finishReason == "" || strings.EqualFold(finishReason, "length")
+}
+
+// openAgentStream opens a streaming tool-call request against the primary
+// tooled model, falling back through c.fallbackModelsFor(p.origProfile) if
+// the primary fails to open the stream (e.g. provider 503/429 "high demand").
+// On a successful fallback, p.tooledModel, p.modelID, and p.profile are
+// updated in place so subsequent steps and final metrics/usage log against
+// the fallback model. The fallback chain is always resolved from the
+// originally requested profile (origProfile), and the model currently in use
+// is skipped so we never retry the model that just failed.
+//
+// This mirrors tryFallbackStream for the non-agent Stream path. Without it,
+// StreamAgent has no fallback and a single 503 from the primary model kills
+// the whole agentic turn even when a fallback chain is configured.
+func (c *client) openAgentStream(ctx context.Context, p *agentStreamParams, step int) (*schema.StreamReader[*schema.Message], error) {
+	einoStream, err := p.tooledModel.Stream(ctx, p.msgs, p.opts...)
+	if err == nil {
+		return einoStream, nil
+	}
+	if !c.cfg.FallbackPolicy.Enabled {
+		return nil, err
+	}
+	chain := c.fallbackModelsFor(p.origProfile)
+	if len(chain) == 0 {
+		return nil, err
+	}
+
+	logx.WithContext(ctx).Infof("ai.StreamAgent step %d: primary model %s stream open failed, trying %d fallback(s): %v", step, p.modelID, len(chain), err)
+
+	lastErr := err
+	for i, fb := range chain {
+		if fb.modelID == p.modelID {
+			continue // never retry the model that just failed
+		}
+		logx.WithContext(ctx).Infof("ai.StreamAgent step %d: trying stream fallback %d/%d: %s", step, i+1, len(chain), fb.modelID)
+
+		fbTooled, bindErr := fb.chat.WithTools(p.toolInfos)
+		if bindErr != nil {
+			lastErr = fmt.Errorf("bind tools on fallback %s: %w", fb.modelID, bindErr)
+			logx.WithContext(ctx).Infof("ai.StreamAgent step %d: fallback %d/%d (%s) bind tools failed: %v", step, i+1, len(chain), fb.modelID, bindErr)
+			continue
+		}
+
+		fbStream, fbErr := fbTooled.Stream(ctx, p.msgs, p.opts...)
+		if fbErr != nil {
+			lastErr = fbErr
+			logx.WithContext(ctx).Infof("ai.StreamAgent step %d: fallback %d/%d (%s) stream open failed: %v", step, i+1, len(chain), fb.modelID, fbErr)
+			continue
+		}
+
+		// Fallback succeeded — rebind the loop to this model for subsequent
+		// steps so the rest of the turn and final usage/metrics attribute
+		// to the fallback model.
+		p.tooledModel = fbTooled
+		p.modelID = fb.modelID
+		p.profile = ModelFallback
+		logx.WithContext(ctx).Infof("ai.StreamAgent step %d: fallback %d/%d (%s) stream opened", step, i+1, len(chain), fb.modelID)
+		return fbStream, nil
+	}
+
+	return nil, fmt.Errorf("ai.StreamAgent step %d: all %d fallback(s) failed: %w (primary: %v)", step, len(chain), lastErr, err)
+}
+
 // finishAgentStreamOK sends the Complete event and records metrics/usage.
-func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, totalUsage Usage, fullResponse string) {
+func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, totalUsage Usage, fullResponse string, finishReason string) {
 	costUSD := c.cfg.ComputeCost(p.modelID, totalUsage.PromptTokens, totalUsage.CompletionTokens)
 	latencyMS := time.Since(start).Milliseconds()
 
@@ -337,6 +421,7 @@ func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamC
 	case ch <- AgentStreamChunk{
 		Complete:     true,
 		FullResponse: fullResponse,
+		FinishReason: finishReason,
 		Usage:        &usage,
 	}:
 	case <-ctx.Done():

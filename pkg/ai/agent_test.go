@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -94,4 +95,80 @@ func TestClient_RunAgent_NoTools(t *testing.T) {
 		MaxSteps:     5,
 	})
 	assert.ErrorIs(t, err, ErrNoTools)
+}
+
+// TestClient_RunAgent_FallbackOnGenerateError verifies that when the primary
+// model fails mid-loop, RunAgent falls back through FallbackProviders and
+// completes the turn via the fallback model (mirroring Generate/Stream).
+func TestClient_RunAgent_FallbackOnGenerateError(t *testing.T) {
+	var (
+		primaryCalls  atomic.Int64
+		fallbackCalls atomic.Int64
+		fallbackAuth  string
+		fallbackModel string
+	)
+
+	primaryServer := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
+		primaryCalls.Add(1)
+		w.WriteHeader(http.StatusServiceUnavailable)
+		_, _ = w.Write([]byte(`{"error":{"code":503,"message":"primary overloaded"}}`))
+	})
+	defer primaryServer.Close()
+
+	fallbackServer := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
+		fallbackCalls.Add(1)
+		fallbackAuth = r.Header.Get("Authorization")
+		var body map[string]any
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		fallbackModel, _ = body["model"].(string)
+
+		resp := map[string]any{
+			"id":     "chatcmpl-fb",
+			"object": "chat.completion",
+			"model":  fallbackModel,
+			"choices": []any{map[string]any{
+				"index": 0,
+				"message": map[string]any{
+					"role":    "assistant",
+					"content": "fallback final answer",
+				},
+				"finish_reason": "stop",
+			}},
+			"usage": map[string]any{"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(resp)
+	})
+	defer fallbackServer.Close()
+
+	cfg := testConfig("primary-key")
+	cfg.BaseURL = primaryServer.URL
+	cfg.MaxRetries = 0
+	cfg.FallbackPolicy = FallbackPolicy{Enabled: true, MaxFailures: 1}
+	cfg.FallbackProviders = []ProviderConfig{{
+		APIKey:  "google-key",
+		BaseURL: fallbackServer.URL,
+		Models: map[string]string{
+			string(ModelChat):     "gemini-flash-latest",
+			string(ModelFallback): "gemini-flash-latest",
+		},
+	}}
+
+	c, err := New(cfg, WithHTTPClient(primaryServer.Client()))
+	require.NoError(t, err)
+
+	resp, err := c.RunAgent(context.Background(), AgentRequest{
+		ModelProfile: ModelChat,
+		Messages:     []Message{{Role: RoleUser, Content: "Hello"}},
+		Tools:        []Tool{EchoTool},
+		MaxSteps:     5,
+	})
+	require.NoError(t, err)
+	assert.Contains(t, resp.Messages[len(resp.Messages)-1].Content, "fallback final answer")
+	assert.Equal(t, "gemini-flash-latest", resp.ModelID, "response should be attributed to the fallback model")
+
+	assert.GreaterOrEqual(t, primaryCalls.Load(), int64(1), "primary should be attempted")
+	assert.GreaterOrEqual(t, fallbackCalls.Load(), int64(1), "fallback should serve the turn")
+	assert.Equal(t, "Bearer google-key", fallbackAuth)
+	assert.Equal(t, "gemini-flash-latest", fallbackModel)
 }
