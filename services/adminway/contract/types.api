@@ -405,3 +405,61 @@ type (
 		chunks       int    `json:"chunks"`
 	}
 )
+
+// Admin Metrics — analytics dashboard endpoints.
+type (
+	// MetricsRequest queries analytics rollup tables for a date range.
+	// Both fromDate and toDate are optional (YYYY-MM-DD); omitting both
+	// returns the last 30 days by default.
+	MetricsRequest {
+		fromDate string `json:"fromDate,optional"`
+		toDate   string `json:"toDate,optional"`
+	}
+
+	// ActivationMetricsResponse returns activation funnel metrics.
+	ActivationMetricsResponse {
+		activated      int64   `json:"activated"`
+		totalOnboarded int64   `json:"totalOnboarded"`
+		activationRate float64 `json:"activationRate"`
+		lifecycle      []LifecycleCount `json:"lifecycle"`
+	}
+
+	LifecycleCount {
+		eventType string `json:"eventType"`
+		count     int64  `json:"count"`
+	}
+
+	// RetentionMetricsResponse returns cohort retention data.
+	RetentionMetricsResponse {
+		cohorts []RetentionCohort `json:"cohorts"`
+	}
+
+	RetentionCohort {
+		cohortDate     string  `json:"cohortDate"`
+		cohortSize     int64   `json:"cohortSize"`
+		periodDays     int32   `json:"periodDays"`
+		retainedCount  int64   `json:"retainedCount"`
+		retentionRate  float64 `json:"retentionRate"`
+	}
+
+	// BehaviorMetricsResponse returns daily behavioral metrics.
+	BehaviorMetricsResponse {
+		metrics []DailyMetric `json:"metrics"`
+	}
+
+	DailyMetric {
+		date        string `json:"date"`
+		metricName  string `json:"metricName"`
+		metricValue int64  `json:"metricValue"`
+	}
+
+	// MonetizationMetricsResponse returns conversion funnel data.
+	MonetizationMetricsResponse {
+		funnel []ConversionStage `json:"funnel"`
+	}
+
+	ConversionStage {
+		stage string `json:"stage"`
+		count int64  `json:"count"`
+	}
+)

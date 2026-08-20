@@ -11,6 +11,7 @@ import (
 	categories "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/categories"
 	goaltemplates "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/goaltemplates"
 	habittemplates "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/habittemplates"
+	metrics "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/metrics"
 	notifications "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/notifications"
 	reports "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/reports"
 	sitesettings "github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler/sitesettings"
@@ -200,6 +201,35 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodDelete,
 					Path:    "/habit-templates/:id",
 					Handler: habittemplates.AdminDeleteHabitTemplateHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics/activation",
+					Handler: metrics.AdminGetActivationMetricsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics/behavior",
+					Handler: metrics.AdminGetBehaviorMetricsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics/monetization",
+					Handler: metrics.AdminGetMonetizationMetricsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/metrics/retention",
+					Handler: metrics.AdminGetRetentionMetricsHandler(serverCtx),
 				},
 			}...,
 		),

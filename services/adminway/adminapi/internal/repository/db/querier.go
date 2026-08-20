@@ -8,12 +8,23 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	CreateInternalUser(ctx context.Context, email string, passwordHash string, fullName string, role string) (InternalUser, error)
+	// Activation = users who completed onboarding AND created at least one habit
+	// within 24h of onboarding. Returns (activated, total_onboarded) for the period.
+	GetActivationRate(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) (GetActivationRateRow, error)
+	GetConversionFunnelCounts(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) ([]GetConversionFunnelCountsRow, error)
+	// Read-only analytics queries for the adminway metrics endpoints.
+	// These query the rollup tables owned and written by analytics-consumer.
+	GetDailyMetrics(ctx context.Context, column1 pgtype.Date, column2 pgtype.Date) ([]GetDailyMetricsRow, error)
 	GetInternalUserByEmail(ctx context.Context, email string) (InternalUser, error)
 	GetInternalUserByID(ctx context.Context, id uuid.UUID) (InternalUser, error)
+	GetLifecycleCounts(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) ([]GetLifecycleCountsRow, error)
+	GetLifecycleCountsByDay(ctx context.Context, column1 pgtype.Date, column2 pgtype.Date) ([]GetLifecycleCountsByDayRow, error)
+	GetRetentionCohorts(ctx context.Context, column1 pgtype.Date, column2 pgtype.Date) ([]GetRetentionCohortsRow, error)
 	UpdateInternalUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (InternalUser, error)
 	UpdateInternalUserProfile(ctx context.Context, iD uuid.UUID, fullName string) (InternalUser, error)
 }

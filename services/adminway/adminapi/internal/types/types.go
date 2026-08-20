@@ -3,6 +3,13 @@
 
 package types
 
+type ActivationMetricsResponse struct {
+	Activated      int64            `json:"activated"`
+	TotalOnboarded int64            `json:"totalOnboarded"`
+	ActivationRate float64          `json:"activationRate"`
+	Lifecycle      []LifecycleCount `json:"lifecycle"`
+}
+
 type AddReportCommentRequest struct {
 	Id      string `path:"id"`
 	Comment string `json:"comment"`
@@ -56,6 +63,10 @@ type AuthResponse struct {
 	User         UserInfo `json:"user"`
 }
 
+type BehaviorMetricsResponse struct {
+	Metrics []DailyMetric `json:"metrics"`
+}
+
 type BroadcastNotificationRequest struct {
 	Title    string `json:"title,example=New feature available"`
 	Message  string `json:"message,example=Weekly reviews now support..."`
@@ -89,6 +100,11 @@ type CategoryResponse struct {
 type CloseReportRequest struct {
 	Id     string `path:"id"`
 	Reason string `json:"reason,optional"`
+}
+
+type ConversionStage struct {
+	Stage string `json:"stage"`
+	Count int64  `json:"count"`
 }
 
 type CreateArticleRequest struct {
@@ -128,6 +144,12 @@ type CreateHabitTemplateRequest struct {
 type CreateTagRequest struct {
 	Name string `json:"name,example=productivity"`
 	Slug string `json:"slug,optional,example=productivity"`
+}
+
+type DailyMetric struct {
+	Date        string `json:"date"`
+	MetricName  string `json:"metricName"`
+	MetricValue int64  `json:"metricValue"`
 }
 
 type DeleteGoalTemplateRequest struct {
@@ -191,6 +213,11 @@ type HabitTemplatesResponse struct {
 	Data []HabitTemplateItem `json:"data"`
 }
 
+type LifecycleCount struct {
+	EventType string `json:"eventType"`
+	Count     int64  `json:"count"`
+}
+
 type ListArticlesRequest struct {
 	CategorySlug string `form:"category,optional"`
 	Search       string `form:"search,optional"`
@@ -213,6 +240,15 @@ type ListReportsRequest struct {
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type MetricsRequest struct {
+	FromDate string `json:"fromDate,optional"`
+	ToDate   string `json:"toDate,optional"`
+}
+
+type MonetizationMetricsResponse struct {
+	Funnel []ConversionStage `json:"funnel"`
 }
 
 type PageResponse struct {
@@ -279,6 +315,18 @@ type ReportResponse struct {
 type ReportsResponse struct {
 	Data []ReportItem `json:"data"`
 	Page PageResponse `json:"page"`
+}
+
+type RetentionCohort struct {
+	CohortDate    string  `json:"cohortDate"`
+	CohortSize    int64   `json:"cohortSize"`
+	PeriodDays    int32   `json:"periodDays"`
+	RetainedCount int64   `json:"retainedCount"`
+	RetentionRate float64 `json:"retentionRate"`
+}
+
+type RetentionMetricsResponse struct {
+	Cohorts []RetentionCohort `json:"cohorts"`
 }
 
 type SiteSettingItem struct {
