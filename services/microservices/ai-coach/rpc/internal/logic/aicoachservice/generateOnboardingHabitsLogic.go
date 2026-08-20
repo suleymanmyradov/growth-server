@@ -61,7 +61,7 @@ func (l *GenerateOnboardingHabitsLogic) GenerateOnboardingHabits(in *aicoach.Gen
 	if l.svcCtx.Classifier != nil {
 		combined := strings.Join([]string{in.GoalTitle, in.Motivation, in.Blocker}, "\n")
 		if combined != "" {
-			classifyCtx, cancel := context.WithTimeout(l.ctx, 3*time.Second)
+			classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
 			verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, combined)
 			cancel()
 			switch {

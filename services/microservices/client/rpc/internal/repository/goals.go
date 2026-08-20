@@ -100,6 +100,12 @@ func (r *goalsRepo) RecomputeGoalProgress(ctx context.Context, id uuid.UUID, pro
 	return db.GetGoalRow(row), err
 }
 
+func (r *goalsRepo) UpdateGoalDescription(ctx context.Context, id uuid.UUID, description *string) (db.UpdateGoalDescriptionRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.UpdateGoalDescription")
+	defer span.End()
+	return r.db.UpdateGoalDescription(ctx, id, description)
+}
+
 func (r *goalsRepo) CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "GoalsRepo.CountGoalsByUser")
 	defer span.End()

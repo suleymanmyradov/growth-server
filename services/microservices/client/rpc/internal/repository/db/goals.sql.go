@@ -944,6 +944,73 @@ func (q *Queries) UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateG
 	return i, err
 }
 
+const updateGoalDescription = `-- name: UpdateGoalDescription :one
+
+WITH upd AS (
+    UPDATE goals
+    SET description = $2
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id
+`
+
+type UpdateGoalDescriptionRow struct {
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
+}
+
+// ─── Habit-driven progress inputs ───────────────────────────────────────────
+// Note: CountCompletedCheckInDays lives in check_ins.sql (owned by the
+// check-ins domain). The goals logic calls it through ICheckIns.
+// Updates only the description column (used by apply-plan-adjustment for
+// clarify_plan). Leaves title, category, measurement, etc. intact.
+func (q *Queries) UpdateGoalDescription(ctx context.Context, iD uuid.UUID, description *string) (UpdateGoalDescriptionRow, error) {
+	row := q.db.QueryRow(ctx, updateGoalDescription, iD, description)
+	var i UpdateGoalDescriptionRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Title,
+		&i.Description,
+		&i.Status,
+		&i.Progress,
+		&i.DueDate,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Measurement,
+		&i.StartValue,
+		&i.CurrentValue,
+		&i.TargetValue,
+		&i.Unit,
+		&i.Category,
+		&i.Completed,
+	)
+	return i, err
+}
+
 const updateGoalMilestone = `-- name: UpdateGoalMilestone :one
 UPDATE goal_milestones
 SET title = $3, sort_order = $4

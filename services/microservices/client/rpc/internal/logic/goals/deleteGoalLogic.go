@@ -2,12 +2,14 @@ package goalslogic
 
 import (
 	"context"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -63,6 +65,25 @@ func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.Dele
 	// Invalidate the cached personalization context for the owning user.
 	if uid, pErr := uuid.Parse(p.UserID); pErr == nil {
 		l.svcCtx.InvalidatePersonalizationContext(ctx, uid)
+	}
+
+	// Fire-and-forget publish goal_deleted event for analytics/metrics.
+	if l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeGoalDeleted, events.GoalDeleted{
+				UserID: p.UserID,
+				GoalID: goalID.String(),
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish goal_deleted event: %v", err)
+			}
+		}()
 	}
 
 	return &client.DeleteGoalResponse{

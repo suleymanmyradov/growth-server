@@ -31,6 +31,22 @@ type CheckIn struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+// CheckInWithHabit is a check-in row joined with its habit name. Used by the
+// daily digest to build a prompt that references all habits checked in today.
+type CheckInWithHabit struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	HabitName string             `db:"habit_name" json:"habit_name"`
+	Status    string             `db:"status" json:"status"`
+	Mood      *string            `db:"mood" json:"mood"`
+	Energy    *string            `db:"energy" json:"energy"`
+	Blocker   *string            `db:"blocker" json:"blocker"`
+	Note      *string            `db:"note" json:"note"`
+	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 // CoachingProfile represents the subset of coaching_profiles needed by ai-coach.
 type CoachingProfile struct {
 	UserID              uuid.UUID `db:"user_id" json:"user_id"`
@@ -38,13 +54,15 @@ type CoachingProfile struct {
 }
 
 // InsertAIFeedbackParams holds parameters for inserting into ai_feedback.
+// CheckInID and HabitID are nullable — daily digest rows have NULL for both
+// since they cover multiple check-ins, not a single one.
 type InsertAIFeedbackParams struct {
-	ID        uuid.UUID `db:"id" json:"id"`
-	UserID    uuid.UUID `db:"user_id" json:"user_id"`
-	CheckInID uuid.UUID `db:"check_in_id" json:"check_in_id"`
-	HabitID   uuid.UUID `db:"habit_id" json:"habit_id"`
-	Content   string    `db:"content" json:"content"`
-	Model     string    `db:"model" json:"model"`
+	ID        uuid.UUID  `db:"id" json:"id"`
+	UserID    uuid.UUID  `db:"user_id" json:"user_id"`
+	CheckInID *uuid.UUID `db:"check_in_id" json:"check_in_id"`
+	HabitID   *uuid.UUID `db:"habit_id" json:"habit_id"`
+	Content   string     `db:"content" json:"content"`
+	Model     string     `db:"model" json:"model"`
 }
 
 // GetCheckInsForWeekParams holds parameters for the weekly check-in query.

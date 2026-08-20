@@ -101,6 +101,9 @@ type IHabits interface {
 	GetHabitByID(ctx context.Context, id uuid.UUID, timezone string) (db.GetHabitRow, error)
 	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error)
 	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.GetHabitRow, error)
+	UpdateHabitDescription(ctx context.Context, id uuid.UUID, description *string) (db.Habit, error)
+	UpdateHabitStatus(ctx context.Context, id uuid.UUID, status string) (db.Habit, error)
+	UpdateHabitReminderTime(ctx context.Context, id uuid.UUID, reminderTime pgtype.Time) (db.Habit, error)
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
 	GetHabitStreak(ctx context.Context, habitID, userID uuid.UUID, timezone string) (int32, error)
 	GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezone string) ([]db.GetHabitStreaksRow, error)
@@ -119,6 +122,7 @@ type IGoals interface {
 	UpdateGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
 	LogGoalValue(ctx context.Context, id uuid.UUID, currentValue pgtype.Numeric) (db.GetGoalRow, error)
 	RecomputeGoalProgress(ctx context.Context, id uuid.UUID, progress int32) (db.GetGoalRow, error)
+	UpdateGoalDescription(ctx context.Context, id uuid.UUID, description *string) (db.UpdateGoalDescriptionRow, error)
 	CountGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	ListGoalHabitIDs(ctx context.Context, userID uuid.UUID) ([]db.ListGoalHabitIDsRow, error)
@@ -277,6 +281,7 @@ type Repository struct {
 	WeeklyReviews             IWeeklyReviews
 	CoachingProfiles          ICoachingProfiles
 	PlanAdjustmentSuggestions IPlanAdjustmentSuggestions
+	HabitMissedStreaks        IHabitMissedStreaks
 	Billing                   IBilling
 	SiteSettings              ISiteSettings
 	HabitTemplates            IHabitTemplates
@@ -303,6 +308,7 @@ func NewRepository(db *db.Queries) *Repository {
 		WeeklyReviews:             NewWeeklyReviewsRepo(db),
 		CoachingProfiles:          NewCoachingProfilesRepo(db),
 		PlanAdjustmentSuggestions: planAdjustments,
+		HabitMissedStreaks:        NewHabitMissedStreaksRepo(db),
 		Billing:                   NewBillingRepo(db, habits, goals, planAdjustments),
 		SiteSettings:              NewSiteSettingsRepo(db),
 		HabitTemplates:            NewHabitTemplatesRepo(db),

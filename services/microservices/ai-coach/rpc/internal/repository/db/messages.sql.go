@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const countMessages = `-- name: CountMessages :one
@@ -64,22 +65,35 @@ func (q *Queries) GetLastMessage(ctx context.Context, conversationID uuid.UUID) 
 }
 
 const listMessages = `-- name: ListMessages :many
+WITH page AS (
+  SELECT id, conversation_id, role, content, created_at
+  FROM conversation_messages
+  WHERE conversation_id = $1
+  ORDER BY created_at DESC
+  LIMIT $2 OFFSET $3
+)
 SELECT id, conversation_id, role, content, created_at
-FROM conversation_messages
-WHERE conversation_id = $1
+FROM page
 ORDER BY created_at ASC
-LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListMessages(ctx context.Context, conversationID uuid.UUID, limit int32, offset int32) ([]ConversationMessage, error) {
+type ListMessagesRow struct {
+	ID             uuid.UUID          `db:"id" json:"id"`
+	ConversationID uuid.UUID          `db:"conversation_id" json:"conversation_id"`
+	Role           string             `db:"role" json:"role"`
+	Content        string             `db:"content" json:"content"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+func (q *Queries) ListMessages(ctx context.Context, conversationID uuid.UUID, limit int32, offset int32) ([]ListMessagesRow, error) {
 	rows, err := q.db.Query(ctx, listMessages, conversationID, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ConversationMessage{}
+	items := []ListMessagesRow{}
 	for rows.Next() {
-		var i ConversationMessage
+		var i ListMessagesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ConversationID,

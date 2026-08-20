@@ -49,6 +49,38 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, arg GetCheckInsForWeek
 	return items, rows.Err()
 }
 
+const getCheckInsForDate = `SELECT ci.id, ci.user_id, ci.habit_id, h.name AS habit_name,
+       ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.local_date, ci.created_at
+FROM check_ins ci
+JOIN habits h ON h.id = ci.habit_id
+WHERE ci.user_id = $1
+  AND ci.local_date = $2::date
+ORDER BY ci.created_at ASC`
+
+// GetCheckInsForDate returns all check-ins for a user on a specific local
+// date, joined with habit names. Used by the daily coach digest to build a
+// single prompt covering all of the day's check-ins.
+func (q *Queries) GetCheckInsForDate(ctx context.Context, userID uuid.UUID, localDate string) ([]CheckInWithHabit, error) {
+	rows, err := q.db.Query(ctx, getCheckInsForDate, userID, localDate)
+	if err != nil {
+		return nil, fmt.Errorf("get check-ins for date: %w", err)
+	}
+	defer rows.Close()
+
+	var items []CheckInWithHabit
+	for rows.Next() {
+		var c CheckInWithHabit
+		if err := rows.Scan(&c.ID, &c.UserID, &c.HabitID, &c.HabitName,
+			&c.Status, &c.Mood, &c.Energy, &c.Blocker, &c.Note,
+			&c.LocalDate, &c.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan check-in with habit: %w", err)
+		}
+		items = append(items, c)
+	}
+	return items, rows.Err()
+}
+
 const getAccountabilityStyle = `SELECT user_id, accountability_style
 FROM coaching_profiles
 WHERE user_id = $1`

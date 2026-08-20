@@ -25,13 +25,14 @@ type ServiceContext struct {
 	Config       config.Config
 	Repo         *repository.Repository
 	EventsPub    *events.Publisher
+	ReminderPub  *events.Publisher
 	Scheduler    *scheduler.Scheduler
 	TxRunner     *postgres.PgxTxRunner
 	EventsQ      queue.MessageQueue
 	ReminderDueQ queue.MessageQueue
 	// PushSender delivers push notifications via Expo. Nil-safe: when Expo is
 	// disabled in config, Send is a no-op. See docs/push-notifications-design.md.
-	PushSender  *delivery.Sender
+	PushSender *delivery.Sender
 	// ReceiptWorker checks Expo push receipts asynchronously and disables
 	// stale tokens. Nil-safe: when Expo is disabled, Run is a no-op.
 	ReceiptWorker *delivery.ReceiptWorker
@@ -68,6 +69,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	reminderPub := events.NewPublisher(c.Kafka.Brokers, c.Kafka.ReminderDueTopic)
 	dlqPub := events.NewDLQPublisher(c.Kafka.Brokers, events.DLQTopic)
 
+	// Events publisher publishes domain events to the growth.events topic.
+	// Used by the coach_digest reminder handler to publish
+	// CoachDigestRequested events for the ai-coach-consumer to pick up.
+	var eventsPub *events.Publisher
+	if c.Kafka.EventsTopic != "" {
+		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+	}
+
 	sched := scheduler.NewScheduler(repo.Reminders, reminderPub, realClock{})
 
 	// Expo push client + delivery sender. When Expo is disabled in config,
@@ -81,7 +90,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	receiptWorker := delivery.NewReceiptWorker(repo.Devices, repo.PushTickets, expoClient)
 
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
-	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender)
+	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender, eventsPub)
 
 	// Consumers/Processors must be set explicitly: their `default=8` tags only
 	// apply when the KqConf is loaded via conf.Load, not for struct literals.
@@ -113,7 +122,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	return &ServiceContext{
 		Config:        c,
 		Repo:          repo,
-		EventsPub:     reminderPub,
+		EventsPub:     eventsPub,
+		ReminderPub:   reminderPub,
 		Scheduler:     sched,
 		TxRunner:      txRunner,
 		EventsQ:       eventsQ,
@@ -157,6 +167,9 @@ func (s *ServiceContext) Close() {
 	}
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
+	}
+	if s.ReminderPub != nil {
+		_ = s.ReminderPub.Close()
 	}
 	if s.pool != nil {
 		s.pool.Close()

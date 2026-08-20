@@ -44,8 +44,10 @@ type ServiceContext struct {
 	WeeklyReviewSF singleflight.Group
 	// AuthEventsQ consumes user_deleted events to clean up client-owned tables.
 	AuthEventsQ queue.MessageQueue
-	pool        *pgxpool.Pool
-	redis       *redis.Client
+	// CheckInEventsQ consumes check-in events to drive missed-day recovery.
+	CheckInEventsQ queue.MessageQueue
+	pool           *pgxpool.Pool
+	redis          *redis.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -102,8 +104,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	// Set up the user_deleted consumer queue if Kafka is configured.
 	var authEventsQ queue.MessageQueue
+	var checkInEventsQ queue.MessageQueue
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
 		handler := consumer.NewAuthEventsHandler(repo, queries)
+		checkInHandler := consumer.NewCheckInEventsHandler(repo, queries)
 		group := c.Kafka.ConsumerGroup
 		if group == "" {
 			group = "client"
@@ -124,6 +128,17 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			},
 			kq.WithHandle(handler.Consume),
 		)
+		checkInEventsQ = kq.MustNewQueue(
+			kq.KqConf{
+				Brokers:    c.Kafka.Brokers,
+				Group:      group + ".checkin-events",
+				Topic:      c.Kafka.EventsTopic,
+				Offset:     "first",
+				Consumers:  4,
+				Processors: 4,
+			},
+			kq.WithHandle(checkInHandler.Consume),
+		)
 	}
 
 	return &ServiceContext{
@@ -136,6 +151,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Authz:            authzChecker,
 		Cache:            appCache,
 		AuthEventsQ:      authEventsQ,
+		CheckInEventsQ:   checkInEventsQ,
 		pool:             pool,
 		redis:            redisClient,
 	}
@@ -179,6 +195,9 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	if s.AuthEventsQ != nil {
 		go s.AuthEventsQ.Start()
+	}
+	if s.CheckInEventsQ != nil {
+		go s.CheckInEventsQ.Start()
 	}
 	_ = ctx
 	return cancel

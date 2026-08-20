@@ -11,7 +11,8 @@ WHERE id = $1 AND user_id = $2;
 -- name: ListConversations :many
 SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
 FROM conversations
-WHERE user_id = $1 AND archived = false
+WHERE user_id = $1
+  AND (type = $4 OR $4 = '')
 ORDER BY updated_at DESC
 LIMIT $2 OFFSET $3;
 
@@ -24,7 +25,8 @@ LIMIT $2 OFFSET $3;
 
 -- name: CountConversations :one
 SELECT count(*) FROM conversations
-WHERE user_id = $1 AND archived = false;
+WHERE user_id = $1
+  AND (type = $2 OR $2 = '');
 
 -- name: CountArchivedConversations :one
 SELECT count(*) FROM conversations

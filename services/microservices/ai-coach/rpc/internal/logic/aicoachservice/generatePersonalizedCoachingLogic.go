@@ -37,7 +37,7 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *aic
 	// Hard safety guardrail: classify the fresh user message before calling
 	// the model. Crisis / self-harm never reach the model.
 	if l.svcCtx.Classifier != nil {
-		classifyCtx, cancel := context.WithTimeout(l.ctx, 3*time.Second)
+		classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
 		verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, in.UserMessage)
 		cancel()
 

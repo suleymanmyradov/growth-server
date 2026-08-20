@@ -3,9 +3,11 @@ package personalizationservicelogic
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -118,6 +120,29 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 	if err != nil {
 		l.Errorf("failed to create plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create plan adjustment suggestion")
+	}
+
+	// Fire-and-forget publish plan_adjustment_created event for analytics.
+	if l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypePlanAdjustmentCreated, events.PlanAdjustmentCreated{
+				UserID:         userID.String(),
+				SuggestionID:   suggestion.ID.String(),
+				HabitID:        habitID.UUID.String(),
+				GoalID:         goalID.UUID.String(),
+				Source:         in.Source,
+				AdjustmentType: in.AdjustmentType,
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish plan_adjustment_created event: %v", err)
+			}
+		}()
 	}
 
 	return &client.CreatePlanAdjustmentSuggestionResponse{

@@ -251,3 +251,20 @@ WHERE goal_id = $1;
 -- ─── Habit-driven progress inputs ───────────────────────────────────────────
 -- Note: CountCompletedCheckInDays lives in check_ins.sql (owned by the
 -- check-ins domain). The goals logic calls it through ICheckIns.
+
+-- name: UpdateGoalDescription :one
+-- Updates only the description column (used by apply-plan-adjustment for
+-- clarify_plan). Leaves title, category, measurement, etc. intact.
+WITH upd AS (
+    UPDATE goals
+    SET description = $2
+    WHERE goals.id = $1
+    RETURNING id, user_id, category_id, title, description, status, progress, due_date, created_at, updated_at,
+              measurement, start_value, current_value, target_value, unit
+)
+SELECT upd.id, upd.user_id, upd.category_id, upd.title, upd.description, upd.status, upd.progress, upd.due_date, upd.created_at, upd.updated_at,
+       upd.measurement, upd.start_value, upd.current_value, upd.target_value, upd.unit,
+       COALESCE(c.slug, '')::varchar AS category,
+       (upd.status = 'completed') AS completed
+FROM upd
+LEFT JOIN categories c ON c.id = upd.category_id;

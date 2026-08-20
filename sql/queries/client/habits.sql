@@ -8,7 +8,7 @@
 -- UserPreferences interface) — no cross-subservice subquery to user_preferences.
 
 -- name: ListHabits :many
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -22,7 +22,7 @@ ORDER BY h.created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: GetHabit :one
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -37,9 +37,9 @@ WHERE h.id = $1;
 WITH ins AS (
     INSERT INTO habits (name, description, category_id, user_id)
     VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4)
-    RETURNING id, user_id, category_id, name, description, created_at, updated_at
+    RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
 )
-SELECT ins.id, ins.user_id, ins.category_id, ins.name, ins.description, ins.created_at, ins.updated_at,
+SELECT ins.id, ins.user_id, ins.category_id, ins.name, ins.description, ins.created_at, ins.updated_at, ins.status, ins.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        false AS completed
 FROM ins
@@ -51,9 +51,9 @@ WITH upd AS (
     SET name = $2, description = $3,
         category_id = (SELECT c2.id FROM categories c2 WHERE c2.slug = $4)
     WHERE habits.id = $1
-    RETURNING id, user_id, category_id, name, description, created_at, updated_at
+    RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
 )
-SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.created_at, upd.updated_at,
+SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.created_at, upd.updated_at, upd.status, upd.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -128,7 +128,7 @@ WHERE ci.user_id = $1
   AND ci.local_date = (now() AT TIME ZONE sqlc.arg(timezone)::text)::date;
 
 -- name: GetHabitsByIDs :many
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -161,7 +161,7 @@ SELECT COUNT(*) FROM habits WHERE user_id = $1;
 
 -- name: ListHabitsKeyset :many
 -- Keyset pagination: pass last_created_at from the previous page (or NULL).
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -174,3 +174,27 @@ WHERE h.user_id = $1
   AND ($2::timestamptz IS NULL OR h.created_at < $2)
 ORDER BY h.created_at DESC
 LIMIT $3;
+
+-- name: UpdateHabitDescription :one
+-- Updates only the description column (used by apply-plan-adjustment for
+-- reduce_difficulty / increase_difficulty). Leaves name, category, etc. intact.
+UPDATE habits
+SET description = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time;
+
+-- name: UpdateHabitStatus :one
+-- Sets the habit status (active / paused). Used by apply-plan-adjustment for
+-- pause / unpause.
+UPDATE habits
+SET status = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time;
+
+-- name: UpdateHabitReminderTime :one
+-- Sets the preferred reminder time for a habit. Used by apply-plan-adjustment
+-- for change_time. NULL clears the reminder time.
+UPDATE habits
+SET reminder_time = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time;

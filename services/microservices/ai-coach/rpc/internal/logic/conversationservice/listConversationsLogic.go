@@ -48,13 +48,13 @@ func (l *ListConversationsLogic) ListConversations(in *aicoach.ListConversations
 	}
 	offset := (page - 1) * limit
 
-	convs, err := l.svcCtx.Queries.ListConversations(l.ctx, userID, limit, offset)
+	convs, err := l.svcCtx.Queries.ListConversations(l.ctx, userID, limit, offset, in.Type)
 	if err != nil {
 		l.Errorf("failed to list conversations: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list conversations")
 	}
 
-	total, err := l.svcCtx.Queries.CountConversations(l.ctx, userID)
+	total, err := l.svcCtx.Queries.CountConversations(l.ctx, userID, in.Type)
 	if err != nil {
 		l.Errorf("failed to count conversations: %v", err)
 		return nil, status.Error(codes.Internal, "failed to count conversations")

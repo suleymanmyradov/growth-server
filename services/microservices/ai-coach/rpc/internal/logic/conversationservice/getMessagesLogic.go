@@ -71,7 +71,13 @@ func (l *GetMessagesLogic) GetMessages(in *aicoach.GetMessagesRequest) (*aicoach
 
 	pbMsgs := make([]*aicoach.ConversationMessage, len(msgs))
 	for i, m := range msgs {
-		pbMsgs[i] = protoMessage(m)
+		pbMsgs[i] = &aicoach.ConversationMessage{
+			Id:             m.ID.String(),
+			ConversationId: m.ConversationID.String(),
+			Role:           m.Role,
+			Content:        m.Content,
+			CreatedAt:      tsToMillis(m.CreatedAt),
+		}
 	}
 
 	return &aicoach.GetMessagesResponse{

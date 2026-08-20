@@ -207,6 +207,18 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, repo *repository.R
 			if err := repo.Reminders.CancelPendingForDate(ctx, userID, "missed_check_in", now, rs.Timezone); err != nil {
 				logx.WithContext(ctx).Errorf("cancel missed_check_in: %v", err)
 			}
+			// Schedule today's coach_digest at check_in_time + 2h so the
+			// coach reviews all of the day's check-ins in one message
+			// instead of sending one notification per check-in. The
+			// Enqueue call is idempotent per (user, type, date) via the
+			// uniq_reminders_pending_per_day index, so multiple check-ins
+			// on the same day only produce one digest reminder.
+			digestAt, dErr := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
+			if dErr != nil {
+				logx.WithContext(ctx).Errorf("compute coach_digest time: %v", dErr)
+			} else if _, dErr := repo.Reminders.Enqueue(ctx, userID, "coach_digest", digestAt, nil); dErr != nil {
+				logx.WithContext(ctx).Errorf("enqueue coach_digest: %v", dErr)
+			}
 		}
 	}
 
@@ -413,6 +425,9 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "weekly_review", now, rs.Timezone); err != nil {
 		logx.WithContext(ctx).Errorf("cancel weekly_review: %v", err)
 	}
+	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "coach_digest", now, rs.Timezone); err != nil {
+		logx.WithContext(ctx).Errorf("cancel coach_digest: %v", err)
+	}
 
 	// Schedule next habit_reminder at user's check_in_time in their timezone.
 	if rs.HabitReminders && rs.OnboardingCompleted {
@@ -423,6 +438,16 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 			if _, err := repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
 				return fmt.Errorf("enqueue habit_reminder: %w", err)
 			}
+		}
+	}
+
+	// Schedule next coach_digest at check_in_time + 2h.
+	if rs.OnboardingCompleted {
+		digestAt, err := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
+		if err != nil {
+			logx.WithContext(ctx).Errorf("next coach_digest: %v", err)
+		} else if _, err := repo.Reminders.Enqueue(ctx, userID, "coach_digest", digestAt, nil); err != nil {
+			return fmt.Errorf("enqueue coach_digest: %w", err)
 		}
 	}
 

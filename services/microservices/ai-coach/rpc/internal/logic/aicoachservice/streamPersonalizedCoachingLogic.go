@@ -43,7 +43,7 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 	// The system-prompt line ("If the user expresses crisis...") remains as
 	// defense-in-depth, but the classifier is the primary control.
 	if l.svcCtx.Classifier != nil {
-		classifyCtx, cancel := context.WithTimeout(l.ctx, 3*time.Second)
+		classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
 		verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, in.UserMessage)
 		cancel()
 

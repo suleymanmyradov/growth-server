@@ -27,9 +27,9 @@ const createHabit = `-- name: CreateHabit :one
 WITH ins AS (
     INSERT INTO habits (name, description, category_id, user_id)
     VALUES ($1, $2, (SELECT c2.id FROM categories c2 WHERE c2.slug = $3), $4)
-    RETURNING id, user_id, category_id, name, description, created_at, updated_at
+    RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
 )
-SELECT ins.id, ins.user_id, ins.category_id, ins.name, ins.description, ins.created_at, ins.updated_at,
+SELECT ins.id, ins.user_id, ins.category_id, ins.name, ins.description, ins.created_at, ins.updated_at, ins.status, ins.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        false AS completed
 FROM ins
@@ -37,15 +37,17 @@ LEFT JOIN categories c ON c.id = ins.category_id
 `
 
 type CreateHabitRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) CreateHabit(ctx context.Context, name string, description *string, slug string, userID uuid.UUID) (CreateHabitRow, error) {
@@ -64,6 +66,8 @@ func (q *Queries) CreateHabit(ctx context.Context, name string, description *str
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
 		&i.Category,
 		&i.Completed,
 	)
@@ -80,7 +84,7 @@ func (q *Queries) DeleteHabit(ctx context.Context, id uuid.UUID) error {
 }
 
 const getHabit = `-- name: GetHabit :one
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -93,15 +97,17 @@ WHERE h.id = $1
 `
 
 type GetHabitRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) GetHabit(ctx context.Context, iD uuid.UUID, timezone string) (GetHabitRow, error) {
@@ -115,6 +121,8 @@ func (q *Queries) GetHabit(ctx context.Context, iD uuid.UUID, timezone string) (
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
 		&i.Category,
 		&i.Completed,
 	)
@@ -207,7 +215,7 @@ func (q *Queries) GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezon
 }
 
 const getHabitsByIDs = `-- name: GetHabitsByIDs :many
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -220,15 +228,17 @@ WHERE h.id = ANY($1::uuid[])
 `
 
 type GetHabitsByIDsRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) GetHabitsByIDs(ctx context.Context, column1 []uuid.UUID, timezone string) ([]GetHabitsByIDsRow, error) {
@@ -248,6 +258,8 @@ func (q *Queries) GetHabitsByIDs(ctx context.Context, column1 []uuid.UUID, timez
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
+			&i.ReminderTime,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -306,7 +318,7 @@ func (q *Queries) ListHabitHistory(ctx context.Context, userID uuid.UUID, timezo
 
 const listHabits = `-- name: ListHabits :many
 
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -321,15 +333,17 @@ LIMIT $2 OFFSET $3
 `
 
 type ListHabitsRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 // Habit rows carry a resolved category slug and a derived `completed` flag:
@@ -362,6 +376,8 @@ func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32,
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
+			&i.ReminderTime,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -376,7 +392,7 @@ func (q *Queries) ListHabits(ctx context.Context, userID uuid.UUID, limit int32,
 }
 
 const listHabitsKeyset = `-- name: ListHabitsKeyset :many
-SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at,
+SELECT h.id, h.user_id, h.category_id, h.name, h.description, h.created_at, h.updated_at, h.status, h.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -392,15 +408,17 @@ LIMIT $3
 `
 
 type ListHabitsKeysetRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 // Keyset pagination: pass last_created_at from the previous page (or NULL).
@@ -426,6 +444,8 @@ func (q *Queries) ListHabitsKeyset(ctx context.Context, userID uuid.UUID, column
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Status,
+			&i.ReminderTime,
 			&i.Category,
 			&i.Completed,
 		); err != nil {
@@ -464,9 +484,9 @@ WITH upd AS (
     SET name = $2, description = $3,
         category_id = (SELECT c2.id FROM categories c2 WHERE c2.slug = $4)
     WHERE habits.id = $1
-    RETURNING id, user_id, category_id, name, description, created_at, updated_at
+    RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
 )
-SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.created_at, upd.updated_at,
+SELECT upd.id, upd.user_id, upd.category_id, upd.name, upd.description, upd.created_at, upd.updated_at, upd.status, upd.reminder_time,
        COALESCE(c.slug, '')::varchar AS category,
        EXISTS (
            SELECT 1 FROM check_ins ci
@@ -486,15 +506,17 @@ type UpdateHabitParams struct {
 }
 
 type UpdateHabitRow struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
-	Category    string             `db:"category" json:"category"`
-	Completed   bool               `db:"completed" json:"completed"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+	Category     string             `db:"category" json:"category"`
+	Completed    bool               `db:"completed" json:"completed"`
 }
 
 func (q *Queries) UpdateHabit(ctx context.Context, arg UpdateHabitParams) (UpdateHabitRow, error) {
@@ -514,8 +536,88 @@ func (q *Queries) UpdateHabit(ctx context.Context, arg UpdateHabitParams) (Updat
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
 		&i.Category,
 		&i.Completed,
+	)
+	return i, err
+}
+
+const updateHabitDescription = `-- name: UpdateHabitDescription :one
+UPDATE habits
+SET description = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
+`
+
+// Updates only the description column (used by apply-plan-adjustment for
+// reduce_difficulty / increase_difficulty). Leaves name, category, etc. intact.
+func (q *Queries) UpdateHabitDescription(ctx context.Context, iD uuid.UUID, description *string) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabitDescription, iD, description)
+	var i Habit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
+	)
+	return i, err
+}
+
+const updateHabitReminderTime = `-- name: UpdateHabitReminderTime :one
+UPDATE habits
+SET reminder_time = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
+`
+
+// Sets the preferred reminder time for a habit. Used by apply-plan-adjustment
+// for change_time. NULL clears the reminder time.
+func (q *Queries) UpdateHabitReminderTime(ctx context.Context, iD uuid.UUID, reminderTime pgtype.Time) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabitReminderTime, iD, reminderTime)
+	var i Habit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
+	)
+	return i, err
+}
+
+const updateHabitStatus = `-- name: UpdateHabitStatus :one
+UPDATE habits
+SET status = $2
+WHERE habits.id = $1
+RETURNING id, user_id, category_id, name, description, created_at, updated_at, status, reminder_time
+`
+
+// Sets the habit status (active / paused). Used by apply-plan-adjustment for
+// pause / unpause.
+func (q *Queries) UpdateHabitStatus(ctx context.Context, iD uuid.UUID, status string) (Habit, error) {
+	row := q.db.QueryRow(ctx, updateHabitStatus, iD, status)
+	var i Habit
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.CategoryID,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Status,
+		&i.ReminderTime,
 	)
 	return i, err
 }

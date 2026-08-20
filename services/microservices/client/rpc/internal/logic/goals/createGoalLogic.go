@@ -2,9 +2,12 @@ package goalslogic
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	commonlogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/common"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -125,6 +128,40 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
+
+	// Log goal_created activity for metrics/activation tracking.
+	activityTitle := goal.Title
+	activityDesc := "Created goal: " + goal.Title
+	if _, aErr := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+		Type:        "goal_created",
+		Title:       activityTitle,
+		Description: &activityDesc,
+		Metadata:    json.RawMessage("{}"),
+		UserID:      userID,
+	}); aErr != nil {
+		l.Errorf("Failed to log goal_created activity: %v", aErr)
+	}
+
+	// Fire-and-forget publish goal_created event for analytics/metrics.
+	if l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeGoalCreated, events.GoalCreated{
+				UserID:   userID.String(),
+				GoalID:   goal.ID.String(),
+				Title:    goal.Title,
+				Category: goal.Category,
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish goal_created event: %v", err)
+			}
+		}()
+	}
 
 	return &client.CreateGoalResponse{
 		Goal: goalToProto(goal, in.RelatedHabitIds, milestones),

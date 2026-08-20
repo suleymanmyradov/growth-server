@@ -22,8 +22,8 @@ type Activity struct {
 type AiFeedback struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CheckInID uuid.UUID          `db:"check_in_id" json:"check_in_id"`
-	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	CheckInID uuid.NullUUID      `db:"check_in_id" json:"check_in_id"`
+	HabitID   uuid.NullUUID      `db:"habit_id" json:"habit_id"`
 	Content   string             `db:"content" json:"content"`
 	Model     string             `db:"model" json:"model"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
@@ -65,6 +65,12 @@ type ArticleTag struct {
 	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
 }
 
+type BillingWebhookEvent struct {
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
 type Category struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	Name      string             `db:"name" json:"name"`
@@ -85,6 +91,12 @@ type CheckIn struct {
 	Blocker   *string            `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type ClientProcessedEvent struct {
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
 type CoachingProfile struct {
@@ -120,16 +132,21 @@ type ConversationMessage struct {
 }
 
 type Goal struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Title       string             `db:"title" json:"title"`
-	Description *string            `db:"description" json:"description"`
-	Status      string             `db:"status" json:"status"`
-	Progress    int32              `db:"progress" json:"progress"`
-	DueDate     pgtype.Timestamptz `db:"due_date" json:"due_date"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Title        string             `db:"title" json:"title"`
+	Description  *string            `db:"description" json:"description"`
+	Status       string             `db:"status" json:"status"`
+	Progress     int32              `db:"progress" json:"progress"`
+	DueDate      pgtype.Timestamptz `db:"due_date" json:"due_date"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Measurement  string             `db:"measurement" json:"measurement"`
+	StartValue   pgtype.Numeric     `db:"start_value" json:"start_value"`
+	CurrentValue pgtype.Numeric     `db:"current_value" json:"current_value"`
+	TargetValue  pgtype.Numeric     `db:"target_value" json:"target_value"`
+	Unit         *string            `db:"unit" json:"unit"`
 }
 
 type GoalHabit struct {
@@ -138,12 +155,43 @@ type GoalHabit struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type GoalMilestone struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
+	Title     string             `db:"title" json:"title"`
+	SortOrder int32              `db:"sort_order" json:"sort_order"`
+	DoneAt    pgtype.Timestamptz `db:"done_at" json:"done_at"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type GoalTemplate struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Description *string            `db:"description" json:"description"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	SortOrder   int32              `db:"sort_order" json:"sort_order"`
+	IsActive    bool               `db:"is_active" json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type Habit struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
 	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
 	Name        string             `db:"name" json:"name"`
 	Description *string            `db:"description" json:"description"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type HabitTemplate struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Name        string             `db:"name" json:"name"`
+	Description *string            `db:"description" json:"description"`
+	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
+	SortOrder   int32              `db:"sort_order" json:"sort_order"`
+	IsActive    bool               `db:"is_active" json:"is_active"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
@@ -168,6 +216,25 @@ type Notification struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type NotificationDevice struct {
+	ID             uuid.UUID          `db:"id" json:"id"`
+	UserID         uuid.UUID          `db:"user_id" json:"user_id"`
+	InstallationID string             `db:"installation_id" json:"installation_id"`
+	Provider       string             `db:"provider" json:"provider"`
+	PushToken      string             `db:"push_token" json:"push_token"`
+	Platform       string             `db:"platform" json:"platform"`
+	AppID          *string            `db:"app_id" json:"app_id"`
+	Environment    string             `db:"environment" json:"environment"`
+	AppVersion     *string            `db:"app_version" json:"app_version"`
+	OsVersion      *string            `db:"os_version" json:"os_version"`
+	Locale         *string            `db:"locale" json:"locale"`
+	Timezone       *string            `db:"timezone" json:"timezone"`
+	Enabled        bool               `db:"enabled" json:"enabled"`
+	LastSeenAt     pgtype.Timestamptz `db:"last_seen_at" json:"last_seen_at"`
+	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type NotificationPreference struct {
 	UserID             uuid.UUID          `db:"user_id" json:"user_id"`
 	EmailNotifications bool               `db:"email_notifications" json:"email_notifications"`
@@ -176,6 +243,8 @@ type NotificationPreference struct {
 	GoalReminders      bool               `db:"goal_reminders" json:"goal_reminders"`
 	CreatedAt          pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	StreakWarnings     bool               `db:"streak_warnings" json:"streak_warnings"`
+	SundayReview       bool               `db:"sunday_review" json:"sunday_review"`
 }
 
 type Plan struct {
@@ -220,6 +289,18 @@ type ProcessedEvent struct {
 	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
 }
 
+type PushTicket struct {
+	ID               int64              `db:"id" json:"id"`
+	TicketID         string             `db:"ticket_id" json:"ticket_id"`
+	PushToken        string             `db:"push_token" json:"push_token"`
+	UserID           uuid.UUID          `db:"user_id" json:"user_id"`
+	NotificationID   uuid.UUID          `db:"notification_id" json:"notification_id"`
+	ReceiptStatus    string             `db:"receipt_status" json:"receipt_status"`
+	ReceiptError     *string            `db:"receipt_error" json:"receipt_error"`
+	ReceiptCheckedAt pgtype.Timestamptz `db:"receipt_checked_at" json:"receipt_checked_at"`
+	CreatedAt        pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 type Reminder struct {
 	ID          uuid.UUID          `db:"id" json:"id"`
 	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
@@ -228,6 +309,7 @@ type Reminder struct {
 	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ClaimedAt   pgtype.Timestamptz `db:"claimed_at" json:"claimed_at"`
 }
 
 type ReminderState struct {
@@ -240,6 +322,32 @@ type ReminderState struct {
 	LastCheckInDate     pgtype.Date        `db:"last_check_in_date" json:"last_check_in_date"`
 	CheckedInCountToday int32              `db:"checked_in_count_today" json:"checked_in_count_today"`
 	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type Report struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	ReporterID  uuid.UUID          `db:"reporter_id" json:"reporter_id"`
+	TargetID    *string            `db:"target_id" json:"target_id"`
+	TargetType  string             `db:"target_type" json:"target_type"`
+	Category    string             `db:"category" json:"category"`
+	Title       string             `db:"title" json:"title"`
+	Description string             `db:"description" json:"description"`
+	Email       *string            `db:"email" json:"email"`
+	Status      string             `db:"status" json:"status"`
+	AdminNotes  *string            `db:"admin_notes" json:"admin_notes"`
+	CloseReason *string            `db:"close_reason" json:"close_reason"`
+	Attachments []string           `db:"attachments" json:"attachments"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type ReportComment struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	ReportID  uuid.UUID          `db:"report_id" json:"report_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Comment   string             `db:"comment" json:"comment"`
+	IsAdmin   bool               `db:"is_admin" json:"is_admin"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type SavedArticle struct {
@@ -263,15 +371,11 @@ type SavedHabit struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-type SearchOutbox struct {
-	ID          int64              `db:"id" json:"id"`
-	EntityType  string             `db:"entity_type" json:"entity_type"`
-	EntityID    uuid.UUID          `db:"entity_id" json:"entity_id"`
-	Operation   string             `db:"operation" json:"operation"`
-	Attempts    int32              `db:"attempts" json:"attempts"`
-	LastError   *string            `db:"last_error" json:"last_error"`
-	AvailableAt pgtype.Timestamptz `db:"available_at" json:"available_at"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+type SiteSetting struct {
+	Key       string             `db:"key" json:"key"`
+	Value     []byte             `db:"value" json:"value"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Subscription struct {
@@ -288,6 +392,7 @@ type Subscription struct {
 	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 }
 
 type Tag struct {
