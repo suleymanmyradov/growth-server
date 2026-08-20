@@ -565,7 +565,7 @@ func newProposalID() string { return uuid.NewString() }
 type createGoalInput struct {
 	Title           string   `json:"title"`
 	Description     string   `json:"description,omitempty"`
-	Category        string   `json:"category,omitempty"`
+	Category        string   `json:"category"`
 	DueDate         string   `json:"dueDate,omitempty"` // ISO date string (YYYY-MM-DD)
 	RelatedHabitIds []string `json:"relatedHabitIds,omitempty"`
 }
@@ -588,7 +588,7 @@ type deleteGoalInput struct {
 type createHabitInput struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
-	Category    string `json:"category,omitempty"`
+	Category    string `json:"category"`
 }
 
 type updateHabitInput struct {

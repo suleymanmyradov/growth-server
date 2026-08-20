@@ -10,12 +10,15 @@
 #   - gateway    (services/gateway/growth/growthapi.go):
 #       POST /files/upload
 #   - ai-gateway (services/ai-gateway/aiapi/aiapi.go):
+#       POST /personalization/coaching-stream
 #       POST /personalization/transcribe
 #       POST /personalization/voice-turn
 #
 # Source of truth for field names, size limits, MIME restrictions, SSE event
 # payload shapes, and error behavior:
 #   - services/gateway/growth/internal/handler/files/uploadHandler.go
+#   - services/ai-gateway/aiapi/internal/handler/personalization/streamPersonalizedCoachingHandler.go
+#   - services/ai-gateway/aiapi/internal/logic/personalization/stream_coaching.go
 #   - services/ai-gateway/aiapi/internal/handler/voice/transcribeHandler.go
 #   - services/ai-gateway/aiapi/internal/handler/voice/voiceTurnHandler.go
 #
@@ -26,6 +29,119 @@
 # Swagger 2.0 specs from both services.
 
 paths:
+  /api/v1/personalization/coaching-stream:
+    post:
+      operationId: streamPersonalizedCoaching
+      summary: Stream an agentic coaching response (SSE)
+      description: |
+        Streams an AI-generated personalized coaching response as Server-Sent
+        Events. Uses an agentic flow (StreamAgent with on-demand tool calls)
+        so the model fetches user data (goals, habits, check-ins, weekly
+        reviews, articles) only when the user's message makes it relevant,
+        instead of eagerly stuffing all context into the prompt.
+
+        Requires authentication. The request body is JSON
+        (`application/json`). The response is `text/event-stream`.
+
+        ## SSE event types
+
+        - `reasoning` — `{"text":"..."}`: model reasoning/thinking deltas
+          (reasoning models only; never set for non-reasoning models).
+        - `thinking` — `{"message":"..."}`: status update while a tool
+          executes or the model processes before the first token.
+        - `delta` — `{"text":"..."}`: incremental coaching text. Concatenate
+          in order to build the full response.
+        - `proposal` — `{id, action, payload}`: a confirm/cancel card for a
+          proposed CRUD action (create/update/delete goal or habit). The
+          client should render a proposal card and let the user confirm or
+          cancel.
+        - `complete` — `{"fullResponse":"..."}`: the full assembled coaching
+          response (exactly one on success). Terminal success event.
+        - `error` — `{"message":"..."}`: error before stream end. Terminal
+          error event; the stream ends after this.
+
+        ## Event ordering
+
+        A typical successful stream: zero or more `reasoning` → zero or more
+        `thinking`/`delta`/`proposal` (interleaved as tools execute) → `delta`
+        chunks for the final answer → `complete`.
+
+        On a safety crisis (self-harm/suicide with high confidence), the
+        stream short-circuits: a deterministic crisis response is sent as
+        `delta` + `complete`, and no tools are called.
+      tags:
+        - Personalization
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GeneratePersonalizedCoachingRequest"
+      responses:
+        "200":
+          description: |
+            SSE stream opened successfully. The response body is a sequence of
+            Server-Sent Events (see the operation description for event types
+            and ordering).
+          content:
+            text/event-stream:
+              schema:
+                type: object
+                description: |
+                  The SSE body is a stream of `event: <name>\ndata: <json>\n\n`
+                  blocks. See the operation description for event types.
+              examples:
+                happyPath:
+                  summary: Successful coaching response with a tool call
+                  value: |
+                    event: thinking
+                    data: {"message":"Looking up your goals..."}
+
+                    event: delta
+                    data: {"text":"Based on your goals, "}
+
+                    event: delta
+                    data: {"text":"you're making good progress."}
+
+                    event: complete
+                    data: {"fullResponse":"Based on your goals, you're making good progress."}
+                proposal:
+                  summary: Coaching response with a goal creation proposal
+                  value: |
+                    event: thinking
+                    data: {"message":"Preparing a new goal for you to confirm..."}
+
+                    event: proposal
+                    data: {"id":"prop-123","action":"create_goal","payload":{"title":"Read 20 pages daily"}}
+
+                    event: delta
+                    data: {"text":"I've prepared a goal suggestion for you to confirm."}
+
+                    event: complete
+                    data: {"fullResponse":"I've prepared a goal suggestion for you to confirm."}
+                crisis:
+                  summary: Safety crisis short-circuit
+                  value: |
+                    event: delta
+                    data: {"text":"If you're in crisis, please reach out..."}
+
+                    event: complete
+                    data: {"fullResponse":"If you're in crisis, please reach out..."}
+        "401":
+          description: Missing or invalid bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error before the stream was committed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/files/upload:
     post:
       operationId: uploadFile
@@ -404,6 +520,57 @@ components:
         /auth/google, /auth/apple, or /auth/refresh. Sent as
         `Authorization: Bearer <token>`.
   schemas:
+    GeneratePersonalizedCoachingRequest:
+      type: object
+      required:
+        - userMessage
+      properties:
+        userMessage:
+          type: string
+          description: The user's message to the coach.
+          example: "I missed 3 consecutive check-ins, feeling demotivated"
+        context:
+          type: string
+          description: Optional free-form context string (legacy field, ignored by the agentic flow).
+          example: "User has been struggling with motivation"
+        conversationId:
+          type: string
+          format: uuid
+          description: |
+            Optional existing conversation ID. When provided, prior message
+            history is fetched and the assistant response is persisted to this
+            conversation. When omitted, the response is not persisted.
+        attachments:
+          type: array
+          description: Optional file attachments (images, documents) passed to the model as multimodal content.
+          items:
+            $ref: "#/components/schemas/Attachment"
+
+    Attachment:
+      type: object
+      required:
+        - attachmentType
+        - name
+        - contentType
+        - data
+      properties:
+        attachmentType:
+          type: string
+          description: "Type of attachment: \"image\" or \"document\"."
+          example: image
+        name:
+          type: string
+          description: Filename of the attachment.
+          example: screenshot.png
+        contentType:
+          type: string
+          description: MIME type of the attachment.
+          example: image/png
+        data:
+          type: string
+          description: Base64-encoded file content.
+          contentEncoding: base64
+
     UploadResponse:
       type: object
       required:

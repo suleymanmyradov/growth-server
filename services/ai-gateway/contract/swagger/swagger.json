@@ -753,68 +753,36 @@
                 "userMessage"
               ],
               "properties": {
-                "context": {
-                  "type": "string",
-                  "example": "User has been struggling with motivation"
+                "attachments": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "attachmentType",
+                      "name",
+                      "contentType",
+                      "data"
+                    ],
+                    "properties": {
+                      "attachmentType": {
+                        "type": "string",
+                        "example": "image"
+                      },
+                      "contentType": {
+                        "type": "string",
+                        "example": "image/png"
+                      },
+                      "data": {
+                        "type": "string",
+                        "example": "iVBORw0KGgo..."
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "screenshot.png"
+                      }
+                    }
+                  }
                 },
-                "conversationId": {
-                  "type": "string"
-                },
-                "userMessage": {
-                  "type": "string",
-                  "example": "User missed 3 consecutive check-ins"
-                }
-              }
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "coachingResponse": {
-                  "type": "string",
-                  "example": "I noticed you've missed a few check-ins lately..."
-                },
-                "context": {
-                  "type": "string",
-                  "example": "User has been struggling with motivation"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/personalization/coaching-stream": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "schemes": [
-          "https"
-        ],
-        "tags": [
-          "Personalization"
-        ],
-        "summary": "StreamPersonalizedCoaching",
-        "operationId": "personalizationStreamPersonalizedCoaching",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "required": [
-                "userMessage"
-              ],
-              "properties": {
                 "context": {
                   "type": "string",
                   "example": "User has been struggling with motivation"
@@ -1377,7 +1345,7 @@
       }
     }
   },
-  "x-date": "2026-08-10 11:55:26",
+  "x-date": "2026-08-19 14:02:35",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

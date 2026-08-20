@@ -89,21 +89,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodPost,
-					Path:    "/personalization/coaching-stream",
-					Handler: personalization.StreamPersonalizedCoachingHandler(serverCtx),
-				},
-			}...,
-		),
-		rest.WithPrefix("/api/v1"),
-		rest.WithSSE(),
-	)
-
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Auth},
-			[]rest.Route{
-				{
-					Method:  http.MethodPost,
 					Path:    "/weekly-reviews/generate",
 					Handler: weeklyreview.GenerateWeeklyReviewHandler(serverCtx),
 				},
