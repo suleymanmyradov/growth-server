@@ -5,6 +5,8 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
+	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/personalization"
+	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/sse"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/types"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -21,10 +23,15 @@ import (
 // into the prompt.
 //
 // SSE event types:
+//   - reasoning: {"text": "..."} — model's live reasoning/thinking deltas (reasoning models only)
 //   - thinking:  {"message": "..."} — status updates while tools execute / model processes
 //   - delta:     {"text": "..."} — incremental coaching text
+//   - proposal:  {id, action, payload} — a confirm/cancel card for a proposed CRUD action
 //   - complete:  {"fullResponse": "..."} — final full response
 //   - error:     {"message": "..."} — error before stream end
+//
+// The handler is a thin wrapper: request parsing, auth, and dependency
+// wiring. All orchestration lives in personalization.StreamCoaching.
 func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req types.GeneratePersonalizedCoachingRequest
@@ -39,6 +46,21 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 			return
 		}
 
-		streamAgenticCoaching(w, r, &req, svcCtx, p)
+		personalization.StreamCoaching(r.Context(), sse.NewWriter(w), &req, p, personalization.StreamCoachingDeps{
+			AIClient:       svcCtx.AIClient,
+			Classifier:     svcCtx.Classifier,
+			Conversations:  svcCtx.AICoachRpc.ConversationService,
+			ProfileFetcher: svcCtx.AuthRpc,
+			ToolDeps: personalization.CoachingToolDeps{
+				Goals:           svcCtx.ClientRpc.Goals,
+				Habits:          svcCtx.ClientRpc.Habits,
+				CheckIns:        svcCtx.ClientRpc.CheckInService,
+				WeeklyReviews:   svcCtx.ClientRpc.WeeklyReviewService,
+				Personalization: svcCtx.ClientRpc.PersonalizationService,
+				Search:          svcCtx.SearchRpc,
+				Articles:        svcCtx.ClientRpc.Articles,
+			},
+			Config: svcCtx.Config.Coaching,
+		})
 	}
 }

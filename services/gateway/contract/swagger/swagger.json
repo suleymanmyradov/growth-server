@@ -3103,6 +3103,100 @@
         }
       }
     },
+    "/api/v1/check-ins/today/{habitId}": {
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "DeleteCheckIn",
+        "operationId": "checkinDeleteCheckIn",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "habitId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "habit": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "streak",
+                    "completed",
+                    "category",
+                    "userId",
+                    "createdAt",
+                    "updatedAt"
+                  ],
+                  "properties": {
+                    "category": {
+                      "type": "string",
+                      "example": "fitness"
+                    },
+                    "completed": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "example": "2024-01-01T00:00:00Z"
+                    },
+                    "description": {
+                      "type": "string",
+                      "example": "30 minutes of cardio every morning"
+                    },
+                    "id": {
+                      "type": "string",
+                      "example": "habit-123"
+                    },
+                    "name": {
+                      "type": "string",
+                      "example": "Morning Exercise"
+                    },
+                    "recentHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "boolean"
+                      }
+                    },
+                    "streak": {
+                      "type": "integer",
+                      "example": 7
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "example": "2024-01-15T00:00:00Z"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "user-123"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/devices/{installationId}": {
       "put": {
         "consumes": [
@@ -5529,7 +5623,9 @@
                     "emailEnabled",
                     "pushEnabled",
                     "habitRemindersEnabled",
-                    "goalRemindersEnabled"
+                    "goalRemindersEnabled",
+                    "streakWarningsEnabled",
+                    "sundayReviewEnabled"
                   ],
                   "properties": {
                     "emailEnabled": {
@@ -5545,6 +5641,14 @@
                       "example": true
                     },
                     "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "streakWarningsEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "sundayReviewEnabled": {
                       "type": "boolean",
                       "example": false
                     }
@@ -5587,7 +5691,9 @@
                     "emailEnabled",
                     "pushEnabled",
                     "habitRemindersEnabled",
-                    "goalRemindersEnabled"
+                    "goalRemindersEnabled",
+                    "streakWarningsEnabled",
+                    "sundayReviewEnabled"
                   ],
                   "properties": {
                     "emailEnabled": {
@@ -5603,6 +5709,14 @@
                       "example": true
                     },
                     "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "streakWarningsEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "sundayReviewEnabled": {
                       "type": "boolean",
                       "example": false
                     }
@@ -5624,7 +5738,9 @@
                     "emailEnabled",
                     "pushEnabled",
                     "habitRemindersEnabled",
-                    "goalRemindersEnabled"
+                    "goalRemindersEnabled",
+                    "streakWarningsEnabled",
+                    "sundayReviewEnabled"
                   ],
                   "properties": {
                     "emailEnabled": {
@@ -5640,6 +5756,14 @@
                       "example": true
                     },
                     "pushEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "streakWarningsEnabled": {
+                      "type": "boolean",
+                      "example": false
+                    },
+                    "sundayReviewEnabled": {
                       "type": "boolean",
                       "example": false
                     }
@@ -9145,7 +9269,7 @@
       }
     }
   },
-  "x-date": "2026-08-10 11:55:26",
+  "x-date": "2026-08-19 14:02:35",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

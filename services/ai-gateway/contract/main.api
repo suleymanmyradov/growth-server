@@ -53,18 +53,6 @@ service aiapi {
 }
 
 @server (
-	sse:        true
-	prefix:     /api/v1
-	group:      personalization
-	middleware: Auth
-	tags:       "Personalization"
-)
-service aiapi {
-	@handler StreamPersonalizedCoaching
-	post /personalization/coaching-stream (GeneratePersonalizedCoachingRequest) returns (GeneratePersonalizedCoachingResponse)
-}
-
-@server (
 	prefix:     /api/v1
 	group:      conversations
 	middleware: Auth

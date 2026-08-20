@@ -279,6 +279,12 @@ type (
 	HasCheckedInTodayResponse {
 		checkedIn bool `json:"checkedIn"`
 	}
+	DeleteCheckInRequest {
+		habitId string `path:"habitId"`
+	}
+	DeleteCheckInResponse {
+		habit Habit `json:"habit"`
+	}
 )
 
 // Article types
@@ -678,10 +684,17 @@ type (
 	GetPersonalizationContextRequest {
 		forceRefresh bool `form:"forceRefresh,default=false,example=false"`
 	}
+	Attachment {
+		attachmentType string `json:"attachmentType,example=image"`
+		name           string `json:"name,example=screenshot.png"`
+		contentType    string `json:"contentType,example=image/png"`
+		data           string `json:"data,example=iVBORw0KGgo..."`
+	}
 	GeneratePersonalizedCoachingRequest {
-		userMessage    string `json:"userMessage,example=User missed 3 consecutive check-ins"`
-		context        string `json:"context,optional,example=User has been struggling with motivation"`
-		conversationId string `json:"conversationId,optional"`
+		userMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
+		context        string       `json:"context,optional,example=User has been struggling with motivation"`
+		conversationId string       `json:"conversationId,optional"`
+		attachments    []Attachment `json:"attachments,optional"`
 	}
 	GeneratePersonalizedCoachingResponse {
 		coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`

@@ -46,4 +46,10 @@ type CoachingConfig struct {
 	// Raise this if the agent is being cut off mid-response; lower it to
 	// cap per-turn spend.
 	MaxTotalTokens int `json:",optional"`
+	// MaxTokens limits the output length per generation step (per LLM call).
+	// Defaults to 4096 when zero. This is sent to the provider as
+	// max_tokens — without it, Google's Gemini OpenAI-compat endpoint
+	// applies a low internal default (~157 tokens) and truncates the
+	// response mid-sentence with finish_reason="length".
+	MaxTokens int `json:",optional"`
 }

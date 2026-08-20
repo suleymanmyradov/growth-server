@@ -3142,6 +3142,102 @@
         ]
       }
     },
+    "/api/v1/check-ins/today/{habitId}": {
+      "delete": {
+        "tags": [
+          "Check-In"
+        ],
+        "summary": "DeleteCheckIn",
+        "operationId": "checkinDeleteCheckIn",
+        "parameters": [
+          {
+            "name": "habitId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "habit": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "name",
+                        "description",
+                        "streak",
+                        "completed",
+                        "category",
+                        "userId",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "example": "fitness"
+                        },
+                        "completed": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "example": "2024-01-01T00:00:00Z"
+                        },
+                        "description": {
+                          "type": "string",
+                          "example": "30 minutes of cardio every morning"
+                        },
+                        "id": {
+                          "type": "string",
+                          "example": "habit-123"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Morning Exercise"
+                        },
+                        "recentHistory": {
+                          "type": "array",
+                          "items": {
+                            "type": "boolean"
+                          }
+                        },
+                        "streak": {
+                          "type": "integer",
+                          "example": 7
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "example": "2024-01-15T00:00:00Z"
+                        },
+                        "userId": {
+                          "type": "string",
+                          "example": "user-123"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
     "/api/v1/devices/{installationId}": {
       "put": {
         "tags": [
@@ -5637,7 +5733,9 @@
                         "emailEnabled",
                         "pushEnabled",
                         "habitRemindersEnabled",
-                        "goalRemindersEnabled"
+                        "goalRemindersEnabled",
+                        "streakWarningsEnabled",
+                        "sundayReviewEnabled"
                       ],
                       "properties": {
                         "emailEnabled": {
@@ -5653,6 +5751,14 @@
                           "example": true
                         },
                         "pushEnabled": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "streakWarningsEnabled": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "sundayReviewEnabled": {
                           "type": "boolean",
                           "example": false
                         }
@@ -5691,7 +5797,9 @@
                       "emailEnabled",
                       "pushEnabled",
                       "habitRemindersEnabled",
-                      "goalRemindersEnabled"
+                      "goalRemindersEnabled",
+                      "streakWarningsEnabled",
+                      "sundayReviewEnabled"
                     ],
                     "properties": {
                       "emailEnabled": {
@@ -5707,6 +5815,14 @@
                         "example": true
                       },
                       "pushEnabled": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "streakWarningsEnabled": {
+                        "type": "boolean",
+                        "example": false
+                      },
+                      "sundayReviewEnabled": {
                         "type": "boolean",
                         "example": false
                       }
@@ -5732,7 +5848,9 @@
                         "emailEnabled",
                         "pushEnabled",
                         "habitRemindersEnabled",
-                        "goalRemindersEnabled"
+                        "goalRemindersEnabled",
+                        "streakWarningsEnabled",
+                        "sundayReviewEnabled"
                       ],
                       "properties": {
                         "emailEnabled": {
@@ -5748,6 +5866,14 @@
                           "example": true
                         },
                         "pushEnabled": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "streakWarningsEnabled": {
+                          "type": "boolean",
+                          "example": false
+                        },
+                        "sundayReviewEnabled": {
                           "type": "boolean",
                           "example": false
                         }
@@ -10095,46 +10221,60 @@
         "summary": "GeneratePersonalizedCoaching",
         "operationId": "personalizationGeneratePersonalizedCoaching",
         "requestBody": {
-          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "coachingResponse": {
-                      "type": "string",
-                      "example": "I noticed you've missed a few check-ins lately..."
-                    },
-                    "context": {
-                      "type": "string",
-                      "example": "User has been struggling with motivation"
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "userMessage"
+                ],
+                "properties": {
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "attachmentType",
+                        "name",
+                        "contentType",
+                        "data"
+                      ],
+                      "properties": {
+                        "attachmentType": {
+                          "type": "string",
+                          "example": "image"
+                        },
+                        "contentType": {
+                          "type": "string",
+                          "example": "image/png"
+                        },
+                        "data": {
+                          "type": "string",
+                          "example": "iVBORw0KGgo..."
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "screenshot.png"
+                        }
+                      }
                     }
+                  },
+                  "context": {
+                    "type": "string",
+                    "example": "User has been struggling with motivation"
+                  },
+                  "conversationId": {
+                    "type": "string"
+                  },
+                  "userMessage": {
+                    "type": "string",
+                    "example": "User missed 3 consecutive check-ins"
                   }
                 }
               }
             }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/personalization/coaching-stream": {
-      "post": {
-        "tags": [
-          "Personalization"
-        ],
-        "summary": "StreamPersonalizedCoaching",
-        "operationId": "personalizationStreamPersonalizedCoaching",
-        "requestBody": {
-          "$ref": "#/components/requestBodies/personalizationGeneratePersonalizedCoachingBody"
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -10661,6 +10801,78 @@
         ]
       }
     },
+    "/api/v1/personalization/coaching-stream": {
+      "post": {
+        "operationId": "streamPersonalizedCoaching",
+        "summary": "Stream an agentic coaching response (SSE)",
+        "description": "Streams an AI-generated personalized coaching response as Server-Sent\nEvents. Uses an agentic flow (StreamAgent with on-demand tool calls)\nso the model fetches user data (goals, habits, check-ins, weekly\nreviews, articles) only when the user's message makes it relevant,\ninstead of eagerly stuffing all context into the prompt.\n\nRequires authentication. The request body is JSON\n(`application/json`). The response is `text/event-stream`.\n\n## SSE event types\n\n- `reasoning` — `{\"text\":\"...\"}`: model reasoning/thinking deltas\n  (reasoning models only; never set for non-reasoning models).\n- `thinking` — `{\"message\":\"...\"}`: status update while a tool\n  executes or the model processes before the first token.\n- `delta` — `{\"text\":\"...\"}`: incremental coaching text. Concatenate\n  in order to build the full response.\n- `proposal` — `{id, action, payload}`: a confirm/cancel card for a\n  proposed CRUD action (create/update/delete goal or habit). The\n  client should render a proposal card and let the user confirm or\n  cancel.\n- `complete` — `{\"fullResponse\":\"...\"}`: the full assembled coaching\n  response (exactly one on success). Terminal success event.\n- `error` — `{\"message\":\"...\"}`: error before stream end. Terminal\n  error event; the stream ends after this.\n\n## Event ordering\n\nA typical successful stream: zero or more `reasoning` → zero or more\n`thinking`/`delta`/`proposal` (interleaved as tools execute) → `delta`\nchunks for the final answer → `complete`.\n\nOn a safety crisis (self-harm/suicide with high confidence), the\nstream short-circuits: a deterministic crisis response is sent as\n`delta` + `complete`, and no tools are called.\n",
+        "tags": [
+          "Personalization"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeneratePersonalizedCoachingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE stream opened successfully. The response body is a sequence of\nServer-Sent Events (see the operation description for event types\nand ordering).\n",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "object",
+                  "description": "The SSE body is a stream of `event: <name>\\ndata: <json>\\n\\n`\nblocks. See the operation description for event types.\n"
+                },
+                "examples": {
+                  "happyPath": {
+                    "summary": "Successful coaching response with a tool call",
+                    "value": "event: thinking\ndata: {\"message\":\"Looking up your goals...\"}\n\nevent: delta\ndata: {\"text\":\"Based on your goals, \"}\n\nevent: delta\ndata: {\"text\":\"you're making good progress.\"}\n\nevent: complete\ndata: {\"fullResponse\":\"Based on your goals, you're making good progress.\"}\n"
+                  },
+                  "proposal": {
+                    "summary": "Coaching response with a goal creation proposal",
+                    "value": "event: thinking\ndata: {\"message\":\"Preparing a new goal for you to confirm...\"}\n\nevent: proposal\ndata: {\"id\":\"prop-123\",\"action\":\"create_goal\",\"payload\":{\"title\":\"Read 20 pages daily\"}}\n\nevent: delta\ndata: {\"text\":\"I've prepared a goal suggestion for you to confirm.\"}\n\nevent: complete\ndata: {\"fullResponse\":\"I've prepared a goal suggestion for you to confirm.\"}\n"
+                  },
+                  "crisis": {
+                    "summary": "Safety crisis short-circuit",
+                    "value": "event: delta\ndata: {\"text\":\"If you're in crisis, please reach out...\"}\n\nevent: complete\ndata: {\"fullResponse\":\"If you're in crisis, please reach out...\"}\n"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error before the stream was committed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/files/upload": {
       "post": {
         "operationId": "uploadFile",
@@ -11002,7 +11214,7 @@
       }
     }
   },
-  "x-date": "2026-08-10 11:55:26",
+  "x-date": "2026-08-19 14:02:35",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",
@@ -11031,32 +11243,6 @@
           }
         },
         "required": true
-      },
-      "personalizationGeneratePersonalizedCoachingBody": {
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "required": [
-                "userMessage"
-              ],
-              "properties": {
-                "context": {
-                  "type": "string",
-                  "example": "User has been struggling with motivation"
-                },
-                "conversationId": {
-                  "type": "string"
-                },
-                "userMessage": {
-                  "type": "string",
-                  "example": "User missed 3 consecutive check-ins"
-                }
-              }
-            }
-          }
-        },
-        "required": true
       }
     },
     "securitySchemes": {
@@ -11068,6 +11254,67 @@
       }
     },
     "schemas": {
+      "GeneratePersonalizedCoachingRequest": {
+        "type": "object",
+        "required": [
+          "userMessage"
+        ],
+        "properties": {
+          "userMessage": {
+            "type": "string",
+            "description": "The user's message to the coach.",
+            "example": "I missed 3 consecutive check-ins, feeling demotivated"
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional free-form context string (legacy field, ignored by the agentic flow).",
+            "example": "User has been struggling with motivation"
+          },
+          "conversationId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional existing conversation ID. When provided, prior message\nhistory is fetched and the assistant response is persisted to this\nconversation. When omitted, the response is not persisted.\n"
+          },
+          "attachments": {
+            "type": "array",
+            "description": "Optional file attachments (images, documents) passed to the model as multimodal content.",
+            "items": {
+              "$ref": "#/components/schemas/Attachment"
+            }
+          }
+        }
+      },
+      "Attachment": {
+        "type": "object",
+        "required": [
+          "attachmentType",
+          "name",
+          "contentType",
+          "data"
+        ],
+        "properties": {
+          "attachmentType": {
+            "type": "string",
+            "description": "Type of attachment: \"image\" or \"document\".",
+            "example": "image"
+          },
+          "name": {
+            "type": "string",
+            "description": "Filename of the attachment.",
+            "example": "screenshot.png"
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type of the attachment.",
+            "example": "image/png"
+          },
+          "data": {
+            "type": "string",
+            "description": "Base64-encoded file content.",
+            "contentEncoding": "base64"
+          }
+        }
+      },
       "UploadResponse": {
         "type": "object",
         "required": [
