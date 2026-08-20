@@ -21,6 +21,7 @@ type Config struct {
 		EventsTopic      string
 		ReminderDueTopic string
 		ConsumerGroup    string
+		DLQTopic         string `json:",optional"`
 	}
 	// Expo push notifications configuration. See docs/push-notifications-design.md.
 	Expo struct {

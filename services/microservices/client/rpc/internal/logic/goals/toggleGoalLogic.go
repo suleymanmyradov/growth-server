@@ -2,12 +2,15 @@ package goalslogic
 
 import (
 	"context"
+	"encoding/json"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -84,6 +87,41 @@ func (l *ToggleGoalLogic) ToggleGoal(in *client.ToggleGoalRequest) (*client.Togg
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
+	// Log goal_completed activity when the goal is toggled to completed.
+	if goal.Completed {
+		activityDesc := "Completed goal: " + goal.Title
+		if _, aErr := l.svcCtx.Repo.Activities.CreateActivity(ctx, db.CreateActivityParams{
+			Type:        "goal_completed",
+			Title:       goal.Title,
+			Description: &activityDesc,
+			Metadata:    json.RawMessage("{}"),
+			UserID:      goal.UserID,
+		}); aErr != nil {
+			l.Errorf("Failed to log goal_completed activity: %v", aErr)
+		}
+	}
+
+	// Fire-and-forget publish goal_completed event when the goal is toggled
+	// to completed status (for analytics/metrics).
+	if goal.Completed && l.svcCtx.EventsPub != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeGoalCompleted, events.GoalCompleted{
+				UserID: goal.UserID.String(),
+				GoalID: goal.ID.String(),
+				Title:  goal.Title,
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish goal_completed event: %v", err)
+			}
+		}()
+	}
 
 	return &client.ToggleGoalResponse{
 		Goal: goalToProto(goal, habitUUIDsToStrings(habitIDs), milestones),

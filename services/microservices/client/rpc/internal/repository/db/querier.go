@@ -101,6 +101,7 @@ type Querier interface {
 	DeleteGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) error
 	DeleteGoalsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteHabit(ctx context.Context, id uuid.UUID) error
+	DeleteHabitMissedStreak(ctx context.Context, habitID uuid.UUID) error
 	// Bulk cleanup queries for user_deleted event consumers.
 	// Each deletes all rows owned by the given user from a client-owned table.
 	DeleteHabitsByUser(ctx context.Context, userID uuid.UUID) error
@@ -161,6 +162,7 @@ type Querier interface {
 	GetGoal(ctx context.Context, id uuid.UUID) (GetGoalRow, error)
 	GetGoalsByIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetGoalsByIDsRow, error)
 	GetHabit(ctx context.Context, iD uuid.UUID, timezone string) (GetHabitRow, error)
+	GetHabitMissedStreak(ctx context.Context, habitID uuid.UUID) (HabitMissedStreak, error)
 	// Computes the current streak for a single habit (see GetHabitStreaks).
 	GetHabitStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, timezone string) (int32, error)
 	// Computes the current streak for every habit owned by a user. The streak is
@@ -199,6 +201,9 @@ type Querier interface {
 	GetWeeklyReview(ctx context.Context, userID uuid.UUID, weekStart pgtype.Date) (GetWeeklyReviewRow, error)
 	// Timezone is passed by the caller.
 	HasCheckedInToday(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, timezone string) (bool, error)
+	// Atomically increments the missed counter and returns the new value.
+	// If no row exists yet, inserts one with consecutive_missed_days=1.
+	IncrementHabitMissedStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID) (HabitMissedStreak, error)
 	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 	IsArticleSaved(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) (bool, error)
 	// Event dedup for the client service's Kafka consumer.
@@ -309,6 +314,9 @@ type Querier interface {
 	// toggle, habit link change, check-in create/delete).
 	RecomputeGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (RecomputeGoalProgressRow, error)
 	ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error
+	// Resets the missed counter to 0 and sets last_completed_date.
+	// Used when a 'completed' check-in arrives.
+	ResetHabitMissedStreak(ctx context.Context, habitID uuid.UUID, userID uuid.UUID, lastCompletedDate pgtype.Date) (HabitMissedStreak, error)
 	// "Uncompletes" all of today's habits by deleting today's completed check-ins.
 	// The streak is derived from check_ins history, so it recomputes automatically
 	// once today's completed check-in is gone; no streak mutation is needed here.
@@ -337,6 +345,12 @@ type Querier interface {
 	UpdateCoachingProfileNotes(ctx context.Context, userID uuid.UUID, coachingNotes []byte) (UpdateCoachingProfileNotesRow, error)
 	UpdateCoachingProfilePreferences(ctx context.Context, userID uuid.UUID, accountabilityStyle string, coachTone string, difficulty string) (UpdateCoachingProfilePreferencesRow, error)
 	UpdateGoal(ctx context.Context, arg UpdateGoalParams) (UpdateGoalRow, error)
+	// ─── Habit-driven progress inputs ───────────────────────────────────────────
+	// Note: CountCompletedCheckInDays lives in check_ins.sql (owned by the
+	// check-ins domain). The goals logic calls it through ICheckIns.
+	// Updates only the description column (used by apply-plan-adjustment for
+	// clarify_plan). Leaves title, category, measurement, etc. intact.
+	UpdateGoalDescription(ctx context.Context, iD uuid.UUID, description *string) (UpdateGoalDescriptionRow, error)
 	// Updates title and sort_order for an existing milestone. Scoped to goal_id
 	// to prevent cross-goal access. done_at is preserved (not in SET clause).
 	UpdateGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID, title string, sortOrder int32) (GoalMilestone, error)
@@ -344,6 +358,15 @@ type Querier interface {
 	// layer rejects other types with FailedPrecondition).
 	UpdateGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (UpdateGoalProgressRow, error)
 	UpdateHabit(ctx context.Context, arg UpdateHabitParams) (UpdateHabitRow, error)
+	// Updates only the description column (used by apply-plan-adjustment for
+	// reduce_difficulty / increase_difficulty). Leaves name, category, etc. intact.
+	UpdateHabitDescription(ctx context.Context, iD uuid.UUID, description *string) (Habit, error)
+	// Sets the preferred reminder time for a habit. Used by apply-plan-adjustment
+	// for change_time. NULL clears the reminder time.
+	UpdateHabitReminderTime(ctx context.Context, iD uuid.UUID, reminderTime pgtype.Time) (Habit, error)
+	// Sets the habit status (active / paused). Used by apply-plan-adjustment for
+	// pause / unpause.
+	UpdateHabitStatus(ctx context.Context, iD uuid.UUID, status string) (Habit, error)
 	// The onboarding_completed flag is a one-way operation: once true, a general
 	// settings update (e.g. changing check-in time or accountability style) must
 	// never reset it to false. The protobuf bool field defaults to false when
@@ -362,6 +385,10 @@ type Querier interface {
 	// Timezone is passed by the caller.
 	UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (CheckIn, error)
 	UpsertCoachingProfile(ctx context.Context, arg UpsertCoachingProfileParams) (UpsertCoachingProfileRow, error)
+	// Inserts or updates the missed-streak counter for a habit.
+	// On a 'completed' check-in, the caller passes consecutive_missed_days=0
+	// and last_completed_date=today to reset the streak.
+	UpsertHabitMissedStreak(ctx context.Context, arg UpsertHabitMissedStreakParams) (HabitMissedStreak, error)
 	UpsertSiteSetting(ctx context.Context, key string, value []byte) (SiteSetting, error)
 	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)
 	// Event-fed read model for user profiles (V3).

@@ -23,6 +23,14 @@ type PushSender interface {
 	Send(ctx context.Context, userID uuid.UUID, payload delivery.Payload) (int, error)
 }
 
+// EventsPublisher publishes domain events to the growth.events topic. Used by
+// the coach_digest handler to publish CoachDigestRequested so the
+// ai-coach-consumer can generate the digest asynchronously. Nil means digest
+// reminders are logged and dropped (dev/test without Kafka).
+type EventsPublisher interface {
+	Publish(ctx context.Context, env events.Envelope) error
+}
+
 // ReminderDueHandler consumes events from the growth.reminder.due topic and
 // materializes notification rows, then enqueues follow-up reminders.
 type ReminderDueHandler struct {
@@ -31,17 +39,19 @@ type ReminderDueHandler struct {
 	txRunner   *postgres.PgxTxRunner
 	dlq        DLQPublisher
 	pushSender PushSender
+	eventsPub  EventsPublisher
 }
 
 // NewReminderDueHandler creates a handler with the given dependencies. If
 // txRunner is nil, the handler+mark pair runs without a transaction. If dlq
 // is nil, poison messages are logged and dropped instead of being routed to
-// a dead-letter topic. If pushSender is nil, no push is delivered.
-func NewReminderDueHandler(repo *repository.Repository, clock Clock, txRunner *postgres.PgxTxRunner, dlq DLQPublisher, pushSender PushSender) *ReminderDueHandler {
+// a dead-letter topic. If pushSender is nil, no push is delivered. If
+// eventsPub is nil, coach_digest reminders are logged and dropped.
+func NewReminderDueHandler(repo *repository.Repository, clock Clock, txRunner *postgres.PgxTxRunner, dlq DLQPublisher, pushSender PushSender, eventsPub EventsPublisher) *ReminderDueHandler {
 	if clock == nil {
 		clock = realClock{}
 	}
-	return &ReminderDueHandler{repo: repo, clock: clock, txRunner: txRunner, dlq: dlq, pushSender: pushSender}
+	return &ReminderDueHandler{repo: repo, clock: clock, txRunner: txRunner, dlq: dlq, pushSender: pushSender, eventsPub: eventsPub}
 }
 
 // sendToDLQ publishes a poison message to the DLQ. If no DLQ publisher is
@@ -135,6 +145,8 @@ func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repo
 		return h.onWeeklyReview(ctx, repo, userID, p)
 	case "encouragement":
 		return h.onEncouragement(ctx, repo, userID, p)
+	case "coach_digest":
+		return h.onCoachDigest(ctx, repo, userID, p)
 	default:
 		logx.WithContext(ctx).Infof("unhandled reminder type %s", p.Type)
 		return nil
@@ -285,5 +297,73 @@ func (h *ReminderDueHandler) onEncouragement(ctx context.Context, repo *reposito
 	}
 	h.sendPush(ctx, userID, title, msg, notif.ID, delivery.DestinationHabitDetail, uuid.Nil)
 
+	return nil
+}
+
+// onCoachDigest handles the daily coach digest reminder. Instead of creating
+// a notification directly, it publishes a CoachDigestRequested event to the
+// growth.events topic. The ai-coach-consumer picks it up, fetches all of the
+// user's check-ins for the day, and generates one combined AI feedback
+// message — which then flows back as a CheckInFeedbackGenerated event that
+// the notifications consumer turns into a single notification.
+//
+// If the user didn't check in today, the digest is skipped (the
+// missed_check_in reminder handles that case). After firing, the next day's
+// digest is enqueued.
+func (h *ReminderDueHandler) onCoachDigest(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
+	rs, err := repo.ReminderState.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get reminder state for coach_digest: %w", err)
+	}
+
+	// Skip if the user didn't check in today — missed_check_in handles that.
+	if rs.CheckedInCountToday == 0 {
+		logx.WithContext(ctx).Infof("coach_digest skipped: user %s has no check-ins today", userID)
+		return h.enqueueNextCoachDigest(ctx, repo, userID, rs)
+	}
+
+	// Compute today's date in the user's timezone so the consumer fetches the
+	// correct day's check-ins.
+	tz := rs.Timezone
+	if tz == "" {
+		tz = "UTC"
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		loc = time.UTC
+	}
+	today := h.clock.Now().In(loc).Format("2006-01-02")
+
+	// Publish CoachDigestRequested so ai-coach-consumer generates the digest.
+	if h.eventsPub != nil {
+		env, err := events.NewEnvelope(events.TypeCoachDigestRequested, events.CoachDigestRequested{
+			UserID: userID.String(),
+			Date:   today,
+		})
+		if err != nil {
+			return fmt.Errorf("build coach_digest envelope: %w", err)
+		}
+		if err := h.eventsPub.Publish(ctx, env); err != nil {
+			return fmt.Errorf("publish coach_digest event: %w", err)
+		}
+		logx.WithContext(ctx).Infof("published coach_digest request: user=%s date=%s", userID, today)
+	} else {
+		logx.WithContext(ctx).Infof("coach_digest reminder fired but no events publisher configured: user=%s", userID)
+	}
+
+	return h.enqueueNextCoachDigest(ctx, repo, userID, rs)
+}
+
+// enqueueNextCoachDigest schedules the next day's coach_digest reminder.
+func (h *ReminderDueHandler) enqueueNextCoachDigest(ctx context.Context, repo *repository.Repository, userID uuid.UUID, rs db.ReminderState) error {
+	now := h.clock.Now()
+	next, err := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("next coach_digest: %v", err)
+		return nil
+	}
+	if _, err := repo.Reminders.Enqueue(ctx, userID, "coach_digest", next, nil); err != nil {
+		return fmt.Errorf("enqueue next coach_digest: %w", err)
+	}
 	return nil
 }

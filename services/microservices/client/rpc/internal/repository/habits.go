@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
@@ -58,6 +59,24 @@ func (r *habitsRepo) UpdateHabit(ctx context.Context, params db.UpdateHabitParam
 
 	row, err := r.db.UpdateHabit(ctx, params)
 	return db.GetHabitRow(row), err
+}
+
+func (r *habitsRepo) UpdateHabitDescription(ctx context.Context, id uuid.UUID, description *string) (db.Habit, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitDescription")
+	defer span.End()
+	return r.db.UpdateHabitDescription(ctx, id, description)
+}
+
+func (r *habitsRepo) UpdateHabitStatus(ctx context.Context, id uuid.UUID, status string) (db.Habit, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitStatus")
+	defer span.End()
+	return r.db.UpdateHabitStatus(ctx, id, status)
+}
+
+func (r *habitsRepo) UpdateHabitReminderTime(ctx context.Context, id uuid.UUID, reminderTime pgtype.Time) (db.Habit, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.UpdateHabitReminderTime")
+	defer span.End()
+	return r.db.UpdateHabitReminderTime(ctx, id, reminderTime)
 }
 
 func (r *habitsRepo) DeleteHabit(ctx context.Context, id uuid.UUID) error {

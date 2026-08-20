@@ -113,3 +113,45 @@ func TestNextWeekday_DifferentDay(t *testing.T) {
 		t.Errorf("expected Sunday, got %s", got.Weekday())
 	}
 }
+
+func TestNextCoachDigest_TodayStillAhead(t *testing.T) {
+	// 08:00 UTC, check_in_time 09:00 UTC → digest at 11:00 UTC today
+	now := time.Date(2025, 5, 16, 8, 0, 0, 0, time.UTC)
+	cit := pgtype.Time{Microseconds: 9 * 3600 * 1_000_000, Valid: true}
+
+	got, err := NextCoachDigest(now, "UTC", cit)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Hour() != 11 {
+		t.Errorf("expected 11:00 UTC (check_in_time + 2h), got %s", got.Format(time.RFC3339))
+	}
+	if got.Day() != 16 {
+		t.Errorf("expected today, got %s", got.Format(time.RFC3339))
+	}
+}
+
+func TestNextCoachDigest_Tomorrow(t *testing.T) {
+	// 15:00 UTC, check_in_time 09:00 UTC → digest at 11:00 already passed → tomorrow
+	now := time.Date(2025, 5, 16, 15, 0, 0, 0, time.UTC)
+	cit := pgtype.Time{Microseconds: 9 * 3600 * 1_000_000, Valid: true}
+
+	got, err := NextCoachDigest(now, "UTC", cit)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Hour() != 11 {
+		t.Errorf("expected 11:00 UTC, got %s", got.Format(time.RFC3339))
+	}
+	if got.Day() != 17 {
+		t.Errorf("expected tomorrow, got %s", got.Format(time.RFC3339))
+	}
+}
+
+func TestNextCoachDigest_NullCheckInTime(t *testing.T) {
+	now := time.Date(2025, 5, 16, 8, 0, 0, 0, time.UTC)
+	_, err := NextCoachDigest(now, "UTC", pgtype.Time{Valid: false})
+	if err == nil {
+		t.Fatal("expected error for null check_in_time")
+	}
+}

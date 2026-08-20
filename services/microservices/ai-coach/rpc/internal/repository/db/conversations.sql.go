@@ -48,11 +48,12 @@ func (q *Queries) CountArchivedConversations(ctx context.Context, userID uuid.UU
 
 const countConversations = `-- name: CountConversations :one
 SELECT count(*) FROM conversations
-WHERE user_id = $1 AND archived = false
+WHERE user_id = $1
+  AND (type = $2 OR $2 = '')
 `
 
-func (q *Queries) CountConversations(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countConversations, userID)
+func (q *Queries) CountConversations(ctx context.Context, userID uuid.UUID, type_ string) (int64, error) {
+	row := q.db.QueryRow(ctx, countConversations, userID, type_)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -152,13 +153,19 @@ func (q *Queries) ListArchivedConversations(ctx context.Context, userID uuid.UUI
 const listConversations = `-- name: ListConversations :many
 SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
 FROM conversations
-WHERE user_id = $1 AND archived = false
+WHERE user_id = $1
+  AND (type = $4 OR $4 = '')
 ORDER BY updated_at DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Conversation, error) {
-	rows, err := q.db.Query(ctx, listConversations, userID, limit, offset)
+func (q *Queries) ListConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32, type_ string) ([]Conversation, error) {
+	rows, err := q.db.Query(ctx, listConversations,
+		userID,
+		limit,
+		offset,
+		type_,
+	)
 	if err != nil {
 		return nil, err
 	}

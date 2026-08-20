@@ -22,8 +22,8 @@ type Activity struct {
 type AiFeedback struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CheckInID uuid.UUID          `db:"check_in_id" json:"check_in_id"`
-	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
+	CheckInID uuid.NullUUID      `db:"check_in_id" json:"check_in_id"`
+	HabitID   uuid.NullUUID      `db:"habit_id" json:"habit_id"`
 	Content   string             `db:"content" json:"content"`
 	Model     string             `db:"model" json:"model"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
@@ -176,13 +176,24 @@ type GoalTemplate struct {
 }
 
 type Habit struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+}
+
+type HabitMissedStreak struct {
+	HabitID               uuid.UUID          `db:"habit_id" json:"habit_id"`
+	UserID                uuid.UUID          `db:"user_id" json:"user_id"`
+	ConsecutiveMissedDays int32              `db:"consecutive_missed_days" json:"consecutive_missed_days"`
+	LastCompletedDate     pgtype.Date        `db:"last_completed_date" json:"last_completed_date"`
+	LastRecoveryTriggered pgtype.Date        `db:"last_recovery_triggered" json:"last_recovery_triggered"`
+	UpdatedAt             pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type HabitTemplate struct {

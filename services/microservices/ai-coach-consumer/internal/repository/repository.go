@@ -43,6 +43,15 @@ func (r *Repository) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, s
 	})
 }
 
+// GetCheckInsForDate returns all check-ins for a user on a specific local
+// date (YYYY-MM-DD), joined with habit names. Used by the daily coach digest.
+func (r *Repository) GetCheckInsForDate(ctx context.Context, userID uuid.UUID, localDate string) ([]db.CheckInWithHabit, error) {
+	if r.queries == nil {
+		return nil, nil
+	}
+	return r.queries.GetCheckInsForDate(ctx, userID, localDate)
+}
+
 // GetAccountabilityStyle returns the user's accountability style setting.
 func (r *Repository) GetAccountabilityStyle(ctx context.Context, userID uuid.UUID) (string, error) {
 	if r.queries == nil {
@@ -66,6 +75,9 @@ func (r *Repository) IsProcessed(ctx context.Context, eventID uuid.UUID) (bool, 
 
 // MarkProcessed marks an event as processed for idempotency.
 func (r *Repository) MarkProcessed(ctx context.Context, eventID uuid.UUID) error {
+	if r.queries == nil {
+		return nil
+	}
 	return r.queries.MarkProcessed(ctx, eventID)
 }
 
