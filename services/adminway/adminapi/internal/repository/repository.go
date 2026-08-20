@@ -17,10 +17,12 @@ type IInternalUsers interface {
 
 type Repository struct {
 	InternalUsers IInternalUsers
+	Analytics     IAnalytics
 }
 
 func NewRepository(dbq *db.Queries) *Repository {
 	return &Repository{
 		InternalUsers: NewInternalUsersRepo(dbq),
+		Analytics:     NewAnalyticsRepo(dbq),
 	}
 }

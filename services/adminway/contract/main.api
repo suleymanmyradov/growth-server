@@ -216,3 +216,23 @@ service adminapi {
 	post /notifications/broadcast (BroadcastNotificationRequest) returns (BroadcastNotificationResponse)
 }
 
+@server (
+	prefix:     /api/v1/admin
+	group:      metrics
+	middleware: Auth,AdminAuth
+	tags:       "Admin Metrics"
+)
+service adminapi {
+	@handler AdminGetActivationMetrics
+	get /metrics/activation (MetricsRequest) returns (ActivationMetricsResponse)
+
+	@handler AdminGetRetentionMetrics
+	get /metrics/retention (MetricsRequest) returns (RetentionMetricsResponse)
+
+	@handler AdminGetBehaviorMetrics
+	get /metrics/behavior (MetricsRequest) returns (BehaviorMetricsResponse)
+
+	@handler AdminGetMonetizationMetrics
+	get /metrics/monetization (MetricsRequest) returns (MonetizationMetricsResponse)
+}
+
