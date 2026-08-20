@@ -10,6 +10,7 @@ import (
 func TestValidEventType(t *testing.T) {
 	assert.True(t, ValidEventType(TypeCheckInCreated))
 	assert.True(t, ValidEventType(TypeUserOnboarded))
+	assert.True(t, ValidEventType(TypeCoachDigestRequested))
 	assert.False(t, ValidEventType("unknown_event"))
 }
 

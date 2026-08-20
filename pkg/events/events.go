@@ -23,10 +23,26 @@ const (
 	TypeSettingsChanged          EventType = "settings_changed"
 	TypeReminderDue              EventType = "reminder_due"
 	TypeCheckInFeedbackGenerated EventType = "check_in_feedback_generated"
-	TypeHabitCreated             EventType = "habit_created"
-	TypeHabitDeleted             EventType = "habit_deleted"
-	TypeUserDeleted              EventType = "user_deleted"
-	TypeUserProfileUpdated       EventType = "user_profile_updated"
+	// TypeCoachDigestRequested is published by the notifications service when a
+	// coach_digest reminder fires (scheduled at check_in_time + 2h). The
+	// ai-coach-consumer fetches all of the user's check-ins for that date and
+	// generates a single combined feedback message, replacing the old
+	// per-check-in feedback that spammed users with N notifications for N habits.
+	TypeCoachDigestRequested EventType = "coach_digest_requested"
+	TypeHabitCreated         EventType = "habit_created"
+	TypeHabitDeleted         EventType = "habit_deleted"
+	TypeUserDeleted          EventType = "user_deleted"
+	TypeUserProfileUpdated   EventType = "user_profile_updated"
+	// Goal lifecycle events — published by the client service.
+	TypeGoalCreated   EventType = "goal_created"
+	TypeGoalCompleted EventType = "goal_completed"
+	TypeGoalDeleted   EventType = "goal_deleted"
+	// TypeSubscriptionChanged is published by the client billing service when
+	// a subscription status changes (upgrade, downgrade, churn, trial start).
+	TypeSubscriptionChanged EventType = "subscription_changed"
+	// TypePlanAdjustmentCreated is published when a plan adjustment suggestion
+	// is created (by weekly review, missed-day recovery, or manual).
+	TypePlanAdjustmentCreated EventType = "plan_adjustment_created"
 	// TypeBroadcastNotificationRequested is published by adminway when an admin
 	// sends a notification to a (segmented) audience. Payload: BroadcastNotificationRequested.
 	// The notifications consumer fan-outs the notification to each user id in the
@@ -74,6 +90,15 @@ type CheckInFeedbackGenerated struct {
 	Content   string `json:"content"`
 }
 
+// CoachDigestRequested is the payload for TypeCoachDigestRequested events.
+// Published by the notifications service when a coach_digest reminder fires.
+// The ai-coach-consumer uses Date (YYYY-MM-DD in the user's timezone) to fetch
+// the correct day's check-ins and generate one combined feedback message.
+type CoachDigestRequested struct {
+	UserID string `json:"userId"`
+	Date   string `json:"date"` // YYYY-MM-DD in the user's local timezone
+}
+
 // ReminderDue is the payload for TypeReminderDue events.
 type ReminderDue struct {
 	ReminderID  string `json:"reminderId"`
@@ -93,6 +118,47 @@ type HabitCreated struct {
 type HabitDeleted struct {
 	UserID  string `json:"userId"`
 	HabitID string `json:"habitId"`
+}
+
+// GoalCreated is the payload for TypeGoalCreated events.
+type GoalCreated struct {
+	UserID   string `json:"userId"`
+	GoalID   string `json:"goalId"`
+	Title    string `json:"title"`
+	Category string `json:"category,omitempty"`
+}
+
+// GoalCompleted is the payload for TypeGoalCompleted events.
+type GoalCompleted struct {
+	UserID string `json:"userId"`
+	GoalID string `json:"goalId"`
+	Title  string `json:"title"`
+}
+
+// GoalDeleted is the payload for TypeGoalDeleted events.
+type GoalDeleted struct {
+	UserID string `json:"userId"`
+	GoalID string `json:"goalId"`
+}
+
+// SubscriptionChanged is the payload for TypeSubscriptionChanged events.
+// Published by the client billing service on subscription lifecycle changes.
+type SubscriptionChanged struct {
+	UserID         string `json:"userId"`
+	PlanCode       string `json:"planCode"`
+	PreviousStatus string `json:"previousStatus,omitempty"`
+	NewStatus      string `json:"newStatus"`
+	BillingInterval string `json:"billingInterval,omitempty"`
+}
+
+// PlanAdjustmentCreated is the payload for TypePlanAdjustmentCreated events.
+type PlanAdjustmentCreated struct {
+	UserID         string `json:"userId"`
+	SuggestionID   string `json:"suggestionId"`
+	HabitID        string `json:"habitId,omitempty"`
+	GoalID         string `json:"goalId,omitempty"`
+	Source         string `json:"source"`
+	AdjustmentType string `json:"adjustmentType"`
 }
 
 // UserDeleted is the payload for TypeUserDeleted events.
