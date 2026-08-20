@@ -88,3 +88,24 @@ func TestNewEnvelopeUUIDGeneration(t *testing.T) {
 
 	assert.NotEqual(t, env1.EventID, env2.EventID, "each envelope should have a unique event ID")
 }
+
+func TestCoachDigestRequestedRoundTrip(t *testing.T) {
+	payload := CoachDigestRequested{
+		UserID: "user-4",
+		Date:   "2026-08-18",
+	}
+
+	env, err := NewEnvelope(TypeCoachDigestRequested, payload)
+	require.NoError(t, err)
+
+	data, err := json.Marshal(env)
+	require.NoError(t, err, "envelope should marshal to JSON")
+
+	var decoded Envelope
+	require.NoError(t, json.Unmarshal(data, &decoded), "envelope should unmarshal from JSON")
+	assert.Equal(t, string(TypeCoachDigestRequested), decoded.EventType)
+
+	var got CoachDigestRequested
+	require.NoError(t, json.Unmarshal(decoded.Payload, &got))
+	assert.Equal(t, payload, got)
+}
