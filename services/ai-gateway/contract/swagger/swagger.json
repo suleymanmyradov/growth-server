@@ -790,6 +790,9 @@
                 "conversationId": {
                   "type": "string"
                 },
+                "regenerate": {
+                  "type": "boolean"
+                },
                 "userMessage": {
                   "type": "string",
                   "example": "User missed 3 consecutive check-ins"
@@ -1345,7 +1348,7 @@
       }
     }
   },
-  "x-date": "2026-08-19 14:02:35",
+  "x-date": "2026-08-21 11:34:51",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

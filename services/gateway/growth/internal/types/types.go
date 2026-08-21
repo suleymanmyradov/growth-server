@@ -83,6 +83,13 @@ type ArticlesResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type Attachment struct {
+	AttachmentType string `json:"attachmentType,example=image"`
+	Name           string `json:"name,example=screenshot.png"`
+	ContentType    string `json:"contentType,example=image/png"`
+	Data           string `json:"data,example=iVBORw0KGgo..."`
+}
+
 type AuthResponse struct {
 	AccessToken  string  `json:"accessToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	RefreshToken string  `json:"refreshToken,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
@@ -297,18 +304,12 @@ type GenerateOnboardingHabitsResponse struct {
 	Data []OnboardingHabitSuggestion `json:"data"`
 }
 
-type Attachment struct {
-	AttachmentType string `json:"attachmentType,example=image"`
-	Name           string `json:"name,example=screenshot.png"`
-	ContentType    string `json:"contentType,example=image/png"`
-	Data           string `json:"data,example=iVBORw0KGgo..."`
-}
-
 type GeneratePersonalizedCoachingRequest struct {
 	UserMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
 	Context        string       `json:"context,optional,example=User has been struggling with motivation"`
 	ConversationId string       `json:"conversationId,optional"`
 	Attachments    []Attachment `json:"attachments,optional"`
+	Regenerate     bool         `json:"regenerate,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {

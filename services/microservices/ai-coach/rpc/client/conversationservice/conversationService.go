@@ -14,20 +14,22 @@ import (
 )
 
 type (
-	AppendMessageRequest        = aicoach.AppendMessageRequest
-	AppendMessageResponse       = aicoach.AppendMessageResponse
-	ArchiveConversationRequest  = aicoach.ArchiveConversationRequest
-	ArchiveConversationResponse = aicoach.ArchiveConversationResponse
-	DeleteConversationRequest   = aicoach.DeleteConversationRequest
-	DeleteConversationResponse  = aicoach.DeleteConversationResponse
-	GetConversationRequest      = aicoach.GetConversationRequest
-	GetConversationResponse     = aicoach.GetConversationResponse
-	GetMessagesRequest          = aicoach.GetMessagesRequest
-	GetMessagesResponse         = aicoach.GetMessagesResponse
-	ListConversationsRequest    = aicoach.ListConversationsRequest
-	ListConversationsResponse   = aicoach.ListConversationsResponse
-	StartConversationRequest    = aicoach.StartConversationRequest
-	StartConversationResponse   = aicoach.StartConversationResponse
+	AppendMessageRequest           = aicoach.AppendMessageRequest
+	AppendMessageResponse          = aicoach.AppendMessageResponse
+	ArchiveConversationRequest     = aicoach.ArchiveConversationRequest
+	ArchiveConversationResponse    = aicoach.ArchiveConversationResponse
+	DeleteConversationRequest      = aicoach.DeleteConversationRequest
+	DeleteConversationResponse     = aicoach.DeleteConversationResponse
+	GetConversationRequest         = aicoach.GetConversationRequest
+	GetConversationResponse        = aicoach.GetConversationResponse
+	GetMessagesRequest             = aicoach.GetMessagesRequest
+	GetMessagesResponse            = aicoach.GetMessagesResponse
+	ListConversationsRequest       = aicoach.ListConversationsRequest
+	ListConversationsResponse      = aicoach.ListConversationsResponse
+	RegenerateLastResponseRequest  = aicoach.RegenerateLastResponseRequest
+	RegenerateLastResponseResponse = aicoach.RegenerateLastResponseResponse
+	StartConversationRequest       = aicoach.StartConversationRequest
+	StartConversationResponse      = aicoach.StartConversationResponse
 
 	ConversationService interface {
 		StartConversation(ctx context.Context, in *StartConversationRequest, opts ...grpc.CallOption) (*StartConversationResponse, error)
@@ -35,6 +37,7 @@ type (
 		GetConversation(ctx context.Context, in *GetConversationRequest, opts ...grpc.CallOption) (*GetConversationResponse, error)
 		GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
 		AppendMessage(ctx context.Context, in *AppendMessageRequest, opts ...grpc.CallOption) (*AppendMessageResponse, error)
+		RegenerateLastResponse(ctx context.Context, in *RegenerateLastResponseRequest, opts ...grpc.CallOption) (*RegenerateLastResponseResponse, error)
 		ArchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error)
 		UnarchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error)
 		DeleteConversation(ctx context.Context, in *DeleteConversationRequest, opts ...grpc.CallOption) (*DeleteConversationResponse, error)
@@ -74,6 +77,11 @@ func (m *defaultConversationService) GetMessages(ctx context.Context, in *GetMes
 func (m *defaultConversationService) AppendMessage(ctx context.Context, in *AppendMessageRequest, opts ...grpc.CallOption) (*AppendMessageResponse, error) {
 	client := aicoach.NewConversationServiceClient(m.cli.Conn())
 	return client.AppendMessage(ctx, in, opts...)
+}
+
+func (m *defaultConversationService) RegenerateLastResponse(ctx context.Context, in *RegenerateLastResponseRequest, opts ...grpc.CallOption) (*RegenerateLastResponseResponse, error) {
+	client := aicoach.NewConversationServiceClient(m.cli.Conn())
+	return client.RegenerateLastResponse(ctx, in, opts...)
 }
 
 func (m *defaultConversationService) ArchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error) {

@@ -65,7 +65,7 @@ func (q *Queries) GetLastMessage(ctx context.Context, conversationID uuid.UUID) 
 }
 
 const listMessages = `-- name: ListMessages :many
-WITH page AS (
+WITH cte AS (
   SELECT id, conversation_id, role, content, created_at
   FROM conversation_messages
   WHERE conversation_id = $1
@@ -73,7 +73,7 @@ WITH page AS (
   LIMIT $2 OFFSET $3
 )
 SELECT id, conversation_id, role, content, created_at
-FROM page
+FROM cte
 ORDER BY created_at ASC
 `
 
@@ -109,4 +109,30 @@ func (q *Queries) ListMessages(ctx context.Context, conversationID uuid.UUID, li
 		return nil, err
 	}
 	return items, nil
+}
+
+const regenerateLastResponse = `-- name: RegenerateLastResponse :one
+DELETE FROM conversation_messages AS target
+WHERE target.id = (
+  SELECT message.id
+  FROM conversation_messages AS message
+  WHERE message.conversation_id = $1
+  ORDER BY message.created_at DESC
+  LIMIT 1
+)
+  AND target.role = 'assistant'
+RETURNING target.id, target.conversation_id, target.role, target.content, target.created_at
+`
+
+func (q *Queries) RegenerateLastResponse(ctx context.Context, conversationID uuid.UUID) (ConversationMessage, error) {
+	row := q.db.QueryRow(ctx, regenerateLastResponse, conversationID)
+	var i ConversationMessage
+	err := row.Scan(
+		&i.ID,
+		&i.ConversationID,
+		&i.Role,
+		&i.Content,
+		&i.CreatedAt,
+	)
+	return i, err
 }

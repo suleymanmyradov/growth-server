@@ -28,11 +28,14 @@ import (
 // --- Mock implementations ---
 
 type mockConversationStore struct {
-	appendCalls  []*conversationservice.AppendMessageRequest
-	appendErrors []error
-	getCalls     []*conversationservice.GetMessagesRequest
-	messages     []*aicoachpb.ConversationMessage
-	getError     error
+	appendCalls     []*conversationservice.AppendMessageRequest
+	appendErrors    []error
+	getCalls        []*conversationservice.GetMessagesRequest
+	messages        []*aicoachpb.ConversationMessage
+	getError        error
+	regenerateCalls []*conversationservice.RegenerateLastResponseRequest
+	regenerateUser  *aicoachpb.ConversationMessage
+	regenerateError error
 }
 
 func (m *mockConversationStore) AppendMessage(_ context.Context, in *conversationservice.AppendMessageRequest, _ ...grpc.CallOption) (*conversationservice.AppendMessageResponse, error) {
@@ -51,6 +54,14 @@ func (m *mockConversationStore) GetMessages(_ context.Context, in *conversations
 		return nil, m.getError
 	}
 	return &conversationservice.GetMessagesResponse{Messages: m.messages}, nil
+}
+
+func (m *mockConversationStore) RegenerateLastResponse(_ context.Context, in *conversationservice.RegenerateLastResponseRequest, _ ...grpc.CallOption) (*conversationservice.RegenerateLastResponseResponse, error) {
+	m.regenerateCalls = append(m.regenerateCalls, in)
+	if m.regenerateError != nil {
+		return nil, m.regenerateError
+	}
+	return &conversationservice.RegenerateLastResponseResponse{UserMessage: m.regenerateUser}, nil
 }
 
 type mockProfileFetcher struct {
@@ -125,6 +136,24 @@ func TestBuildAgenticCoachingSystemPrompt_SupportWithoutCannedEmpathy(t *testing
 	}
 }
 
+func TestBuildAgenticCoachingSystemPrompt_GoalFocus(t *testing.T) {
+	prompt := BuildAgenticCoachingSystemPrompt(AgenticCoachingContext{FocusGoalID: "goal-123"})
+
+	assert.Contains(t, prompt, "goal ID goal-123")
+	assert.Contains(t, prompt, "Call get_goal with this exact ID")
+	assert.Contains(t, prompt, "call get_recent_check_ins with those IDs")
+}
+
+func TestStreamCoaching_RejectsInvalidGoalFocus(t *testing.T) {
+	rec := runStreamCoaching(t, &types.GeneratePersonalizedCoachingRequest{
+		UserMessage: "Analyze this goal",
+		GoalId:      "not-a-uuid",
+	}, StreamCoachingDeps{})
+
+	assert.Equal(t, 200, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Invalid goal context.")
+}
+
 func TestStreamCoaching_DirectAnswer(t *testing.T) {
 	aiClient := aitest.NewMockClient()
 	aiClient.RecordAgentStream(ai.ModelChat,
@@ -194,6 +223,39 @@ func TestStreamCoaching_WithConversationPersistsMessages(t *testing.T) {
 	// Should have fetched messages
 	require.Len(t, conv.getCalls, 1)
 	assert.Equal(t, "conv-1", conv.getCalls[0].ConversationId)
+}
+
+func TestStreamCoaching_RegeneratesLastAssistantWithoutDuplicatingUser(t *testing.T) {
+	aiClient := aitest.NewMockClient()
+	aiClient.RecordAgentStream(ai.ModelChat,
+		ai.AgentStreamChunk{Complete: true, FullResponse: "New reply", FinishReason: "stop"},
+	)
+
+	conv := &mockConversationStore{
+		messages: []*aicoachpb.ConversationMessage{
+			{Role: "user", Content: "previous message"},
+			{Role: "assistant", Content: "previous reply"},
+			{Role: "user", Content: "Try this again"},
+		},
+		regenerateUser: &aicoachpb.ConversationMessage{Role: "user", Content: "Try this again"},
+	}
+
+	rec := runStreamCoaching(t, &types.GeneratePersonalizedCoachingRequest{
+		UserMessage:    "Try this again",
+		ConversationId: "conv-1",
+		Regenerate:     true,
+	}, StreamCoachingDeps{
+		AIClient:       aiClient,
+		Conversations:  conv,
+		ProfileFetcher: &mockProfileFetcher{},
+	})
+
+	assert.Equal(t, 200, rec.Code)
+	require.Len(t, conv.regenerateCalls, 1)
+	assert.Equal(t, "conv-1", conv.regenerateCalls[0].ConversationId)
+	require.Len(t, conv.appendCalls, 1)
+	assert.Equal(t, "assistant", conv.appendCalls[0].Role)
+	assert.Equal(t, "New reply", conv.appendCalls[0].Content)
 }
 
 func TestStreamCoaching_CrisisResponse(t *testing.T) {

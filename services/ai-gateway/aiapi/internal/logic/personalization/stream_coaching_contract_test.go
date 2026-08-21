@@ -70,6 +70,11 @@ func (s *orderingConversationStore) AppendMessage(_ context.Context, in *convers
 	return &conversationservice.AppendMessageResponse{}, nil
 }
 
+func (s *orderingConversationStore) RegenerateLastResponse(_ context.Context, _ *conversationservice.RegenerateLastResponseRequest, _ ...grpc.CallOption) (*conversationservice.RegenerateLastResponseResponse, error) {
+	s.events = append(s.events, "regenerate")
+	return &conversationservice.RegenerateLastResponseResponse{}, nil
+}
+
 func TestFetchAndPersistHistory_FetchesBeforeAppendingCurrentTurn(t *testing.T) {
 	store := &orderingConversationStore{}
 	history := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{

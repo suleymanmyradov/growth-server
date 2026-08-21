@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
@@ -61,6 +63,7 @@ var coachingThinkingMessages = []string{
 type ConversationStore interface {
 	AppendMessage(ctx context.Context, in *conversationservice.AppendMessageRequest, opts ...grpc.CallOption) (*conversationservice.AppendMessageResponse, error)
 	GetMessages(ctx context.Context, in *conversationservice.GetMessagesRequest, opts ...grpc.CallOption) (*conversationservice.GetMessagesResponse, error)
+	RegenerateLastResponse(ctx context.Context, in *conversationservice.RegenerateLastResponseRequest, opts ...grpc.CallOption) (*conversationservice.RegenerateLastResponseResponse, error)
 }
 
 // ProfileFetcher is the subset of the auth service needed by the coaching
@@ -113,6 +116,26 @@ type historyEntry struct {
 func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, deps StreamCoachingDeps) string {
 	streamStart := time.Now()
 
+	if req.GoalId != "" {
+		if _, err := uuid.Parse(req.GoalId); err != nil {
+			sseWriter.WriteEvent("error", map[string]string{"message": "Invalid goal context."})
+			return ""
+		}
+	}
+
+	if req.Regenerate {
+		resp, err := deps.Conversations.RegenerateLastResponse(ctx, &conversationservice.RegenerateLastResponseRequest{
+			ConversationId: req.ConversationId,
+			UserId:         p.UserID,
+		})
+		if err != nil || resp.UserMessage == nil {
+			logx.WithContext(ctx).Errorf("agentic coaching: failed to prepare response regeneration: %v", err)
+			sseWriter.WriteEvent("error", map[string]string{"message": "Unable to regenerate this response. Please try again."})
+			return ""
+		}
+		req.UserMessage = resp.UserMessage.Content
+	}
+
 	// --- Safety classification ---
 	if deps.Classifier != nil {
 		classifyCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -135,7 +158,7 @@ func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.Gener
 	history := fetchAndPersistHistory(ctx, req, p, deps.Conversations)
 
 	// --- Fetch user profile for the system prompt (cheap, always useful) ---
-	agenticCtx := AgenticCoachingContext{}
+	agenticCtx := AgenticCoachingContext{FocusGoalID: req.GoalId}
 	if profileResp, err := deps.ProfileFetcher.GetProfile(ctx, &authservice.GetProfileRequest{}); err != nil {
 		logx.WithContext(ctx).Errorf("agentic coaching: failed to fetch user profile: %v", err)
 	} else if profileResp.User != nil {
@@ -305,13 +328,15 @@ func coachingLimits(cfg config.CoachingConfig) (maxSteps, maxTotalTokens, maxTok
 // crisis response, and then sends them as SSE events.
 func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore) {
 	if req.ConversationId != "" {
-		if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
-			ConversationId: req.ConversationId,
-			UserId:         p.UserID,
-			Role:           "user",
-			Content:        req.UserMessage,
-		}); err != nil {
-			logx.WithContext(ctx).Errorf("agentic coaching: failed to persist user message: %v", err)
+		if !req.Regenerate {
+			if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
+				ConversationId: req.ConversationId,
+				UserId:         p.UserID,
+				Role:           "user",
+				Content:        req.UserMessage,
+			}); err != nil {
+				logx.WithContext(ctx).Errorf("agentic coaching: failed to persist user message: %v", err)
+			}
 		}
 		if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
 			ConversationId: req.ConversationId,
@@ -363,6 +388,13 @@ func fetchAndPersistHistory(ctx context.Context, req *types.GeneratePersonalized
 				Content: m.Content,
 			})
 		}
+	}
+
+	if req.Regenerate {
+		if len(history) > 0 && history[len(history)-1].Role == "user" {
+			history = history[:len(history)-1]
+		}
+		return history
 	}
 
 	// Persist the user message AFTER fetching history.

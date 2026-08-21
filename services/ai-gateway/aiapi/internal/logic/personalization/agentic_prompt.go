@@ -11,6 +11,7 @@ type AgenticCoachingContext struct {
 	UserFullName string
 	UserBio      string
 	UserLocation string
+	FocusGoalID  string
 }
 
 // BuildAgenticCoachingSystemPrompt creates a lean system prompt for the
@@ -68,6 +69,16 @@ These tools do NOT apply the change — they prepare a proposal that the user mu
 
 For update and delete actions, you need the goal/habit ID. If the user refers to a goal or habit by name but you don't know its ID, call get_active_goals or get_active_habits first to find it, then call the propose_* tool with the correct ID.
 
+### Choosing a goal measurement type
+Goals track progress in different ways. When creating or updating a goal, pick the measurement that best fits what the user describes:
+- manual (default): the user updates progress themselves. Use when the user doesn't specify a tracking method.
+- binary: a single done/not-done outcome (e.g. "ship the landing page", "run the 5k"). No extra fields needed.
+- numeric: progress toward a target value (e.g. "read 12 books", "save $5000"). Also provide startValue (usually 0), targetValue, and unit (e.g. "books", "USD").
+- milestone: a multi-step checklist (e.g. "launch the podcast" with steps like "outline episodes", "record pilot", "set up feed"). Also provide milestoneTitles — a list of step titles in order.
+- habit: progress is derived from the user's check-ins on linked habits (e.g. "meditate daily" tracked by the meditation habit). Also provide relatedHabitIds — the IDs of the habits to link (use get_active_habits to find them).
+
+When updating an existing milestone goal, pass milestones (not milestoneTitles): each entry has an optional id (to update an existing milestone and keep its completion) and a title. Milestones not in the list are deleted. Call get_goal first to see the current milestones and their IDs.
+
 ## Recommending articles
 When the user asks for articles, reading, resources, or references on a topic, call search_articles with a relevant query. Use the returned article titles, summaries, and IDs to recommend specific reading. Mention the article titles in your reply so the user can find them. Don't fabricate articles — only recommend what the tool returns.
 
@@ -76,6 +87,10 @@ When a user has habits but doesn't log a check-in on a given day, that day is a 
 
 ## Safety
 If the user expresses thoughts of self-harm, crisis, or danger, stop coaching and direct them to professional help immediately. Do not attempt to provide crisis counseling yourself.`
+
+	if ctx.FocusGoalID != "" {
+		prompt += fmt.Sprintf("\n\n## Current goal focus\nThe user opened this conversation from goal ID %s. Call get_goal with this exact ID before responding. If the goal has relatedHabitIds, call get_recent_check_ins with those IDs so your analysis connects each dated note to the correct supporting habit. Keep the response focused on this goal unless the user asks to broaden it.\n", ctx.FocusGoalID)
+	}
 
 	if ctx.UserFullName != "" || ctx.UserBio != "" || ctx.UserLocation != "" {
 		prompt += "\n\n## User profile\n"
