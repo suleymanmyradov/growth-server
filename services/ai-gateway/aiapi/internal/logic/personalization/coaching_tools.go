@@ -3,6 +3,7 @@ package personalization
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,6 +14,7 @@ import (
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
 	clientpersonalization "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/personalizationservice"
 	clientweekly "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	clientpb "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 )
 
@@ -100,13 +102,19 @@ type habitsOutput struct {
 	Habits []habitSummary `json:"habits"`
 }
 
+type checkInsInput struct {
+	HabitIds []string `json:"habitIds,omitempty"`
+}
+
 type checkInSummary struct {
-	Status  string `json:"status"`
-	Mood    string `json:"mood,omitempty"`
-	Energy  string `json:"energy,omitempty"`
-	Blocker string `json:"blocker,omitempty"`
-	Note    string `json:"note,omitempty"`
-	Date    string `json:"date,omitempty"`
+	HabitId   string `json:"habitId"`
+	HabitName string `json:"habitName,omitempty"`
+	Status    string `json:"status"`
+	Mood      string `json:"mood,omitempty"`
+	Energy    string `json:"energy,omitempty"`
+	Blocker   string `json:"blocker,omitempty"`
+	Note      string `json:"note,omitempty"`
+	Date      string `json:"date,omitempty"`
 }
 
 type dailyCoverageEntry struct {
@@ -363,31 +371,56 @@ func getHabitTool(habits clienthabits.Habits) ai.Tool {
 }
 
 func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService, habits clienthabits.Habits) ai.Tool {
-	return ai.NewTool[noInput, checkInsOutput](ai.ToolSpec{
+	return ai.NewTool[checkInsInput, checkInsOutput](ai.ToolSpec{
 		Name:        "get_recent_check_ins",
-		Description: "Fetch the user's recent check-ins (last 30 days, up to 10) with status, mood, energy, blocker, and note. Also includes a day-by-day coverage summary for the last 7 days showing which days had check-ins and which were missed (no check-in logged at all). Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
-		Handler: func(ctx context.Context, _ noInput) (checkInsOutput, error) {
-			resp, err := checkIns.GetCheckInHistory(ctx, &clientcheckin.GetCheckInHistoryRequest{
-				UserId: userID,
-				Page:   1,
-				Limit:  10,
-			})
-			if err != nil {
-				return checkInsOutput{}, fmt.Errorf("get_recent_check_ins: %w", err)
+		Description: "Fetch the user's recent check-ins with habit ID, habit name, status, mood, energy, blocker, and note. Optionally pass habitIds to focus on the habits linked to a specific goal. Also includes a day-by-day coverage summary for the last 7 days showing which days had check-ins and which were missed (no check-in logged at all). Call this when the user asks about recent progress, struggles, patterns, or how they've been doing.",
+		Handler: func(ctx context.Context, in checkInsInput) (checkInsOutput, error) {
+			habitIDs := make([]string, 0, len(in.HabitIds))
+			seenHabitIDs := make(map[string]struct{}, len(in.HabitIds))
+			for _, habitID := range in.HabitIds {
+				if habitID == "" {
+					continue
+				}
+				if _, ok := seenHabitIDs[habitID]; ok {
+					continue
+				}
+				seenHabitIDs[habitID] = struct{}{}
+				habitIDs = append(habitIDs, habitID)
+				if len(habitIDs) == 10 {
+					break
+				}
 			}
-			out := checkInsOutput{CheckIns: make([]checkInSummary, 0, len(resp.CheckIns))}
-			for _, c := range resp.CheckIns {
-				summary := checkInSummary{
-					Status:  c.Status,
-					Mood:    c.Mood,
-					Energy:  c.Energy,
-					Blocker: c.Blocker,
-					Note:    c.Note,
+
+			var recentCheckIns []*clientpb.CheckIn
+			if len(habitIDs) == 0 {
+				resp, err := checkIns.GetCheckInHistory(ctx, &clientcheckin.GetCheckInHistoryRequest{
+					UserId: userID,
+					Page:   1,
+					Limit:  10,
+				})
+				if err != nil {
+					return checkInsOutput{}, fmt.Errorf("get_recent_check_ins: %w", err)
 				}
-				if c.CreatedAt > 0 {
-					summary.Date = time.Unix(c.CreatedAt, 0).Format("2006-01-02")
+				recentCheckIns = resp.CheckIns
+			} else {
+				for _, habitID := range habitIDs {
+					resp, err := checkIns.GetCheckInHistory(ctx, &clientcheckin.GetCheckInHistoryRequest{
+						UserId:  userID,
+						HabitId: habitID,
+						Page:    1,
+						Limit:   10,
+					})
+					if err != nil {
+						return checkInsOutput{}, fmt.Errorf("get_recent_check_ins for habit %s: %w", habitID, err)
+					}
+					recentCheckIns = append(recentCheckIns, resp.CheckIns...)
 				}
-				out.CheckIns = append(out.CheckIns, summary)
+				sort.Slice(recentCheckIns, func(i, j int) bool {
+					return recentCheckIns[i].CreatedAt > recentCheckIns[j].CreatedAt
+				})
+				if len(recentCheckIns) > 30 {
+					recentCheckIns = recentCheckIns[:30]
+				}
 			}
 
 			// Build a daily coverage summary for the last 7 days so the coach
@@ -397,9 +430,32 @@ func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService,
 				Page:  1,
 				Limit: 50,
 			})
-			activeHabitCount := 0
+			activeHabitCount := len(habitIDs)
+			habitNames := make(map[string]string)
 			if hErr == nil {
-				activeHabitCount = len(habitsResp.Habits)
+				if activeHabitCount == 0 {
+					activeHabitCount = len(habitsResp.Habits)
+				}
+				for _, habit := range habitsResp.Habits {
+					habitNames[habit.Id] = habit.Name
+				}
+			}
+
+			out := checkInsOutput{CheckIns: make([]checkInSummary, 0, len(recentCheckIns))}
+			for _, c := range recentCheckIns {
+				summary := checkInSummary{
+					HabitId:   c.HabitId,
+					HabitName: habitNames[c.HabitId],
+					Status:    c.Status,
+					Mood:      c.Mood,
+					Energy:    c.Energy,
+					Blocker:   c.Blocker,
+					Note:      c.Note,
+				}
+				if c.CreatedAt > 0 {
+					summary.Date = time.Unix(c.CreatedAt, 0).Format("2006-01-02")
+				}
+				out.CheckIns = append(out.CheckIns, summary)
 			}
 
 			// Group check-ins by date for the last 7 days.
@@ -418,7 +474,7 @@ func getRecentCheckInsTool(userID string, checkIns clientcheckin.CheckInService,
 			}
 			completedTotal := 0
 			expectedTotal := 0
-			for _, c := range resp.CheckIns {
+			for _, c := range recentCheckIns {
 				if c.CreatedAt == 0 {
 					continue
 				}
@@ -562,12 +618,32 @@ func newProposalID() string { return uuid.NewString() }
 
 // --- Goal proposal input types ---
 
+// milestoneProposalInput mirrors the client's MilestoneInput: an optional id
+// identifies an existing milestone to update (preserving its done_at), an
+// empty id means create new. Used by propose_update_goal so the agent can
+// reconcile milestones without losing completion state.
+type milestoneProposalInput struct {
+	Id    string `json:"id,omitempty"`
+	Title string `json:"title"`
+}
+
 type createGoalInput struct {
 	Title           string   `json:"title"`
 	Description     string   `json:"description,omitempty"`
 	Category        string   `json:"category"`
 	DueDate         string   `json:"dueDate,omitempty"` // ISO date string (YYYY-MM-DD)
 	RelatedHabitIds []string `json:"relatedHabitIds,omitempty"`
+	// Measurement type. Defaults to "manual" (progress set by the user) when
+	// empty. Use "binary" for done/not-done goals, "numeric" for a value
+	// tracking toward a target (requires startValue + targetValue + unit),
+	// "milestone" for a multi-step checklist (provide milestoneTitles), or
+	// "habit" for progress derived from linked habits (provide relatedHabitIds).
+	Measurement     string   `json:"measurement,omitempty"`
+	StartValue      float64  `json:"startValue,omitempty"`
+	CurrentValue    float64  `json:"currentValue,omitempty"`
+	TargetValue     float64  `json:"targetValue,omitempty"`
+	Unit            string   `json:"unit,omitempty"`
+	MilestoneTitles []string `json:"milestoneTitles,omitempty"`
 }
 
 type updateGoalInput struct {
@@ -577,6 +653,16 @@ type updateGoalInput struct {
 	Category        string   `json:"category,omitempty"`
 	DueDate         string   `json:"dueDate,omitempty"`
 	RelatedHabitIds []string `json:"relatedHabitIds,omitempty"`
+	Measurement     string   `json:"measurement,omitempty"`
+	StartValue      float64  `json:"startValue,omitempty"`
+	CurrentValue    float64  `json:"currentValue,omitempty"`
+	TargetValue     float64  `json:"targetValue,omitempty"`
+	Unit            string   `json:"unit,omitempty"`
+	// Milestones to reconcile: an entry with an id updates an existing
+	// milestone (preserving done_at); an entry without an id creates a new
+	// one. Milestones not in this list are deleted. Only meaningful when
+	// measurement is "milestone".
+	Milestones []milestoneProposalInput `json:"milestones,omitempty"`
 }
 
 type deleteGoalInput struct {
@@ -606,8 +692,9 @@ type deleteHabitInput struct {
 
 func proposeCreateGoalTool() ai.Tool {
 	return ai.NewTool[createGoalInput, proposalOutput](ai.ToolSpec{
-		Name:        "propose_create_goal",
-		Description: "Prepare a new goal for the user to confirm. Call this when the user asks to create or add a goal. The goal is NOT created yet — a confirmation card is shown to the user. Required: title. Optional: description, category, dueDate (YYYY-MM-DD), relatedHabitIds.",
+		Name: "propose_create_goal",
+		Description: "Prepare a new goal for the user to confirm. Call this when the user asks to create or add a goal. The goal is NOT created yet — a confirmation card is shown to the user. Required: title, category. Optional: description, dueDate (YYYY-MM-DD), relatedHabitIds, measurement, startValue, currentValue, targetValue, unit, milestoneTitles. " +
+			"measurement is one of: binary (done/not-done), numeric (track a value toward a target — also provide startValue, targetValue, and unit), milestone (multi-step checklist — also provide milestoneTitles), habit (progress derived from linked habits — also provide relatedHabitIds), manual (default — user sets progress themselves). Pick the measurement that best fits what the user describes.",
 		Handler: func(ctx context.Context, in createGoalInput) (proposalOutput, error) {
 			if in.Title == "" {
 				return proposalOutput{}, fmt.Errorf("propose_create_goal: title is required")
@@ -625,6 +712,24 @@ func proposeCreateGoalTool() ai.Tool {
 			if len(in.RelatedHabitIds) > 0 {
 				payload["relatedHabitIds"] = in.RelatedHabitIds
 			}
+			if in.Measurement != "" {
+				payload["measurement"] = in.Measurement
+			}
+			if in.StartValue != 0 {
+				payload["startValue"] = in.StartValue
+			}
+			if in.CurrentValue != 0 {
+				payload["currentValue"] = in.CurrentValue
+			}
+			if in.TargetValue != 0 {
+				payload["targetValue"] = in.TargetValue
+			}
+			if in.Unit != "" {
+				payload["unit"] = in.Unit
+			}
+			if len(in.MilestoneTitles) > 0 {
+				payload["milestoneTitles"] = in.MilestoneTitles
+			}
 			return proposalOutput{Id: newProposalID(), Action: "create_goal", Payload: payload}, nil
 		},
 	})
@@ -632,8 +737,10 @@ func proposeCreateGoalTool() ai.Tool {
 
 func proposeUpdateGoalTool() ai.Tool {
 	return ai.NewTool[updateGoalInput, proposalOutput](ai.ToolSpec{
-		Name:        "propose_update_goal",
-		Description: "Prepare changes to an existing goal for the user to confirm. Call this when the user asks to edit, rename, or change a goal. The goal is NOT updated yet — a confirmation card is shown. Required: goalId. At least one of: title, description, category, dueDate, relatedHabitIds.",
+		Name: "propose_update_goal",
+		Description: "Prepare changes to an existing goal for the user to confirm. Call this when the user asks to edit, rename, or change a goal. The goal is NOT updated yet — a confirmation card is shown. Required: goalId. Optional: title, description, category, dueDate, relatedHabitIds, measurement, startValue, currentValue, targetValue, unit, milestones. " +
+			"measurement is one of: binary, numeric, milestone, habit, manual. Changing measurement is supported — provide the new measurement and any fields it requires (numeric: startValue/targetValue/unit; milestone: milestones; habit: relatedHabitIds). " +
+			"milestones reconciles the milestone list: an entry with an id updates that existing milestone (preserving its completion), an entry without an id creates a new one, and milestones not listed are deleted. Only meaningful when measurement is milestone.",
 		Handler: func(ctx context.Context, in updateGoalInput) (proposalOutput, error) {
 			if in.GoalId == "" {
 				return proposalOutput{}, fmt.Errorf("propose_update_goal: goalId is required")
@@ -653,6 +760,32 @@ func proposeUpdateGoalTool() ai.Tool {
 			}
 			if len(in.RelatedHabitIds) > 0 {
 				payload["relatedHabitIds"] = in.RelatedHabitIds
+			}
+			if in.Measurement != "" {
+				payload["measurement"] = in.Measurement
+			}
+			if in.StartValue != 0 {
+				payload["startValue"] = in.StartValue
+			}
+			if in.CurrentValue != 0 {
+				payload["currentValue"] = in.CurrentValue
+			}
+			if in.TargetValue != 0 {
+				payload["targetValue"] = in.TargetValue
+			}
+			if in.Unit != "" {
+				payload["unit"] = in.Unit
+			}
+			if len(in.Milestones) > 0 {
+				ms := make([]map[string]any, 0, len(in.Milestones))
+				for _, m := range in.Milestones {
+					entry := map[string]any{"title": m.Title}
+					if m.Id != "" {
+						entry["id"] = m.Id
+					}
+					ms = append(ms, entry)
+				}
+				payload["milestones"] = ms
 			}
 			return proposalOutput{Id: newProposalID(), Action: "update_goal", Payload: payload}, nil
 		},

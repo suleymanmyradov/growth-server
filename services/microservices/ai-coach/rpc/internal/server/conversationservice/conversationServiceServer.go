@@ -48,6 +48,11 @@ func (s *ConversationServiceServer) AppendMessage(ctx context.Context, in *aicoa
 	return l.AppendMessage(in)
 }
 
+func (s *ConversationServiceServer) RegenerateLastResponse(ctx context.Context, in *aicoach.RegenerateLastResponseRequest) (*aicoach.RegenerateLastResponseResponse, error) {
+	l := conversationservicelogic.NewRegenerateLastResponseLogic(ctx, s.svcCtx)
+	return l.RegenerateLastResponse(in)
+}
+
 func (s *ConversationServiceServer) ArchiveConversation(ctx context.Context, in *aicoach.ArchiveConversationRequest) (*aicoach.ArchiveConversationResponse, error) {
 	l := conversationservicelogic.NewArchiveConversationLogic(ctx, s.svcCtx)
 	return l.ArchiveConversation(in)

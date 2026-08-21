@@ -694,7 +694,9 @@ type (
 		userMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
 		context        string       `json:"context,optional,example=User has been struggling with motivation"`
 		conversationId string       `json:"conversationId,optional"`
+		goalId         string       `json:"goalId,optional"`
 		attachments    []Attachment `json:"attachments,optional"`
+		regenerate     bool         `json:"regenerate,optional"`
 	}
 	GeneratePersonalizedCoachingResponse {
 		coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`

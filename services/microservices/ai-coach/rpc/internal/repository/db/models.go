@@ -29,6 +29,11 @@ type AiFeedback struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type AnalyticsProcessedEvent struct {
+	EventID     uuid.UUID          `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
 type Article struct {
 	ID              uuid.UUID          `db:"id" json:"id"`
 	CategoryID      uuid.NullUUID      `db:"category_id" json:"category_id"`
@@ -131,6 +136,23 @@ type ConversationMessage struct {
 	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type ConversionFunnel struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Stage     string             `db:"stage" json:"stage"`
+	EnteredAt pgtype.Timestamptz `db:"entered_at" json:"entered_at"`
+	Metadata  []byte             `db:"metadata" json:"metadata"`
+}
+
+type DailyMetric struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	MetricDate  pgtype.Date        `db:"metric_date" json:"metric_date"`
+	MetricName  string             `db:"metric_name" json:"metric_name"`
+	MetricValue int32              `db:"metric_value" json:"metric_value"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type Goal struct {
 	ID           uuid.UUID          `db:"id" json:"id"`
 	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
@@ -176,13 +198,24 @@ type GoalTemplate struct {
 }
 
 type Habit struct {
-	ID          uuid.UUID          `db:"id" json:"id"`
-	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
-	CategoryID  uuid.NullUUID      `db:"category_id" json:"category_id"`
-	Name        string             `db:"name" json:"name"`
-	Description *string            `db:"description" json:"description"`
-	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID           uuid.UUID          `db:"id" json:"id"`
+	UserID       uuid.UUID          `db:"user_id" json:"user_id"`
+	CategoryID   uuid.NullUUID      `db:"category_id" json:"category_id"`
+	Name         string             `db:"name" json:"name"`
+	Description  *string            `db:"description" json:"description"`
+	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	Status       string             `db:"status" json:"status"`
+	ReminderTime pgtype.Time        `db:"reminder_time" json:"reminder_time"`
+}
+
+type HabitMissedStreak struct {
+	HabitID               uuid.UUID          `db:"habit_id" json:"habit_id"`
+	UserID                uuid.UUID          `db:"user_id" json:"user_id"`
+	ConsecutiveMissedDays int32              `db:"consecutive_missed_days" json:"consecutive_missed_days"`
+	LastCompletedDate     pgtype.Date        `db:"last_completed_date" json:"last_completed_date"`
+	LastRecoveryTriggered pgtype.Date        `db:"last_recovery_triggered" json:"last_recovery_triggered"`
+	UpdatedAt             pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type HabitTemplate struct {
@@ -350,6 +383,16 @@ type ReportComment struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type RetentionCohort struct {
+	ID            uuid.UUID          `db:"id" json:"id"`
+	CohortDate    pgtype.Date        `db:"cohort_date" json:"cohort_date"`
+	CohortSize    int32              `db:"cohort_size" json:"cohort_size"`
+	PeriodDays    int32              `db:"period_days" json:"period_days"`
+	RetainedCount int32              `db:"retained_count" json:"retained_count"`
+	RetentionRate pgtype.Numeric     `db:"retention_rate" json:"retention_rate"`
+	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type SavedArticle struct {
 	ID        uuid.UUID          `db:"id" json:"id"`
 	ArticleID uuid.UUID          `db:"article_id" json:"article_id"`
@@ -430,6 +473,15 @@ type User struct {
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	EmailVerified bool               `db:"email_verified" json:"email_verified"`
+}
+
+type UserLifecycleEvent struct {
+	ID         uuid.UUID          `db:"id" json:"id"`
+	UserID     uuid.UUID          `db:"user_id" json:"user_id"`
+	EventType  string             `db:"event_type" json:"event_type"`
+	OccurredAt pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	Metadata   []byte             `db:"metadata" json:"metadata"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type UserOauthAccount struct {

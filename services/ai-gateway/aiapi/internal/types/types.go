@@ -308,7 +308,9 @@ type GeneratePersonalizedCoachingRequest struct {
 	UserMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
 	Context        string       `json:"context,optional,example=User has been struggling with motivation"`
 	ConversationId string       `json:"conversationId,optional"`
+	GoalId         string       `json:"goalId,optional"`
 	Attachments    []Attachment `json:"attachments,optional"`
+	Regenerate     bool         `json:"regenerate,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {

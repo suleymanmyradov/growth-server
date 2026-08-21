@@ -10,6 +10,8 @@ import (
 	"google.golang.org/grpc"
 
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
+	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
+	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
 	clientpb "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	searchpb "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
 	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
@@ -316,6 +318,50 @@ func TestSearchArticlesTool(t *testing.T) {
 		require.NoError(t, err)
 		assert.Contains(t, out, `"articles":[]`)
 	})
+}
+
+type mockCheckInService struct {
+	clientcheckin.CheckInService
+	requests []*clientcheckin.GetCheckInHistoryRequest
+}
+
+func (m *mockCheckInService) GetCheckInHistory(_ context.Context, in *clientcheckin.GetCheckInHistoryRequest, _ ...grpc.CallOption) (*clientcheckin.GetCheckInHistoryResponse, error) {
+	m.requests = append(m.requests, in)
+	return &clientcheckin.GetCheckInHistoryResponse{
+		CheckIns: []*clientpb.CheckIn{{
+			HabitId:   in.HabitId,
+			Status:    "completed",
+			Note:      "Felt focused",
+			CreatedAt: 1_700_000_000,
+		}},
+	}, nil
+}
+
+type mockHabitsService struct {
+	clienthabits.Habits
+}
+
+func (m *mockHabitsService) ListHabits(_ context.Context, _ *clienthabits.ListHabitsRequest, _ ...grpc.CallOption) (*clienthabits.ListHabitsResponse, error) {
+	return &clienthabits.ListHabitsResponse{Habits: []*clientpb.Habit{
+		{Id: "habit-1", Name: "Morning walk"},
+		{Id: "habit-2", Name: "Read nightly"},
+	}}, nil
+}
+
+func TestGetRecentCheckInsToolFiltersAndLabelsHabits(t *testing.T) {
+	checkIns := &mockCheckInService{}
+	tool := getRecentCheckInsTool("user-1", checkIns, &mockHabitsService{})
+
+	out, err := tool.Execute(context.Background(), `{"habitIds":["habit-1","habit-2"]}`)
+	require.NoError(t, err)
+	require.Len(t, checkIns.requests, 2)
+	assert.Equal(t, "habit-1", checkIns.requests[0].HabitId)
+	assert.Equal(t, "habit-2", checkIns.requests[1].HabitId)
+	assert.Contains(t, out, `"habitId":"habit-1"`)
+	assert.Contains(t, out, `"habitName":"Morning walk"`)
+	assert.Contains(t, out, `"habitId":"habit-2"`)
+	assert.Contains(t, out, `"habitName":"Read nightly"`)
+	assert.Contains(t, out, `"note":"Felt focused"`)
 }
 
 // ============================================

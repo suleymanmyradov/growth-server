@@ -405,14 +405,15 @@ var AICoachService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	ConversationService_StartConversation_FullMethodName     = "/aicoach.ConversationService/StartConversation"
-	ConversationService_ListConversations_FullMethodName     = "/aicoach.ConversationService/ListConversations"
-	ConversationService_GetConversation_FullMethodName       = "/aicoach.ConversationService/GetConversation"
-	ConversationService_GetMessages_FullMethodName           = "/aicoach.ConversationService/GetMessages"
-	ConversationService_AppendMessage_FullMethodName         = "/aicoach.ConversationService/AppendMessage"
-	ConversationService_ArchiveConversation_FullMethodName   = "/aicoach.ConversationService/ArchiveConversation"
-	ConversationService_UnarchiveConversation_FullMethodName = "/aicoach.ConversationService/UnarchiveConversation"
-	ConversationService_DeleteConversation_FullMethodName    = "/aicoach.ConversationService/DeleteConversation"
+	ConversationService_StartConversation_FullMethodName      = "/aicoach.ConversationService/StartConversation"
+	ConversationService_ListConversations_FullMethodName      = "/aicoach.ConversationService/ListConversations"
+	ConversationService_GetConversation_FullMethodName        = "/aicoach.ConversationService/GetConversation"
+	ConversationService_GetMessages_FullMethodName            = "/aicoach.ConversationService/GetMessages"
+	ConversationService_AppendMessage_FullMethodName          = "/aicoach.ConversationService/AppendMessage"
+	ConversationService_RegenerateLastResponse_FullMethodName = "/aicoach.ConversationService/RegenerateLastResponse"
+	ConversationService_ArchiveConversation_FullMethodName    = "/aicoach.ConversationService/ArchiveConversation"
+	ConversationService_UnarchiveConversation_FullMethodName  = "/aicoach.ConversationService/UnarchiveConversation"
+	ConversationService_DeleteConversation_FullMethodName     = "/aicoach.ConversationService/DeleteConversation"
 )
 
 // ConversationServiceClient is the client API for ConversationService service.
@@ -424,6 +425,7 @@ type ConversationServiceClient interface {
 	GetConversation(ctx context.Context, in *GetConversationRequest, opts ...grpc.CallOption) (*GetConversationResponse, error)
 	GetMessages(ctx context.Context, in *GetMessagesRequest, opts ...grpc.CallOption) (*GetMessagesResponse, error)
 	AppendMessage(ctx context.Context, in *AppendMessageRequest, opts ...grpc.CallOption) (*AppendMessageResponse, error)
+	RegenerateLastResponse(ctx context.Context, in *RegenerateLastResponseRequest, opts ...grpc.CallOption) (*RegenerateLastResponseResponse, error)
 	ArchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error)
 	UnarchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error)
 	DeleteConversation(ctx context.Context, in *DeleteConversationRequest, opts ...grpc.CallOption) (*DeleteConversationResponse, error)
@@ -487,6 +489,16 @@ func (c *conversationServiceClient) AppendMessage(ctx context.Context, in *Appen
 	return out, nil
 }
 
+func (c *conversationServiceClient) RegenerateLastResponse(ctx context.Context, in *RegenerateLastResponseRequest, opts ...grpc.CallOption) (*RegenerateLastResponseResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegenerateLastResponseResponse)
+	err := c.cc.Invoke(ctx, ConversationService_RegenerateLastResponse_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *conversationServiceClient) ArchiveConversation(ctx context.Context, in *ArchiveConversationRequest, opts ...grpc.CallOption) (*ArchiveConversationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ArchiveConversationResponse)
@@ -526,6 +538,7 @@ type ConversationServiceServer interface {
 	GetConversation(context.Context, *GetConversationRequest) (*GetConversationResponse, error)
 	GetMessages(context.Context, *GetMessagesRequest) (*GetMessagesResponse, error)
 	AppendMessage(context.Context, *AppendMessageRequest) (*AppendMessageResponse, error)
+	RegenerateLastResponse(context.Context, *RegenerateLastResponseRequest) (*RegenerateLastResponseResponse, error)
 	ArchiveConversation(context.Context, *ArchiveConversationRequest) (*ArchiveConversationResponse, error)
 	UnarchiveConversation(context.Context, *ArchiveConversationRequest) (*ArchiveConversationResponse, error)
 	DeleteConversation(context.Context, *DeleteConversationRequest) (*DeleteConversationResponse, error)
@@ -553,6 +566,9 @@ func (UnimplementedConversationServiceServer) GetMessages(context.Context, *GetM
 }
 func (UnimplementedConversationServiceServer) AppendMessage(context.Context, *AppendMessageRequest) (*AppendMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AppendMessage not implemented")
+}
+func (UnimplementedConversationServiceServer) RegenerateLastResponse(context.Context, *RegenerateLastResponseRequest) (*RegenerateLastResponseResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegenerateLastResponse not implemented")
 }
 func (UnimplementedConversationServiceServer) ArchiveConversation(context.Context, *ArchiveConversationRequest) (*ArchiveConversationResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ArchiveConversation not implemented")
@@ -674,6 +690,24 @@ func _ConversationService_AppendMessage_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ConversationService_RegenerateLastResponse_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegenerateLastResponseRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ConversationServiceServer).RegenerateLastResponse(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ConversationService_RegenerateLastResponse_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ConversationServiceServer).RegenerateLastResponse(ctx, req.(*RegenerateLastResponseRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ConversationService_ArchiveConversation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ArchiveConversationRequest)
 	if err := dec(in); err != nil {
@@ -754,6 +788,10 @@ var ConversationService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AppendMessage",
 			Handler:    _ConversationService_AppendMessage_Handler,
+		},
+		{
+			MethodName: "RegenerateLastResponse",
+			Handler:    _ConversationService_RegenerateLastResponse_Handler,
 		},
 		{
 			MethodName: "ArchiveConversation",

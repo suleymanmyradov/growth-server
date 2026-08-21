@@ -23,6 +23,7 @@ type Querier interface {
 	ListArchivedConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Conversation, error)
 	ListConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32, type_ string) ([]Conversation, error)
 	ListMessages(ctx context.Context, conversationID uuid.UUID, limit int32, offset int32) ([]ListMessagesRow, error)
+	RegenerateLastResponse(ctx context.Context, conversationID uuid.UUID) (ConversationMessage, error)
 	UnarchiveConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (Conversation, error)
 	UpdateConversationLastMessage(ctx context.Context, iD uuid.UUID, lastMessage string) (Conversation, error)
 	UpdateConversationTitle(ctx context.Context, iD uuid.UUID, title string, userID uuid.UUID) (Conversation, error)
