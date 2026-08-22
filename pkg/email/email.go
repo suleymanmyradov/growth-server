@@ -10,12 +10,13 @@ import (
 
 // Email is the provider-agnostic message passed to Sender.Send.
 type Email struct {
-	From        string            // verified sender address
-	To          []string          // recipient addresses
-	Subject     string            // email subject line
-	HTML        string            // HTML body (required; plain-text fallback derived by provider)
-	ReplyTo     string            // optional Reply-To address
-	Headers     map[string]string // optional custom headers
+	From           string            // verified sender address
+	To             []string          // recipient addresses
+	Subject        string            // email subject line
+	HTML           string            // HTML body (required; plain-text fallback derived by provider)
+	ReplyTo        string            // optional Reply-To address
+	Headers        map[string]string // optional custom headers
+	IdempotencyKey string
 }
 
 // Sender sends a transactional email. Implementations must be safe for concurrent use.
