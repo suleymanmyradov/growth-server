@@ -110,8 +110,9 @@ type ReminderDue struct {
 
 // HabitCreated is the payload for TypeHabitCreated events.
 type HabitCreated struct {
-	UserID  string `json:"userId"`
-	HabitID string `json:"habitId"`
+	UserID    string `json:"userId"`
+	HabitID   string `json:"habitId"`
+	HabitName string `json:"habitName"`
 }
 
 // HabitDeleted is the payload for TypeHabitDeleted events.
@@ -144,10 +145,10 @@ type GoalDeleted struct {
 // SubscriptionChanged is the payload for TypeSubscriptionChanged events.
 // Published by the client billing service on subscription lifecycle changes.
 type SubscriptionChanged struct {
-	UserID         string `json:"userId"`
-	PlanCode       string `json:"planCode"`
-	PreviousStatus string `json:"previousStatus,omitempty"`
-	NewStatus      string `json:"newStatus"`
+	UserID          string `json:"userId"`
+	PlanCode        string `json:"planCode"`
+	PreviousStatus  string `json:"previousStatus,omitempty"`
+	NewStatus       string `json:"newStatus"`
 	BillingInterval string `json:"billingInterval,omitempty"`
 }
 
@@ -173,15 +174,16 @@ type UserDeleted struct {
 // consumed by services that maintain a local read model of user profiles.
 // All fields are populated so the consumer can fully sync its read model.
 type UserProfileUpdated struct {
-	UserID    string   `json:"userId"`
-	Username  string   `json:"username"`
-	Email     string   `json:"email"`
-	Name      string   `json:"name"`
-	Bio       string   `json:"bio,omitempty"`
-	Location  string   `json:"location,omitempty"`
-	Website   string   `json:"website,omitempty"`
-	Interests []string `json:"interests,omitempty"`
-	Avatar    string   `json:"avatar,omitempty"`
+	UserID        string   `json:"userId"`
+	Username      string   `json:"username"`
+	Email         string   `json:"email"`
+	EmailVerified bool     `json:"emailVerified"`
+	Name          string   `json:"name"`
+	Bio           string   `json:"bio,omitempty"`
+	Location      string   `json:"location,omitempty"`
+	Website       string   `json:"website,omitempty"`
+	Interests     []string `json:"interests,omitempty"`
+	Avatar        string   `json:"avatar,omitempty"`
 }
 
 // BroadcastNotificationRequested is the payload for
