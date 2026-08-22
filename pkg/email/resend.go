@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	resendAPIURL   = "https://api.resend.com/emails"
-	resendTimeout  = 10 * time.Second
+	resendAPIURL  = "https://api.resend.com/emails"
+	resendTimeout = 10 * time.Second
 )
 
 // ResendSender sends email via the Resend HTTP API.
@@ -78,6 +78,9 @@ func (r *ResendSender) Send(ctx context.Context, msg Email) error {
 	}
 	req.Header.Set("Authorization", "Bearer "+r.apiKey)
 	req.Header.Set("Content-Type", "application/json")
+	if msg.IdempotencyKey != "" {
+		req.Header.Set("Idempotency-Key", msg.IdempotencyKey)
+	}
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
