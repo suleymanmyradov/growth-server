@@ -81,8 +81,9 @@ func (l *CreateHabitLogic) CreateHabit(in *client.CreateHabitRequest) (*client.C
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			env, err := events.NewEnvelope(events.TypeHabitCreated, events.HabitCreated{
-				UserID:  userID.String(),
-				HabitID: habit.ID.String(),
+				UserID:    userID.String(),
+				HabitID:   habit.ID.String(),
+				HabitName: habit.Name,
 			})
 			if err != nil {
 				logx.Errorf("envelope: %v", err)
