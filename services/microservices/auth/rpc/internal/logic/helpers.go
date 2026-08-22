@@ -41,13 +41,13 @@ func toPbUser(u db.User) *auth.User {
 	}
 
 	return &auth.User{
-		Id:            u.ID.String(),
-		Username:      u.Username,
-		Email:         u.Email,
-		FullName:      u.FullName,
-		Bio:           bio,
-		Location:      location,
-		Website:       website,
+		Id:       u.ID.String(),
+		Username: u.Username,
+		Email:    u.Email,
+		FullName: u.FullName,
+		Bio:      bio,
+		Location: location,
+		Website:  website,
 		// Normalize nil → [] so JSON serialization produces [] instead of null
 		// (go-zero's `optional` tag is not omitempty).
 		Interests:     nonNilStrings(u.Interests),
@@ -94,15 +94,16 @@ func publishUserProfileUpdated(ctx context.Context, pub *events.Publisher, u db.
 	}
 
 	env, err := events.NewEnvelope(events.TypeUserProfileUpdated, events.UserProfileUpdated{
-		UserID:    u.ID.String(),
-		Username:  u.Username,
-		Email:     u.Email,
-		Name:      u.FullName,
-		Bio:       bio,
-		Location:  location,
-		Website:   website,
-		Interests: u.Interests,
-		Avatar:    avatar,
+		UserID:        u.ID.String(),
+		Username:      u.Username,
+		Email:         u.Email,
+		EmailVerified: u.EmailVerified,
+		Name:          u.FullName,
+		Bio:           bio,
+		Location:      location,
+		Website:       website,
+		Interests:     u.Interests,
+		Avatar:        avatar,
 	})
 	if err != nil {
 		logx.WithContext(ctx).Errorf("failed to build user_profile_updated envelope: %v", err)

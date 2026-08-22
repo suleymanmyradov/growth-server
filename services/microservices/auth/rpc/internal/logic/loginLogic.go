@@ -83,6 +83,7 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 	}
 
 	l.Infof("Login successful for user %s", user.ID)
+	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
 
 	return &auth.AuthResponse{
 		AccessToken:  accessToken.Token,
