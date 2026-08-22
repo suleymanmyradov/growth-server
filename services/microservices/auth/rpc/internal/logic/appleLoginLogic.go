@@ -94,7 +94,6 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	displayName := apple.FullName(givenName, familyName)
 
 	var user db.User
-	var isNewUser bool
 	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
 
@@ -127,7 +126,6 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 		}
 
 		// 3. No existing user — create a new OAuth-only user.
-		isNewUser = true
 		username := deriveUsername(appleUser.Email, displayName)
 		// Ensure username uniqueness with a numeric suffix if needed.
 		for i := 0; ; i++ {
@@ -158,10 +156,8 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 		return nil, err
 	}
 
-	// Only publish on new user creation; existing users don't change profile on login.
-	if isNewUser {
-		publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
-	}
+	// Publish on every login so downstream recipient projections stay current.
+	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
 
 	// Best-effort authorization code exchange for a refresh token. Failure is
 	// non-fatal: the ID token is sufficient to identify the user. Code exchange

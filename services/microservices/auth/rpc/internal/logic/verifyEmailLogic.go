@@ -78,6 +78,7 @@ func (l *VerifyEmailLogic) VerifyEmail(in *auth.VerifyEmailRequest) (*auth.AuthR
 	}
 
 	l.Infof("VerifyEmail successful for user %s", user.ID)
+	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
 
 	return &auth.AuthResponse{
 		AccessToken:  accessToken.Token,
