@@ -32,6 +32,13 @@ type Config struct {
 		// so dev environments without push can run the service.
 		Enabled bool `json:",optional,default=false"`
 	}
+	Email struct {
+		Provider        string `json:",optional"`
+		APIKey          string `json:",optional" secret:"true"`
+		FromAddress     string `json:",optional"`
+		FrontendBaseURL string `json:",optional"`
+		Enabled         bool   `json:",optional,default=false"`
+	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`
 }

@@ -103,6 +103,27 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 		}
 	}
 
+	if prev.SundayReview != pref.SundayReview {
+		if _, err := l.svcCtx.Repo.Reminders.CancelPendingByType(ctx, userID, "weekly_review"); err != nil {
+			logx.WithContext(ctx).Errorf("Failed to cancel pending weekly reviews: %v", err)
+		}
+		if pref.SundayReview {
+			if err := l.scheduleNextWeeklyReview(ctx, userID); err != nil {
+				logx.WithContext(ctx).Errorf("Failed to schedule weekly review: %v", err)
+			}
+		}
+	}
+	if prev.StreakWarnings != pref.StreakWarnings {
+		if _, err := l.svcCtx.Repo.Reminders.CancelPendingByType(ctx, userID, "streak_warning_scan"); err != nil {
+			logx.WithContext(ctx).Errorf("Failed to cancel pending streak warnings: %v", err)
+		}
+		if pref.StreakWarnings {
+			if err := l.scheduleNextStreakWarning(ctx, userID); err != nil {
+				logx.WithContext(ctx).Errorf("Failed to schedule streak warning: %v", err)
+			}
+		}
+	}
+
 	return &notifications.UpdateNotificationPreferencesResponse{
 		Preferences: &notifications.NotificationPreferences{
 			EmailEnabled:          pref.EmailNotifications,
@@ -133,6 +154,32 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextHabitReminder(ctx conte
 		return err
 	}
 	_, err = l.svcCtx.Repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil)
+	return err
+}
+
+func (l *UpdateNotificationPreferencesLogic) scheduleNextWeeklyReview(ctx context.Context, userID uuid.UUID) error {
+	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
+	if err != nil || !rs.OnboardingCompleted {
+		return err
+	}
+	next, err := scheduler.NextWeekday(time.Now(), rs.Timezone, time.Sunday, 18, 0)
+	if err != nil {
+		return err
+	}
+	_, err = l.svcCtx.Repo.Reminders.Enqueue(ctx, userID, "weekly_review", next, nil)
+	return err
+}
+
+func (l *UpdateNotificationPreferencesLogic) scheduleNextStreakWarning(ctx context.Context, userID uuid.UUID) error {
+	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
+	if err != nil || !rs.OnboardingCompleted {
+		return err
+	}
+	next, err := scheduler.NextDailyAt(time.Now(), rs.Timezone, 20, 0)
+	if err != nil {
+		return err
+	}
+	_, err = l.svcCtx.Repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", next, nil)
 	return err
 }
 

@@ -12,14 +12,15 @@ package notifications
 type Type string
 
 const (
-	TypeHabitReminder  Type = "habit_reminder"
-	TypeMissedCheckIn  Type = "missed_check_in"
-	TypeGoalDeadline   Type = "goal_deadline"
-	TypeAchievement    Type = "achievement"
-	TypeWeeklyReview   Type = "weekly_review"
-	TypeEncouragement  Type = "encouragement"
-	TypeSystem         Type = "system"
-	TypeAIFeedback     Type = "ai_feedback"
+	TypeHabitReminder Type = "habit_reminder"
+	TypeMissedCheckIn Type = "missed_check_in"
+	TypeGoalDeadline  Type = "goal_deadline"
+	TypeAchievement   Type = "achievement"
+	TypeWeeklyReview  Type = "weekly_review"
+	TypeEncouragement Type = "encouragement"
+	TypeSystem        Type = "system"
+	TypeAIFeedback    Type = "ai_feedback"
+	TypeStreakWarning Type = "streak_warning"
 )
 
 // allTypes lists every type allowed by the notifications.type CHECK
@@ -34,6 +35,7 @@ var allTypes = map[Type]bool{
 	TypeEncouragement: true,
 	TypeSystem:        true,
 	TypeAIFeedback:    true,
+	TypeStreakWarning: true,
 }
 
 // All returns every supported notification type, in canonical order.
@@ -47,6 +49,7 @@ func All() []Type {
 		TypeEncouragement,
 		TypeSystem,
 		TypeAIFeedback,
+		TypeStreakWarning,
 	}
 }
 

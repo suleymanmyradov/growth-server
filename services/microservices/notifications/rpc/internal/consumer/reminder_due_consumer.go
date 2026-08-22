@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
+	internalnotification "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/notification"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
@@ -147,6 +149,8 @@ func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repo
 		return h.onEncouragement(ctx, repo, userID, p)
 	case "coach_digest":
 		return h.onCoachDigest(ctx, repo, userID, p)
+	case "streak_warning_scan":
+		return h.onStreakWarning(ctx, repo, userID, p)
 	default:
 		logx.WithContext(ctx).Infof("unhandled reminder type %s", p.Type)
 		return nil
@@ -171,6 +175,29 @@ func (h *ReminderDueHandler) sendPush(ctx context.Context, userID uuid.UUID, tit
 	}
 }
 
+func (h *ReminderDueHandler) createNotification(ctx context.Context, repo *repository.Repository, userID uuid.UUID, itemType, title, message string, dest delivery.Destination, resourceID uuid.UUID, deduplicationKey string, metadata map[string]any, email bool) (uuid.UUID, error) {
+	pref, err := repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("get notification preferences: %w", err)
+	}
+	created, err := internalnotification.Create(ctx, repo, internalnotification.Request{
+		UserID:           userID,
+		Type:             itemType,
+		Title:            title,
+		Message:          message,
+		Destination:      string(dest),
+		ResourceID:       resourceID,
+		DeduplicationKey: deduplicationKey,
+		Metadata:         metadata,
+		Push:             pref.PushNotifications,
+		Email:            email && pref.EmailNotifications,
+	})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return created.ID, nil
+}
+
 func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
 	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
@@ -181,11 +208,10 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *reposito
 		return nil
 	}
 
-	notif, err := repo.Notifications.CreateNotification(ctx, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), "habit_reminder", userID)
-	if err != nil {
+	message := fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount)
+	if _, err := h.createNotification(ctx, repo, userID, "habit_reminder", "Time to check in", message, delivery.DestinationActivity, uuid.Nil, "", nil, false); err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
-	h.sendPush(ctx, userID, "Time to check in", fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount), notif.ID, delivery.DestinationActivity, uuid.Nil)
 
 	now := h.clock.Now()
 
@@ -219,37 +245,40 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, repo *reposito
 		return nil
 	}
 
-	notif, err := repo.Notifications.CreateNotification(ctx, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", "missed_check_in", userID)
-	if err != nil {
+	message := "You missed your check-in today. Don't worry, tomorrow is a fresh start!"
+	if _, err := h.createNotification(ctx, repo, userID, "missed_check_in", "Missed check-in", message, delivery.DestinationActivity, uuid.Nil, "", nil, false); err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
-	h.sendPush(ctx, userID, "Missed check-in", "You missed your check-in today. Don't worry, tomorrow is a fresh start!", notif.ID, delivery.DestinationActivity, uuid.Nil)
 
 	return nil
 }
 
 func (h *ReminderDueHandler) onWeeklyReview(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
-	notif, err := repo.Notifications.CreateNotification(ctx, "Weekly review", "Reflect on your week", "weekly_review", userID)
+	pref, err := repo.Preferences.Get(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("create notification: %w", err)
+		return fmt.Errorf("get notification preferences: %w", err)
 	}
-	h.sendPush(ctx, userID, "Weekly review", "Reflect on your week", notif.ID, delivery.DestinationWeeklyReview, uuid.Nil)
-
-	// Enqueue next Sunday 18:00 local.
 	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
 		return fmt.Errorf("get reminder state for weekly reschedule: %w", err)
 	}
-
-	nextSun, err := scheduler.NextWeekday(h.clock.Now(), rs.Timezone, time.Sunday, 18, 0)
-	if err != nil {
-		logx.WithContext(ctx).Errorf("next weekday: %v", err)
-	} else {
-		if _, err := repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); err != nil {
-			logx.WithContext(ctx).Errorf("enqueue weekly_review: %v", err)
+	if pref.SundayReview {
+		localDate := h.clock.Now().In(timezoneOrUTC(rs.Timezone)).Format("2006-01-02")
+		deduplicationKey := fmt.Sprintf("weekly-review:%s:%s", userID, localDate)
+		if _, err := h.createNotification(ctx, repo, userID, "weekly_review", "Your weekly review is ready", "Take a few minutes to reflect on your week and plan what comes next.", delivery.DestinationWeeklyReview, uuid.Nil, deduplicationKey, nil, true); err != nil {
+			return fmt.Errorf("create notification: %w", err)
 		}
 	}
 
+	nextSun, err := scheduler.NextWeekday(h.clock.Now(), rs.Timezone, time.Sunday, 18, 0)
+	if err != nil {
+		return fmt.Errorf("compute next weekly review: %w", err)
+	}
+	if pref.SundayReview {
+		if _, err := repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); err != nil {
+			return fmt.Errorf("enqueue weekly_review: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -291,12 +320,48 @@ func (h *ReminderDueHandler) onEncouragement(ctx context.Context, repo *reposito
 		msg = fmt.Sprintf("You've maintained a %d-day streak on %s! Keep it up!", streak, habitName)
 	}
 
-	notif, err := repo.Notifications.CreateNotification(ctx, title, msg, "encouragement", userID)
-	if err != nil {
+	if _, err := h.createNotification(ctx, repo, userID, "encouragement", title, msg, delivery.DestinationHabitDetail, uuid.Nil, "", meta, false); err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
-	h.sendPush(ctx, userID, title, msg, notif.ID, delivery.DestinationHabitDetail, uuid.Nil)
+	return nil
+}
 
+func (h *ReminderDueHandler) onStreakWarning(ctx context.Context, repo *repository.Repository, userID uuid.UUID, _ events.ReminderDue) error {
+	pref, err := repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get notification preferences: %w", err)
+	}
+	rs, err := repo.ReminderState.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get reminder state: %w", err)
+	}
+	localNow := h.clock.Now().In(timezoneOrUTC(rs.Timezone))
+	if pref.StreakWarnings {
+		habits, listErr := repo.HabitState.ListAtRisk(ctx, userID, localNow, 3)
+		if listErr != nil {
+			return fmt.Errorf("list habits at streak risk: %w", listErr)
+		}
+		if len(habits) > 0 {
+			names := make([]string, 0, len(habits))
+			habitIDs := make([]string, 0, len(habits))
+			for _, habit := range habits {
+				names = append(names, habit.HabitName)
+				habitIDs = append(habitIDs, habit.HabitID.String())
+			}
+			message := fmt.Sprintf("Check in on %s before today ends to keep your momentum.", strings.Join(names, ", "))
+			deduplicationKey := fmt.Sprintf("streak-warning:%s:%s", userID, localNow.Format("2006-01-02"))
+			if _, createErr := h.createNotification(ctx, repo, userID, "streak_warning", "Your streak is at risk", message, delivery.DestinationActivity, uuid.Nil, deduplicationKey, map[string]any{"habitIds": habitIDs}, true); createErr != nil {
+				return fmt.Errorf("create streak warning: %w", createErr)
+			}
+		}
+		next, nextErr := scheduler.NextDailyAt(h.clock.Now(), rs.Timezone, 20, 0)
+		if nextErr != nil {
+			return fmt.Errorf("compute next streak warning: %w", nextErr)
+		}
+		if _, enqueueErr := repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", next, nil); enqueueErr != nil {
+			return fmt.Errorf("enqueue next streak warning: %w", enqueueErr)
+		}
+	}
 	return nil
 }
 

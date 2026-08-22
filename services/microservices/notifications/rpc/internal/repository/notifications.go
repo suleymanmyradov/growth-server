@@ -43,7 +43,19 @@ func (r *NotificationsRepo) GetNotificationByID(ctx context.Context, id uuid.UUI
 func (r *NotificationsRepo) CreateNotification(ctx context.Context, title, message string, itemType string, userID uuid.UUID) (db.CreateNotificationRow, error) {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.CreateNotification")
 	defer span.End()
-	return r.db.CreateNotification(ctx, title, message, itemType, userID)
+	return r.db.CreateNotification(ctx, db.CreateNotificationParams{
+		Title:    title,
+		Message:  message,
+		Type:     itemType,
+		UserID:   userID,
+		Metadata: []byte("{}"),
+	})
+}
+
+func (r *NotificationsRepo) Create(ctx context.Context, params db.CreateNotificationParams) (db.CreateNotificationRow, error) {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "NotificationsRepo.Create")
+	defer span.End()
+	return r.db.CreateNotification(ctx, params)
 }
 
 // CreateNotificationsForUsers batch-inserts the same notification for every

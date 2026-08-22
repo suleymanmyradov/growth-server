@@ -25,10 +25,11 @@ type Querier interface {
 	// reminders. Uses FOR UPDATE SKIP LOCKED so multiple instances don't claim
 	// the same rows.
 	ClaimDueReminders(ctx context.Context, limit int32) ([]ClaimDueRemindersRow, error)
+	ClaimNotificationDeliveries(ctx context.Context, limit int32) ([]NotificationDelivery, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
-	CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error)
-	// Batch insert the same notification for many users (admin broadcast).
-	// Uses unnest to fan out a single INSERT...SELECT over the uuid array.
+	CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error)
+	CreateNotificationDelivery(ctx context.Context, notificationID uuid.UUID, userID uuid.UUID, channel string) (NotificationDelivery, error)
+	CreateNotificationHabitState(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, habitName string) (NotificationHabitState, error)
 	CreateNotificationsForUsers(ctx context.Context, title string, message string, type_ string, column4 []uuid.UUID) (int64, error)
 	// Push ticket persistence for async Expo receipt processing.
 	// Owned exclusively by the notifications service.
@@ -41,8 +42,13 @@ type Querier interface {
 	DeleteDevice(ctx context.Context, installationID string, userID uuid.UUID) error
 	DeleteDevicesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
+	DeleteNotificationHabitState(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error
+	DeleteNotificationHabitStatesByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteNotificationHabitStatesByUserCleanup(ctx context.Context, userID uuid.UUID) error
 	DeleteNotificationPreferences(ctx context.Context, userID uuid.UUID) error
 	DeleteNotificationPreferencesByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteNotificationRecipient(ctx context.Context, userID uuid.UUID) error
+	DeleteNotificationRecipientByUser(ctx context.Context, userID uuid.UUID) error
 	// Bulk cleanup queries for user_deleted event consumers.
 	DeleteNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteOldPushTickets(ctx context.Context, createdAt pgtype.Timestamptz) error
@@ -56,6 +62,7 @@ type Querier interface {
 	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
 	GetNotificationPreferences(ctx context.Context, userID uuid.UUID) (NotificationPreference, error)
+	GetNotificationRecipient(ctx context.Context, userID uuid.UUID) (NotificationRecipient, error)
 	GetPendingByUser(ctx context.Context, userID uuid.UUID) ([]GetPendingByUserRow, error)
 	GetReminderState(ctx context.Context, userID uuid.UUID) (ReminderState, error)
 	GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -63,19 +70,20 @@ type Querier interface {
 	IsEventProcessed(ctx context.Context, eventID string) (bool, error)
 	// All enabled devices for a user, used to fan out push notifications.
 	ListActiveDevicesByUser(ctx context.Context, userID uuid.UUID) ([]NotificationDevice, error)
+	ListHabitsAtStreakRisk(ctx context.Context, userID uuid.UUID, column2 pgtype.Date, limit int32) ([]NotificationHabitState, error)
 	ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error)
 	ListNotificationsByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]ListNotificationsByTypeRow, error)
-	// Keyset pagination for typed notification feeds.
 	ListNotificationsByTypeKeyset(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Timestamptz, limit int32) ([]ListNotificationsByTypeKeysetRow, error)
 	ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListNotificationsForUserRow, error)
-	// Keyset pagination: more efficient than OFFSET for deep pages.
 	ListNotificationsForUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListNotificationsForUserKeysetRow, error)
 	ListPendingPushTickets(ctx context.Context, limit int32) ([]PushTicket, error)
 	ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListUnreadNotificationsRow, error)
-	// Keyset pagination for unread notifications feed.
 	ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	MarkEventProcessed(ctx context.Context, eventID string) error
+	MarkNotificationDeliveryFailed(ctx context.Context, iD uuid.UUID, lastErrorCode *string, lastErrorMessage *string) error
+	MarkNotificationDeliverySent(ctx context.Context, iD uuid.UUID, providerMessageID *string) error
+	MarkNotificationDeliverySuppressed(ctx context.Context, iD uuid.UUID, lastErrorCode *string, lastErrorMessage *string) error
 	MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error)
 	MarkPushTicketReceiptError(ctx context.Context, ticketID string, pushToken string, receiptError *string) error
 	MarkPushTicketReceiptOK(ctx context.Context, ticketID string, pushToken string) error
@@ -85,6 +93,8 @@ type Querier interface {
 	// that was claimed but never acked (sent_at still NULL) becomes claimable
 	// again after the lease expires.
 	ReleaseStaleClaims(ctx context.Context, dollar_1 int32) (int64, error)
+	ReleaseStaleNotificationDeliveries(ctx context.Context, dollar_1 int32) (int64, error)
+	RetryNotificationDelivery(ctx context.Context, iD uuid.UUID, nextAttemptAt pgtype.Timestamptz, lastErrorCode *string, lastErrorMessage *string) error
 	SetOnboardingCompleted(ctx context.Context, userID uuid.UUID) error
 	// Bump last_seen_at on a registration/heartbeat so we can age out stale
 	// installations later.
@@ -96,7 +106,9 @@ type Querier interface {
 	// metadata for an existing (installation_id, user_id) pair. Token rotation is
 	// handled by the UPDATE branch. enabled is reset to true on re-registration.
 	UpsertDevice(ctx context.Context, arg UpsertDeviceParams) (NotificationDevice, error)
+	UpsertNotificationHabitState(ctx context.Context, arg UpsertNotificationHabitStateParams) (NotificationHabitState, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
+	UpsertNotificationRecipient(ctx context.Context, userID uuid.UUID, email string, name string, emailVerified bool) (NotificationRecipient, error)
 	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error
 }
 

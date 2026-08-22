@@ -437,9 +437,12 @@ type (
 		title     string `json:"title,example=Habit Reminder"`
 		message   string `json:"message,example=Don't forget to complete your morning exercise!"`
 		itemType  string `json:"type,example=habit_reminder"`
-		read      bool   `json:"read,example=false"`
-		userId    string `json:"userId,example=user-123"`
-		createdAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+		read        bool   `json:"read,example=false"`
+		userId      string `json:"userId,example=user-123"`
+		createdAt   string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+		destination string `json:"destination,optional,example=weekly-review"`
+		resourceId  string `json:"resourceId,optional,example=0192be94-1234-5678-9aaa-09876543210a"`
+		metadata    string `json:"metadata,optional,example={}"`
 	}
 	NotificationsResponse {
 		data []Notification `json:"data"`

@@ -32,7 +32,9 @@ func (r *PreferencesRepo) Get(ctx context.Context, userID uuid.UUID) (db.Notific
 	if err == nil {
 		return pref, nil
 	}
-	// No row yet: return defaults (all enabled, matching the table defaults).
+	if err != pgx.ErrNoRows {
+		return db.NotificationPreference{}, err
+	}
 	return db.NotificationPreference{
 		UserID:             userID,
 		EmailNotifications: true,

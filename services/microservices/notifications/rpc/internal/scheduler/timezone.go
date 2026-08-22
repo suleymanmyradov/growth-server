@@ -36,6 +36,20 @@ func NextOccurrence(now time.Time, tzName string, checkInTime pgtype.Time) (time
 // NextWeekday computes the next occurrence of the given weekday at hour:min in
 // the user's IANA timezone. If today is the target weekday and the time has
 // not yet passed, today is returned; otherwise the following week's occurrence.
+func NextDailyAt(now time.Time, tzName string, hour, min int) (time.Time, error) {
+	loc, err := safeLocation(tzName)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	localNow := now.In(loc)
+	candidate := time.Date(localNow.Year(), localNow.Month(), localNow.Day(), hour, min, 0, 0, loc)
+	if !candidate.After(localNow) {
+		candidate = candidate.AddDate(0, 0, 1)
+	}
+	return candidate.UTC(), nil
+}
+
 func NextWeekday(now time.Time, tzName string, weekday time.Weekday, hour, min int) (time.Time, error) {
 	loc, err := safeLocation(tzName)
 	if err != nil {

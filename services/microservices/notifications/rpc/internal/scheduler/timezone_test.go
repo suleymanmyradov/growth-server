@@ -68,6 +68,25 @@ func TestNextOccurrence_InvalidTimezone(t *testing.T) {
 	}
 }
 
+func TestNextDailyAt(t *testing.T) {
+	now := time.Date(2025, 5, 16, 23, 30, 0, 0, time.UTC)
+	got, err := NextDailyAt(now, "America/New_York", 20, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	loc, _ := time.LoadLocation("America/New_York")
+	local := got.In(loc)
+	if local.Hour() != 20 || local.Minute() != 0 || !local.After(now.In(loc)) {
+		t.Fatalf("expected next local 20:00, got %s", local)
+	}
+}
+
+func TestNextDailyAt_InvalidTimezone(t *testing.T) {
+	if _, err := NextDailyAt(time.Now(), "Invalid/Zone", 20, 0); err == nil {
+		t.Fatal("expected invalid timezone error")
+	}
+}
+
 func TestNextWeekday_SameDayAhead(t *testing.T) {
 	// Wednesday 10:00 UTC → Wednesday 18:00 UTC is still ahead
 	now := time.Date(2025, 5, 14, 10, 0, 0, 0, time.UTC) // Wed

@@ -35,6 +35,12 @@ func (l *ListNotificationsLogic) ListNotifications(req *types.PageRequest) (resp
 		return &types.NotificationsResponse{Data: []types.Notification{}}, nil
 	}
 
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.Limit <= 0 {
+		req.Limit = 20
+	}
 	rpcResp, err := l.svcCtx.NotificationsRpc.ListNotifications(l.ctx, &notificationsClient.ListNotificationsRequest{
 		Limit:  int32(req.Limit),
 		Offset: int32((req.Page - 1) * req.Limit),
@@ -46,18 +52,17 @@ func (l *ListNotificationsLogic) ListNotifications(req *types.PageRequest) (resp
 	notifications := make([]types.Notification, 0, len(rpcResp.Notifications))
 	for _, n := range rpcResp.Notifications {
 		notifications = append(notifications, types.Notification{
-			Id:        n.Id,
-			Title:     n.Title,
-			Message:   n.Message,
-			ItemType:  n.Type,
-			Read:      n.Read,
-			UserId:    n.UserId,
-			CreatedAt: time.Unix(n.CreatedAt, 0).UTC().Format(time.RFC3339),
+			Id:          n.Id,
+			Title:       n.Title,
+			Message:     n.Message,
+			ItemType:    n.Type,
+			Read:        n.Read,
+			UserId:      n.UserId,
+			CreatedAt:   time.Unix(n.CreatedAt, 0).UTC().Format(time.RFC3339),
+			Destination: n.Destination,
+			ResourceId:  n.ResourceId,
+			Metadata:    n.Metadata,
 		})
-	}
-
-	if req.Limit <= 0 {
-		req.Limit = 20
 	}
 
 	totalPages := int(rpcResp.TotalCount) / req.Limit

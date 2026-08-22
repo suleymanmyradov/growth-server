@@ -5830,6 +5830,10 @@
                         "type": "string",
                         "example": "2024-01-15T08:00:00Z"
                       },
+                      "destination": {
+                        "type": "string",
+                        "example": "weekly-review"
+                      },
                       "id": {
                         "type": "string",
                         "example": "notif-123"
@@ -5838,9 +5842,17 @@
                         "type": "string",
                         "example": "Don't forget to complete your morning exercise!"
                       },
+                      "metadata": {
+                        "type": "string",
+                        "example": "{}"
+                      },
                       "read": {
                         "type": "boolean",
                         "example": false
+                      },
+                      "resourceId": {
+                        "type": "string",
+                        "example": "0192be94-1234-5678-9aaa-09876543210a"
                       },
                       "title": {
                         "type": "string",
@@ -9269,7 +9281,7 @@
       }
     }
   },
-  "x-date": "2026-08-21 11:34:51",
+  "x-date": "2026-08-22 14:20:51",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

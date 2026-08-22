@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	expo "github.com/suleymanmyradov/growth-server/pkg/notifications/expo"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -35,9 +36,10 @@ type ServiceContext struct {
 	PushSender *delivery.Sender
 	// ReceiptWorker checks Expo push receipts asynchronously and disables
 	// stale tokens. Nil-safe: when Expo is disabled, Run is a no-op.
-	ReceiptWorker *delivery.ReceiptWorker
-	pool          *pgxpool.Pool
-	schedCancel   context.CancelFunc
+	ReceiptWorker  *delivery.ReceiptWorker
+	DeliveryWorker *delivery.Worker
+	pool           *pgxpool.Pool
+	schedCancel    context.CancelFunc
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
@@ -88,6 +90,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	pushSender := delivery.NewSender(repo.Devices, repo.PushTickets, expoClient, c.Expo.Enabled)
 	receiptWorker := delivery.NewReceiptWorker(repo.Devices, repo.PushTickets, expoClient)
+	var emailSender email.Sender
+	if c.Email.Enabled {
+		if c.Email.FrontendBaseURL == "" {
+			panic("email frontend base URL is required when email delivery is enabled")
+		}
+		var err error
+		emailSender, err = email.New(email.Config{
+			Provider:    c.Email.Provider,
+			APIKey:      c.Email.APIKey,
+			FromAddress: c.Email.FromAddress,
+		})
+		if err != nil {
+			panic(fmt.Errorf("create email sender: %w", err))
+		}
+	}
+	deliveryWorker := delivery.NewWorker(repo, pushSender, emailSender, c.Email.FrontendBaseURL)
 
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
 	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender, eventsPub)
@@ -120,17 +138,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	)
 
 	return &ServiceContext{
-		Config:        c,
-		Repo:          repo,
-		EventsPub:     eventsPub,
-		ReminderPub:   reminderPub,
-		Scheduler:     sched,
-		TxRunner:      txRunner,
-		EventsQ:       eventsQ,
-		ReminderDueQ:  reminderDueQ,
-		PushSender:    pushSender,
-		ReceiptWorker: receiptWorker,
-		pool:          pool,
+		Config:         c,
+		Repo:           repo,
+		EventsPub:      eventsPub,
+		ReminderPub:    reminderPub,
+		Scheduler:      sched,
+		TxRunner:       txRunner,
+		EventsQ:        eventsQ,
+		ReminderDueQ:   reminderDueQ,
+		PushSender:     pushSender,
+		ReceiptWorker:  receiptWorker,
+		DeliveryWorker: deliveryWorker,
+		pool:           pool,
 	}
 }
 
@@ -150,8 +169,11 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	if s.ReceiptWorker != nil {
 		go s.ReceiptWorker.Run(ctx)
 	}
+	if s.DeliveryWorker != nil {
+		go s.DeliveryWorker.Run(ctx)
+	}
 
-	logx.Info("started scheduler, kafka consumers, and push receipt worker")
+	logx.Info("started scheduler, kafka consumers, and notification delivery workers")
 	return cancel
 }
 

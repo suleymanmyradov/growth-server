@@ -20,12 +20,30 @@ func (q *Queries) DeleteDevicesByUser(ctx context.Context, userID uuid.UUID) err
 	return err
 }
 
+const deleteNotificationHabitStatesByUserCleanup = `-- name: DeleteNotificationHabitStatesByUserCleanup :exec
+DELETE FROM notification_habit_state WHERE user_id = $1
+`
+
+func (q *Queries) DeleteNotificationHabitStatesByUserCleanup(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteNotificationHabitStatesByUserCleanup, userID)
+	return err
+}
+
 const deleteNotificationPreferencesByUser = `-- name: DeleteNotificationPreferencesByUser :exec
 DELETE FROM notification_preferences WHERE user_id = $1
 `
 
 func (q *Queries) DeleteNotificationPreferencesByUser(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deleteNotificationPreferencesByUser, userID)
+	return err
+}
+
+const deleteNotificationRecipientByUser = `-- name: DeleteNotificationRecipientByUser :exec
+DELETE FROM notification_recipients WHERE user_id = $1
+`
+
+func (q *Queries) DeleteNotificationRecipientByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteNotificationRecipientByUser, userID)
 	return err
 }
 

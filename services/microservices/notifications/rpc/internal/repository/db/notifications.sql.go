@@ -24,27 +24,47 @@ func (q *Queries) CountNotificationsByUser(ctx context.Context, userID uuid.UUID
 }
 
 const createNotification = `-- name: CreateNotification :one
-INSERT INTO notifications (title, message, type, user_id)
-VALUES ($1, $2, $3, $4)
-RETURNING id, title, message, type, is_read, user_id, created_at
+INSERT INTO notifications (title, message, type, user_id, destination, resource_id, deduplication_key, metadata)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (deduplication_key) WHERE deduplication_key IS NOT NULL DO UPDATE
+SET deduplication_key = EXCLUDED.deduplication_key
+RETURNING id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata
 `
 
-type CreateNotificationRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+type CreateNotificationParams struct {
+	Title            string        `db:"title" json:"title"`
+	Message          string        `db:"message" json:"message"`
+	Type             string        `db:"type" json:"type"`
+	UserID           uuid.UUID     `db:"user_id" json:"user_id"`
+	Destination      *string       `db:"destination" json:"destination"`
+	ResourceID       uuid.NullUUID `db:"resource_id" json:"resource_id"`
+	DeduplicationKey *string       `db:"deduplication_key" json:"deduplication_key"`
+	Metadata         []byte        `db:"metadata" json:"metadata"`
 }
 
-func (q *Queries) CreateNotification(ctx context.Context, title string, message string, type_ string, userID uuid.UUID) (CreateNotificationRow, error) {
+type CreateNotificationRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+}
+
+func (q *Queries) CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error) {
 	row := q.db.QueryRow(ctx, createNotification,
-		title,
-		message,
-		type_,
-		userID,
+		arg.Title,
+		arg.Message,
+		arg.Type,
+		arg.UserID,
+		arg.Destination,
+		arg.ResourceID,
+		arg.DeduplicationKey,
+		arg.Metadata,
 	)
 	var i CreateNotificationRow
 	err := row.Scan(
@@ -55,17 +75,18 @@ func (q *Queries) CreateNotification(ctx context.Context, title string, message 
 		&i.IsRead,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.Destination,
+		&i.ResourceID,
+		&i.Metadata,
 	)
 	return i, err
 }
 
 const createNotificationsForUsers = `-- name: CreateNotificationsForUsers :execrows
-INSERT INTO notifications (title, message, type, user_id)
-SELECT $1, $2, $3, user_id FROM unnest($4::uuid[]) AS t(user_id)
+INSERT INTO notifications (title, message, type, user_id, destination)
+SELECT $1, $2, $3, user_id, 'notifications' FROM unnest($4::uuid[]) AS t(user_id)
 `
 
-// Batch insert the same notification for many users (admin broadcast).
-// Uses unnest to fan out a single INSERT...SELECT over the uuid array.
 func (q *Queries) CreateNotificationsForUsers(ctx context.Context, title string, message string, type_ string, column4 []uuid.UUID) (int64, error) {
 	result, err := q.db.Exec(ctx, createNotificationsForUsers,
 		title,
@@ -98,17 +119,20 @@ func (q *Queries) DeleteNotification(ctx context.Context, id uuid.UUID) error {
 }
 
 const getNotification = `-- name: GetNotification :one
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE id = $1
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE id = $1
 `
 
 type GetNotificationRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error) {
@@ -122,6 +146,9 @@ func (q *Queries) GetNotification(ctx context.Context, id uuid.UUID) (GetNotific
 		&i.IsRead,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.Destination,
+		&i.ResourceID,
+		&i.Metadata,
 	)
 	return i, err
 }
@@ -138,19 +165,22 @@ func (q *Queries) GetUnreadCount(ctx context.Context, userID uuid.UUID) (int64, 
 }
 
 const listNotifications = `-- name: ListNotifications :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2
 `
 
 type ListNotificationsRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int32) ([]ListNotificationsRow, error) {
@@ -170,6 +200,9 @@ func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -182,19 +215,22 @@ func (q *Queries) ListNotifications(ctx context.Context, limit int32, offset int
 }
 
 const listNotificationsByType = `-- name: ListNotificationsByType :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1 AND type = $2
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4
 `
 
 type ListNotificationsByTypeRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID, type_ string, limit int32, offset int32) ([]ListNotificationsByTypeRow, error) {
@@ -219,6 +255,9 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID,
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -231,7 +270,7 @@ func (q *Queries) ListNotificationsByType(ctx context.Context, userID uuid.UUID,
 }
 
 const listNotificationsByTypeKeyset = `-- name: ListNotificationsByTypeKeyset :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1 AND type = $2
   AND ($3::timestamptz IS NULL OR created_at < $3)
 ORDER BY created_at DESC
@@ -239,16 +278,18 @@ LIMIT $4
 `
 
 type ListNotificationsByTypeKeysetRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
-// Keyset pagination for typed notification feeds.
 func (q *Queries) ListNotificationsByTypeKeyset(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Timestamptz, limit int32) ([]ListNotificationsByTypeKeysetRow, error) {
 	rows, err := q.db.Query(ctx, listNotificationsByTypeKeyset,
 		userID,
@@ -271,6 +312,9 @@ func (q *Queries) ListNotificationsByTypeKeyset(ctx context.Context, userID uuid
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -283,19 +327,22 @@ func (q *Queries) ListNotificationsByTypeKeyset(ctx context.Context, userID uuid
 }
 
 const listNotificationsForUser = `-- name: ListNotificationsForUser :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListNotificationsForUserRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListNotificationsForUserRow, error) {
@@ -315,6 +362,9 @@ func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -327,7 +377,7 @@ func (q *Queries) ListNotificationsForUser(ctx context.Context, userID uuid.UUID
 }
 
 const listNotificationsForUserKeyset = `-- name: ListNotificationsForUserKeyset :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)
 ORDER BY created_at DESC
@@ -335,16 +385,18 @@ LIMIT $3
 `
 
 type ListNotificationsForUserKeysetRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
-// Keyset pagination: more efficient than OFFSET for deep pages.
 func (q *Queries) ListNotificationsForUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListNotificationsForUserKeysetRow, error) {
 	rows, err := q.db.Query(ctx, listNotificationsForUserKeyset, userID, column2, limit)
 	if err != nil {
@@ -362,6 +414,9 @@ func (q *Queries) ListNotificationsForUserKeyset(ctx context.Context, userID uui
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -374,19 +429,22 @@ func (q *Queries) ListNotificationsForUserKeyset(ctx context.Context, userID uui
 }
 
 const listUnreadNotifications = `-- name: ListUnreadNotifications :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1 AND is_read = false
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1 AND is_read = false
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3
 `
 
 type ListUnreadNotificationsRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListUnreadNotificationsRow, error) {
@@ -406,6 +464,9 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID,
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -418,7 +479,7 @@ func (q *Queries) ListUnreadNotifications(ctx context.Context, userID uuid.UUID,
 }
 
 const listUnreadNotificationsKeyset = `-- name: ListUnreadNotificationsKeyset :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1 AND is_read = false
   AND ($2::timestamptz IS NULL OR created_at < $2)
 ORDER BY created_at DESC
@@ -426,16 +487,18 @@ LIMIT $3
 `
 
 type ListUnreadNotificationsKeysetRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
-// Keyset pagination for unread notifications feed.
 func (q *Queries) ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error) {
 	rows, err := q.db.Query(ctx, listUnreadNotificationsKeyset, userID, column2, limit)
 	if err != nil {
@@ -453,6 +516,9 @@ func (q *Queries) ListUnreadNotificationsKeyset(ctx context.Context, userID uuid
 			&i.IsRead,
 			&i.UserID,
 			&i.CreatedAt,
+			&i.Destination,
+			&i.ResourceID,
+			&i.Metadata,
 		); err != nil {
 			return nil, err
 		}
@@ -479,17 +545,20 @@ const markNotificationRead = `-- name: MarkNotificationRead :one
 UPDATE notifications
 SET is_read = true
 WHERE id = $1
-RETURNING id, title, message, type, is_read, user_id, created_at
+RETURNING id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata
 `
 
 type MarkNotificationReadRow struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	Title     string             `db:"title" json:"title"`
-	Message   string             `db:"message" json:"message"`
-	Type      string             `db:"type" json:"type"`
-	IsRead    bool               `db:"is_read" json:"is_read"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID          uuid.UUID          `db:"id" json:"id"`
+	Title       string             `db:"title" json:"title"`
+	Message     string             `db:"message" json:"message"`
+	Type        string             `db:"type" json:"type"`
+	IsRead      bool               `db:"is_read" json:"is_read"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Destination *string            `db:"destination" json:"destination"`
+	ResourceID  uuid.NullUUID      `db:"resource_id" json:"resource_id"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
 }
 
 func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkNotificationReadRow, error) {
@@ -503,6 +572,9 @@ func (q *Queries) MarkNotificationRead(ctx context.Context, id uuid.UUID) (MarkN
 		&i.IsRead,
 		&i.UserID,
 		&i.CreatedAt,
+		&i.Destination,
+		&i.ResourceID,
+		&i.Metadata,
 	)
 	return i, err
 }

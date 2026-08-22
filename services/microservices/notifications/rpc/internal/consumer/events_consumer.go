@@ -12,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/notifications"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	internalnotification "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/notification"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -167,6 +168,8 @@ func (h *EventsHandler) dispatch(ctx context.Context, repo *repository.Repositor
 		return h.onHabitDeleted(ctx, repo, env)
 	case events.TypeUserDeleted:
 		return h.onUserDeleted(ctx, repo, env)
+	case events.TypeUserProfileUpdated:
+		return h.onUserProfileUpdated(ctx, repo, env)
 	case events.TypeBroadcastNotificationRequested:
 		return h.onBroadcastNotificationRequested(ctx, repo, env)
 	default:
@@ -218,6 +221,28 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, repo *repository.R
 				logx.WithContext(ctx).Errorf("compute coach_digest time: %v", dErr)
 			} else if _, dErr := repo.Reminders.Enqueue(ctx, userID, "coach_digest", digestAt, nil); dErr != nil {
 				logx.WithContext(ctx).Errorf("enqueue coach_digest: %v", dErr)
+			}
+		}
+	}
+
+	if repo.HabitState != nil {
+		habitID, parseErr := uuid.Parse(p.HabitID)
+		if parseErr != nil {
+			logx.WithContext(ctx).Errorf("invalid habitID %q: %v", p.HabitID, parseErr)
+		} else {
+			tz := "UTC"
+			if repo.ReminderState != nil {
+				if rs, stateErr := repo.ReminderState.Get(ctx, userID); stateErr == nil && rs.Timezone != "" {
+					tz = rs.Timezone
+				}
+			}
+			eventTime := env.OccurredAt
+			if eventTime.IsZero() {
+				eventTime = now
+			}
+			localDate := eventTime.In(timezoneOrUTC(tz))
+			if _, stateErr := repo.HabitState.UpdateCheckIn(ctx, userID, habitID, p.HabitName, p.Streak, localDate); stateErr != nil {
+				return fmt.Errorf("update notification habit state: %w", stateErr)
 			}
 		}
 	}
@@ -315,11 +340,21 @@ func (h *EventsHandler) onCheckInFeedbackGenerated(ctx context.Context, repo *re
 		return nil
 	}
 
-	_, err = repo.Notifications.CreateNotification(ctx, "Coach feedback", p.Content, "ai_feedback", userID)
+	pref, err := repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get notification preferences: %w", err)
+	}
+	_, err = internalnotification.Create(ctx, repo, internalnotification.Request{
+		UserID:      userID,
+		Type:        "ai_feedback",
+		Title:       "Coach feedback",
+		Message:     p.Content,
+		Destination: "activity",
+		Push:        pref.PushNotifications,
+	})
 	if err != nil {
 		return fmt.Errorf("create ai_feedback notification: %w", err)
 	}
-
 	return nil
 }
 
@@ -341,6 +376,15 @@ func (h *EventsHandler) onHabitCreated(ctx context.Context, repo *repository.Rep
 			return fmt.Errorf("increment habit count: %w", err)
 		}
 	}
+	if repo.HabitState != nil {
+		habitID, parseErr := uuid.Parse(p.HabitID)
+		if parseErr != nil {
+			return fmt.Errorf("parse habit ID: %w", parseErr)
+		}
+		if _, createErr := repo.HabitState.Create(ctx, userID, habitID, p.HabitName); createErr != nil {
+			return fmt.Errorf("create notification habit state: %w", createErr)
+		}
+	}
 	return nil
 }
 
@@ -360,6 +404,32 @@ func (h *EventsHandler) onHabitDeleted(ctx context.Context, repo *repository.Rep
 	if repo.ReminderState != nil {
 		if err := repo.ReminderState.DecrementHabitCount(ctx, userID); err != nil {
 			return fmt.Errorf("decrement habit count: %w", err)
+		}
+	}
+	if repo.HabitState != nil {
+		habitID, parseErr := uuid.Parse(p.HabitID)
+		if parseErr != nil {
+			return fmt.Errorf("parse habit ID: %w", parseErr)
+		}
+		if deleteErr := repo.HabitState.Delete(ctx, userID, habitID); deleteErr != nil {
+			return fmt.Errorf("delete notification habit state: %w", deleteErr)
+		}
+	}
+	return nil
+}
+
+func (h *EventsHandler) onUserProfileUpdated(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
+	var p events.UserProfileUpdated
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		return fmt.Errorf("unmarshal UserProfileUpdated: %w", err)
+	}
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		return fmt.Errorf("parse user ID: %w", err)
+	}
+	if repo.Recipients != nil {
+		if _, err := repo.Recipients.Upsert(ctx, userID, p.Email, p.Name, p.EmailVerified); err != nil {
+			return fmt.Errorf("upsert notification recipient: %w", err)
 		}
 	}
 	return nil
@@ -400,6 +470,16 @@ func (h *EventsHandler) onUserDeleted(ctx context.Context, repo *repository.Repo
 			return fmt.Errorf("delete devices: %w", err)
 		}
 	}
+	if repo.Recipients != nil {
+		if err := repo.Recipients.Delete(ctx, userID); err != nil {
+			return fmt.Errorf("delete notification recipient: %w", err)
+		}
+	}
+	if repo.HabitState != nil {
+		if err := repo.HabitState.DeleteByUser(ctx, userID); err != nil {
+			return fmt.Errorf("delete notification habit state: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -422,8 +502,11 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "habit_reminder", now, rs.Timezone); err != nil {
 		logx.WithContext(ctx).Errorf("cancel habit_reminder: %v", err)
 	}
-	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "weekly_review", now, rs.Timezone); err != nil {
+	if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "weekly_review"); err != nil {
 		logx.WithContext(ctx).Errorf("cancel weekly_review: %v", err)
+	}
+	if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "streak_warning_scan"); err != nil {
+		logx.WithContext(ctx).Errorf("cancel streak_warning_scan: %v", err)
 	}
 	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "coach_digest", now, rs.Timezone); err != nil {
 		logx.WithContext(ctx).Errorf("cancel coach_digest: %v", err)
@@ -451,13 +534,26 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 		}
 	}
 
-	// Schedule next weekly_review on Sunday 18:00 local.
-	nextSun, err := scheduler.NextWeekday(now, rs.Timezone, time.Sunday, 18, 0)
+	pref, err := repo.Preferences.Get(ctx, userID)
 	if err != nil {
-		logx.WithContext(ctx).Errorf("next weekday: %v", err)
-	} else {
-		if _, err := repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); err != nil {
-			return fmt.Errorf("enqueue weekly_review: %w", err)
+		return fmt.Errorf("get notification preferences: %w", err)
+	}
+	if rs.OnboardingCompleted && pref.SundayReview {
+		nextSun, nextErr := scheduler.NextWeekday(now, rs.Timezone, time.Sunday, 18, 0)
+		if nextErr != nil {
+			return fmt.Errorf("compute weekly review schedule: %w", nextErr)
+		}
+		if _, enqueueErr := repo.Reminders.Enqueue(ctx, userID, "weekly_review", nextSun, nil); enqueueErr != nil {
+			return fmt.Errorf("enqueue weekly_review: %w", enqueueErr)
+		}
+	}
+	if rs.OnboardingCompleted && pref.StreakWarnings {
+		nextScan, nextErr := scheduler.NextDailyAt(now, rs.Timezone, 20, 0)
+		if nextErr != nil {
+			return fmt.Errorf("compute streak warning schedule: %w", nextErr)
+		}
+		if _, enqueueErr := repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", nextScan, nil); enqueueErr != nil {
+			return fmt.Errorf("enqueue streak_warning_scan: %w", enqueueErr)
 		}
 	}
 
