@@ -36,30 +36,6 @@ func checkInToProto(c db.CheckIn) *client.CheckIn {
 	}
 }
 
-func protoToCheckInParams(userID, habitID uuid.UUID, status, mood, energy, blocker, note string) db.CreateCheckInParams {
-	params := db.CreateCheckInParams{
-		UserID:  userID,
-		HabitID: habitID,
-		Status:  (status),
-	}
-	if mood != "" {
-		m := (mood)
-		params.Mood = &m
-	}
-	if energy != "" {
-		e := (energy)
-		params.Energy = &e
-	}
-	if blocker != "" {
-		b := (blocker)
-		params.Blocker = &b
-	}
-	if note != "" {
-		params.Note = &note
-	}
-	return params
-}
-
 // protoToUpsertCheckInParams is the upsert counterpart of
 // protoToCheckInParams. The param structs are identical; this exists so the
 // caller doesn't need to import db.UpsertCheckInParams directly.

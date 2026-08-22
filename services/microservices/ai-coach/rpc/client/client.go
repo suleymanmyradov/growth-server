@@ -1,9 +1,9 @@
 package client
 
 import (
-	"github.com/zeromicro/go-zero/zrpc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/conversationservice"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 // Service aggregates every sub-service client exposed by the ai-coach RPC into

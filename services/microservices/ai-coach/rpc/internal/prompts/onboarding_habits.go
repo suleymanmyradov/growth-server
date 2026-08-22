@@ -6,11 +6,11 @@ import "fmt"
 // habit suggestions. All fields are server-controlled — the client never
 // supplies a prompt, only this structured data.
 type OnboardingHabitsInput struct {
-	GoalTitle          string
-	GoalCategory       string
-	Motivation         string
-	Blocker            string
-	DailyMinutes       int32
+	GoalTitle           string
+	GoalCategory        string
+	Motivation          string
+	Blocker             string
+	DailyMinutes        int32
 	AccountabilityStyle string
 }
 

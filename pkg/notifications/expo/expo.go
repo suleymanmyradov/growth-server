@@ -174,7 +174,7 @@ func (c *Client) Send(ctx context.Context, messages []PushMessage) ([]Ticket, er
 	if err != nil {
 		return nil, fmt.Errorf("expo: send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -227,7 +227,7 @@ func (c *Client) CheckReceipts(ctx context.Context, ticketIDs []string) (map[str
 	if err != nil {
 		return nil, fmt.Errorf("expo: receipts request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {

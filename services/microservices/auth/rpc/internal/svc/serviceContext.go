@@ -41,15 +41,15 @@ type TxRunnerInterface interface {
 }
 
 type ServiceContext struct {
-	Config       config.Config
-	Repo         *repository.Repository
-	TokenMaker   TokenMakerInterface
-	TxRunner     TxRunnerInterface
-	RedisClient  *redis.Client
-	EmailSender  email.Sender
-	EventsPub    *events.Publisher
-	cancel       context.CancelFunc
-	pool         *pgxpool.Pool
+	Config      config.Config
+	Repo        *repository.Repository
+	TokenMaker  TokenMakerInterface
+	TxRunner    TxRunnerInterface
+	RedisClient *redis.Client
+	EmailSender email.Sender
+	EventsPub   *events.Publisher
+	cancel      context.CancelFunc
+	pool        *pgxpool.Pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {

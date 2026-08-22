@@ -43,14 +43,14 @@ func mintAppleIDToken(t *testing.T, privKey *rsa.PrivateKey, kid, serviceID stri
 	t.Helper()
 	now := time.Now()
 	mapClaims := jwt.MapClaims{
-		"iss":             appleIssuer,
-		"aud":             serviceID,
-		"sub":             "001234.abc.def.ghi",
-		"email":           "fixture@example.com",
-		"email_verified":  "true",
+		"iss":              appleIssuer,
+		"aud":              serviceID,
+		"sub":              "001234.abc.def.ghi",
+		"email":            "fixture@example.com",
+		"email_verified":   "true",
 		"is_private_email": "false",
-		"iat":             now.Unix(),
-		"exp":             now.Add(10 * time.Minute).Unix(),
+		"iat":              now.Unix(),
+		"exp":              now.Add(10 * time.Minute).Unix(),
 	}
 	for k, v := range claims {
 		mapClaims[k] = v

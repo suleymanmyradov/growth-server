@@ -23,7 +23,7 @@ func HandleStripeWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			errors.HandleGrpcError(w, err)
 			return
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		signature := r.Header.Get("Stripe-Signature")
 		if signature == "" {

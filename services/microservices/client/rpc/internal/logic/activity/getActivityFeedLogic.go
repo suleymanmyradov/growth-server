@@ -59,11 +59,11 @@ func (l *GetActivityFeedLogic) GetActivityFeed(in *client.GetActivityFeedRequest
 	pbActivities := make([]*client.ActivityItem, len(activities))
 	for i, a := range activities {
 		item := &client.ActivityItem{
-			Id:      a.ID.String(),
-			UserId:  a.UserID.String(),
-			Type:    a.Type,
-			Title:   a.Title,
-			Metadata: make(map[string]string, 0),
+			Id:        a.ID.String(),
+			UserId:    a.UserID.String(),
+			Type:      a.Type,
+			Title:     a.Title,
+			Metadata:  make(map[string]string, 0),
 			Timestamp: a.CreatedAt.Time.Unix(),
 		}
 		if a.Description != nil {

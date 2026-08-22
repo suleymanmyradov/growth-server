@@ -70,10 +70,6 @@ func NewRetriever(idx searcher, cfg Config) *Retriever {
 	}
 }
 
-// memoryEntityTypes is the closed set of entity types retrievable from
-// user_memory. It is applied in every query filter.
-var memoryEntityTypes = []string{"check_in", "conversation_message", "weekly_review"}
-
 // Retrieve runs a hybrid search over user_memory scoped to userID and returns
 // the top snippets above the score floor. The caller MUST pass the caller's
 // user id; the filter enforces isolation server-side and this method re-checks

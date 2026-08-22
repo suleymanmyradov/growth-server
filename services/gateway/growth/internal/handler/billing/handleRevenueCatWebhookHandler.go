@@ -29,7 +29,7 @@ func HandleRevenueCatWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			errors.HandleGrpcError(w, err)
 			return
 		}
-		defer r.Body.Close()
+		defer func() { _ = r.Body.Close() }()
 
 		authorization := r.Header.Get("Authorization")
 		if authorization == "" {

@@ -13,9 +13,9 @@ import (
 // openRouterSTT implements STTClient against the OpenAI-compatible
 // /audio/transcriptions endpoint (OpenRouter, OpenAI direct, Groq, etc.).
 type openRouterSTT struct {
-	cfg    Config
-	http   *http.Client
-	model  string
+	cfg   Config
+	http  *http.Client
+	model string
 }
 
 // openRouterTTS implements TTSClient against the OpenAI-compatible
@@ -47,10 +47,10 @@ func newOpenRouterTTS(cfg Config, hc *http.Client) TTSClient {
 // sttJSONRequest is the JSON body for the OpenAI-compatible transcriptions
 // endpoint (base64-encoded audio). Used by OpenRouter.
 type sttJSONRequest struct {
-	Model       string          `json:"model"`
-	InputAudio  sttInputAudio   `json:"input_audio"`
-	Language    string          `json:"language,omitempty"`
-	Temperature float64         `json:"temperature,omitempty"`
+	Model       string        `json:"model"`
+	InputAudio  sttInputAudio `json:"input_audio"`
+	Language    string        `json:"language,omitempty"`
+	Temperature float64       `json:"temperature,omitempty"`
 }
 
 type sttInputAudio struct {
@@ -103,7 +103,7 @@ func (c *openRouterSTT) Transcribe(ctx context.Context, audio []byte, format Aud
 	if err != nil {
 		return TranscriptionResult{}, fmt.Errorf("speech: stt request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -165,7 +165,7 @@ func (c *openRouterTTS) Synthesize(ctx context.Context, text string, opts Synthe
 	if err != nil {
 		return nil, "", fmt.Errorf("speech: tts request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
@@ -260,5 +260,3 @@ func newClients(cfg Config) (STTClient, TTSClient) {
 	}
 	return stt, tts
 }
-
-

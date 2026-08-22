@@ -100,7 +100,7 @@ func fetchUserInfo(ctx context.Context, accessToken string) (UserInfo, error) {
 	if err != nil {
 		return UserInfo{}, fmt.Errorf("google: userinfo request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)

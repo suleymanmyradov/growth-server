@@ -29,12 +29,12 @@ func (l *ChangePasswordLogic) ChangePassword(in *auth.ChangePasswordRequest) (*a
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "ChangePasswordLogic.ChangePassword")
 	defer span.End()
 
-	l.Infof("ChangePassword attempt for user: %s", in.UserId)
-
 	if in == nil || in.UserId == "" || in.OldPassword == "" || in.NewPassword == "" {
 		l.Errorf("ChangePassword validation failed: user ID, old password and new password are required")
 		return nil, errInvalidArgument(MsgUserIdOldNewPasswordReq)
 	}
+
+	l.Infof("ChangePassword attempt for user: %s", in.UserId)
 
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {

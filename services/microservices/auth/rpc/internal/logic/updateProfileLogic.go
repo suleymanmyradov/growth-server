@@ -29,12 +29,12 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "UpdateProfileLogic.UpdateProfile")
 	defer span.End()
 
-	l.Infof("UpdateProfile attempt for user: %s", in.UserId)
-
 	if in == nil || in.UserId == "" {
 		l.Errorf("UpdateProfile validation failed: user ID is required")
 		return nil, errInvalidArgument(MsgUserIdRequired)
 	}
+
+	l.Infof("UpdateProfile attempt for user: %s", in.UserId)
 
 	userID, err := uuid.Parse(in.UserId)
 	if err != nil {

@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/zeromicro/go-zero/rest"
@@ -37,14 +36,14 @@ func ResponseShapeMiddleware() rest.Middleware {
 			var raw json.RawMessage
 			if err := json.Unmarshal(resp, &raw); err != nil {
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.Write(resp)
+				_, _ = w.Write(resp)
 				return
 			}
 
 			var obj map[string]json.RawMessage
 			if err := json.Unmarshal(resp, &obj); err != nil {
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.Write(resp)
+				_, _ = w.Write(resp)
 				return
 			}
 
@@ -54,23 +53,14 @@ func ResponseShapeMiddleware() rest.Middleware {
 				}
 				enveloped, _ := json.Marshal(envelope)
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.Write(enveloped)
+				_, _ = w.Write(enveloped)
 				return
 			}
 
 			if _, ok := obj["data"]; ok {
 				w.Header().Set("Content-Type", "application/json; charset=utf-8")
-				w.Write(resp)
+				_, _ = w.Write(resp)
 			}
 		}
 	}
-}
-
-func readBody(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, nil
-	}
-	body, err := io.ReadAll(r.Body)
-	r.Body.Close()
-	return body, err
 }

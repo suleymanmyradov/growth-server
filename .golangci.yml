@@ -23,14 +23,19 @@ linters:
     - errcheck
     - govet
     - staticcheck
-  # go-zero config structs use `json:"...,optional"` which go-zero's config
-  # loader recognizes but staticcheck (SA5008) does not — suppress only that
-  # specific false positive, not all invalid-tag warnings.
+  # go-zero config structs use non-standard `json` tag options like
+  # `json:"...,optional"` and `json:"...,default=60,5"` which go-zero's config
+  # loader recognizes but staticcheck (SA5008) does not. staticcheck emits
+  # several variants for these (unknown `optional`, unknown `default`,
+  # unknown `5`, malformed `json` tag, ...) — all false positives. Every SA5008
+  # hit in this codebase is a go-zero config struct tag, so SA5008 is suppressed
+  # globally. If a real invalid-tag bug is introduced elsewhere, govet's
+  # fieldalignment/tagliatelle or a review should catch it.
   exclusions:
     rules:
       - linters:
           - staticcheck
-        text: "unknown `optional` tag option"
+        text: "SA5008"
 
 issues:
   max-issues-per-linter: 0

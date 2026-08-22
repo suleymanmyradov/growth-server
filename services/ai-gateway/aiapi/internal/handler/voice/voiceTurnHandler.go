@@ -66,7 +66,7 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			errors.WriteParseError(w, err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		format := audioFormatFromHeader(header.Filename, header.Header.Get("Content-Type"))
 		if format == "" {

@@ -22,15 +22,15 @@ import (
 // so unintended calls surface immediately in tests.
 type mockBilling struct {
 	// Configurable return values
-	getPlanByCode                   map[string]db.Plan
-	getSubByStripeCustomer          map[string]db.GetUserSubscriptionByStripeCustomerIDRow
-	getSubByStripeCustomerErr       error
-	upsertResult                    db.Subscription
-	upsertErr                       error
-	createUpgradeEventErr           error
-	isStripeEventProcessed          bool
-	isStripeEventProcessedErr       error
-	markStripeEventProcessedErr     error
+	getPlanByCode               map[string]db.Plan
+	getSubByStripeCustomer      map[string]db.GetUserSubscriptionByStripeCustomerIDRow
+	getSubByStripeCustomerErr   error
+	upsertResult                db.Subscription
+	upsertErr                   error
+	createUpgradeEventErr       error
+	isStripeEventProcessed      bool
+	isStripeEventProcessedErr   error
+	markStripeEventProcessedErr error
 
 	// Call capture for assertions
 	upsertCalls             []db.UpsertUserSubscriptionParams
@@ -128,14 +128,14 @@ func strPtr(s string) *string { return &s }
 
 // fixedUUIDs for deterministic tests.
 var (
-	testUserID       = uuid.MustParse("00000000-0000-7000-8000-000000000001")
-	testFreePlanID   = uuid.MustParse("00000000-0000-7000-8000-000000000002")
-	testProPlanID    = uuid.MustParse("00000000-0000-7000-8000-000000000003")
-	testFreePlan     = db.Plan{ID: testFreePlanID, Code: "free", Name: "Free"}
-	testProPlan      = db.Plan{ID: testProPlanID, Code: "pro", Name: "Pro"}
-	testCustomerID   = "cus_test_123"
-	testSubID        = "sub_test_456"
-	testExistingSub  = db.GetUserSubscriptionByStripeCustomerIDRow{
+	testUserID      = uuid.MustParse("00000000-0000-7000-8000-000000000001")
+	testFreePlanID  = uuid.MustParse("00000000-0000-7000-8000-000000000002")
+	testProPlanID   = uuid.MustParse("00000000-0000-7000-8000-000000000003")
+	testFreePlan    = db.Plan{ID: testFreePlanID, Code: "free", Name: "Free"}
+	testProPlan     = db.Plan{ID: testProPlanID, Code: "pro", Name: "Pro"}
+	testCustomerID  = "cus_test_123"
+	testSubID       = "sub_test_456"
+	testExistingSub = db.GetUserSubscriptionByStripeCustomerIDRow{
 		UserID:               testUserID,
 		PlanID:               testFreePlanID,
 		Status:               "free",
@@ -251,7 +251,7 @@ func TestHandleCheckoutCompleted_AlreadyActivePreservesPeriodDates(t *testing.T)
 
 func TestHandleCheckoutCompleted_CustomerNotFound(t *testing.T) {
 	m := &mockBilling{
-		getPlanByCode:          map[string]db.Plan{"pro": testProPlan},
+		getPlanByCode:             map[string]db.Plan{"pro": testProPlan},
 		getSubByStripeCustomerErr: errors.New("no rows"),
 	}
 	l := newTestLogic(m).withRepo(m)
@@ -334,7 +334,9 @@ func TestHandleSubscriptionUpdated_PeriodDatesFromItemLevel(t *testing.T) {
 			}{
 				Data: []stripeSubscriptionItem{
 					{
-						Price:              stripePrice{ID: "price_1", Recurring: struct{ Interval string `json:"interval"` }{Interval: "month"}},
+						Price: stripePrice{ID: "price_1", Recurring: struct {
+							Interval string `json:"interval"`
+						}{Interval: "month"}},
 						CurrentPeriodStart: 1700000000,
 						CurrentPeriodEnd:   1702678400,
 					},
@@ -373,7 +375,9 @@ func TestHandleSubscriptionUpdated_PeriodDatesFromTopLevel(t *testing.T) {
 				Data []stripeSubscriptionItem `json:"data"`
 			}{
 				Data: []stripeSubscriptionItem{
-					{Price: stripePrice{ID: "price_1", Recurring: struct{ Interval string `json:"interval"` }{Interval: "year"}}},
+					{Price: stripePrice{ID: "price_1", Recurring: struct {
+						Interval string `json:"interval"`
+					}{Interval: "year"}}},
 				},
 			},
 		},
@@ -414,7 +418,7 @@ func TestHandleSubscriptionUpdated_StaleWebhookIgnored(t *testing.T) {
 
 func TestHandleSubscriptionUpdated_CustomerNotFound(t *testing.T) {
 	m := &mockBilling{
-		getPlanByCode:          map[string]db.Plan{"pro": testProPlan},
+		getPlanByCode:             map[string]db.Plan{"pro": testProPlan},
 		getSubByStripeCustomerErr: errors.New("no rows"),
 	}
 	l := newTestLogic(m).withRepo(m)

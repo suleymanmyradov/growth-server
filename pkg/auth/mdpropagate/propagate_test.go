@@ -214,9 +214,12 @@ func TestUnaryServerInterceptorOptional(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name:     "with valid token",
-			metadata: func() metadata.MD { tr, _ := fv.maker.CreateAccessToken(context.Background(), uuid.New(), "u", nil, uuid.New()); return metadata.Pairs(MDAuthorization, "Bearer "+tr.Token) }(),
-			wantErr:  false,
+			name: "with valid token",
+			metadata: func() metadata.MD {
+				tr, _ := fv.maker.CreateAccessToken(context.Background(), uuid.New(), "u", nil, uuid.New())
+				return metadata.Pairs(MDAuthorization, "Bearer "+tr.Token)
+			}(),
+			wantErr: false,
 		},
 		{
 			name:     "without authorization",

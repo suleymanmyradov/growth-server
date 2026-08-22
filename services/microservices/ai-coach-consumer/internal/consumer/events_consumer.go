@@ -117,7 +117,7 @@ func (h *EventsHandler) Consume(ctx context.Context, _ string, raw string) error
 	}
 
 	timer := prometheus.NewTimer(eventsProcessingDuration.WithLabelValues("unknown"))
-	defer timer.ObserveDuration()
+	defer func() { timer.ObserveDuration() }()
 
 	var env events.Envelope
 	if err := json.Unmarshal([]byte(raw), &env); err != nil {

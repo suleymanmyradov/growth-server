@@ -60,13 +60,10 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 		return nil, ErrInvalidCredentials
 	}
 
-	// Email verification is currently skipped — allow login regardless of
-	// EmailVerified status. Re-enable this check when verification is turned
-	// back on:
-	// if !user.EmailVerified {
-	// 	l.Errorf("Login rejected: user %s email not verified", user.ID)
-	// 	return nil, ErrEmailNotVerified
-	// }
+	if !user.EmailVerified {
+		l.Errorf("Login rejected: user %s email not verified", user.ID)
+		return nil, ErrEmailNotVerified
+	}
 
 	sessionID := uuid.New()
 

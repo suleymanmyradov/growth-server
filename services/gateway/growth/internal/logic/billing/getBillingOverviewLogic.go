@@ -49,24 +49,24 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 	}
 
 	sub := types.UserSubscription{
-		Id:                rpcResp.Subscription.Id,
-		UserId:            rpcResp.Subscription.UserId,
-		PlanId:            rpcResp.Subscription.PlanId,
-		PlanCode:          rpcResp.Subscription.PlanCode,
-		PlanName:          rpcResp.Subscription.PlanName,
-		Status:            rpcResp.Subscription.Status,
-		BillingInterval:   rpcResp.Subscription.BillingInterval,
+		Id:                 rpcResp.Subscription.Id,
+		UserId:             rpcResp.Subscription.UserId,
+		PlanId:             rpcResp.Subscription.PlanId,
+		PlanCode:           rpcResp.Subscription.PlanCode,
+		PlanName:           rpcResp.Subscription.PlanName,
+		Status:             rpcResp.Subscription.Status,
+		BillingInterval:    rpcResp.Subscription.BillingInterval,
 		CurrentPeriodStart: rpcResp.Subscription.CurrentPeriodStart,
-		CurrentPeriodEnd:  rpcResp.Subscription.CurrentPeriodEnd,
-		TrialEnd:          rpcResp.Subscription.TrialEnd,
-		CancelAtPeriodEnd: rpcResp.Subscription.CancelAtPeriodEnd,
+		CurrentPeriodEnd:   rpcResp.Subscription.CurrentPeriodEnd,
+		TrialEnd:           rpcResp.Subscription.TrialEnd,
+		CancelAtPeriodEnd:  rpcResp.Subscription.CancelAtPeriodEnd,
 	}
 
 	ent := types.Entitlements{
 		PlanCode:                   rpcResp.Entitlements.PlanCode,
 		Status:                     rpcResp.Entitlements.Status,
 		ActiveGoalLimit:            int(rpcResp.Entitlements.ActiveGoalLimit),
-		ActiveHabitLimit:          int(rpcResp.Entitlements.ActiveHabitLimit),
+		ActiveHabitLimit:           int(rpcResp.Entitlements.ActiveHabitLimit),
 		WeeklyReviewHistoryLimit:   int(rpcResp.Entitlements.WeeklyReviewHistoryLimit),
 		PlanAdjustmentLimit:        int(rpcResp.Entitlements.PlanAdjustmentLimit),
 		PersonalizedAiEnabled:      rpcResp.Entitlements.PersonalizedAiEnabled,

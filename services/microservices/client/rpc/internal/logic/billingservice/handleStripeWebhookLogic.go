@@ -42,9 +42,9 @@ type stripeSubscription struct {
 }
 
 type stripeSubscriptionItem struct {
-	Price               stripePrice `json:"price"`
-	CurrentPeriodStart  int64       `json:"current_period_start"`
-	CurrentPeriodEnd    int64       `json:"current_period_end"`
+	Price              stripePrice `json:"price"`
+	CurrentPeriodStart int64       `json:"current_period_start"`
+	CurrentPeriodEnd   int64       `json:"current_period_end"`
 }
 
 type stripePrice struct {

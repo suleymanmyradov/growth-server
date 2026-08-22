@@ -237,16 +237,16 @@ func (s *Syncer) reconcileOrphans(ctx context.Context) int {
 
 	// Map entity type prefixes to their ID lists for correct docID construction.
 	publicSpecs := []struct {
-		et   string
-		ids  []uuid.UUID
+		et  string
+		ids []uuid.UUID
 	}{
 		{"article", publicIDs[0]},
 		{"goal", publicIDs[1]},
 		{"habit", publicIDs[2]},
 	}
 	memorySpecs := []struct {
-		et   string
-		ids  []uuid.UUID
+		et  string
+		ids []uuid.UUID
 	}{
 		{"check_in", memoryIDs[0]},
 		{"conversation_message", memoryIDs[1]},

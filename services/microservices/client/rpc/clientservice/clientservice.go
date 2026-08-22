@@ -1,7 +1,6 @@
 package clientservice
 
 import (
-	"github.com/zeromicro/go-zero/zrpc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/activity"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
@@ -15,25 +14,26 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/settings"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/tags"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/weeklyreviewservice"
+	"github.com/zeromicro/go-zero/zrpc"
 )
 
 // Service aggregates every sub-service client exposed by the client RPC into a
 // single struct. Consumers (e.g. the gateway) only need to import this one
 // package instead of each individual sub-service package.
 type Service struct {
-	Activity             activity.Activity
-	Articles             articles.Articles
-	BillingService       billingservice.BillingService
-	Categories           categories.Categories
-	CheckInService       checkinservice.CheckInService
-	Goals                goals.Goals
-	Habits               habits.Habits
+	Activity               activity.Activity
+	Articles               articles.Articles
+	BillingService         billingservice.BillingService
+	Categories             categories.Categories
+	CheckInService         checkinservice.CheckInService
+	Goals                  goals.Goals
+	Habits                 habits.Habits
 	PersonalizationService personalizationservice.PersonalizationService
-	Report               report.Report
-	Saved                saved.Saved
-	Settings             settings.Settings
-	Tags                 tags.Tags
-	WeeklyReviewService  weeklyreviewservice.WeeklyReviewService
+	Report                 report.Report
+	Saved                  saved.Saved
+	Settings               settings.Settings
+	Tags                   tags.Tags
+	WeeklyReviewService    weeklyreviewservice.WeeklyReviewService
 }
 
 // NewClientService constructs every sub-service client from a single

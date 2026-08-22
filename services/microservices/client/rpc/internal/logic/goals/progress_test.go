@@ -207,8 +207,8 @@ func TestCalendarDaysDSTSafe(t *testing.T) {
 	// DST zone, the 23-hour day would produce 6 instead of 7. UTC
 	// normalization makes this correct.
 	loc, _ := time.LoadLocation("America/New_York")
-	from := time.Date(2026, 3, 7, 0, 0, 0, 0, loc)  // before DST
-	to := time.Date(2026, 3, 13, 0, 0, 0, 0, loc)   // after DST
+	from := time.Date(2026, 3, 7, 0, 0, 0, 0, loc) // before DST
+	to := time.Date(2026, 3, 13, 0, 0, 0, 0, loc)  // after DST
 	got := calendarDays(from, to)
 	if got != 7 {
 		t.Fatalf("calendarDays across DST = %d, want 7", got)

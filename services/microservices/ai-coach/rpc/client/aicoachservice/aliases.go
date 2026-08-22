@@ -13,12 +13,12 @@ import "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach
 // If you add a new nested message to ai-coach.proto that callers need to
 // reference by alias, add it here too.
 type (
-	HistoryMessage         = aicoach.HistoryMessage
-	HabitBreakdown         = aicoach.HabitBreakdown
-	BlockerStat            = aicoach.BlockerStat
-	MoodStat               = aicoach.MoodStat
-	EnergyStat             = aicoach.EnergyStat
-	WeeklyReviewAdjustment = aicoach.WeeklyReviewAdjustment
-	NextWeekPlan           = aicoach.NextWeekPlan
+	HistoryMessage            = aicoach.HistoryMessage
+	HabitBreakdown            = aicoach.HabitBreakdown
+	BlockerStat               = aicoach.BlockerStat
+	MoodStat                  = aicoach.MoodStat
+	EnergyStat                = aicoach.EnergyStat
+	WeeklyReviewAdjustment    = aicoach.WeeklyReviewAdjustment
+	NextWeekPlan              = aicoach.NextWeekPlan
 	OnboardingHabitSuggestion = aicoach.OnboardingHabitSuggestion
 )

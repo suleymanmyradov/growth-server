@@ -62,9 +62,9 @@ func classifyAIGatewayEndpoint(path, method string) sharedmw.RateBucket {
 // aiExemptPaths are endpoints whose responses intentionally do not use the
 // standard data envelope (SSE endpoints and multipart→SSE routes).
 var aiExemptPaths = map[string]bool{
-	"/api/v1/weekly-reviews/generate-stream":   true,
-	"/api/v1/personalization/coaching-stream":  true,
-	"/api/v1/personalization/voice-turn":       true,
+	"/api/v1/weekly-reviews/generate-stream":  true,
+	"/api/v1/personalization/coaching-stream": true,
+	"/api/v1/personalization/voice-turn":      true,
 }
 
 // ResponseShapeMiddleware delegates to the shared implementation with the
