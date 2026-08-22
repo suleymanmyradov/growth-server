@@ -157,24 +157,6 @@ func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repo
 	}
 }
 
-// sendPush delivers a best-effort push notification for a newly created
-// in-app notification row. Push failures are logged but never fail the
-// reminder processing. When pushSender is nil (e.g. in tests or when Expo is
-// disabled), this is a no-op.
-func (h *ReminderDueHandler) sendPush(ctx context.Context, userID uuid.UUID, title, body string, notificationID uuid.UUID, dest delivery.Destination, resourceID uuid.UUID) {
-	if h.pushSender == nil {
-		return
-	}
-	payload, err := delivery.NewPayload(title, body, notificationID, dest, resourceID)
-	if err != nil {
-		logx.WithContext(ctx).Errorf("push payload construction failed: %v", err)
-		return
-	}
-	if _, err := h.pushSender.Send(ctx, userID, payload); err != nil {
-		logx.WithContext(ctx).Errorf("push delivery failed for notification %s: %v", notificationID, err)
-	}
-}
-
 func (h *ReminderDueHandler) createNotification(ctx context.Context, repo *repository.Repository, userID uuid.UUID, itemType, title, message string, dest delivery.Destination, resourceID uuid.UUID, deduplicationKey string, metadata map[string]any, email bool) (uuid.UUID, error) {
 	pref, err := repo.Preferences.Get(ctx, userID)
 	if err != nil {

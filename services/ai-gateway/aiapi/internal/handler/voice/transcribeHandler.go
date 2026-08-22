@@ -49,7 +49,7 @@ func TranscribeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			errors.WriteParseError(w, err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		// Derive the audio format from the filename extension or the
 		// Content-Type. The STT provider needs a bare format string

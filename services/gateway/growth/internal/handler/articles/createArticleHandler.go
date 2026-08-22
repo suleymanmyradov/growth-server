@@ -38,7 +38,7 @@ func CreateArticleHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 
 		file, header, err := r.FormFile("coverImage")
 		if err == nil {
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			coverImageData, _ = io.ReadAll(file)
 			coverImageFilename = header.Filename
 			coverImageContentType = header.Header.Get("Content-Type")

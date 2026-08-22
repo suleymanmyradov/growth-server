@@ -12,7 +12,7 @@ var benchBody = []byte(`{"data":{"articles":[{"id":"1","title":"T"},{"id":"2","t
 func BenchmarkResponseShapeMiddleware(b *testing.B) {
 	handler := ResponseShapeMiddleware(nil)(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(benchBody)
+		_, _ = w.Write(benchBody)
 	})
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/articles", nil)
 

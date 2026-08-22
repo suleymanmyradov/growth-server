@@ -39,10 +39,10 @@ func (l *StartConversationLogic) StartConversation(req *types.StartConversationR
 	}
 
 	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.StartConversation(l.ctx, &conversationservice.StartConversationRequest{
-		UserId:          p.UserID,
-		Type:            convType,
-		Title:           req.Title,
-		InitialMessage:  req.InitialMessage,
+		UserId:         p.UserID,
+		Type:           convType,
+		Title:          req.Title,
+		InitialMessage: req.InitialMessage,
 	})
 	if err != nil {
 		return nil, err
@@ -50,14 +50,14 @@ func (l *StartConversationLogic) StartConversation(req *types.StartConversationR
 
 	resp = &types.StartConversationResponse{
 		Data: types.Conversation{
-			Id:          rpcResp.Conversation.Id,
-			Title:       rpcResp.Conversation.Title,
+			Id:               rpcResp.Conversation.Id,
+			Title:            rpcResp.Conversation.Title,
 			ConversationType: rpcResp.Conversation.Type,
-			LastMessage: rpcResp.Conversation.LastMessage,
-			UserId:      rpcResp.Conversation.UserId,
-			Archived:    rpcResp.Conversation.Archived,
-			CreatedAt:   formatTime(rpcResp.Conversation.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Conversation.UpdatedAt),
+			LastMessage:      rpcResp.Conversation.LastMessage,
+			UserId:           rpcResp.Conversation.UserId,
+			Archived:         rpcResp.Conversation.Archived,
+			CreatedAt:        formatTime(rpcResp.Conversation.CreatedAt),
+			UpdatedAt:        formatTime(rpcResp.Conversation.UpdatedAt),
 		},
 	}
 

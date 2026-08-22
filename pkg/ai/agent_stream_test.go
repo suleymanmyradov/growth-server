@@ -430,7 +430,7 @@ func TestClient_StreamAgent_IncompleteFinishContinues(t *testing.T) {
 			server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
 				callCount++
 				w.Header().Set("Content-Type", "text/event-stream")
-				chunks := []map[string]any{}
+				var chunks []map[string]any
 				if callCount == 1 {
 					chunks = []map[string]any{
 						{"id": "chatcmpl-1", "object": "chat.completion.chunk", "model": "openai/gpt-4o-mini",

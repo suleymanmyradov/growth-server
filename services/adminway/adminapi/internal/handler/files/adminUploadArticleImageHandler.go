@@ -29,7 +29,7 @@ func AdminUploadArticleImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		// Resize, convert to JPEG, and enforce size limits.
 		data, contentType, err := imageproc.ProcessArticleCover(file)

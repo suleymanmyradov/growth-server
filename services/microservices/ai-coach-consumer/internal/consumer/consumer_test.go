@@ -198,8 +198,8 @@ func TestEventsHandler_ConcurrencyLimit(t *testing.T) {
 	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
 
 	// Two rapid invalid messages — first should acquire semaphore, second should too.
-	h.Consume(context.Background(), "", "bad")
-	h.Consume(context.Background(), "", "bad")
+	_ = h.Consume(context.Background(), "", "bad")
+	_ = h.Consume(context.Background(), "", "bad")
 	assert.Len(t, dlq.messages(), 2)
 }
 

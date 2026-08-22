@@ -34,14 +34,14 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(req *
 		return nil, fmt.Errorf("unauthenticated")
 	}
 
-	rpcResp, err := l.svcCtx.NotificationsRpc.UpdateNotificationPreferences(l.ctx, &notificationsClient.UpdateNotificationPreferencesRequest{		Preferences: &notificationsClient.NotificationPreferences{
-			EmailEnabled:          req.Preferences.EmailEnabled,
-			PushEnabled:           req.Preferences.PushEnabled,
-			HabitRemindersEnabled: req.Preferences.HabitRemindersEnabled,
-			GoalRemindersEnabled:  req.Preferences.GoalRemindersEnabled,
-			StreakWarningsEnabled: req.Preferences.StreakWarningsEnabled,
-			SundayReviewEnabled:   req.Preferences.SundayReviewEnabled,
-		},
+	rpcResp, err := l.svcCtx.NotificationsRpc.UpdateNotificationPreferences(l.ctx, &notificationsClient.UpdateNotificationPreferencesRequest{Preferences: &notificationsClient.NotificationPreferences{
+		EmailEnabled:          req.Preferences.EmailEnabled,
+		PushEnabled:           req.Preferences.PushEnabled,
+		HabitRemindersEnabled: req.Preferences.HabitRemindersEnabled,
+		GoalRemindersEnabled:  req.Preferences.GoalRemindersEnabled,
+		StreakWarningsEnabled: req.Preferences.StreakWarningsEnabled,
+		SundayReviewEnabled:   req.Preferences.SundayReviewEnabled,
+	},
 	})
 	if err != nil {
 		return nil, err

@@ -8,9 +8,9 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/suleymanmyradov/growth-server/services/microservices/billing-reconciler/internal/repository"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/suleymanmyradov/growth-server/services/microservices/billing-reconciler/internal/repository"
 )
 
 // mockBillingRepo implements billingRepo for testing.
@@ -183,7 +183,7 @@ func TestReconcileExpiredSubscriptions_UpsertErrorContinues(t *testing.T) {
 	count, err := reconcileExpiredSubscriptions(context.Background(), m, false)
 	// Should not fail — upsert errors are logged and skipped
 	require.NoError(t, err)
-	assert.Equal(t, 0, count) // none succeeded
+	assert.Equal(t, 0, count)       // none succeeded
 	assert.Len(t, m.upsertCalls, 2) // but both were attempted
 }
 

@@ -47,11 +47,11 @@ func (l *ListGoalTemplatesLogic) ListGoalTemplates(in *client.ListGoalTemplatesR
 
 func convertGoalTemplate(t db.ListGoalTemplatesRow) *client.GoalTemplate {
 	pb := &client.GoalTemplate{
-		Id:          t.ID.String(),
-		Title:       t.Title,
-		SortOrder:   t.SortOrder,
-		CreatedAt:   t.CreatedAt.Time.Unix(),
-		UpdatedAt:   t.UpdatedAt.Time.Unix(),
+		Id:        t.ID.String(),
+		Title:     t.Title,
+		SortOrder: t.SortOrder,
+		CreatedAt: t.CreatedAt.Time.Unix(),
+		UpdatedAt: t.UpdatedAt.Time.Unix(),
 	}
 	if t.Description != nil {
 		pb.Description = *t.Description

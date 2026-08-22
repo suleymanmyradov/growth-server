@@ -40,7 +40,7 @@ type ToolCallDelta struct {
 // Attachment is a user-supplied file that should be passed to the model as
 // a multimodal content part. Data is base64-encoded.
 type Attachment struct {
-	Type        string `json:"type"`        // "image" or "document"
+	Type        string `json:"type"` // "image" or "document"
 	Name        string `json:"name"`
 	ContentType string `json:"content_type"`
 	Data        string `json:"data"` // base64-encoded bytes

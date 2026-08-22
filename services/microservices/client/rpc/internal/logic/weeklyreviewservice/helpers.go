@@ -446,16 +446,7 @@ func dbReviewToProto(r db.GetWeeklyReviewRow) *client.WeeklyReview {
 		_ = json.Unmarshal(r.HabitBreakdown, &legacy)
 		habitBreakdowns = make([]habitBreakdownDB, len(legacy))
 		for i, h := range legacy {
-			habitBreakdowns[i] = habitBreakdownDB{
-				HabitID:        h.HabitID,
-				HabitName:      h.HabitName,
-				Category:       h.Category,
-				TotalCheckIns:  h.TotalCheckIns,
-				CompletedCount: h.CompletedCount,
-				MissedCount:    h.MissedCount,
-				CompletionRate: h.CompletionRate,
-				LastCheckInAt:  h.LastCheckInAt,
-			}
+			habitBreakdowns[i] = habitBreakdownDB(h)
 		}
 	} else {
 		_ = json.Unmarshal(r.HabitBreakdown, &habitBreakdowns)

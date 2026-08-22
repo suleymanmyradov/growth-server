@@ -4,8 +4,9 @@
 package articles
 
 import (
-	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"net/http"
+
+	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/articles"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"

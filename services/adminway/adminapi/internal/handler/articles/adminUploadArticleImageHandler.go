@@ -30,7 +30,7 @@ func AdminUploadArticleImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			httpx.ErrorCtx(r.Context(), w, err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		data, err := io.ReadAll(file)
 		if err != nil {

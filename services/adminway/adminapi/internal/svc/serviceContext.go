@@ -9,8 +9,8 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
-	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/middleware"
@@ -33,26 +33,26 @@ import (
 )
 
 type ServiceContext struct {
-	Config          config.Config
-	Auth            rest.Middleware
-	AdminAuth       rest.Middleware
-	TokenMaker      *jwt.TokenMaker
-	ArticlesRpc        clientarticles.Articles
-	CategoriesRpc      clientcategories.Categories
-	TagsRpc            clienttags.Tags
-	ReportRpc          clientreport.Report
-	SiteSettingsRpc    clientsitesettings.SiteSettings
-	HabitTemplatesRpc  clienthabittemplates.HabitTemplates
-	GoalTemplatesRpc   clientgoaltemplates.GoalTemplates
-	SearchRpc          searchservice.SearchService
-	FileManagerRpc     clientfilemanager.FileManager
-	AuthRpc            authservice.AuthService
-	BillingRpc         clientbilling.BillingService
-	EventsPub       *events.Publisher
-	Repo            *repository.Repository
-	TxRunner        *postgres.PgxTxRunner
-	cancel          context.CancelFunc
-	pool            *pgxpool.Pool
+	Config            config.Config
+	Auth              rest.Middleware
+	AdminAuth         rest.Middleware
+	TokenMaker        *jwt.TokenMaker
+	ArticlesRpc       clientarticles.Articles
+	CategoriesRpc     clientcategories.Categories
+	TagsRpc           clienttags.Tags
+	ReportRpc         clientreport.Report
+	SiteSettingsRpc   clientsitesettings.SiteSettings
+	HabitTemplatesRpc clienthabittemplates.HabitTemplates
+	GoalTemplatesRpc  clientgoaltemplates.GoalTemplates
+	SearchRpc         searchservice.SearchService
+	FileManagerRpc    clientfilemanager.FileManager
+	AuthRpc           authservice.AuthService
+	BillingRpc        clientbilling.BillingService
+	EventsPub         *events.Publisher
+	Repo              *repository.Repository
+	TxRunner          *postgres.PgxTxRunner
+	cancel            context.CancelFunc
+	pool              *pgxpool.Pool
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -104,8 +104,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Issuer:   c.Auth.Issuer,
 			Audience: c.Auth.Audience,
 		}),
-		AdminAuth:       middleware.AdminAuth(),
-		TokenMaker:      tokenMaker,
+		AdminAuth:         middleware.AdminAuth(),
+		TokenMaker:        tokenMaker,
 		ArticlesRpc:       clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		CategoriesRpc:     clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		TagsRpc:           clienttags.NewTags(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
@@ -113,15 +113,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SiteSettingsRpc:   clientsitesettings.NewSiteSettings(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		HabitTemplatesRpc: clienthabittemplates.NewHabitTemplates(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		GoalTemplatesRpc:  clientgoaltemplates.NewGoalTemplates(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		SearchRpc:       searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
-		FileManagerRpc:  clientfilemanager.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
-		AuthRpc:         authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...)),
-		BillingRpc:      clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
-		EventsPub:       eventsPub,
-		Repo:            repo,
-		TxRunner:        txRunner,
-		cancel:          cancel,
-		pool:            pool,
+		SearchRpc:         searchservice.NewSearchService(zrpc.MustNewClient(c.SearchRpc, baseOpts...)),
+		FileManagerRpc:    clientfilemanager.NewFileManager(zrpc.MustNewClient(c.FileManagerRpc, baseOpts...)),
+		AuthRpc:           authservice.NewAuthService(zrpc.MustNewClient(c.AuthRpc, baseOpts...)),
+		BillingRpc:        clientbilling.NewBillingService(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
+		EventsPub:         eventsPub,
+		Repo:              repo,
+		TxRunner:          txRunner,
+		cancel:            cancel,
+		pool:              pool,
 	}
 }
 

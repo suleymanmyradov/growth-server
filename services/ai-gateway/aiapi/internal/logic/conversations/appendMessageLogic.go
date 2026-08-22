@@ -55,14 +55,14 @@ func (l *AppendMessageLogic) AppendMessage(req *types.AppendMessageRequest) (res
 			CreatedAt:      formatTime(rpcResp.Message.CreatedAt),
 		},
 		Conversation: types.Conversation{
-			Id:          rpcResp.Conversation.Id,
-			Title:       rpcResp.Conversation.Title,
+			Id:               rpcResp.Conversation.Id,
+			Title:            rpcResp.Conversation.Title,
 			ConversationType: rpcResp.Conversation.Type,
-			LastMessage: rpcResp.Conversation.LastMessage,
-			UserId:      rpcResp.Conversation.UserId,
-			Archived:    rpcResp.Conversation.Archived,
-			CreatedAt:   formatTime(rpcResp.Conversation.CreatedAt),
-			UpdatedAt:   formatTime(rpcResp.Conversation.UpdatedAt),
+			LastMessage:      rpcResp.Conversation.LastMessage,
+			UserId:           rpcResp.Conversation.UserId,
+			Archived:         rpcResp.Conversation.Archived,
+			CreatedAt:        formatTime(rpcResp.Conversation.CreatedAt),
+			UpdatedAt:        formatTime(rpcResp.Conversation.UpdatedAt),
 		},
 	}, nil
 }

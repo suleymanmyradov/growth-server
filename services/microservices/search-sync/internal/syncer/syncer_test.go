@@ -21,10 +21,10 @@ type fakeIndexer struct {
 	memoryUpsertErr error
 	memoryDeleteErr error
 
-	publicDocIDs   []string
-	memoryDocIDs   []string
-	listDocErr     error
-	listMemoryErr  error
+	publicDocIDs  []string
+	memoryDocIDs  []string
+	listDocErr    error
+	listMemoryErr error
 }
 
 func (f *fakeIndexer) Upsert(_ context.Context, doc map[string]any) error {

@@ -55,14 +55,14 @@ func (l *ListConversationsLogic) ListConversations(req *types.ListConversationsR
 	convs := make([]types.Conversation, 0, len(rpcResp.Conversations))
 	for _, c := range rpcResp.Conversations {
 		convs = append(convs, types.Conversation{
-			Id:          c.Id,
-			Title:       c.Title,
+			Id:               c.Id,
+			Title:            c.Title,
 			ConversationType: c.Type,
-			LastMessage: c.LastMessage,
-			UserId:      c.UserId,
-			Archived:    c.Archived,
-			CreatedAt:   formatTime(c.CreatedAt),
-			UpdatedAt:   formatTime(c.UpdatedAt),
+			LastMessage:      c.LastMessage,
+			UserId:           c.UserId,
+			Archived:         c.Archived,
+			CreatedAt:        formatTime(c.CreatedAt),
+			UpdatedAt:        formatTime(c.UpdatedAt),
 		})
 	}
 

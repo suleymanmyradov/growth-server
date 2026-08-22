@@ -31,7 +31,6 @@ func (p *PatternDetection) AnalyzeLite(checkIns []db.CheckIn, habits []db.GetHab
 	return p.inner.AnalyzeLite(mapCheckIns(checkIns), mapHabits(habits, streakByHabit), userLoc)
 }
 
-
 // AnalyzeFullFromData maps db types to domain types and returns rich insights.
 func (p *PatternDetection) AnalyzeFullFromData(checkIns []db.CheckIn, habits []db.GetHabitRow, streakByHabit map[uuid.UUID]int32, userLoc *time.Location) *analytics.PatternInsights {
 	return p.inner.AnalyzeFullFromData(mapCheckIns(checkIns), mapHabits(habits, streakByHabit), userLoc)

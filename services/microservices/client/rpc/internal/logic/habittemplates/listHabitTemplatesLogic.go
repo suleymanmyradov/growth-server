@@ -47,11 +47,11 @@ func (l *ListHabitTemplatesLogic) ListHabitTemplates(in *client.ListHabitTemplat
 
 func convertHabitTemplate(t db.ListHabitTemplatesRow) *client.HabitTemplate {
 	pb := &client.HabitTemplate{
-		Id:          t.ID.String(),
-		Name:        t.Name,
-		SortOrder:   t.SortOrder,
-		CreatedAt:   t.CreatedAt.Time.Unix(),
-		UpdatedAt:   t.UpdatedAt.Time.Unix(),
+		Id:        t.ID.String(),
+		Name:      t.Name,
+		SortOrder: t.SortOrder,
+		CreatedAt: t.CreatedAt.Time.Unix(),
+		UpdatedAt: t.UpdatedAt.Time.Unix(),
 	}
 	if t.Description != nil {
 		pb.Description = *t.Description

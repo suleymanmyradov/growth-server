@@ -109,7 +109,7 @@ func (c *Client) GetCustomerEntitlements(ctx context.Context, customerID string)
 	if err != nil {
 		return nil, fmt.Errorf("revenuecat: get entitlements: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
@@ -181,7 +181,8 @@ func ParseWebhookPayload(body []byte) (WebhookPayload, error) {
 
 // VerifyWebhookSignature verifies the Authorization header against the
 // configured webhook secret. RevenueCat sends the secret as a Bearer token:
-//   Authorization: Bearer <webhook_secret>
+//
+//	Authorization: Bearer <webhook_secret>
 //
 // The comparison is constant-time to prevent timing attacks.
 func VerifyWebhookSignature(authHeader, webhookSecret string) bool {
@@ -255,7 +256,7 @@ func (c *Client) PostSubscription(ctx context.Context, customerID string, req Po
 	if err != nil {
 		return fmt.Errorf("revenuecat: post subscription: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {

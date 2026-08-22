@@ -24,17 +24,17 @@ import (
 
 // rcMockBilling is a configurable mock for the RevenueCat webhook tests.
 type rcMockBilling struct {
-	getOrCreateSub    db.GetUserSubscriptionRow
-	getOrCreateErr    error
-	getPlanByCode     map[string]db.Plan
-	upsertResult      db.Subscription
-	upsertErr         error
-	setRcCustomerErr  error
-	isProcessed       bool
-	isProcessedErr    error
-	markProcessedErr  error
+	getOrCreateSub     db.GetUserSubscriptionRow
+	getOrCreateErr     error
+	getPlanByCode      map[string]db.Plan
+	upsertResult       db.Subscription
+	upsertErr          error
+	setRcCustomerErr   error
+	isProcessed        bool
+	isProcessedErr     error
+	markProcessedErr   error
 	setRcCustomerCalls int
-	upsertCalls       []db.UpsertUserSubscriptionParams
+	upsertCalls        []db.UpsertUserSubscriptionParams
 }
 
 func (m *rcMockBilling) ListActivePlans(ctx context.Context) ([]db.Plan, error) { panic("not used") }
@@ -112,13 +112,13 @@ func (noopTxRunner) RunSerializable(_ context.Context, _ string, fn func(pgx.Tx)
 
 func rcTestLogic(m *rcMockBilling) *HandleRevenueCatWebhookLogic {
 	return &HandleRevenueCatWebhookLogic{
-		ctx:    context.Background(),
+		ctx: context.Background(),
 		svcCtx: &svc.ServiceContext{
 			Config: config.Config{},
 			Repo:   &repository.Repository{Billing: m},
 		},
-		Logger:        logx.WithContext(context.Background()),
-		testTxRunner:  noopTxRunner{},
+		Logger:       logx.WithContext(context.Background()),
+		testTxRunner: noopTxRunner{},
 	}
 }
 
@@ -193,9 +193,9 @@ func TestHandleRevenueCatWebhook_InitialPurchase(t *testing.T) {
 	planID := uuid.New()
 	m := &rcMockBilling{
 		getOrCreateSub: db.GetUserSubscriptionRow{
-			UserID: userID,
-			PlanID: planID,
-			Status: "free",
+			UserID:   userID,
+			PlanID:   planID,
+			Status:   "free",
 			PlanCode: "free",
 		},
 		getPlanByCode: map[string]db.Plan{
@@ -239,9 +239,9 @@ func TestHandleRevenueCatWebhook_Expiration(t *testing.T) {
 	freePlanID := uuid.New()
 	m := &rcMockBilling{
 		getOrCreateSub: db.GetUserSubscriptionRow{
-			UserID: userID,
-			PlanID: proPlanID,
-			Status: "active",
+			UserID:   userID,
+			PlanID:   proPlanID,
+			Status:   "active",
 			PlanCode: "pro",
 		},
 		getPlanByCode: map[string]db.Plan{
@@ -277,11 +277,11 @@ func TestHandleRevenueCatWebhook_Cancellation(t *testing.T) {
 	planID := uuid.New()
 	m := &rcMockBilling{
 		getOrCreateSub: db.GetUserSubscriptionRow{
-			UserID: userID,
-			PlanID: planID,
-			Status: "active",
-			PlanCode: "pro",
-			BillingInterval: strPtr("monthly"),
+			UserID:           userID,
+			PlanID:           planID,
+			Status:           "active",
+			PlanCode:         "pro",
+			BillingInterval:  strPtr("monthly"),
 			CurrentPeriodEnd: pgtype.Timestamptz{Valid: true},
 		},
 	}

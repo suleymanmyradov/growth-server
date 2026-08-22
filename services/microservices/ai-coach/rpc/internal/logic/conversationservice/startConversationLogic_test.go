@@ -7,10 +7,10 @@ import (
 
 func TestTruncateTitle(t *testing.T) {
 	tests := []struct {
-		name    string
-		input   string
-		maxLen  int
-		want    string
+		name   string
+		input  string
+		maxLen int
+		want   string
 	}{
 		{
 			name:   "empty stays empty",

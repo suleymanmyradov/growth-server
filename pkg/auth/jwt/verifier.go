@@ -33,10 +33,10 @@ func (s *StaticKeyFunc) GetKey(_, _ string) (interface{}, error) {
 // It satisfies the mdpropagate.TokenVerifier interface so downstream services can
 // verify tokens without possessing the signing secret.
 type Verifier struct {
-	issuer    string
-	audience  string
-	keyFunc   KeyFunc
-	leeway    time.Duration
+	issuer   string
+	audience string
+	keyFunc  KeyFunc
+	leeway   time.Duration
 }
 
 // VerifierConfig holds configuration for the asymmetric token verifier.

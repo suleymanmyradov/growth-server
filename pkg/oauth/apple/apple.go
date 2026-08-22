@@ -244,7 +244,7 @@ func (v *Verifier) fetchJWKS(ctx context.Context) (map[string]*rsa.PublicKey, er
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("apple: jwks status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
@@ -355,7 +355,7 @@ func (v *Verifier) ExchangeCode(ctx context.Context, code, redirectURI string) (
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("apple: token exchange status %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))

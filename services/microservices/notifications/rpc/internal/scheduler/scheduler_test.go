@@ -15,12 +15,12 @@ import (
 // ---- fakes ----
 
 type fakeRepo struct {
-	claimed   []db.ClaimDueRemindersRow
-	err       error
+	claimed    []db.ClaimDueRemindersRow
+	err        error
 	markedSent []uuid.UUID
-	released  int64
+	released   int64
 	releaseErr error
-	markErr   error
+	markErr    error
 }
 
 func (f *fakeRepo) ClaimDueReminders(_ context.Context, _ int32) ([]db.ClaimDueRemindersRow, error) {

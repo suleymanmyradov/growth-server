@@ -167,11 +167,10 @@ func (c *Checker) getStatus(ctx context.Context, userID uuid.UUID) (UserStatus, 
 		case "notfound":
 			return StatusNotFound, nil
 		}
-	} else if err != redis.Nil {
-		// Redis error (not a simple miss): log and fall through to DB lookup.
-		// We intentionally degrade gracefully rather than failing the request.
-		// A structured logger is not available here; rely on caller telemetry.
 	}
+	// Redis error (not a simple miss): log and fall through to DB lookup.
+	// We intentionally degrade gracefully rather than failing the request.
+	// A structured logger is not available here; rely on caller telemetry.
 
 	// Cache miss, unexpected value, or Redis error; perform lookup with
 	// singleflight deduplication to prevent thundering herd on cold start.

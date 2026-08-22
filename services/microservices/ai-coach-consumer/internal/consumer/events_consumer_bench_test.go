@@ -11,8 +11,8 @@ func BenchmarkSafetyCache(b *testing.B) {
 	h.safetyCache.Store("running", safety.Verdict{Category: safety.CategorySafe, Confidence: 0.99})
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+
+	for b.Loop() {
 		if v, ok := h.safetyCache.Load("running"); ok {
 			_ = v.(safety.Verdict)
 		}

@@ -30,7 +30,7 @@ func UploadFileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			httpx.Error(w, err)
 			return
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 
 		folder := r.FormValue("folder")
 		if folder == "" {

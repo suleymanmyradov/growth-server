@@ -303,10 +303,10 @@ func (l *HandleRevenueCatWebhookLogic) handleCancellationWithRepo(ctx context.Co
 	}
 
 	_, err := repo.Billing.UpsertUserSubscription(ctx, db.UpsertUserSubscriptionParams{
-		UserID:            userID,
-		PlanID:            sub.PlanID,
-		Status:            sub.Status,
-		BillingInterval:   sub.BillingInterval,
+		UserID:             userID,
+		PlanID:             sub.PlanID,
+		Status:             sub.Status,
+		BillingInterval:    sub.BillingInterval,
 		CurrentPeriodStart: sub.CurrentPeriodStart,
 		CurrentPeriodEnd:   periodEnd,
 		CancelAtPeriodEnd:  true,
@@ -331,7 +331,7 @@ func (l *HandleRevenueCatWebhookLogic) handleExpirationWithRepo(ctx context.Cont
 		PlanID:            freePlan.ID,
 		Status:            "expired",
 		BillingInterval:   nil,
-		CancelAtPeriodEnd:  false,
+		CancelAtPeriodEnd: false,
 	})
 	if err != nil {
 		return fmt.Errorf("upsert subscription (expire): %w", err)
@@ -370,7 +370,7 @@ func (l *HandleRevenueCatWebhookLogic) handleEntitlementChangeWithRepo(ctx conte
 				UserID:            userID,
 				PlanID:            proPlan.ID,
 				Status:            "active",
-				CancelAtPeriodEnd:  false,
+				CancelAtPeriodEnd: false,
 			})
 			if err != nil {
 				return fmt.Errorf("upsert subscription (entitlement sync): %w", err)
@@ -388,7 +388,7 @@ func (l *HandleRevenueCatWebhookLogic) handleEntitlementChangeWithRepo(ctx conte
 				UserID:            userID,
 				PlanID:            freePlan.ID,
 				Status:            "expired",
-				CancelAtPeriodEnd:  false,
+				CancelAtPeriodEnd: false,
 			})
 			if err != nil {
 				return fmt.Errorf("upsert subscription (entitlement sync downgrade): %w", err)

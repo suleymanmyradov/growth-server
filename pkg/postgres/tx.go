@@ -24,7 +24,7 @@ func (r *TxRunner) Run(ctx context.Context, userID string, fn func(*sql.Tx) erro
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err := setRLSUserSQL(ctx, tx, userID); err != nil {
 		return fmt.Errorf("set rls user: %w", err)
@@ -46,7 +46,7 @@ func (r *TxRunner) RunSerializable(ctx context.Context, userID string, fn func(*
 	if err != nil {
 		return fmt.Errorf("begin serializable tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	if err := setRLSUserSQL(ctx, tx, userID); err != nil {
 		return fmt.Errorf("set rls user: %w", err)
@@ -83,7 +83,7 @@ func (r *PgxTxRunner) Run(ctx context.Context, userID string, fn func(pgx.Tx) er
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	if err := setRLSUserPgx(ctx, tx, userID); err != nil {
 		return fmt.Errorf("set rls user: %w", err)
@@ -105,7 +105,7 @@ func (r *PgxTxRunner) RunSerializable(ctx context.Context, userID string, fn fun
 	if err != nil {
 		return fmt.Errorf("begin serializable tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	if err := setRLSUserPgx(ctx, tx, userID); err != nil {
 		return fmt.Errorf("set rls user: %w", err)
