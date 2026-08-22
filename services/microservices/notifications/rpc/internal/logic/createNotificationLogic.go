@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
+	"github.com/jackc/pgx/v5"
+	internalnotification "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/notification"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
 
@@ -67,27 +69,32 @@ func (l *CreateNotificationLogic) CreateNotification(in *notifications.CreateNot
 		}
 	}
 
-	notification, err := l.svcCtx.Repo.Notifications.CreateNotification(ctx, in.Title, in.Message, in.Type, userID)
+	pref, err := l.svcCtx.Repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "failed to get notification preferences")
+	}
+	var notificationID uuid.UUID
+	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
+		created, createErr := internalnotification.Create(ctx, repository.NewRepositoryFromTx(tx), internalnotification.Request{
+			UserID:      userID,
+			Type:        in.Type,
+			Title:       in.Title,
+			Message:     in.Message,
+			Destination: "notifications",
+			Push:        pref.PushNotifications,
+		})
+		if createErr != nil {
+			return createErr
+		}
+		notificationID = created.ID
+		return nil
+	})
 	if err != nil {
 		logx.WithContext(ctx).Errorf("Failed to create notification: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create notification")
 	}
 
-	// Best-effort push delivery. The in-app notification row is the source of
-	// truth; a push failure does NOT fail the RPC. Push is only attempted when
-	// Expo is enabled in config (otherwise Send is a no-op).
-	if l.svcCtx.PushSender != nil {
-		payload, perr := delivery.NewPayload(in.Title, in.Message, notification.ID, delivery.DestinationNotifications, uuid.Nil)
-		if perr != nil {
-			logx.WithContext(ctx).Errorf("push payload construction failed: %v", perr)
-		} else {
-			if _, serr := l.svcCtx.PushSender.Send(ctx, userID, payload); serr != nil {
-				logx.WithContext(ctx).Errorf("push delivery failed for notification %s: %v", notification.ID, serr)
-			}
-		}
-	}
-
 	return &notifications.CreateNotificationResponse{
-		NotificationId: notification.ID.String(),
+		NotificationId: notificationID.String(),
 	}, nil
 }

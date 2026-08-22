@@ -125,6 +125,10 @@ jq -n --slurpfile gw "$GW_OAS3_TMP" --slurpfile ai "$AI_OAS3_TMP" --slurpfile ov
   | .paths = (($gw.paths // {}) + ($ai.paths // {}) + ($ov.paths // {}))
   | .components = (($gw.components // {}) + ($ai.components // {}) + ($ov.components // {}))
   | .components.schemas = ((($gw.components // {}).schemas // {}) + (($ai.components // {}).schemas // {}) + (($ov.components // {}).schemas // {}))
+  | .components.requestBodies = ((($gw.components // {}).requestBodies // {}) + (($ai.components // {}).requestBodies // {}) + (($ov.components // {}).requestBodies // {}))
+  | .components.responses = ((($gw.components // {}).responses // {}) + (($ai.components // {}).responses // {}) + (($ov.components // {}).responses // {}))
+  | .components.parameters = ((($gw.components // {}).parameters // {}) + (($ai.components // {}).parameters // {}) + (($ov.components // {}).parameters // {}))
+  | .components.headers = ((($gw.components // {}).headers // {}) + (($ai.components // {}).headers // {}) + (($ov.components // {}).headers // {}))
   | .components.securitySchemes = ((($gw.components // {}).securitySchemes // {}) + (($ai.components // {}).securitySchemes // {}) + (($ov.components // {}).securitySchemes // {}))
 ' > "$COMBINED"
 

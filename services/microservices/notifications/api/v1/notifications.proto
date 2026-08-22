@@ -13,6 +13,9 @@ message Notification {
   string message = 5;
   bool read = 6;
   int64 createdAt = 7;
+  string destination = 8;
+  string resourceId = 9;
+  string metadata = 10;
 }
 
 message CreateNotificationRequest {

@@ -536,13 +536,16 @@ type MilestoneRequest struct {
 }
 
 type Notification struct {
-	Id        string `json:"id,example=notif-123"`
-	Title     string `json:"title,example=Habit Reminder"`
-	Message   string `json:"message,example=Don't forget to complete your morning exercise!"`
-	ItemType  string `json:"type,example=habit_reminder"`
-	Read      bool   `json:"read,example=false"`
-	UserId    string `json:"userId,example=user-123"`
-	CreatedAt string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+	Id          string `json:"id,example=notif-123"`
+	Title       string `json:"title,example=Habit Reminder"`
+	Message     string `json:"message,example=Don't forget to complete your morning exercise!"`
+	ItemType    string `json:"type,example=habit_reminder"`
+	Read        bool   `json:"read,example=false"`
+	UserId      string `json:"userId,example=user-123"`
+	CreatedAt   string `json:"createdAt,example=2024-01-15T08:00:00Z"`
+	Destination string `json:"destination,optional,example=weekly-review"`
+	ResourceId  string `json:"resourceId,optional,example=0192be94-1234-5678-9aaa-09876543210a"`
+	Metadata    string `json:"metadata,optional,example={}"`
 }
 
 type NotificationPreferences struct {

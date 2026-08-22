@@ -790,6 +790,9 @@
                 "conversationId": {
                   "type": "string"
                 },
+                "goalId": {
+                  "type": "string"
+                },
                 "regenerate": {
                   "type": "boolean"
                 },
@@ -1348,7 +1351,7 @@
       }
     }
   },
-  "x-date": "2026-08-21 11:34:51",
+  "x-date": "2026-08-22 14:20:51",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

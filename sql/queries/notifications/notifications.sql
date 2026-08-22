@@ -1,36 +1,38 @@
 -- name: ListNotifications :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 ORDER BY created_at DESC
 LIMIT $1 OFFSET $2;
 
 -- name: ListNotificationsForUser :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListUnreadNotifications :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1 AND is_read = false
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1 AND is_read = false
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListNotificationsByType :many
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE user_id = $1 AND type = $2
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: GetNotification :one
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications WHERE id = $1;
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications WHERE id = $1;
 
 -- name: CreateNotification :one
-INSERT INTO notifications (title, message, type, user_id)
-VALUES ($1, $2, $3, $4)
-RETURNING id, title, message, type, is_read, user_id, created_at;
+INSERT INTO notifications (title, message, type, user_id, destination, resource_id, deduplication_key, metadata)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+ON CONFLICT (deduplication_key) WHERE deduplication_key IS NOT NULL DO UPDATE
+SET deduplication_key = EXCLUDED.deduplication_key
+RETURNING id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata;
 
 -- name: MarkNotificationRead :one
 UPDATE notifications
 SET is_read = true
 WHERE id = $1
-RETURNING id, title, message, type, is_read, user_id, created_at;
+RETURNING id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata;
 
 -- name: MarkAllNotificationsRead :exec
 UPDATE notifications
@@ -44,24 +46,21 @@ DELETE FROM notifications WHERE id = $1;
 DELETE FROM notifications WHERE user_id = $1;
 
 -- name: ListNotificationsForUserKeyset :many
--- Keyset pagination: more efficient than OFFSET for deep pages.
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)
 ORDER BY created_at DESC
 LIMIT $3;
 
 -- name: ListUnreadNotificationsKeyset :many
--- Keyset pagination for unread notifications feed.
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1 AND is_read = false
   AND ($2::timestamptz IS NULL OR created_at < $2)
 ORDER BY created_at DESC
 LIMIT $3;
 
 -- name: ListNotificationsByTypeKeyset :many
--- Keyset pagination for typed notification feeds.
-SELECT id, title, message, type, is_read, user_id, created_at FROM notifications
+SELECT id, title, message, type, is_read, user_id, created_at, destination, resource_id, metadata FROM notifications
 WHERE user_id = $1 AND type = $2
   AND ($3::timestamptz IS NULL OR created_at < $3)
 ORDER BY created_at DESC
@@ -74,8 +73,5 @@ SELECT COUNT(*) FROM notifications WHERE user_id = $1;
 SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false;
 
 -- name: CreateNotificationsForUsers :execrows
--- Batch insert the same notification for many users (admin broadcast).
--- Uses unnest to fan out a single INSERT...SELECT over the uuid array.
-INSERT INTO notifications (title, message, type, user_id)
-SELECT $1, $2, $3, user_id FROM unnest($4::uuid[]) AS t(user_id);
-
+INSERT INTO notifications (title, message, type, user_id, destination)
+SELECT $1, $2, $3, user_id, 'notifications' FROM unnest($4::uuid[]) AS t(user_id);

@@ -64,13 +64,16 @@ func (l *GetNotificationLogic) GetNotification(in *notifications.GetNotification
 
 	return &notifications.GetNotificationResponse{
 		Notification: &notifications.Notification{
-			Id:        notification.ID.String(),
-			UserId:    notification.UserID.String(),
-			Type:      notification.Type,
-			Title:     notification.Title,
-			Message:   notification.Message,
-			Read:      notification.IsRead,
-			CreatedAt: notification.CreatedAt.Time.Unix(),
+			Id:          notification.ID.String(),
+			UserId:      notification.UserID.String(),
+			Type:        notification.Type,
+			Title:       notification.Title,
+			Message:     notification.Message,
+			Read:        notification.IsRead,
+			CreatedAt:   notification.CreatedAt.Time.Unix(),
+			Destination: stringValue(notification.Destination),
+			ResourceId:  nullUUIDValue(notification.ResourceID),
+			Metadata:    string(notification.Metadata),
 		},
 	}, nil
 }
