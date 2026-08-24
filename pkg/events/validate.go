@@ -20,6 +20,7 @@ func ValidEventType(t EventType) bool {
 		TypeUserProfileUpdated,
 		TypeBroadcastNotificationRequested,
 		TypeGoalCreated,
+		TypeGoalUpdated,
 		TypeGoalCompleted,
 		TypeGoalDeleted,
 		TypeSubscriptionChanged,

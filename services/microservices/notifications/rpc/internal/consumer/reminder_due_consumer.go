@@ -151,6 +151,8 @@ func (h *ReminderDueHandler) dispatch(ctx context.Context, repo *repository.Repo
 		return h.onCoachDigest(ctx, repo, userID, p)
 	case "streak_warning_scan":
 		return h.onStreakWarning(ctx, repo, userID, p)
+	case "goal_deadline":
+		return h.onGoalDeadline(ctx, repo, userID, p)
 	default:
 		logx.WithContext(ctx).Infof("unhandled reminder type %s", p.Type)
 		return nil
@@ -343,6 +345,47 @@ func (h *ReminderDueHandler) onStreakWarning(ctx context.Context, repo *reposito
 		if _, enqueueErr := repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", next, nil); enqueueErr != nil {
 			return fmt.Errorf("enqueue next streak warning: %w", enqueueErr)
 		}
+	}
+	return nil
+}
+
+// onGoalDeadline handles a fired goal_deadline reminder. It reads the goal
+// title and ID from the reminder metadata, double-checks the goalReminders
+// preference, and creates a notification with a goal-detail deep link. This
+// is a one-shot reminder — it does not reschedule (the deadline has arrived).
+func (h *ReminderDueHandler) onGoalDeadline(ctx context.Context, repo *repository.Repository, userID uuid.UUID, p events.ReminderDue) error {
+	pref, err := repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("get notification preferences: %w", err)
+	}
+	if !pref.GoalReminders {
+		return nil
+	}
+
+	// Parse goal metadata from the reminder.
+	var meta map[string]any
+	if p.Metadata != "" {
+		_ = json.Unmarshal([]byte(p.Metadata), &meta)
+	}
+	goalTitle, _ := meta["goalTitle"].(string)
+	goalIDStr, _ := meta["goalId"].(string)
+
+	title := "Goal deadline today"
+	message := "A goal is due today"
+	if goalTitle != "" {
+		message = fmt.Sprintf("Your goal \"%s\" is due today. Take a moment to make progress.", goalTitle)
+	}
+
+	resourceID := uuid.Nil
+	if goalIDStr != "" {
+		if id, pErr := uuid.Parse(goalIDStr); pErr == nil {
+			resourceID = id
+		}
+	}
+	deduplicationKey := fmt.Sprintf("goal-deadline:%s:%s", userID, goalIDStr)
+
+	if _, err := h.createNotification(ctx, repo, userID, "goal_deadline", title, message, delivery.DestinationGoalDetail, resourceID, deduplicationKey, meta, true); err != nil {
+		return fmt.Errorf("create goal_deadline notification: %w", err)
 	}
 	return nil
 }

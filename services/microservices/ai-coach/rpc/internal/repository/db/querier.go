@@ -12,18 +12,63 @@ import (
 
 type Querier interface {
 	ArchiveConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (Conversation, error)
-	CountArchivedConversations(ctx context.Context, userID uuid.UUID) (int64, error)
-	CountConversations(ctx context.Context, userID uuid.UUID, type_ string) (int64, error)
+	CountConversations(ctx context.Context, userID uuid.UUID, type_ string, archived bool) (int64, error)
+	CountCurrentUserFacts(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountMessages(ctx context.Context, conversationID uuid.UUID) (int64, error)
 	CreateConversation(ctx context.Context, userID uuid.UUID, title string, type_ string) (Conversation, error)
 	CreateMessage(ctx context.Context, conversationID uuid.UUID, role string, content string) (ConversationMessage, error)
+	// Append a client-authored message at most once per (conversation,
+	// client_message_id).
+	//
+	// DO UPDATE with a self-assignment rather than DO NOTHING: DO NOTHING makes
+	// RETURNING yield no row on conflict, which would force a second read -- and
+	// two concurrent retries (a double-tapped send) could each miss the other's
+	// uncommitted row and both come back empty. DO UPDATE returns the existing row
+	// and takes a row lock, so concurrent retries serialize and both callers get
+	// the same message back.
+	CreateMessageIdempotent(ctx context.Context, conversationID uuid.UUID, role string, content string, clientMessageID *string) (ConversationMessage, error)
+	// ON CONFLICT DO NOTHING against the live-uniqueness index: the extractor runs
+	// every turn and will keep proposing facts it already recorded. Returning no
+	// row on conflict is the correct signal for "already known" -- the caller
+	// treats it as a no-op rather than an error.
+	CreateUserFact(ctx context.Context, arg CreateUserFactParams) (UserFact, error)
 	DeleteConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error
+	// Backs "disable long-term memory" and account deletion.
+	ForgetAllUserFacts(ctx context.Context, userID uuid.UUID) error
+	// Hard delete, for "forget this about me". Deliberately not a supersession:
+	// when a user asks the coach to forget something, retaining it as history
+	// defeats the request.
+	ForgetUserFact(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error
 	GetConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (Conversation, error)
 	GetLastMessage(ctx context.Context, conversationID uuid.UUID) (ConversationMessage, error)
-	ListArchivedConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Conversation, error)
-	ListConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32, type_ string) ([]Conversation, error)
+	GetUserFact(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (UserFact, error)
+	// The user-facing "what do you remember about me" view: every current fact
+	// regardless of confidence, so users can see and correct low-confidence
+	// guesses rather than being surprised by them later.
+	ListAllUserFacts(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]UserFact, error)
+	// The archived flag is a required parameter, not a tri-state: false (the zero
+	// value, so also the default when a caller omits it) lists active
+	// conversations and true lists archived ones. Archived conversations used to
+	// leak into the default list because this query ignored the column entirely.
+	// CountConversations MUST take the same filters or the pagination totals
+	// describe a different result set than the page.
+	ListConversations(ctx context.Context, arg ListConversationsParams) ([]Conversation, error)
+	// The prompt-injection path: current, sufficiently-confident facts for one
+	// user. Ordered so user-authored facts and high-confidence facts win the
+	// budget when the caller truncates.
+	ListCurrentUserFacts(ctx context.Context, userID uuid.UUID, confidence float32, limit int32) ([]UserFact, error)
+	// Returns the newest page of messages, re-sorted oldest-to-newest for display.
+	// Ordering is (created_at, id), never created_at alone: two messages written in
+	// the same millisecond (a user turn and its assistant reply) would otherwise
+	// reorder between reads and render as a reply before its question. id is a
+	// uuid_generate_v7() value, so it is itself time-ordered and the tiebreak is
+	// correct by construction rather than arbitrary.
 	ListMessages(ctx context.Context, conversationID uuid.UUID, limit int32, offset int32) ([]ListMessagesRow, error)
 	RegenerateLastResponse(ctx context.Context, conversationID uuid.UUID) (ConversationMessage, error)
+	// Point an old fact at the one that replaces it. Scoped by user_id so one user
+	// can never rewrite another's memory, and guarded on superseded_by IS NULL so a
+	// double-apply cannot re-link an already-superseded row.
+	SupersedeUserFact(ctx context.Context, iD uuid.UUID, userID uuid.UUID, supersededBy uuid.NullUUID) (UserFact, error)
 	UnarchiveConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (Conversation, error)
 	UpdateConversationLastMessage(ctx context.Context, iD uuid.UUID, lastMessage string) (Conversation, error)
 	UpdateConversationTitle(ctx context.Context, iD uuid.UUID, title string, userID uuid.UUID) (Conversation, error)

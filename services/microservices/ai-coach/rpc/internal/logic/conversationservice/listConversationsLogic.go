@@ -3,6 +3,7 @@ package conversationservicelogic
 import (
 	"context"
 
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 
@@ -48,13 +49,21 @@ func (l *ListConversationsLogic) ListConversations(in *aicoach.ListConversations
 	}
 	offset := (page - 1) * limit
 
-	convs, err := l.svcCtx.Queries.ListConversations(l.ctx, userID, limit, offset, in.Type)
+	// The list and the count must share every filter, or `total` describes a
+	// different result set than the page the caller just received.
+	convs, err := l.svcCtx.Queries.ListConversations(l.ctx, db.ListConversationsParams{
+		UserID:   userID,
+		Limit:    limit,
+		Offset:   offset,
+		Type:     in.Type,
+		Archived: in.Archived,
+	})
 	if err != nil {
 		l.Errorf("failed to list conversations: %v", err)
 		return nil, status.Error(codes.Internal, "failed to list conversations")
 	}
 
-	total, err := l.svcCtx.Queries.CountConversations(l.ctx, userID, in.Type)
+	total, err := l.svcCtx.Queries.CountConversations(l.ctx, userID, in.Type, in.Archived)
 	if err != nil {
 		l.Errorf("failed to count conversations: %v", err)
 		return nil, status.Error(codes.Internal, "failed to count conversations")

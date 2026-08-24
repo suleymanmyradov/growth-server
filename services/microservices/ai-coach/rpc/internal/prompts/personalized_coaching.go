@@ -27,6 +27,24 @@ type MemorySnippet struct {
 	Role       string    // conversation_message only — user | assistant
 }
 
+// UserFact is one curated, durable fact the coach believes about a user, from
+// the user_facts table.
+//
+// Distinct from MemorySnippet in kind, not just in source: a MemorySnippet is
+// raw retrieved text whose relevance was decided by a search ranker, while a
+// UserFact was extracted at write time, categorised, confidence-scored, and is
+// superseded rather than overwritten when it changes. That is why facts sit in a
+// high-priority context tier and snippets sit in the lowest one.
+//
+// Fact text is still model-authored from user input, so the assembler treats it
+// as untrusted data exactly like a snippet.
+type UserFact struct {
+	Fact         string  // short self-contained statement
+	Category     string  // commitment | preference | constraint | context
+	Confidence   float32 // 0..1; low-confidence facts are hedged, not asserted
+	UserAuthored bool    // the user wrote or corrected this themselves
+}
+
 // PersonalizedCoachingInput holds the data needed for personalized coaching prompts
 type PersonalizedCoachingInput struct {
 	UserMessage           string
@@ -47,6 +65,11 @@ type PersonalizedCoachingInput struct {
 	// tier of the context budget so they are the first section dropped when
 	// the budget is tight, and never blow past the Stage-1 token budget.
 	RelevantMemories []MemorySnippet
+	// KnownFacts are curated long-term facts from user_facts. They are injected
+	// at a HIGH priority tier -- unlike RelevantMemories, these were curated at
+	// write time rather than guessed by a ranker at read time, so dropping them
+	// under budget pressure would lose the coach's actual memory of the user.
+	KnownFacts []UserFact
 }
 
 // BuildPersonalizedCoachingSystemPrompt creates a system prompt for personalized AI coaching

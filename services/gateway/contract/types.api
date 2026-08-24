@@ -3,6 +3,9 @@ syntax = "v1"
 // Base types
 type (
 	EmptyResponse  {}
+	ExportDataResponse {
+		downloadUrl string `json:"downloadUrl,example=https://minio.local/exports/user-123-abc.json"`
+	}
 	PageRequest {
 		page  int `form:"page,default=1,example=1"`
 		limit int `form:"limit,default=20,example=20"`

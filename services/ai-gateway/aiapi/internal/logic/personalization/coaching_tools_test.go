@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
+	aicoach "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	clienthabits "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/habits"
@@ -235,7 +238,7 @@ func TestSearchArticlesTool(t *testing.T) {
 		search := &mockSearchService{
 			searchFn: func(_ context.Context, in *searchservice.SearchRequest) (*searchservice.SearchResponse, error) {
 				assert.Equal(t, "discipline", in.Query)
-				assert.Equal(t, []string{"articles"}, in.Types)
+				assert.Equal(t, []string{"article"}, in.Types)
 				assert.Equal(t, "published", in.Status)
 				return &searchservice.SearchResponse{
 					Results: []*searchpb.SearchResult{
@@ -398,4 +401,86 @@ func TestBuildCoachingToolsIncludesAllTools(t *testing.T) {
 	assert.True(t, names["propose_delete_habit"])
 	// Article search.
 	assert.True(t, names["search_articles"])
+}
+
+func TestSearchPastConversationsTool(t *testing.T) {
+	ctx := context.Background()
+	const userID = "8f14e45f-ea0c-4f9b-9a1e-2b3c4d5e6f70"
+
+	t.Run("returns labelled hits with dates", func(t *testing.T) {
+		memory := &mockAICoachService{
+			searchMemoryFn: func(_ context.Context, in *aicoachservice.SearchMemoryRequest) (*aicoachservice.SearchMemoryResponse, error) {
+				assert.Equal(t, userID, in.UserId)
+				assert.Equal(t, "morning routine", in.Query)
+				assert.Equal(t, int32(5), in.Limit)
+				return &aicoachservice.SearchMemoryResponse{Hits: []*aicoach.MemoryHit{
+					{EntityType: "check_in", Content: "skipped again", CreatedAt: 1700000000, HabitName: "Walk"},
+					{EntityType: "conversation_message", Content: "I wake at 6", Role: "user"},
+					{EntityType: "weekly_review", Content: "three of five"},
+					{EntityType: "conversation_message", Content: "", Role: "user"}, // dropped: empty
+				}}, nil
+			},
+		}
+
+		out, err := searchPastConversationsTool(userID, memory).Execute(ctx, `{"query":"morning routine"}`)
+		require.NoError(t, err)
+		// Provenance labels let the coach attribute what it found instead of
+		// asserting it as something it simply knows.
+		assert.Contains(t, out, `"source":"check-in note"`)
+		assert.Contains(t, out, `"source":"what they said earlier"`)
+		assert.Contains(t, out, `"source":"weekly review"`)
+		assert.Contains(t, out, `"habit":"Walk"`)
+		assert.Contains(t, out, `"when":"2023-11-14"`)
+		// The empty-content hit must not reach the model.
+		assert.NotContains(t, out, `"text":""`)
+	})
+
+	t.Run("caps the limit", func(t *testing.T) {
+		var got int32
+		memory := &mockAICoachService{
+			searchMemoryFn: func(_ context.Context, in *aicoachservice.SearchMemoryRequest) (*aicoachservice.SearchMemoryResponse, error) {
+				got = in.Limit
+				return &aicoachservice.SearchMemoryResponse{}, nil
+			},
+		}
+		_, err := searchPastConversationsTool(userID, memory).Execute(ctx, `{"query":"x","limit":500}`)
+		require.NoError(t, err)
+		assert.Equal(t, int32(5), got, "an out-of-range limit falls back to the default")
+	})
+
+	t.Run("requires a query", func(t *testing.T) {
+		_, err := searchPastConversationsTool(userID, &mockAICoachService{}).Execute(ctx, `{"query":"  "}`)
+		require.Error(t, err)
+	})
+
+	// An RPC failure must surface, not be reported as "nothing found" — the
+	// model asked a direct question and would otherwise tell the user their
+	// history contains nothing.
+	t.Run("propagates search errors", func(t *testing.T) {
+		memory := &mockAICoachService{
+			searchMemoryFn: func(_ context.Context, _ *aicoachservice.SearchMemoryRequest) (*aicoachservice.SearchMemoryResponse, error) {
+				return nil, errors.New("meili down")
+			},
+		}
+		_, err := searchPastConversationsTool(userID, memory).Execute(ctx, `{"query":"x"}`)
+		require.Error(t, err)
+	})
+}
+
+// The tool must not be registered when memory is unconfigured: advertising a
+// capability the deployment lacks makes the model promise recall it cannot do.
+func TestBuildCoachingToolsRegistersMemoryToolOnlyWhenConfigured(t *testing.T) {
+	hasMemoryTool := func(tools []ai.Tool) bool {
+		for _, tl := range tools {
+			if tl.Name() == "search_past_conversations" {
+				return true
+			}
+		}
+		return false
+	}
+
+	assert.False(t, hasMemoryTool(BuildCoachingTools("u", CoachingToolDeps{})),
+		"memory tool must be absent when Memory is nil")
+	assert.True(t, hasMemoryTool(BuildCoachingTools("u", CoachingToolDeps{Memory: &mockAICoachService{}})),
+		"memory tool must be present when Memory is configured")
 }

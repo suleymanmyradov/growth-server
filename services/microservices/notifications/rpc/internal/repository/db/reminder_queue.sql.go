@@ -30,6 +30,23 @@ func (q *Queries) CancelPendingByType(ctx context.Context, userID uuid.UUID, typ
 	return result.RowsAffected(), nil
 }
 
+const cancelPendingGoalDeadlineReminder = `-- name: CancelPendingGoalDeadlineReminder :execrows
+DELETE FROM reminders
+WHERE user_id = $1
+  AND type = 'goal_deadline'
+  AND sent_at IS NULL
+  AND metadata->>'goalId' = $2::text
+`
+
+// Cancel the pending goal_deadline reminder for a specific (user, goal).
+func (q *Queries) CancelPendingGoalDeadlineReminder(ctx context.Context, userID uuid.UUID, column2 string) (int64, error) {
+	result, err := q.db.Exec(ctx, cancelPendingGoalDeadlineReminder, userID, column2)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const cancelPendingReminderForDate = `-- name: CancelPendingReminderForDate :exec
 DELETE FROM reminders
 WHERE user_id = $1
@@ -108,11 +125,48 @@ func (q *Queries) ClaimDueReminders(ctx context.Context, limit int32) ([]ClaimDu
 	return items, nil
 }
 
+const enqueueGoalDeadlineReminder = `-- name: EnqueueGoalDeadlineReminder :one
+INSERT INTO reminders (user_id, type, scheduled_at, metadata)
+VALUES ($1, 'goal_deadline', $2, $3)
+ON CONFLICT (user_id, (metadata->>'goalId')) WHERE sent_at IS NULL AND type = 'goal_deadline'
+DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
+              metadata = EXCLUDED.metadata
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
+`
+
+type EnqueueGoalDeadlineReminderRow struct {
+	ID          uuid.UUID          `db:"id" json:"id"`
+	UserID      uuid.UUID          `db:"user_id" json:"user_id"`
+	Type        string             `db:"type" json:"type"`
+	ScheduledAt pgtype.Timestamptz `db:"scheduled_at" json:"scheduled_at"`
+	SentAt      pgtype.Timestamptz `db:"sent_at" json:"sent_at"`
+	Metadata    []byte             `db:"metadata" json:"metadata"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+// Inserts or updates a per-goal deadline reminder. The unique index
+// uniq_reminders_goal_deadline_per_goal ensures one pending reminder per
+// (user, goal), so re-enqueuing on a deadline change upserts in place.
+func (q *Queries) EnqueueGoalDeadlineReminder(ctx context.Context, userID uuid.UUID, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueGoalDeadlineReminderRow, error) {
+	row := q.db.QueryRow(ctx, enqueueGoalDeadlineReminder, userID, scheduledAt, metadata)
+	var i EnqueueGoalDeadlineReminderRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Type,
+		&i.ScheduledAt,
+		&i.SentAt,
+		&i.Metadata,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
 const enqueueReminder = `-- name: EnqueueReminder :one
 
 INSERT INTO reminders (user_id, type, scheduled_at, metadata)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL
+ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL AND type <> 'goal_deadline'
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
               metadata = EXCLUDED.metadata
 RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at
@@ -129,6 +183,7 @@ type EnqueueReminderRow struct {
 }
 
 // Reminders: sent_at IS NULL means pending.
+// Excludes goal_deadline (which has its own per-goal unique index and query).
 func (q *Queries) EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error) {
 	row := q.db.QueryRow(ctx, enqueueReminder,
 		userID,

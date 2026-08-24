@@ -35,6 +35,7 @@ const (
 	TypeUserProfileUpdated   EventType = "user_profile_updated"
 	// Goal lifecycle events — published by the client service.
 	TypeGoalCreated   EventType = "goal_created"
+	TypeGoalUpdated   EventType = "goal_updated"
 	TypeGoalCompleted EventType = "goal_completed"
 	TypeGoalDeleted   EventType = "goal_deleted"
 	// TypeSubscriptionChanged is published by the client billing service when
@@ -123,10 +124,22 @@ type HabitDeleted struct {
 
 // GoalCreated is the payload for TypeGoalCreated events.
 type GoalCreated struct {
-	UserID   string `json:"userId"`
-	GoalID   string `json:"goalId"`
-	Title    string `json:"title"`
-	Category string `json:"category,omitempty"`
+	UserID     string `json:"userId"`
+	GoalID     string `json:"goalId"`
+	Title      string `json:"title"`
+	Category   string `json:"category,omitempty"`
+	DeadlineAt string `json:"deadlineAt,omitempty"` // RFC3339; empty if no deadline
+}
+
+// GoalUpdated is the payload for TypeGoalUpdated events. Published by the
+// client service when a goal is updated. DeadlineAt carries the new deadline
+// (RFC3339, empty if the deadline was cleared). The notifications consumer
+// uses it to reschedule the goal_deadline reminder.
+type GoalUpdated struct {
+	UserID     string `json:"userId"`
+	GoalID     string `json:"goalId"`
+	Title      string `json:"title"`
+	DeadlineAt string `json:"deadlineAt,omitempty"` // RFC3339; empty if no deadline
 }
 
 // GoalCompleted is the payload for TypeGoalCompleted events.

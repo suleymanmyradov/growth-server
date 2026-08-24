@@ -143,15 +143,22 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 	}
 
 	// Fire-and-forget publish goal_created event for analytics/metrics.
+	// DeadlineAt is included so the notifications consumer can schedule a
+	// goal_deadline reminder when the goal has a due date.
 	if l.svcCtx.EventsPub != nil {
+		deadlineAt := ""
+		if goal.DueDate.Valid {
+			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
+		}
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
 			env, err := events.NewEnvelope(events.TypeGoalCreated, events.GoalCreated{
-				UserID:   userID.String(),
-				GoalID:   goal.ID.String(),
-				Title:    goal.Title,
-				Category: goal.Category,
+				UserID:     userID.String(),
+				GoalID:     goal.ID.String(),
+				Title:      goal.Title,
+				Category:   goal.Category,
+				DeadlineAt: deadlineAt,
 			})
 			if err != nil {
 				logx.Errorf("envelope: %v", err)

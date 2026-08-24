@@ -17,6 +17,8 @@ type Querier interface {
 	// disables a notification preference (e.g. habit reminders) so no further
 	// reminders of that type fire until re-enabled.
 	CancelPendingByType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error)
+	// Cancel the pending goal_deadline reminder for a specific (user, goal).
+	CancelPendingGoalDeadlineReminder(ctx context.Context, userID uuid.UUID, column2 string) (int64, error)
 	CancelPendingReminderForDate(ctx context.Context, userID uuid.UUID, type_ string, column3 pgtype.Date, column4 string) error
 	// Claim due, unclaimed, unsent reminders by setting claimed_at (a lease).
 	// Does NOT set sent_at — that happens only after successful Kafka publish
@@ -41,6 +43,8 @@ type Querier interface {
 	// another user's device registration.
 	DeleteDevice(ctx context.Context, installationID string, userID uuid.UUID) error
 	DeleteDevicesByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteGoalState(ctx context.Context, goalID uuid.UUID) (int64, error)
+	DeleteGoalStateByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteNotification(ctx context.Context, id uuid.UUID) error
 	DeleteNotificationHabitState(ctx context.Context, userID uuid.UUID, habitID uuid.UUID) error
 	DeleteNotificationHabitStatesByUser(ctx context.Context, userID uuid.UUID) error
@@ -58,7 +62,12 @@ type Querier interface {
 	// (e.g. Expo receipt API returns a DeviceNotRegistered error). The token is
 	// the only stable identifier the provider returns, so we disable by token.
 	DisableDeviceByToken(ctx context.Context, pushToken string) error
+	// Inserts or updates a per-goal deadline reminder. The unique index
+	// uniq_reminders_goal_deadline_per_goal ensures one pending reminder per
+	// (user, goal), so re-enqueuing on a deadline change upserts in place.
+	EnqueueGoalDeadlineReminder(ctx context.Context, userID uuid.UUID, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueGoalDeadlineReminderRow, error)
 	// Reminders: sent_at IS NULL means pending.
+	// Excludes goal_deadline (which has its own per-goal unique index and query).
 	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error)
 	GetNotification(ctx context.Context, id uuid.UUID) (GetNotificationRow, error)
 	GetNotificationPreferences(ctx context.Context, userID uuid.UUID) (NotificationPreference, error)
@@ -79,8 +88,13 @@ type Querier interface {
 	ListPendingPushTickets(ctx context.Context, limit int32) ([]PushTicket, error)
 	ListUnreadNotifications(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListUnreadNotificationsRow, error)
 	ListUnreadNotificationsKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListUnreadNotificationsKeysetRow, error)
+	// Returns active (not completed) goals with future deadlines for a user,
+	// ordered by deadline. Used to reschedule goal_deadline reminders when the
+	// user re-enables the goalReminders preference.
+	ListUpcomingGoalDeadlines(ctx context.Context, userID uuid.UUID, deadline pgtype.Timestamptz) ([]NotificationGoalState, error)
 	MarkAllNotificationsRead(ctx context.Context, userID uuid.UUID) error
 	MarkEventProcessed(ctx context.Context, eventID string) error
+	MarkGoalCompleted(ctx context.Context, goalID uuid.UUID) (int64, error)
 	MarkNotificationDeliveryFailed(ctx context.Context, iD uuid.UUID, lastErrorCode *string, lastErrorMessage *string) error
 	MarkNotificationDeliverySent(ctx context.Context, iD uuid.UUID, providerMessageID *string) error
 	MarkNotificationDeliverySuppressed(ctx context.Context, iD uuid.UUID, lastErrorCode *string, lastErrorMessage *string) error
@@ -106,6 +120,9 @@ type Querier interface {
 	// metadata for an existing (installation_id, user_id) pair. Token rotation is
 	// handled by the UPDATE branch. enabled is reset to true on re-registration.
 	UpsertDevice(ctx context.Context, arg UpsertDeviceParams) (NotificationDevice, error)
+	// Local goal read model for the notifications service, maintained from
+	// goal_created/goal_updated/goal_deleted/goal_completed events.
+	UpsertGoalState(ctx context.Context, arg UpsertGoalStateParams) (NotificationGoalState, error)
 	UpsertNotificationHabitState(ctx context.Context, arg UpsertNotificationHabitStateParams) (NotificationHabitState, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertNotificationRecipient(ctx context.Context, userID uuid.UUID, email string, name string, emailVerified bool) (NotificationRecipient, error)

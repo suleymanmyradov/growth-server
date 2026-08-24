@@ -18,10 +18,20 @@ type ActivityResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type AddMemoryFactRequest struct {
+	Fact         string `json:"fact"`
+	Category     string `json:"category,example=commitment"`
+	SupersedesId string `json:"supersedesId,optional"`
+}
+
+type AddMemoryFactResponse struct {
+	Data MemoryFact `json:"data"`
+}
+
 type AppendMessageRequest struct {
-	Id      string `path:"id"`
-	Content string `json:"content"`
-	Role    string `json:"role,optional"`
+	Id              string `path:"id"`
+	Content         string `json:"content"`
+	ClientMessageId string `json:"clientMessageId,optional"`
 }
 
 type AppendMessageResponse struct {
@@ -287,6 +297,21 @@ type Entitlements struct {
 	CurrentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
 }
 
+type ForgetAllMemoryFactsRequest struct {
+	Confirm bool `form:"confirm,default=false"`
+}
+
+type ForgetAllMemoryFactsResponse struct {
+	Forgotten bool `json:"forgotten"`
+}
+
+type ForgetMemoryFactRequest struct {
+	Id string `path:"id"`
+}
+
+type ForgetMemoryFactResponse struct {
+}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email,example=john@example.com"`
 }
@@ -305,12 +330,13 @@ type GenerateOnboardingHabitsResponse struct {
 }
 
 type GeneratePersonalizedCoachingRequest struct {
-	UserMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
-	Context        string       `json:"context,optional,example=User has been struggling with motivation"`
-	ConversationId string       `json:"conversationId,optional"`
-	GoalId         string       `json:"goalId,optional"`
-	Attachments    []Attachment `json:"attachments,optional"`
-	Regenerate     bool         `json:"regenerate,optional"`
+	UserMessage     string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
+	Context         string       `json:"context,optional,example=User has been struggling with motivation"`
+	ConversationId  string       `json:"conversationId,optional"`
+	GoalId          string       `json:"goalId,optional"`
+	Attachments     []Attachment `json:"attachments,optional"`
+	Regenerate      bool         `json:"regenerate,optional"`
+	ClientMessageId string       `json:"clientMessageId,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {
@@ -502,11 +528,22 @@ type ListConversationsRequest struct {
 	ConversationType string `form:"type,optional"`
 	Page             int    `form:"page,default=1"`
 	Limit            int    `form:"limit,default=20"`
+	Archived         bool   `form:"archived,default=false"`
 }
 
 type ListConversationsResponse struct {
 	Data []Conversation `json:"data"`
 	Page PageResponse   `json:"page"`
+}
+
+type ListMemoryFactsRequest struct {
+	Page  int `form:"page,default=1"`
+	Limit int `form:"limit,default=50"`
+}
+
+type ListMemoryFactsResponse struct {
+	Data []MemoryFact `json:"data"`
+	Page PageResponse `json:"page"`
 }
 
 type LogGoalValueRequest struct {
@@ -523,6 +560,15 @@ type LoginRequest struct {
 type LogoutRequest struct {
 	RefreshToken string `json:"refreshToken,optional,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	DeviceId     string `header:"X-Device-Id,optional,example=device-12345"`
+}
+
+type MemoryFact struct {
+	Id           string  `json:"id"`
+	Fact         string  `json:"fact"`
+	Category     string  `json:"category,example=commitment"`
+	Confidence   float32 `json:"confidence,example=0.9"`
+	UserAuthored bool    `json:"userAuthored"`
+	CreatedAt    string  `json:"createdAt"`
 }
 
 type MilestoneInput struct {

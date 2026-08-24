@@ -174,3 +174,85 @@ func TestNextCoachDigest_NullCheckInTime(t *testing.T) {
 		t.Fatal("expected error for null check_in_time")
 	}
 }
+
+func TestGoalDeadlineReminderTime_MorningAhead(t *testing.T) {
+	// Deadline at 18:00 UTC on May 20. Now is May 20 06:00 UTC.
+	// 09:00 UTC is still ahead → reminder at 09:00 UTC.
+	now := time.Date(2025, 5, 20, 6, 0, 0, 0, time.UTC)
+	deadline := time.Date(2025, 5, 20, 18, 0, 0, 0, time.UTC)
+
+	got, err := GoalDeadlineReminderTime(now, deadline, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Hour() != 9 || got.Day() != 20 {
+		t.Errorf("expected 09:00 UTC May 20, got %s", got.Format(time.RFC3339))
+	}
+}
+
+func TestGoalDeadlineReminderTime_MorningPassed_OneHourBefore(t *testing.T) {
+	// Deadline at 18:00 UTC. Now is 15:00 UTC. 09:00 passed, but 17:00 (1h
+	// before) is still ahead → reminder at 17:00 UTC.
+	now := time.Date(2025, 5, 20, 15, 0, 0, 0, time.UTC)
+	deadline := time.Date(2025, 5, 20, 18, 0, 0, 0, time.UTC)
+
+	got, err := GoalDeadlineReminderTime(now, deadline, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.Hour() != 17 {
+		t.Errorf("expected 17:00 UTC (deadline-1h), got %s", got.Format(time.RFC3339))
+	}
+}
+
+func TestGoalDeadlineReminderTime_AllPassed_ReturnsDeadline(t *testing.T) {
+	// Deadline at 18:00 UTC. Now is 17:30 UTC. Both 09:00 and 17:00 passed.
+	// Return the deadline itself (scheduler fires immediately).
+	now := time.Date(2025, 5, 20, 17, 30, 0, 0, time.UTC)
+	deadline := time.Date(2025, 5, 20, 18, 0, 0, 0, time.UTC)
+
+	got, err := GoalDeadlineReminderTime(now, deadline, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.Equal(deadline.UTC()) {
+		t.Errorf("expected deadline %s, got %s", deadline.UTC(), got)
+	}
+}
+
+func TestGoalDeadlineReminderTime_TimezoneAware(t *testing.T) {
+	// Deadline at 18:00 UTC = 14:00 EDT (America/New_York, UTC-4 in May).
+	// Now is 06:00 UTC = 02:00 EDT. 09:00 EDT = 13:00 UTC is ahead.
+	now := time.Date(2025, 5, 20, 6, 0, 0, 0, time.UTC)
+	deadline := time.Date(2025, 5, 20, 18, 0, 0, 0, time.UTC)
+
+	got, err := GoalDeadlineReminderTime(now, deadline, "America/New_York")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	loc, _ := time.LoadLocation("America/New_York")
+	local := got.In(loc)
+	if local.Hour() != 9 {
+		t.Errorf("expected 09:00 EDT, got %s", local.Format(time.RFC3339))
+	}
+}
+
+func TestGoalDeadlineReminderTime_ZeroDeadline(t *testing.T) {
+	_, err := GoalDeadlineReminderTime(time.Now(), time.Time{}, "UTC")
+	if err == nil {
+		t.Fatal("expected error for zero deadline")
+	}
+}
+
+func TestGoalDeadlineReminderTime_InvalidTimezoneFallbackUTC(t *testing.T) {
+	now := time.Date(2025, 5, 20, 6, 0, 0, 0, time.UTC)
+	deadline := time.Date(2025, 5, 20, 18, 0, 0, 0, time.UTC)
+
+	got, err := GoalDeadlineReminderTime(now, deadline, "Invalid/Zone")
+	if err != nil {
+		t.Fatalf("expected fallback to UTC, got error: %v", err)
+	}
+	if got.Hour() != 9 {
+		t.Errorf("expected 09:00 UTC fallback, got %s", got.Format(time.RFC3339))
+	}
+}

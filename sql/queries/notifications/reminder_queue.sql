@@ -1,12 +1,32 @@
 -- Reminders: sent_at IS NULL means pending.
 
 -- name: EnqueueReminder :one
+-- Excludes goal_deadline (which has its own per-goal unique index and query).
 INSERT INTO reminders (user_id, type, scheduled_at, metadata)
 VALUES ($1, $2, $3, $4)
-ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL
+ON CONFLICT (user_id, type, ((scheduled_at AT TIME ZONE 'UTC')::date)) WHERE sent_at IS NULL AND type <> 'goal_deadline'
 DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
               metadata = EXCLUDED.metadata
 RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at;
+
+-- name: EnqueueGoalDeadlineReminder :one
+-- Inserts or updates a per-goal deadline reminder. The unique index
+-- uniq_reminders_goal_deadline_per_goal ensures one pending reminder per
+-- (user, goal), so re-enqueuing on a deadline change upserts in place.
+INSERT INTO reminders (user_id, type, scheduled_at, metadata)
+VALUES ($1, 'goal_deadline', $2, $3)
+ON CONFLICT (user_id, (metadata->>'goalId')) WHERE sent_at IS NULL AND type = 'goal_deadline'
+DO UPDATE SET scheduled_at = EXCLUDED.scheduled_at,
+              metadata = EXCLUDED.metadata
+RETURNING id, user_id, type, scheduled_at, sent_at, metadata, created_at;
+
+-- name: CancelPendingGoalDeadlineReminder :execrows
+-- Cancel the pending goal_deadline reminder for a specific (user, goal).
+DELETE FROM reminders
+WHERE user_id = $1
+  AND type = 'goal_deadline'
+  AND sent_at IS NULL
+  AND metadata->>'goalId' = $2::text;
 
 -- name: CancelPendingReminderForDate :exec
 DELETE FROM reminders

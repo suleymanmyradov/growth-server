@@ -94,6 +94,11 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 	// budget. Fail-open: errors/timeouts log + metric and yield no snippets.
 	memories := l.retrieveMemories(in.UserId, in.UserMessage, in.History, in.RecentCheckInsSummary)
 
+	// Curated long-term memory (user_facts). Unlike the snippets above these
+	// were extracted and categorised at write time, so they sit in a HIGH
+	// priority context tier rather than the lowest one. Also fail-open.
+	knownFacts := l.loadFacts(in.UserId)
+
 	input := prompts.PersonalizedCoachingInput{
 		UserMessage:           in.UserMessage,
 		AccountabilityStyle:   in.AccountabilityStyle,
@@ -109,6 +114,7 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 		UserLocation:          in.UserLocation,
 		UserInterests:         in.UserInterests,
 		RelevantMemories:      memories,
+		KnownFacts:            knownFacts,
 	}
 
 	systemPrompt := prompts.BuildPersonalizedCoachingSystemPrompt(input)
@@ -192,8 +198,16 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 	}
 
 	l.Infof("streaming personalized coaching complete: user=%s, %d chars", in.UserId, fullResponse.Len())
-	return stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
+	if err := stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
 		Complete:     true,
 		FullResponse: fullResponse.String(),
-	})
+	}); err != nil {
+		return err
+	}
+
+	// Write-time curation, after the turn is complete and delivered. Uses a
+	// fresh context because the request context is finished once the stream
+	// closes; every failure inside is a log line, never a failed turn.
+	l.extractFacts(context.WithoutCancel(l.ctx), in.UserId, in.UserMessage, fullResponse.String())
+	return nil
 }

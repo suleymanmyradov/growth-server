@@ -14,13 +14,23 @@ import (
 )
 
 type (
+	AddUserFactRequest               = aicoach.AddUserFactRequest
+	AddUserFactResponse              = aicoach.AddUserFactResponse
 	CheckInFeedbackRequest           = aicoach.CheckInFeedbackRequest
 	CheckInFeedbackResponse          = aicoach.CheckInFeedbackResponse
+	ForgetAllUserFactsRequest        = aicoach.ForgetAllUserFactsRequest
+	ForgetAllUserFactsResponse       = aicoach.ForgetAllUserFactsResponse
+	ForgetUserFactRequest            = aicoach.ForgetUserFactRequest
+	ForgetUserFactResponse           = aicoach.ForgetUserFactResponse
 	GenerateOnboardingHabitsRequest  = aicoach.GenerateOnboardingHabitsRequest
 	GenerateOnboardingHabitsResponse = aicoach.GenerateOnboardingHabitsResponse
+	ListUserFactsRequest             = aicoach.ListUserFactsRequest
+	ListUserFactsResponse            = aicoach.ListUserFactsResponse
 	PersonalizedCoachingRequest      = aicoach.PersonalizedCoachingRequest
 	PersonalizedCoachingResponse     = aicoach.PersonalizedCoachingResponse
 	PersonalizedCoachingStreamChunk  = aicoach.PersonalizedCoachingStreamChunk
+	SearchMemoryRequest              = aicoach.SearchMemoryRequest
+	SearchMemoryResponse             = aicoach.SearchMemoryResponse
 	SynthesizeRequest                = aicoach.SynthesizeRequest
 	SynthesizeResponse               = aicoach.SynthesizeResponse
 	TranscribeRequest                = aicoach.TranscribeRequest
@@ -39,6 +49,13 @@ type (
 		GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error)
 		Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error)
 		Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error)
+		// Long-term memory, exposed so the agentic coaching flow in the gateway can
+		SearchMemory(ctx context.Context, in *SearchMemoryRequest, opts ...grpc.CallOption) (*SearchMemoryResponse, error)
+		// Curated facts (user_facts): the user-facing controls for inspecting and
+		ListUserFacts(ctx context.Context, in *ListUserFactsRequest, opts ...grpc.CallOption) (*ListUserFactsResponse, error)
+		AddUserFact(ctx context.Context, in *AddUserFactRequest, opts ...grpc.CallOption) (*AddUserFactResponse, error)
+		ForgetUserFact(ctx context.Context, in *ForgetUserFactRequest, opts ...grpc.CallOption) (*ForgetUserFactResponse, error)
+		ForgetAllUserFacts(ctx context.Context, in *ForgetAllUserFactsRequest, opts ...grpc.CallOption) (*ForgetAllUserFactsResponse, error)
 	}
 
 	defaultAICoachService struct {
@@ -91,4 +108,31 @@ func (m *defaultAICoachService) Transcribe(ctx context.Context, in *TranscribeRe
 func (m *defaultAICoachService) Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error) {
 	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
 	return client.Synthesize(ctx, in, opts...)
+}
+
+// Long-term memory, exposed so the agentic coaching flow in the gateway can
+func (m *defaultAICoachService) SearchMemory(ctx context.Context, in *SearchMemoryRequest, opts ...grpc.CallOption) (*SearchMemoryResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.SearchMemory(ctx, in, opts...)
+}
+
+// Curated facts (user_facts): the user-facing controls for inspecting and
+func (m *defaultAICoachService) ListUserFacts(ctx context.Context, in *ListUserFactsRequest, opts ...grpc.CallOption) (*ListUserFactsResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.ListUserFacts(ctx, in, opts...)
+}
+
+func (m *defaultAICoachService) AddUserFact(ctx context.Context, in *AddUserFactRequest, opts ...grpc.CallOption) (*AddUserFactResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.AddUserFact(ctx, in, opts...)
+}
+
+func (m *defaultAICoachService) ForgetUserFact(ctx context.Context, in *ForgetUserFactRequest, opts ...grpc.CallOption) (*ForgetUserFactResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.ForgetUserFact(ctx, in, opts...)
+}
+
+func (m *defaultAICoachService) ForgetAllUserFacts(ctx context.Context, in *ForgetAllUserFactsRequest, opts ...grpc.CallOption) (*ForgetAllUserFactsResponse, error) {
+	client := aicoach.NewAICoachServiceClient(m.cli.Conn())
+	return client.ForgetAllUserFacts(ctx, in, opts...)
 }

@@ -26,6 +26,7 @@ import (
 type mockAICoachService struct {
 	generateOnboardingHabitsFn func(ctx context.Context, in *aicoachservice.GenerateOnboardingHabitsRequest) (*aicoachservice.GenerateOnboardingHabitsResponse, error)
 	lastRequest                *aicoachservice.GenerateOnboardingHabitsRequest
+	searchMemoryFn             func(ctx context.Context, in *aicoachservice.SearchMemoryRequest) (*aicoachservice.SearchMemoryResponse, error)
 }
 
 func (m *mockAICoachService) GenerateCheckInFeedback(ctx context.Context, in *aicoachservice.CheckInFeedbackRequest, opts ...grpc.CallOption) (*aicoachservice.CheckInFeedbackResponse, error) {
@@ -41,6 +42,28 @@ func (m *mockAICoachService) StreamWeeklyReview(ctx context.Context, in *aicoach
 	return nil, errors.New("not implemented")
 }
 func (m *mockAICoachService) StreamPersonalizedCoaching(ctx context.Context, in *aicoachservice.PersonalizedCoachingRequest, opts ...grpc.CallOption) (aicoach.AICoachService_StreamPersonalizedCoachingClient, error) {
+	return nil, errors.New("not implemented")
+}
+
+// Long-term memory RPCs. searchMemoryFn is settable so the
+// search_past_conversations tool can be exercised; the fact-management RPCs are
+// not used from this package.
+func (m *mockAICoachService) SearchMemory(ctx context.Context, in *aicoachservice.SearchMemoryRequest, opts ...grpc.CallOption) (*aicoachservice.SearchMemoryResponse, error) {
+	if m.searchMemoryFn != nil {
+		return m.searchMemoryFn(ctx, in)
+	}
+	return nil, errors.New("not implemented")
+}
+func (m *mockAICoachService) ListUserFacts(ctx context.Context, in *aicoachservice.ListUserFactsRequest, opts ...grpc.CallOption) (*aicoachservice.ListUserFactsResponse, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *mockAICoachService) AddUserFact(ctx context.Context, in *aicoachservice.AddUserFactRequest, opts ...grpc.CallOption) (*aicoachservice.AddUserFactResponse, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *mockAICoachService) ForgetUserFact(ctx context.Context, in *aicoachservice.ForgetUserFactRequest, opts ...grpc.CallOption) (*aicoachservice.ForgetUserFactResponse, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *mockAICoachService) ForgetAllUserFacts(ctx context.Context, in *aicoachservice.ForgetAllUserFactsRequest, opts ...grpc.CallOption) (*aicoachservice.ForgetAllUserFactsResponse, error) {
 	return nil, errors.New("not implemented")
 }
 func (m *mockAICoachService) GenerateOnboardingHabits(ctx context.Context, in *aicoachservice.GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*aicoachservice.GenerateOnboardingHabitsResponse, error) {

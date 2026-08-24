@@ -27,6 +27,11 @@ const (
 	AICoachService_GenerateOnboardingHabits_FullMethodName     = "/aicoach.AICoachService/GenerateOnboardingHabits"
 	AICoachService_Transcribe_FullMethodName                   = "/aicoach.AICoachService/Transcribe"
 	AICoachService_Synthesize_FullMethodName                   = "/aicoach.AICoachService/Synthesize"
+	AICoachService_SearchMemory_FullMethodName                 = "/aicoach.AICoachService/SearchMemory"
+	AICoachService_ListUserFacts_FullMethodName                = "/aicoach.AICoachService/ListUserFacts"
+	AICoachService_AddUserFact_FullMethodName                  = "/aicoach.AICoachService/AddUserFact"
+	AICoachService_ForgetUserFact_FullMethodName               = "/aicoach.AICoachService/ForgetUserFact"
+	AICoachService_ForgetAllUserFacts_FullMethodName           = "/aicoach.AICoachService/ForgetAllUserFacts"
 )
 
 // AICoachServiceClient is the client API for AICoachService service.
@@ -46,6 +51,18 @@ type AICoachServiceClient interface {
 	GenerateOnboardingHabits(ctx context.Context, in *GenerateOnboardingHabitsRequest, opts ...grpc.CallOption) (*GenerateOnboardingHabitsResponse, error)
 	Transcribe(ctx context.Context, in *TranscribeRequest, opts ...grpc.CallOption) (*TranscribeResponse, error)
 	Synthesize(ctx context.Context, in *SynthesizeRequest, opts ...grpc.CallOption) (*SynthesizeResponse, error)
+	// Long-term memory, exposed so the agentic coaching flow in the gateway can
+	// search past conversations as an explicit tool call rather than having
+	// snippets injected into every prompt. On-demand retrieval keeps the default
+	// prompt small and gives the reply an auditable basis: the coach can say what
+	// it looked up.
+	SearchMemory(ctx context.Context, in *SearchMemoryRequest, opts ...grpc.CallOption) (*SearchMemoryResponse, error)
+	// Curated facts (user_facts): the user-facing controls for inspecting and
+	// removing what the coach remembers.
+	ListUserFacts(ctx context.Context, in *ListUserFactsRequest, opts ...grpc.CallOption) (*ListUserFactsResponse, error)
+	AddUserFact(ctx context.Context, in *AddUserFactRequest, opts ...grpc.CallOption) (*AddUserFactResponse, error)
+	ForgetUserFact(ctx context.Context, in *ForgetUserFactRequest, opts ...grpc.CallOption) (*ForgetUserFactResponse, error)
+	ForgetAllUserFacts(ctx context.Context, in *ForgetAllUserFactsRequest, opts ...grpc.CallOption) (*ForgetAllUserFactsResponse, error)
 }
 
 type aICoachServiceClient struct {
@@ -155,6 +172,56 @@ func (c *aICoachServiceClient) Synthesize(ctx context.Context, in *SynthesizeReq
 	return out, nil
 }
 
+func (c *aICoachServiceClient) SearchMemory(ctx context.Context, in *SearchMemoryRequest, opts ...grpc.CallOption) (*SearchMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchMemoryResponse)
+	err := c.cc.Invoke(ctx, AICoachService_SearchMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aICoachServiceClient) ListUserFacts(ctx context.Context, in *ListUserFactsRequest, opts ...grpc.CallOption) (*ListUserFactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserFactsResponse)
+	err := c.cc.Invoke(ctx, AICoachService_ListUserFacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aICoachServiceClient) AddUserFact(ctx context.Context, in *AddUserFactRequest, opts ...grpc.CallOption) (*AddUserFactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddUserFactResponse)
+	err := c.cc.Invoke(ctx, AICoachService_AddUserFact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aICoachServiceClient) ForgetUserFact(ctx context.Context, in *ForgetUserFactRequest, opts ...grpc.CallOption) (*ForgetUserFactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForgetUserFactResponse)
+	err := c.cc.Invoke(ctx, AICoachService_ForgetUserFact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aICoachServiceClient) ForgetAllUserFacts(ctx context.Context, in *ForgetAllUserFactsRequest, opts ...grpc.CallOption) (*ForgetAllUserFactsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ForgetAllUserFactsResponse)
+	err := c.cc.Invoke(ctx, AICoachService_ForgetAllUserFacts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AICoachServiceServer is the server API for AICoachService service.
 // All implementations must embed UnimplementedAICoachServiceServer
 // for forward compatibility.
@@ -172,6 +239,18 @@ type AICoachServiceServer interface {
 	GenerateOnboardingHabits(context.Context, *GenerateOnboardingHabitsRequest) (*GenerateOnboardingHabitsResponse, error)
 	Transcribe(context.Context, *TranscribeRequest) (*TranscribeResponse, error)
 	Synthesize(context.Context, *SynthesizeRequest) (*SynthesizeResponse, error)
+	// Long-term memory, exposed so the agentic coaching flow in the gateway can
+	// search past conversations as an explicit tool call rather than having
+	// snippets injected into every prompt. On-demand retrieval keeps the default
+	// prompt small and gives the reply an auditable basis: the coach can say what
+	// it looked up.
+	SearchMemory(context.Context, *SearchMemoryRequest) (*SearchMemoryResponse, error)
+	// Curated facts (user_facts): the user-facing controls for inspecting and
+	// removing what the coach remembers.
+	ListUserFacts(context.Context, *ListUserFactsRequest) (*ListUserFactsResponse, error)
+	AddUserFact(context.Context, *AddUserFactRequest) (*AddUserFactResponse, error)
+	ForgetUserFact(context.Context, *ForgetUserFactRequest) (*ForgetUserFactResponse, error)
+	ForgetAllUserFacts(context.Context, *ForgetAllUserFactsRequest) (*ForgetAllUserFactsResponse, error)
 	mustEmbedUnimplementedAICoachServiceServer()
 }
 
@@ -205,6 +284,21 @@ func (UnimplementedAICoachServiceServer) Transcribe(context.Context, *Transcribe
 }
 func (UnimplementedAICoachServiceServer) Synthesize(context.Context, *SynthesizeRequest) (*SynthesizeResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Synthesize not implemented")
+}
+func (UnimplementedAICoachServiceServer) SearchMemory(context.Context, *SearchMemoryRequest) (*SearchMemoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchMemory not implemented")
+}
+func (UnimplementedAICoachServiceServer) ListUserFacts(context.Context, *ListUserFactsRequest) (*ListUserFactsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserFacts not implemented")
+}
+func (UnimplementedAICoachServiceServer) AddUserFact(context.Context, *AddUserFactRequest) (*AddUserFactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddUserFact not implemented")
+}
+func (UnimplementedAICoachServiceServer) ForgetUserFact(context.Context, *ForgetUserFactRequest) (*ForgetUserFactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForgetUserFact not implemented")
+}
+func (UnimplementedAICoachServiceServer) ForgetAllUserFacts(context.Context, *ForgetAllUserFactsRequest) (*ForgetAllUserFactsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForgetAllUserFacts not implemented")
 }
 func (UnimplementedAICoachServiceServer) mustEmbedUnimplementedAICoachServiceServer() {}
 func (UnimplementedAICoachServiceServer) testEmbeddedByValue()                        {}
@@ -357,6 +451,96 @@ func _AICoachService_Synthesize_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AICoachService_SearchMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).SearchMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_SearchMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).SearchMemory(ctx, req.(*SearchMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AICoachService_ListUserFacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserFactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).ListUserFacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_ListUserFacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).ListUserFacts(ctx, req.(*ListUserFactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AICoachService_AddUserFact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddUserFactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).AddUserFact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_AddUserFact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).AddUserFact(ctx, req.(*AddUserFactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AICoachService_ForgetUserFact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgetUserFactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).ForgetUserFact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_ForgetUserFact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).ForgetUserFact(ctx, req.(*ForgetUserFactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AICoachService_ForgetAllUserFacts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForgetAllUserFactsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AICoachServiceServer).ForgetAllUserFacts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AICoachService_ForgetAllUserFacts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AICoachServiceServer).ForgetAllUserFacts(ctx, req.(*ForgetAllUserFactsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AICoachService_ServiceDesc is the grpc.ServiceDesc for AICoachService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -387,6 +571,26 @@ var AICoachService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Synthesize",
 			Handler:    _AICoachService_Synthesize_Handler,
+		},
+		{
+			MethodName: "SearchMemory",
+			Handler:    _AICoachService_SearchMemory_Handler,
+		},
+		{
+			MethodName: "ListUserFacts",
+			Handler:    _AICoachService_ListUserFacts_Handler,
+		},
+		{
+			MethodName: "AddUserFact",
+			Handler:    _AICoachService_AddUserFact_Handler,
+		},
+		{
+			MethodName: "ForgetUserFact",
+			Handler:    _AICoachService_ForgetUserFact_Handler,
+		},
+		{
+			MethodName: "ForgetAllUserFacts",
+			Handler:    _AICoachService_ForgetAllUserFacts_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

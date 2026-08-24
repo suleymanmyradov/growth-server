@@ -16,6 +16,7 @@ type Repository struct {
 	Deliveries      *DeliveriesRepo
 	Recipients      *RecipientsRepo
 	HabitState      *HabitStateRepo
+	GoalState       *GoalStateRepo
 }
 
 func NewRepository(q *db.Queries) *Repository {
@@ -30,6 +31,7 @@ func NewRepository(q *db.Queries) *Repository {
 		Deliveries:      NewDeliveriesRepo(q),
 		Recipients:      NewRecipientsRepo(q),
 		HabitState:      NewHabitStateRepo(q),
+		GoalState:       NewGoalStateRepo(q),
 	}
 }
 

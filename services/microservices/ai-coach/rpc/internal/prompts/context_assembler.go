@@ -95,6 +95,9 @@ func buildSections(in PersonalizedCoachingInput) []section {
 	return []section{
 		{0, "user_profile", func() string { return renderUserProfile(in) }},
 		{0, "coaching_profile", func() string { return renderCoachingProfile(in) }},
+		// Curated facts rank with goals and habits: they are the coach's
+		// durable memory of the user, not a retrieval guess.
+		{1, "known_facts", func() string { return renderKnownFacts(in) }},
 		{1, "active_goals", func() string { return renderRelevantGoals(in) }},
 		{1, "active_habits", func() string { return renderRelevantHabits(in) }},
 		{2, "pattern_insights", func() string { return renderPatternInsights(in) }},
@@ -104,6 +107,81 @@ func buildSections(in PersonalizedCoachingInput) []section {
 		// budget is tight, so retrieval can never push the prompt over budget.
 		{5, "relevant_memories", func() string { return renderRelevantMemories(in) }},
 	}
+}
+
+// maxKnownFacts caps the curated-facts section. The table is intentionally
+// small, but a runaway extractor must not be able to flood the prompt.
+const maxKnownFacts = 20
+
+// maxKnownFactChars caps each rendered fact.
+const maxKnownFactChars = 200
+
+// lowConfidenceFact is the threshold below which a fact is presented as
+// tentative rather than known. Asserting a low-confidence guess back to the
+// user as fact is the failure mode that makes memory feel untrustworthy.
+const lowConfidenceFact = 0.6
+
+// renderKnownFacts renders the curated long-term memory section.
+//
+// Facts are grouped by category so the model can tell a commitment from a
+// preference, and low-confidence ones are explicitly marked tentative so the
+// model hedges instead of asserting. Fact text is model-authored from user
+// input, so it is wrapped and sanitized as untrusted data just like a retrieved
+// snippet.
+func renderKnownFacts(in PersonalizedCoachingInput) string {
+	if len(in.KnownFacts) == 0 {
+		return ""
+	}
+
+	order := []string{"commitment", "preference", "constraint", "context"}
+	titles := map[string]string{
+		"commitment": "Commitments they have made",
+		"preference": "How they want to be coached",
+		"constraint": "Constraints to respect",
+		"context":    "Background",
+	}
+	grouped := make(map[string][]UserFact, len(order))
+	rendered := 0
+	for _, f := range in.KnownFacts {
+		if rendered >= maxKnownFacts {
+			break
+		}
+		if _, ok := titles[f.Category]; !ok {
+			continue
+		}
+		grouped[f.Category] = append(grouped[f.Category], f)
+		rendered++
+	}
+	if rendered == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	b.WriteString("\n--- What You Remember About Them ---\n")
+	b.WriteString("Treat these as your own memory of this person. Reference them naturally; do not recite them back as a list.\n")
+	for _, cat := range order {
+		facts := grouped[cat]
+		if len(facts) == 0 {
+			continue
+		}
+		fmt.Fprintf(&b, "\n%s:\n", titles[cat])
+		for _, f := range facts {
+			body := aiprompts.SanitizeAndTruncate(f.Fact, maxKnownFactChars)
+			if body == "" {
+				continue
+			}
+			label := "fact"
+			switch {
+			case f.UserAuthored:
+				label = "fact (stated by them directly)"
+			case f.Confidence < lowConfidenceFact:
+				label = "fact (uncertain - check before relying on it)"
+			}
+			b.WriteString(aiprompts.WrapUserContent(label, body))
+			b.WriteString("\n")
+		}
+	}
+	return b.String()
 }
 
 // maxMemorySnippets caps how many retrieved snippets are ever rendered, as

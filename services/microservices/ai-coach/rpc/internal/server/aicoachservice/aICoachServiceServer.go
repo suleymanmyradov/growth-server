@@ -63,3 +63,30 @@ func (s *AICoachServiceServer) Synthesize(ctx context.Context, in *aicoach.Synth
 	l := aicoachservicelogic.NewSynthesizeLogic(ctx, s.svcCtx)
 	return l.Synthesize(in)
 }
+
+// Long-term memory, exposed so the agentic coaching flow in the gateway can
+func (s *AICoachServiceServer) SearchMemory(ctx context.Context, in *aicoach.SearchMemoryRequest) (*aicoach.SearchMemoryResponse, error) {
+	l := aicoachservicelogic.NewSearchMemoryLogic(ctx, s.svcCtx)
+	return l.SearchMemory(in)
+}
+
+// Curated facts (user_facts): the user-facing controls for inspecting and
+func (s *AICoachServiceServer) ListUserFacts(ctx context.Context, in *aicoach.ListUserFactsRequest) (*aicoach.ListUserFactsResponse, error) {
+	l := aicoachservicelogic.NewListUserFactsLogic(ctx, s.svcCtx)
+	return l.ListUserFacts(in)
+}
+
+func (s *AICoachServiceServer) AddUserFact(ctx context.Context, in *aicoach.AddUserFactRequest) (*aicoach.AddUserFactResponse, error) {
+	l := aicoachservicelogic.NewAddUserFactLogic(ctx, s.svcCtx)
+	return l.AddUserFact(in)
+}
+
+func (s *AICoachServiceServer) ForgetUserFact(ctx context.Context, in *aicoach.ForgetUserFactRequest) (*aicoach.ForgetUserFactResponse, error) {
+	l := aicoachservicelogic.NewForgetUserFactLogic(ctx, s.svcCtx)
+	return l.ForgetUserFact(in)
+}
+
+func (s *AICoachServiceServer) ForgetAllUserFacts(ctx context.Context, in *aicoach.ForgetAllUserFactsRequest) (*aicoach.ForgetAllUserFactsResponse, error) {
+	l := aicoachservicelogic.NewForgetAllUserFactsLogic(ctx, s.svcCtx)
+	return l.ForgetAllUserFacts(in)
+}

@@ -72,6 +72,9 @@ service growthapi {
 
 	@handler DeleteAccount
 	delete /profile returns (EmptyResponse)
+
+	@handler ExportData
+	post /profile/export returns (ExportDataResponse)
 }
 
 @server (

@@ -124,3 +124,28 @@ func (r *RemindersRepo) DeleteByUser(ctx context.Context, userID uuid.UUID) erro
 	defer span.End()
 	return r.db.DeleteRemindersByUser(ctx, userID)
 }
+
+// EnqueueGoalDeadline inserts or updates the pending goal_deadline reminder
+// for a specific (user, goal). The per-goal unique index ensures re-enqueuing
+// on a deadline change upserts in place rather than duplicating. metadata must
+// contain a "goalId" key matching the goalID argument.
+func (r *RemindersRepo) EnqueueGoalDeadline(ctx context.Context, userID uuid.UUID, goalID, goalTitle string, scheduledAt time.Time) (db.EnqueueGoalDeadlineReminderRow, error) {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.EnqueueGoalDeadline")
+	defer span.End()
+
+	raw, err := json.Marshal(map[string]string{"goalId": goalID, "goalTitle": goalTitle})
+	if err != nil {
+		return db.EnqueueGoalDeadlineReminderRow{}, fmt.Errorf("marshal goal deadline metadata: %w", err)
+	}
+	return r.db.EnqueueGoalDeadlineReminder(ctx, userID, pgtype.Timestamptz{Time: scheduledAt, Valid: true}, raw)
+}
+
+// CancelPendingGoalDeadline deletes the pending goal_deadline reminder for a
+// specific (user, goal). Used when a goal is deleted, completed, or its
+// deadline is cleared/changed (the new deadline is enqueued separately).
+func (r *RemindersRepo) CancelPendingGoalDeadline(ctx context.Context, userID uuid.UUID, goalID string) (int64, error) {
+	ctx, span := otel.Tracer("notifications").Start(ctx, "RemindersRepo.CancelPendingGoalDeadline")
+	defer span.End()
+
+	return r.db.CancelPendingGoalDeadlineReminder(ctx, userID, goalID)
+}

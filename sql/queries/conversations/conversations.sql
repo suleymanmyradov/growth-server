@@ -9,28 +9,25 @@ FROM conversations
 WHERE id = $1 AND user_id = $2;
 
 -- name: ListConversations :many
+-- The archived flag is a required parameter, not a tri-state: false (the zero
+-- value, so also the default when a caller omits it) lists active
+-- conversations and true lists archived ones. Archived conversations used to
+-- leak into the default list because this query ignored the column entirely.
+-- CountConversations MUST take the same filters or the pagination totals
+-- describe a different result set than the page.
 SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
 FROM conversations
 WHERE user_id = $1
+  AND archived = $5
   AND (type = $4 OR $4 = '')
-ORDER BY updated_at DESC
-LIMIT $2 OFFSET $3;
-
--- name: ListArchivedConversations :many
-SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
-FROM conversations
-WHERE user_id = $1 AND archived = true
-ORDER BY updated_at DESC
+ORDER BY updated_at DESC, id DESC
 LIMIT $2 OFFSET $3;
 
 -- name: CountConversations :one
 SELECT count(*) FROM conversations
 WHERE user_id = $1
+  AND archived = $3
   AND (type = $2 OR $2 = '');
-
--- name: CountArchivedConversations :one
-SELECT count(*) FROM conversations
-WHERE user_id = $1 AND archived = true;
 
 -- name: UpdateConversationLastMessage :one
 UPDATE conversations

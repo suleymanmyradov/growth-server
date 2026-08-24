@@ -155,7 +155,16 @@ func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.Gener
 	}
 
 	// --- Persist user message + fetch history ---
-	history := fetchAndPersistHistory(ctx, req, p, deps.Conversations)
+	// Abort before the model call if the user turn cannot be stored: spending
+	// tokens on an answer we know we cannot keep is the failure this guards.
+	history, err := fetchAndPersistHistory(ctx, req, p, deps.Conversations, deps.Config)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("agentic coaching: %v", err)
+		sseWriter.WriteEvent("error", map[string]string{
+			"message": "Could not save your message. Please try sending it again.",
+		})
+		return ""
+	}
 
 	// --- Fetch user profile for the system prompt (cheap, always useful) ---
 	agenticCtx := AgenticCoachingContext{FocusGoalID: req.GoalId}
@@ -293,7 +302,15 @@ func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.Gener
 					Role:           "assistant",
 					Content:        chunk.FullResponse,
 				}); err != nil {
+					// Emit error, not complete. A `complete` event tells the
+					// client the turn is durable; sending it after the write
+					// failed makes the client cache a turn the server dropped,
+					// which then vanishes on reload.
 					logx.WithContext(ctx).Errorf("agentic coaching: failed to persist assistant message: %v", err)
+					sseWriter.WriteEvent("error", map[string]string{
+						"message": "Your coach replied, but the message could not be saved. Please try again.",
+					})
+					return ""
 				}
 			}
 
@@ -324,18 +341,62 @@ func coachingLimits(cfg config.CoachingConfig) (maxSteps, maxTotalTokens, maxTok
 	return
 }
 
+// historyLimits returns the model-context window: how many prior turns are
+// replayed and the total character budget for them. Deliberately separate from
+// the UI's history page size — the chat pane can page back through the entire
+// conversation while the model sees only a bounded recent window.
+func historyLimits(cfg config.CoachingConfig) (turns, maxChars int) {
+	turns = cfg.HistoryTurns
+	if turns <= 0 {
+		turns = 20
+	}
+	maxChars = cfg.HistoryMaxChars
+	if maxChars <= 0 {
+		maxChars = 24000
+	}
+	return
+}
+
+// trimHistory keeps the most recent entries within the character budget,
+// preserving chronological order. Trimming from the front (oldest first) keeps
+// the turns nearest the current message, which are the ones that carry the
+// thread of the conversation.
+func trimHistory(history []historyEntry, maxChars int) []historyEntry {
+	total := 0
+	cut := 0
+	for i := len(history) - 1; i >= 0; i-- {
+		total += len(history[i].Content)
+		if total > maxChars {
+			cut = i + 1
+			break
+		}
+	}
+	if cut == 0 {
+		return history
+	}
+	return history[cut:]
+}
+
 // streamCrisisResponse persists the user message, persists the deterministic
 // crisis response, and then sends them as SSE events.
 func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore) {
+	// The crisis response is deterministic, so it is always delivered to the
+	// user even if persistence fails — withholding a crisis message because a
+	// database write failed would be the wrong trade. But the conversation
+	// record must not silently lose the exchange either, so a failed write is
+	// reported alongside the response rather than only logged.
+	persisted := true
 	if req.ConversationId != "" {
 		if !req.Regenerate {
 			if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
-				ConversationId: req.ConversationId,
-				UserId:         p.UserID,
-				Role:           "user",
-				Content:        req.UserMessage,
+				ConversationId:  req.ConversationId,
+				UserId:          p.UserID,
+				Role:            "user",
+				Content:         req.UserMessage,
+				ClientMessageId: req.ClientMessageId,
 			}); err != nil {
-				logx.WithContext(ctx).Errorf("agentic coaching: failed to persist user message: %v", err)
+				logx.WithContext(ctx).Errorf("agentic coaching: failed to persist user message on crisis path: %v", err)
+				persisted = false
 			}
 		}
 		if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
@@ -345,42 +406,53 @@ func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types
 			Content:        safety.CrisisResponse,
 		}); err != nil {
 			logx.WithContext(ctx).Errorf("agentic coaching: failed to persist crisis response: %v", err)
+			persisted = false
 		}
 	}
 
 	sseWriter.WriteEvent("delta", map[string]string{"text": safety.CrisisResponse})
+	if !persisted {
+		// Non-fatal: the response above stands. This tells the client the turn
+		// will not survive a reload, so it does not present stale history as
+		// complete.
+		sseWriter.WriteEvent("error", map[string]string{
+			"message": "This response could not be saved to your conversation history.",
+		})
+	}
 	sseWriter.WriteEvent("complete", map[string]string{"fullResponse": safety.CrisisResponse})
 }
 
 // fetchAndPersistHistory fetches prior conversation history and then persists
-// the user message. By fetching BEFORE appending, we avoid the fragile
-// content-matching that the previous implementation used to identify and
-// exclude the just-appended message from the history list.
+// the user message. Fetching BEFORE appending avoids the fragile
+// content-matching an earlier implementation used to exclude the just-appended
+// message from the history list.
 //
-// If the same user message was already the last message in the conversation
-// (e.g. a retry), the duplicate append is still persisted — the conversation
-// service should handle idempotency at the storage layer if needed. The
-// important property is that the history returned here never includes the
-// current turn's user message, regardless of content collisions.
-func fetchAndPersistHistory(ctx context.Context, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore) []historyEntry {
+// A failure to persist the user message is returned, not logged and swallowed.
+// Swallowing it produced the worst outcome available: the user receives a
+// complete, well-formed coaching answer and the whole turn is gone on reload.
+// The caller aborts the stream instead, so the user sees a retryable error
+// before any tokens are spent.
+//
+// A history *fetch* failure is different and stays non-fatal: answering with
+// less context is a degraded answer, not a lost turn.
+func fetchAndPersistHistory(ctx context.Context, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore, cfg config.CoachingConfig) ([]historyEntry, error) {
 	var history []historyEntry
 	if req.ConversationId == "" {
-		return history
+		return history, nil
 	}
 
+	turns, maxChars := historyLimits(cfg)
+
 	// Fetch prior messages BEFORE appending the new user message.
-	// This eliminates the need to identify and exclude the just-appended
-	// message by content matching, which was fragile when the same message
-	// was already present (e.g. retries).
 	msgsResp, err := conversations.GetMessages(ctx, &conversationservice.GetMessagesRequest{
 		ConversationId: req.ConversationId,
 		UserId:         p.UserID,
 		Page:           1,
-		Limit:          50,
+		Limit:          int32(turns),
 	})
 	if err != nil {
-		logx.WithContext(ctx).Errorf("agentic coaching: failed to fetch history: %v", err)
-		// Still try to persist the user message even if history fetch failed.
+		// Non-fatal: proceed with no history rather than failing the turn.
+		logx.WithContext(ctx).Errorf("agentic coaching: failed to fetch history, proceeding without it: %v", err)
 	} else {
 		for _, m := range msgsResp.Messages {
 			history = append(history, historyEntry{
@@ -390,24 +462,27 @@ func fetchAndPersistHistory(ctx context.Context, req *types.GeneratePersonalized
 		}
 	}
 
+	history = trimHistory(history, maxChars)
+
 	if req.Regenerate {
 		if len(history) > 0 && history[len(history)-1].Role == "user" {
 			history = history[:len(history)-1]
 		}
-		return history
+		return history, nil
 	}
 
-	// Persist the user message AFTER fetching history.
+	// Persist the user message AFTER fetching history. Fatal on failure.
 	if _, err := conversations.AppendMessage(ctx, &conversationservice.AppendMessageRequest{
-		ConversationId: req.ConversationId,
-		UserId:         p.UserID,
-		Role:           "user",
-		Content:        req.UserMessage,
+		ConversationId:  req.ConversationId,
+		UserId:          p.UserID,
+		Role:            "user",
+		Content:         req.UserMessage,
+		ClientMessageId: req.ClientMessageId,
 	}); err != nil {
-		logx.WithContext(ctx).Errorf("agentic coaching: failed to persist user message: %v", err)
+		return nil, fmt.Errorf("persist user message: %w", err)
 	}
 
-	return history
+	return history, nil
 }
 
 // proposalPayload is the shape of a propose_* tool result, used to validate
