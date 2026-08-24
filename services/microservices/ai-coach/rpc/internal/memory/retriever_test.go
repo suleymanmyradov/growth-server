@@ -9,6 +9,12 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/prompts"
 )
 
+// Retrieve validates the caller id as a UUID, so tests use well-formed ids.
+const (
+	callerUserID = "8f14e45f-ea0c-4f9b-9a1e-2b3c4d5e6f70"
+	otherUserID  = "1c2d3e4f-5a6b-4c7d-8e9f-0a1b2c3d4e5f"
+)
+
 // fakeSearcher records the last request and returns a canned response.
 type fakeSearcher struct {
 	lastReq   *meilisearch.SearchRequest
@@ -28,14 +34,14 @@ func TestRetrieveUserIDIsolation(t *testing.T) {
 	// should prevent this, the retriever must drop it as defense-in-depth.
 	crossUserHit := map[string]any{
 		"id":          "check_in:other",
-		"user_id":     "other-user-uuid",
+		"user_id":     otherUserID,
 		"entity_type": "check_in",
 		"content":     "someone else's private note",
 		"created_at":  float64(1700000000),
 	}
 	ownHit := map[string]any{
 		"id":          "conversation_message:own",
-		"user_id":     "caller-uuid",
+		"user_id":     callerUserID,
 		"entity_type": "conversation_message",
 		"content":     "my past message",
 		"created_at":  float64(1700000001),
@@ -46,7 +52,7 @@ func TestRetrieveUserIDIsolation(t *testing.T) {
 	}}
 	r := NewRetriever(idx, Config{Limit: 5})
 
-	got, err := r.Retrieve(context.Background(), "caller-uuid", "help with sleep")
+	got, err := r.Retrieve(context.Background(), callerUserID, "help with sleep")
 	if err != nil {
 		t.Fatalf("Retrieve: %v", err)
 	}
@@ -63,7 +69,7 @@ func TestRetrieveUserIDIsolation(t *testing.T) {
 	// Verify the filter actually contained the caller's user_id and the
 	// entity_type whitelist.
 	filter, _ := idx.lastReq.Filter.(string)
-	if !contains(filter, "caller-uuid") {
+	if !contains(filter, callerUserID) {
 		t.Errorf("filter missing caller user_id: %q", filter)
 	}
 	for _, et := range []string{"check_in", "conversation_message", "weekly_review"} {
@@ -87,7 +93,7 @@ func TestRetrieveEmptyInputs(t *testing.T) {
 	if got, err := r.Retrieve(context.Background(), "", "q"); err != nil || got != nil {
 		t.Errorf("empty userID should return nil/nil, got %v %v", got, err)
 	}
-	if got, err := r.Retrieve(context.Background(), "u", ""); err != nil || got != nil {
+	if got, err := r.Retrieve(context.Background(), callerUserID, ""); err != nil || got != nil {
 		t.Errorf("empty query should return nil/nil, got %v %v", got, err)
 	}
 }
@@ -95,7 +101,7 @@ func TestRetrieveEmptyInputs(t *testing.T) {
 func TestRetrieveFailOpenOnError(t *testing.T) {
 	idx := &fakeSearcher{err: errors.New("meili down")}
 	r := NewRetriever(idx, Config{})
-	got, err := r.Retrieve(context.Background(), "u", "q")
+	got, err := r.Retrieve(context.Background(), callerUserID, "q")
 	if err == nil {
 		t.Fatal("expected error to propagate to caller (logic handles fail-open)")
 	}
@@ -131,7 +137,7 @@ func TestNewRetrieverDefaults(t *testing.T) {
 
 func TestRetrieveParsesCreatedAtAndHabitName(t *testing.T) {
 	hit := map[string]any{
-		"user_id":     "u1",
+		"user_id":     callerUserID,
 		"entity_type": "check_in",
 		"content":     "note",
 		"created_at":  float64(1700000000),
@@ -139,7 +145,7 @@ func TestRetrieveParsesCreatedAtAndHabitName(t *testing.T) {
 	}
 	idx := &fakeSearcher{resp: &meilisearch.SearchResponse{Hits: []interface{}{hit}}}
 	r := NewRetriever(idx, Config{})
-	got, err := r.Retrieve(context.Background(), "u1", "q")
+	got, err := r.Retrieve(context.Background(), callerUserID, "q")
 	if err != nil || len(got) != 1 {
 		t.Fatalf("Retrieve: %v len=%d", err, len(got))
 	}
@@ -164,4 +170,28 @@ func indexOf(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+func TestRetrieveRejectsNonUUIDUserID(t *testing.T) {
+	// A caller id is interpolated into the Meili filter, so anything that is
+	// not a UUID must be rejected before a search is issued.
+	for _, userID := range []string{
+		"not-a-uuid",
+		`x' OR user_id = '` + otherUserID,
+		callerUserID + `' OR entity_type = 'article`,
+		"'",
+	} {
+		idx := &fakeSearcher{resp: &meilisearch.SearchResponse{}}
+		r := NewRetriever(idx, Config{})
+		got, err := r.Retrieve(context.Background(), userID, "q")
+		if err == nil {
+			t.Errorf("userID %q: expected error, got nil", userID)
+		}
+		if got != nil {
+			t.Errorf("userID %q: expected nil snippets, got %+v", userID, got)
+		}
+		if idx.lastReq != nil {
+			t.Errorf("userID %q: search must not be issued, got filter %v", userID, idx.lastReq.Filter)
+		}
+	}
 }

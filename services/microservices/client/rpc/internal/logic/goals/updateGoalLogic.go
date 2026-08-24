@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
@@ -274,6 +275,32 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
+
+	// Fire-and-forget publish goal_updated event so the notifications service
+	// can reschedule the goal_deadline reminder for the new deadline.
+	if l.svcCtx.EventsPub != nil {
+		deadlineAt := ""
+		if goal.DueDate.Valid {
+			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
+		}
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			env, err := events.NewEnvelope(events.TypeGoalUpdated, events.GoalUpdated{
+				UserID:     goal.UserID.String(),
+				GoalID:     goal.ID.String(),
+				Title:      goal.Title,
+				DeadlineAt: deadlineAt,
+			})
+			if err != nil {
+				logx.Errorf("envelope: %v", err)
+				return
+			}
+			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
+				logx.Errorf("publish goal_updated event: %v", err)
+			}
+		}()
+	}
 
 	return &client.UpdateGoalResponse{
 		Goal: goalToProto(goal, in.RelatedHabitIds, milestones),

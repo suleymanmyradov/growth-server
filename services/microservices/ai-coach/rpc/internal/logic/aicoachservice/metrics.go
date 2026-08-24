@@ -102,12 +102,38 @@ var (
 			Help:      "Total user_memory retrieval errors on the coaching path (fail-open).",
 		},
 	)
+
+	// ---- Curated facts (user_facts) ----
+
+	// factsStored counts facts newly persisted by write-time extraction.
+	// Already-known facts are not counted: the extractor re-proposes them every
+	// turn, so counting them would make this metric measure traffic, not learning.
+	factsStored = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_facts_stored_total",
+			Help:      "Curated facts newly persisted by post-turn extraction.",
+		},
+	)
+
+	// factExtractionErrors counts extraction and persistence failures. The
+	// coaching path is already complete when these happen, so they are invisible
+	// to users — which is exactly why they need a metric.
+	factExtractionErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Namespace: metricNamespace,
+			Name:      "coaching_fact_extraction_errors_total",
+			Help:      "Total fact extraction/persistence errors (best-effort, post-turn).",
+		},
+	)
 )
 
 func init() {
 	prometheus.MustRegister(
 		coachingSafetyBlockedTotal,
 		coachingSafetyClassifyErrors,
+		factsStored,
+		factExtractionErrors,
 		coachingPromptSectionTokens,
 		coachingContextTokens,
 		coachingMemoryRetrievalLatency,

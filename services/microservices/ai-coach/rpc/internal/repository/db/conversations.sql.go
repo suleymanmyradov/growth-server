@@ -34,26 +34,15 @@ func (q *Queries) ArchiveConversation(ctx context.Context, iD uuid.UUID, userID 
 	return i, err
 }
 
-const countArchivedConversations = `-- name: CountArchivedConversations :one
-SELECT count(*) FROM conversations
-WHERE user_id = $1 AND archived = true
-`
-
-func (q *Queries) CountArchivedConversations(ctx context.Context, userID uuid.UUID) (int64, error) {
-	row := q.db.QueryRow(ctx, countArchivedConversations, userID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const countConversations = `-- name: CountConversations :one
 SELECT count(*) FROM conversations
 WHERE user_id = $1
+  AND archived = $3
   AND (type = $2 OR $2 = '')
 `
 
-func (q *Queries) CountConversations(ctx context.Context, userID uuid.UUID, type_ string) (int64, error) {
-	row := q.db.QueryRow(ctx, countConversations, userID, type_)
+func (q *Queries) CountConversations(ctx context.Context, userID uuid.UUID, type_ string, archived bool) (int64, error) {
+	row := q.db.QueryRow(ctx, countConversations, userID, type_, archived)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -113,58 +102,37 @@ func (q *Queries) GetConversation(ctx context.Context, iD uuid.UUID, userID uuid
 	return i, err
 }
 
-const listArchivedConversations = `-- name: ListArchivedConversations :many
-SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
-FROM conversations
-WHERE user_id = $1 AND archived = true
-ORDER BY updated_at DESC
-LIMIT $2 OFFSET $3
-`
-
-func (q *Queries) ListArchivedConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Conversation, error) {
-	rows, err := q.db.Query(ctx, listArchivedConversations, userID, limit, offset)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Conversation{}
-	for rows.Next() {
-		var i Conversation
-		if err := rows.Scan(
-			&i.ID,
-			&i.UserID,
-			&i.Title,
-			&i.Type,
-			&i.LastMessage,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Archived,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const listConversations = `-- name: ListConversations :many
 SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
 FROM conversations
 WHERE user_id = $1
+  AND archived = $5
   AND (type = $4 OR $4 = '')
-ORDER BY updated_at DESC
+ORDER BY updated_at DESC, id DESC
 LIMIT $2 OFFSET $3
 `
 
-func (q *Queries) ListConversations(ctx context.Context, userID uuid.UUID, limit int32, offset int32, type_ string) ([]Conversation, error) {
+type ListConversationsParams struct {
+	UserID   uuid.UUID `db:"user_id" json:"user_id"`
+	Limit    int32     `db:"limit" json:"limit"`
+	Offset   int32     `db:"offset" json:"offset"`
+	Type     string    `db:"type" json:"type"`
+	Archived bool      `db:"archived" json:"archived"`
+}
+
+// The archived flag is a required parameter, not a tri-state: false (the zero
+// value, so also the default when a caller omits it) lists active
+// conversations and true lists archived ones. Archived conversations used to
+// leak into the default list because this query ignored the column entirely.
+// CountConversations MUST take the same filters or the pagination totals
+// describe a different result set than the page.
+func (q *Queries) ListConversations(ctx context.Context, arg ListConversationsParams) ([]Conversation, error) {
 	rows, err := q.db.Query(ctx, listConversations,
-		userID,
-		limit,
-		offset,
-		type_,
+		arg.UserID,
+		arg.Limit,
+		arg.Offset,
+		arg.Type,
+		arg.Archived,
 	)
 	if err != nil {
 		return nil, err

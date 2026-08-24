@@ -176,7 +176,89 @@ service AICoachService {
   rpc GenerateOnboardingHabits(GenerateOnboardingHabitsRequest) returns (GenerateOnboardingHabitsResponse);
   rpc Transcribe(TranscribeRequest) returns (TranscribeResponse);
   rpc Synthesize(SynthesizeRequest) returns (SynthesizeResponse);
+
+  // Long-term memory, exposed so the agentic coaching flow in the gateway can
+  // search past conversations as an explicit tool call rather than having
+  // snippets injected into every prompt. On-demand retrieval keeps the default
+  // prompt small and gives the reply an auditable basis: the coach can say what
+  // it looked up.
+  rpc SearchMemory(SearchMemoryRequest) returns (SearchMemoryResponse);
+
+  // Curated facts (user_facts): the user-facing controls for inspecting and
+  // removing what the coach remembers.
+  rpc ListUserFacts(ListUserFactsRequest) returns (ListUserFactsResponse);
+  rpc AddUserFact(AddUserFactRequest) returns (AddUserFactResponse);
+  rpc ForgetUserFact(ForgetUserFactRequest) returns (ForgetUserFactResponse);
+  rpc ForgetAllUserFacts(ForgetAllUserFactsRequest) returns (ForgetAllUserFactsResponse);
 }
+
+// --- Long-term memory ---
+
+message SearchMemoryRequest {
+  string user_id = 1;
+  string query = 2;
+  int32 limit = 3;   // optional; server applies its own cap
+}
+
+message MemoryHit {
+  string entity_type = 1;   // check_in | conversation_message | weekly_review
+  string content = 2;
+  int64 created_at = 3;     // unix seconds
+  string habit_name = 4;    // check_in only
+  string role = 5;          // conversation_message only
+}
+
+message SearchMemoryResponse {
+  repeated MemoryHit hits = 1;
+}
+
+// --- Curated facts ---
+
+message UserFact {
+  string id = 1;
+  string fact = 2;
+  string category = 3;      // commitment | preference | constraint | context
+  float confidence = 4;
+  bool user_authored = 5;
+  int64 created_at = 6;
+}
+
+message ListUserFactsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ListUserFactsResponse {
+  repeated UserFact facts = 1;
+  int32 total = 2;
+}
+
+message AddUserFactRequest {
+  string user_id = 1;
+  string fact = 2;
+  string category = 3;
+  // When set, the fact this one replaces. Used when a user corrects something
+  // the coach remembered wrongly.
+  string supersedes_id = 4;
+}
+
+message AddUserFactResponse {
+  UserFact fact = 1;
+}
+
+message ForgetUserFactRequest {
+  string user_id = 1;
+  string fact_id = 2;
+}
+
+message ForgetUserFactResponse {}
+
+message ForgetAllUserFactsRequest {
+  string user_id = 1;
+}
+
+message ForgetAllUserFactsResponse {}
 
 // Speech — STT/TTS. Used by the gateway for dictate (mic → text) and live
 // voice chat (text → spoken response). The ai-coach service owns the speech
@@ -242,6 +324,10 @@ message ListConversationsRequest {
   string type = 2;        // optional filter
   int32 page = 3;
   int32 limit = 4;
+  // Which shelf to list. Defaults to false (active conversations); set true to
+  // list archived ones. Additive field: existing callers keep the default and
+  // stop seeing archived conversations mixed into the active list.
+  bool archived = 5;
 }
 
 message ListConversationsResponse {
@@ -275,6 +361,11 @@ message AppendMessageRequest {
   string user_id = 2;
   string role = 3;        // user | assistant
   string content = 4;
+  // Client-supplied idempotency key. When set, appending twice with the same
+  // value returns the existing message rather than duplicating the turn. Only
+  // meaningful for client-authored (role=user) messages; server-authored
+  // replies leave it empty.
+  string client_message_id = 5;
 }
 
 message AppendMessageResponse {

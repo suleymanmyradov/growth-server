@@ -59,6 +59,7 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 				Personalization: svcCtx.ClientRpc.PersonalizationService,
 				Search:          svcCtx.SearchRpc,
 				Articles:        svcCtx.ClientRpc.Articles,
+				Memory:          svcCtx.AICoachRpc.AICoachService,
 			},
 			Config: svcCtx.Config.Coaching,
 		})

@@ -7493,6 +7493,35 @@
         }
       }
     },
+    "/api/v1/profile/export": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Profile"
+        ],
+        "summary": "ExportData",
+        "operationId": "profileExportData",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "downloadUrl": {
+                  "type": "string",
+                  "example": "https://minio.local/exports/user-123-abc.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/profile/me": {
       "get": {
         "produces": [
@@ -9281,7 +9310,7 @@
       }
     }
   },
-  "x-date": "2026-08-22 14:20:51",
+  "x-date": "2026-08-23 00:59:41",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

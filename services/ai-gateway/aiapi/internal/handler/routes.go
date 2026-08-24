@@ -59,6 +59,26 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Path:    "/conversations/:id/unarchive",
 					Handler: conversations.UnarchiveConversationHandler(serverCtx),
 				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/memory/facts",
+					Handler: conversations.ListMemoryFactsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/memory/facts",
+					Handler: conversations.AddMemoryFactHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/memory/facts",
+					Handler: conversations.ForgetAllMemoryFactsHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/memory/facts/:id",
+					Handler: conversations.ForgetMemoryFactHandler(serverCtx),
+				},
 			}...,
 		),
 		rest.WithPrefix("/api/v1"),

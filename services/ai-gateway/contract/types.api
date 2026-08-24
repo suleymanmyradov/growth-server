@@ -700,6 +700,10 @@ type (
 		goalId         string       `json:"goalId,optional"`
 		attachments    []Attachment `json:"attachments,optional"`
 		regenerate     bool         `json:"regenerate,optional"`
+		// clientMessageId makes the user turn idempotent. The stream now aborts
+		// when the user message cannot be persisted, so retrying is the normal
+		// recovery path — and a retry must not create a second copy of the turn.
+		clientMessageId string `json:"clientMessageId,optional"`
 	}
 	GeneratePersonalizedCoachingResponse {
 		coachingResponse string `json:"coachingResponse,example=I noticed you've missed a few check-ins lately..."`
@@ -790,6 +794,9 @@ type (
 		conversationType string `form:"type,optional"`
 		page             int    `form:"page,default=1"`
 		limit            int    `form:"limit,default=20"`
+		// false (the default) lists active conversations, true lists archived
+		// ones. Archived conversations previously leaked into the active list.
+		archived bool `form:"archived,default=false"`
 	}
 	ListConversationsResponse {
 		data []Conversation `json:"data"`
@@ -813,13 +820,59 @@ type (
 	AppendMessageRequest {
 		id      string `path:"id"`
 		content string `json:"content"`
-		role    string `json:"role,optional"`
+		// clientMessageId makes the append idempotent: retrying a send with the
+		// same value returns the message already stored instead of duplicating
+		// the turn. Optional for backward compatibility; without it a retry can
+		// still create a second copy.
+		clientMessageId string `json:"clientMessageId,optional"`
 	}
 	AppendMessageResponse {
 		data         ConversationMessage `json:"data"`
 		conversation Conversation         `json:"conversation"`
 	}
 	DeleteConversationResponse {}
+)
+
+// Long-term memory (curated facts). What the coach remembers about a user,
+// exposed so they can inspect, correct, and delete it.
+type (
+	MemoryFact {
+		id           string  `json:"id"`
+		fact         string  `json:"fact"`
+		category     string  `json:"category,example=commitment"`
+		confidence   float32 `json:"confidence,example=0.9"`
+		userAuthored bool    `json:"userAuthored"`
+		createdAt    string  `json:"createdAt"`
+	}
+	ListMemoryFactsRequest {
+		page  int `form:"page,default=1"`
+		limit int `form:"limit,default=50"`
+	}
+	ListMemoryFactsResponse {
+		data []MemoryFact `json:"data"`
+		page PageResponse `json:"page"`
+	}
+	AddMemoryFactRequest {
+		fact     string `json:"fact"`
+		category string `json:"category,example=commitment"`
+		// When set, the id of the fact this one corrects.
+		supersedesId string `json:"supersedesId,optional"`
+	}
+	AddMemoryFactResponse {
+		data MemoryFact `json:"data"`
+	}
+	ForgetMemoryFactRequest {
+		id string `path:"id"`
+	}
+	ForgetMemoryFactResponse {}
+	ForgetAllMemoryFactsRequest {
+		// Guard against an accidental wipe from a stray DELETE: the caller must
+		// say so explicitly.
+		confirm bool `form:"confirm,default=false"`
+	}
+	ForgetAllMemoryFactsResponse {
+		forgotten bool `json:"forgotten"`
+	}
 )
 
 // Billing types

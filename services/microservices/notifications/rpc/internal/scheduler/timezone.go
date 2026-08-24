@@ -106,3 +106,32 @@ func safeLocation(tzName string) (*time.Location, error) {
 	}
 	return loc, nil
 }
+
+// GoalDeadlineReminderTime computes when to send the goal-deadline reminder for
+// a goal with the given deadline. The reminder fires at 09:00 on the deadline
+// day in the user's timezone, giving them the morning to act. If 09:00 has
+// already passed on the deadline day, the reminder is scheduled 1 hour before
+// the deadline instead. If even that is in the past, the deadline itself is
+// returned (the scheduler will fire it immediately). Returns an error for an
+// empty/zero deadline; an invalid timezone falls back to UTC.
+func GoalDeadlineReminderTime(now time.Time, deadline time.Time, tzName string) (time.Time, error) {
+	if deadline.IsZero() {
+		return time.Time{}, fmt.Errorf("deadline is zero")
+	}
+	loc, err := safeLocation(tzName)
+	if err != nil {
+		// Fall back to UTC rather than failing — a bad timezone should not
+		// prevent the reminder from being scheduled.
+		loc = time.UTC
+	}
+	localDeadline := deadline.In(loc)
+	morning := time.Date(localDeadline.Year(), localDeadline.Month(), localDeadline.Day(), 9, 0, 0, 0, loc)
+	if morning.After(now) {
+		return morning.UTC(), nil
+	}
+	oneHourBefore := localDeadline.Add(-time.Hour)
+	if oneHourBefore.After(now) {
+		return oneHourBefore.UTC(), nil
+	}
+	return deadline.UTC(), nil
+}

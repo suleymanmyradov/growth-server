@@ -2,12 +2,16 @@ package personalization
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/types"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/conversationservice"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 	"google.golang.org/grpc"
 )
 
@@ -77,11 +81,114 @@ func (s *orderingConversationStore) RegenerateLastResponse(_ context.Context, _ 
 
 func TestFetchAndPersistHistory_FetchesBeforeAppendingCurrentTurn(t *testing.T) {
 	store := &orderingConversationStore{}
-	history := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+	history, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
 		ConversationId: "conversation-1",
 		UserMessage:    "current turn",
-	}, testPrincipal(), store)
+	}, testPrincipal(), store, config.CoachingConfig{})
 
+	require.NoError(t, err)
 	require.Empty(t, history)
 	require.Equal(t, []string{"get", "append:user"}, store.events)
+}
+
+// failingAppendStore persists nothing: every append fails.
+type failingAppendStore struct {
+	orderingConversationStore
+}
+
+func (s *failingAppendStore) AppendMessage(_ context.Context, in *conversationservice.AppendMessageRequest, _ ...grpc.CallOption) (*conversationservice.AppendMessageResponse, error) {
+	s.events = append(s.events, "append-failed:"+in.Role)
+	return nil, errors.New("conversation store unavailable")
+}
+
+// A user turn that cannot be persisted must surface as an error, not be logged
+// and swallowed. Swallowing it produced a complete coaching answer for a turn
+// that no longer existed on reload.
+func TestFetchAndPersistHistory_UserMessagePersistenceFailureIsFatal(t *testing.T) {
+	store := &failingAppendStore{}
+	history, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+		ConversationId: "conversation-1",
+		UserMessage:    "current turn",
+	}, testPrincipal(), store, config.CoachingConfig{})
+
+	require.Error(t, err)
+	require.Nil(t, history)
+	require.Contains(t, store.events, "append-failed:user")
+}
+
+// A history *fetch* failure is a degraded answer, not a lost turn, so it must
+// stay non-fatal — the user message still gets persisted.
+func TestFetchAndPersistHistory_FetchFailureIsNonFatal(t *testing.T) {
+	store := &fetchFailingStore{}
+	history, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+		ConversationId: "conversation-1",
+		UserMessage:    "current turn",
+	}, testPrincipal(), store, config.CoachingConfig{})
+
+	require.NoError(t, err)
+	require.Empty(t, history)
+	require.Equal(t, []string{"get-failed", "append:user"}, store.events)
+}
+
+type fetchFailingStore struct {
+	orderingConversationStore
+}
+
+func (s *fetchFailingStore) GetMessages(_ context.Context, _ *conversationservice.GetMessagesRequest, _ ...grpc.CallOption) (*conversationservice.GetMessagesResponse, error) {
+	s.events = append(s.events, "get-failed")
+	return nil, errors.New("history unavailable")
+}
+
+// The model-context window is bounded independently of the UI page size, by
+// both turn count and total characters.
+func TestFetchAndPersistHistory_BoundsModelContextWindow(t *testing.T) {
+	t.Run("turn count is passed to the query", func(t *testing.T) {
+		store := &limitCapturingStore{}
+		_, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+			ConversationId: "conversation-1",
+			UserMessage:    "current turn",
+		}, testPrincipal(), store, config.CoachingConfig{HistoryTurns: 7})
+		require.NoError(t, err)
+		require.Equal(t, int32(7), store.limit)
+	})
+
+	t.Run("default applies when unset", func(t *testing.T) {
+		store := &limitCapturingStore{}
+		_, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+			ConversationId: "conversation-1",
+			UserMessage:    "current turn",
+		}, testPrincipal(), store, config.CoachingConfig{})
+		require.NoError(t, err)
+		require.Equal(t, int32(20), store.limit)
+	})
+
+	t.Run("character budget drops the oldest turns", func(t *testing.T) {
+		store := &limitCapturingStore{messages: []*aicoach.ConversationMessage{
+			{Role: "user", Content: strings.Repeat("a", 100)},
+			{Role: "assistant", Content: strings.Repeat("b", 100)},
+			{Role: "user", Content: strings.Repeat("c", 100)},
+		}}
+		history, err := fetchAndPersistHistory(context.Background(), &types.GeneratePersonalizedCoachingRequest{
+			ConversationId: "conversation-1",
+			UserMessage:    "current turn",
+		}, testPrincipal(), store, config.CoachingConfig{HistoryMaxChars: 250})
+		require.NoError(t, err)
+		// 3x100 chars exceeds 250, so the oldest turn is dropped and the two
+		// most recent are kept in chronological order.
+		require.Len(t, history, 2)
+		require.Equal(t, strings.Repeat("b", 100), history[0].Content)
+		require.Equal(t, strings.Repeat("c", 100), history[1].Content)
+	})
+}
+
+type limitCapturingStore struct {
+	orderingConversationStore
+	limit    int32
+	messages []*aicoach.ConversationMessage
+}
+
+func (s *limitCapturingStore) GetMessages(_ context.Context, in *conversationservice.GetMessagesRequest, _ ...grpc.CallOption) (*conversationservice.GetMessagesResponse, error) {
+	s.limit = in.Limit
+	s.events = append(s.events, "get")
+	return &conversationservice.GetMessagesResponse{Messages: s.messages}, nil
 }

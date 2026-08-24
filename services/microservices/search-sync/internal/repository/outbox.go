@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -299,37 +300,101 @@ func (r *Repository) GetCheckIn(ctx context.Context, id uuid.UUID) (map[string]a
 	}, nil
 }
 
-// GetMessage returns a user_memory doc for a conversation message. user_id is
-// joined from the parent conversation. role is carried as light metadata.
+// minTurnContentChars is the floor for indexing a turn. Below it the exchange
+// carries no retrievable meaning -- "yeah ok", "thanks", "sounds good" -- and
+// indexing it only adds noise that competes for top-k against real content.
+const minTurnContentChars = 40
+
+// GetMessage returns a user_memory doc for one conversational TURN, anchored on
+// the user's message and including the assistant reply that followed it.
+//
+// One document per message was the wrong unit. An assistant message is several
+// hundred words of coaching prose and a user message is frequently two words,
+// so embedding each separately meant embedding "yeah ok" as its own retrievable
+// item, where it competes on equal footing with substantive content. Pairing
+// them makes each document a coherent exchange, halves the index, and gives the
+// embedding enough context to be meaningful.
+//
+// Called with any message id -- an assistant message resolves back to the user
+// message that prompted it, so both notifications converge on the same doc.
+// Returns a no-rows error when there is nothing worth indexing, which the syncer
+// treats as a delete; that is also what retires the old one-doc-per-message
+// entries as they are re-processed.
 func (r *Repository) GetMessage(ctx context.Context, id uuid.UUID) (map[string]any, error) {
-	query := `SELECT m.id, conv.user_id, m.role, m.content, m.created_at
-		FROM conversation_messages m
-		JOIN conversations conv ON conv.id = m.conversation_id
-		WHERE m.id = $1`
+	// Resolve the turn anchor: the user message at or before the given id
+	// within the same conversation. Ordering is (created_at, id) to match the
+	// conversation read path -- id is uuid_generate_v7 and so time-ordered.
+	const anchorQuery = `
+		WITH target AS (
+			SELECT m.id, m.conversation_id, m.role, m.created_at
+			FROM conversation_messages m
+			WHERE m.id = $1
+		)
+		SELECT a.id, conv.user_id, a.content, a.created_at
+		FROM target t
+		JOIN conversation_messages a
+		  ON a.conversation_id = t.conversation_id
+		 AND a.role = 'user'
+		 AND (a.created_at, a.id) <= (t.created_at, t.id)
+		JOIN conversations conv ON conv.id = a.conversation_id
+		ORDER BY a.created_at DESC, a.id DESC
+		LIMIT 1`
 
-	var doc struct {
-		ID        uuid.UUID `json:"id"`
-		UserID    uuid.UUID `json:"user_id"`
-		Role      string    `json:"role"`
-		Content   string    `json:"content"`
-		CreatedAt time.Time `json:"created_at"`
+	var anchor struct {
+		ID        uuid.UUID
+		UserID    uuid.UUID
+		Content   string
+		CreatedAt time.Time
 	}
-
-	err := r.pool.QueryRow(ctx, query, id).Scan(
-		&doc.ID, &doc.UserID, &doc.Role, &doc.Content, &doc.CreatedAt,
-	)
-	if err != nil {
+	if err := r.pool.QueryRow(ctx, anchorQuery, id).Scan(
+		&anchor.ID, &anchor.UserID, &anchor.Content, &anchor.CreatedAt,
+	); err != nil {
+		// No user message at or before this one: an assistant message opening a
+		// conversation, or the row is gone. Nothing to anchor a turn on.
 		return nil, err
 	}
 
+	// The assistant reply that followed the anchor, if it has arrived. A turn
+	// mid-flight (user message stored, reply still streaming) indexes on its
+	// own and is completed when the reply lands and re-triggers this path.
+	const replyQuery = `
+		SELECT m.content
+		FROM conversation_messages m
+		WHERE m.conversation_id = (SELECT conversation_id FROM conversation_messages WHERE id = $1)
+		  AND m.role = 'assistant'
+		  AND (m.created_at, m.id) > ((SELECT created_at FROM conversation_messages WHERE id = $1),
+		                              (SELECT id FROM conversation_messages WHERE id = $1))
+		ORDER BY m.created_at ASC, m.id ASC
+		LIMIT 1`
+
+	var reply *string
+	if err := r.pool.QueryRow(ctx, replyQuery, anchor.ID).Scan(&reply); err != nil && !IsNoRows(err) {
+		return nil, err
+	}
+
+	content := strings.TrimSpace(anchor.Content)
+	if reply != nil {
+		if trimmed := strings.TrimSpace(*reply); trimmed != "" {
+			content = content + "\n\n" + trimmed
+		}
+	}
+	if len(content) < minTurnContentChars {
+		// Signal "not indexable" using the same error the syncer already treats
+		// as a delete, so a turn that shrinks below the floor is removed rather
+		// than left stale.
+		return nil, pgx.ErrNoRows
+	}
+
 	return map[string]any{
-		"id":          docID("conversation_message", doc.ID),
-		"entity_id":   doc.ID.String(),
+		"id":          docID("conversation_message", anchor.ID),
+		"entity_id":   anchor.ID.String(),
 		"entity_type": "conversation_message",
-		"user_id":     doc.UserID.String(),
-		"content":     doc.Content,
-		"role":        doc.Role,
-		"created_at":  doc.CreatedAt.Unix(),
+		"user_id":     anchor.UserID.String(),
+		"content":     content,
+		// The anchor is always the user's side of the exchange. Kept for
+		// attribution in the coach's prompt, which labels a hit by its source.
+		"role":       "user",
+		"created_at": anchor.CreatedAt.Unix(),
 	}, nil
 }
 
@@ -405,8 +470,12 @@ func (r *Repository) ListCheckInIDs(ctx context.Context) ([]uuid.UUID, error) {
 }
 
 // ListMessageIDs returns all conversation_message IDs.
+// ListMessageIDs returns the ids that anchor an indexable turn: user messages
+// only. Assistant messages are folded into their turn's document rather than
+// getting one of their own, so listing them here would make full reconciliation
+// expect documents that are never written.
 func (r *Repository) ListMessageIDs(ctx context.Context) ([]uuid.UUID, error) {
-	return r.listIDs(ctx, `SELECT id FROM conversation_messages`)
+	return r.listIDs(ctx, `SELECT id FROM conversation_messages WHERE role = 'user'`)
 }
 
 // ListWeeklyReviewIDs returns IDs of weekly_reviews with a non-empty ai_summary

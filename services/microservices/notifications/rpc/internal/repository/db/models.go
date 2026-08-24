@@ -289,6 +289,16 @@ type NotificationDevice struct {
 	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
+type NotificationGoalState struct {
+	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	Title     string             `db:"title" json:"title"`
+	Deadline  pgtype.Timestamptz `db:"deadline" json:"deadline"`
+	Completed bool               `db:"completed" json:"completed"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
 type NotificationHabitState struct {
 	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
 	HabitID              uuid.UUID          `db:"habit_id" json:"habit_id"`

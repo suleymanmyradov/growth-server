@@ -10,6 +10,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/speech"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/facts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/memory"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -22,6 +23,12 @@ type ServiceContext struct {
 	Queries         *db.Queries
 	TxRunner        *postgres.PgxTxRunner
 	MemoryRetriever *memory.Retriever
+	// FactStore is the curated tier of long-term memory (user_facts). Nil when
+	// Postgres is unconfigured; callers treat nil as "curated memory disabled".
+	FactStore *facts.Store
+	// FactExtractor turns a completed exchange into fact candidates. Nil when
+	// the AI client is unconfigured.
+	FactExtractor *facts.Extractor
 	// Speech clients (optional). Nil when Speech config is empty — the
 	// Transcribe/Synthesize RPCs then return Unavailable.
 	STT speech.STTClient
@@ -79,6 +86,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		})
 	}
 
+	// Curated long-term memory. The store needs Postgres; the extractor needs
+	// the AI client. Either can be absent independently: without the store
+	// nothing is remembered, without the extractor nothing new is learned but
+	// existing facts still reach the prompt.
+	var factStore *facts.Store
+	if queries != nil {
+		factStore = facts.NewStore(queries, facts.Config{
+			MinConfidence: c.CoachMemory.FactMinConfidence,
+			MaxFacts:      c.CoachMemory.FactMaxCount,
+		})
+	}
+	factExtractor := facts.NewExtractor(aiClient)
+
 	// Speech (STT/TTS) for dictate + live voice chat. Optional: if Speech.APIKey
 	// is empty, both clients are nil and the Transcribe/Synthesize RPCs return
 	// Unavailable. Reuses the OpenRouter key by default (same provider as chat).
@@ -94,6 +114,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Queries:         queries,
 		TxRunner:        txRunner,
 		MemoryRetriever: memoryRetriever,
+		FactStore:       factStore,
+		FactExtractor:   factExtractor,
 		STT:             speechClients.STT,
 		TTS:             speechClients.TTS,
 	}

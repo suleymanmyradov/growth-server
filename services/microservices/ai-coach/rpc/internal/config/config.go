@@ -44,4 +44,23 @@ type CoachMemoryConfig struct {
 	ScoreFloor      float64       `json:",optional"` // min _rankingScore; default 0.2
 	Timeout         time.Duration `json:",optional"` // per-query deadline; default 300ms
 	MaxSnippetChars int           `json:",optional"` // per-snippet truncate; default 240
+
+	// --- Curated facts (user_facts), the second memory tier ---
+
+	// FactsEnabled gates the curated tier independently of snippet retrieval,
+	// so the two can be rolled out and measured separately.
+	FactsEnabled bool `json:",optional"`
+	// FactExtractionEnabled gates *writing* new facts. Separate from
+	// FactsEnabled so existing facts can keep reaching the prompt while
+	// extraction is paused (e.g. while tuning the extraction prompt).
+	FactExtractionEnabled bool `json:",optional"`
+	// FactMinConfidence is the floor for injecting a fact into the prompt.
+	// Default 0.5. Facts below it are stored and user-visible but not acted on.
+	FactMinConfidence float32 `json:",optional"`
+	// FactMaxCount bounds facts injected per turn. Default 20.
+	FactMaxCount int32 `json:",optional"`
+	// FactExtractionTimeout bounds the post-turn extraction call. Default 5s.
+	// Extraction happens after the user already has their answer, so a slow
+	// extraction must never delay or fail the turn.
+	FactExtractionTimeout time.Duration `json:",optional"`
 }

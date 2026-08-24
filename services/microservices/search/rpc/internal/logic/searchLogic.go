@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/pb/search"
@@ -48,34 +49,9 @@ func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse,
 		offset = 0
 	}
 
-	// Build filters
-	filters := make([]string, 0, 3)
-
-	// Security filter: public articles OR user's own private docs
-	userID := strings.TrimSpace(req.UserId)
-	if userID != "" {
-		filters = append(filters, `(visibility = "public" OR user_id = "`+userID+`")`)
-	} else {
-		filters = append(filters, `visibility = "public"`)
-	}
-
-	// Type filter
-	if len(req.Types) > 0 {
-		typeFilters := make([]string, len(req.Types))
-		for i, t := range req.Types {
-			typeFilters[i] = `type = "` + t + `"`
-		}
-		filters = append(filters, "("+strings.Join(typeFilters, " OR ")+")")
-	}
-
-	// Category filter
-	if cat := strings.TrimSpace(req.Category); cat != "" {
-		filters = append(filters, `category = "`+cat+`"`)
-	}
-
-	// Status filter (e.g. only published articles for admin search)
-	if st := strings.TrimSpace(req.Status); st != "" {
-		filters = append(filters, `status = "`+st+`"`)
+	filters, err := buildFilters(req)
+	if err != nil {
+		return nil, err
 	}
 
 	searchReq := &meilisearch.SearchRequest{
@@ -146,6 +122,108 @@ func (l *SearchLogic) Search(req *search.SearchRequest) (*search.SearchResponse,
 		Total:   total,
 		Counts:  counts,
 	}, nil
+}
+
+// buildFilters assembles the Meilisearch filter clauses for a search request.
+// It is separated from Search so the authorization-critical logic can be unit
+// tested without faking the whole meilisearch.IndexManager interface.
+//
+// The returned slice is AND-ed by Meilisearch, and element 0 is always the
+// security clause.
+func buildFilters(req *search.SearchRequest) ([]string, error) {
+	// Build filters.
+	//
+	// Every value interpolated below is either validated against a closed set
+	// or escaped by quoteFilterValue. Callers pass HTTP query parameters
+	// straight through (see adminway's article list), so untrusted input must
+	// never reach the filter expression unescaped. The security clause is
+	// always element 0 and Meili ANDs the elements together, so it cannot be
+	// widened by a later clause — but we do not rely on that alone.
+	filters := make([]string, 0, 4)
+
+	// Security filter: public docs OR the caller's own private docs.
+	// The user id is interpolated, so it must be a well-formed UUID; callers
+	// pass the authenticated principal's id and anything else is a bug
+	// upstream, so we fail closed rather than degrade to a public-only search.
+	userID := strings.TrimSpace(req.UserId)
+	if userID != "" {
+		if _, err := uuid.Parse(userID); err != nil {
+			return nil, fmt.Errorf("search: invalid user id: %w", err)
+		}
+		filters = append(filters, `(visibility = "public" OR user_id = `+quoteFilterValue(userID)+`)`)
+	} else {
+		filters = append(filters, `visibility = "public"`)
+	}
+
+	// Type filter. Closed set — the indexer only ever writes these three.
+	if len(req.Types) > 0 {
+		typeFilters := make([]string, 0, len(req.Types))
+		for _, t := range req.Types {
+			t = strings.TrimSpace(t)
+			if t == "" {
+				continue
+			}
+			if !allowedTypes[t] {
+				return nil, fmt.Errorf("search: unsupported type %q", t)
+			}
+			typeFilters = append(typeFilters, `type = `+quoteFilterValue(t))
+		}
+		if len(typeFilters) > 0 {
+			filters = append(filters, "("+strings.Join(typeFilters, " OR ")+")")
+		}
+	}
+
+	// Category filter. Open set (domain categories are user/DB defined), so
+	// this is escaped rather than allowlisted.
+	if cat := strings.TrimSpace(req.Category); cat != "" {
+		filters = append(filters, `category = `+quoteFilterValue(cat))
+	}
+
+	// Status filter (e.g. only published articles for admin search).
+	// Closed set: only article docs carry a status.
+	if st := strings.TrimSpace(req.Status); st != "" {
+		if !allowedStatuses[st] {
+			return nil, fmt.Errorf("search: unsupported status %q", st)
+		}
+		filters = append(filters, `status = `+quoteFilterValue(st))
+	}
+
+	return filters, nil
+}
+
+// allowedTypes is the closed set of `type` values the search-sync indexer
+// writes to the catalog index (see search-sync repository GetArticle/GetGoal/
+// GetHabit). A value outside this set can only be a caller bug or an
+// injection attempt, so Search rejects it instead of silently matching
+// nothing.
+var allowedTypes = map[string]bool{
+	"article": true,
+	"goal":    true,
+	"habit":   true,
+}
+
+// allowedStatuses mirrors the articles.status CHECK constraint
+// (migration 027). Only article docs carry a status.
+var allowedStatuses = map[string]bool{
+	"draft":     true,
+	"published": true,
+}
+
+// quoteFilterValue renders v as a double-quoted Meilisearch filter literal,
+// escaping backslashes and quotes so the value cannot terminate its own
+// string and inject filter syntax.
+func quoteFilterValue(v string) string {
+	var b strings.Builder
+	b.Grow(len(v) + 2)
+	b.WriteByte('"')
+	for i := 0; i < len(v); i++ {
+		if c := v[i]; c == '\\' || c == '"' {
+			b.WriteByte('\\')
+		}
+		b.WriteByte(v[i])
+	}
+	b.WriteByte('"')
+	return b.String()
 }
 
 func getString(m map[string]any, key string) string {

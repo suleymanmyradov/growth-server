@@ -33,14 +33,16 @@ func (l *AppendMessageLogic) AppendMessage(req *types.AppendMessageRequest) (res
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
 	}
 
-	// Browser-facing message creation always writes as the user.
+	// Browser-facing message creation always writes as the user. Assistant,
+	// system, and tool roles are reserved for trusted internal callers.
 	role := "user"
 
 	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.AppendMessage(l.ctx, &conversationservice.AppendMessageRequest{
-		ConversationId: req.Id,
-		UserId:         p.UserID,
-		Role:           role,
-		Content:        req.Content,
+		ConversationId:  req.Id,
+		UserId:          p.UserID,
+		Role:            role,
+		Content:         req.Content,
+		ClientMessageId: req.ClientMessageId,
 	})
 	if err != nil {
 		return nil, err

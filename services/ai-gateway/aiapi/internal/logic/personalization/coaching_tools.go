@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client/aicoachservice"
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 	clientcheckin "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/checkinservice"
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
@@ -34,6 +36,10 @@ type CoachingToolDeps struct {
 	Personalization clientpersonalization.PersonalizationService
 	Search          searchservice.SearchService
 	Articles        clientarticles.Articles
+	// Memory is the ai-coach long-term memory search. Optional: when nil the
+	// search_past_conversations tool is not registered at all, so the model is
+	// never told about a capability it does not have.
+	Memory aicoachservice.AICoachService
 }
 
 // BuildCoachingTools creates the set of on-demand retrieval tools for the
@@ -48,7 +54,7 @@ type CoachingToolDeps struct {
 // habits are scoped via the propagated JWT in the gRPC metadata, so their
 // tools don't use userID directly.
 func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
-	return []ai.Tool{
+	tools := []ai.Tool{
 		getActiveGoalsTool(deps.Goals),
 		getActiveHabitsTool(deps.Habits),
 		getGoalTool(deps.Goals),
@@ -71,6 +77,15 @@ func BuildCoachingTools(userID string, deps CoachingToolDeps) []ai.Tool {
 		// topic so the coach can cite relevant reading in its reply.
 		searchArticlesTool(deps.Search, deps.Articles),
 	}
+
+	// Long-term memory as an explicit tool rather than always-on injection.
+	// Two reasons: the default prompt stays small, and a reply grounded in a
+	// tool result has an auditable basis -- the coach can say what it looked up
+	// instead of appearing to remember by magic.
+	if deps.Memory != nil {
+		tools = append(tools, searchPastConversationsTool(userID, deps.Memory))
+	}
+	return tools
 }
 
 // --- Tool input/output types (lean, model-shaped) ---
@@ -913,8 +928,10 @@ func searchArticlesTool(search searchservice.SearchService, articles clientartic
 				limit = 5
 			}
 			resp, err := search.Search(ctx, &searchservice.SearchRequest{
-				Query:  in.Query,
-				Types:  []string{"articles"},
+				Query: in.Query,
+				// "article" (singular) is the type the search-sync indexer
+				// writes; "articles" matched no documents.
+				Types:  []string{"article"},
 				Status: "published",
 				Limit:  limit,
 			})
@@ -976,4 +993,96 @@ func searchArticlesTool(search searchservice.SearchService, articles clientartic
 			return out, nil
 		},
 	})
+}
+
+// --- Long-term memory ---
+
+type searchPastConversationsInput struct {
+	Query string `json:"query" jsonschema:"description=What to look for in the user's past conversations, check-ins, and weekly reviews"`
+	Limit int32  `json:"limit,omitempty" jsonschema:"description=Maximum results to return (1-8, default 5)"`
+}
+
+type memoryHitSummary struct {
+	Source string `json:"source"`
+	When   string `json:"when,omitempty"`
+	Text   string `json:"text"`
+	Habit  string `json:"habit,omitempty"`
+}
+
+type memoryOutput struct {
+	Hits []memoryHitSummary `json:"hits"`
+}
+
+// searchPastConversationsTool lets the coach look through the user's own
+// history on demand instead of having snippets injected into every prompt.
+//
+// The description tells the model when NOT to call it as firmly as when to:
+// recent turns are already in the message list, so searching for them wastes a
+// round trip and returns the same text the model can already see.
+func searchPastConversationsTool(userID string, memory aicoachservice.AICoachService) ai.Tool {
+	return ai.NewTool[searchPastConversationsInput, memoryOutput](ai.ToolSpec{
+		Name: "search_past_conversations",
+		Description: "Search the user's own earlier conversations, check-in notes, and weekly reviews for something they mentioned before. " +
+			"Call this when the user refers to something from the past that is not in the current conversation " +
+			"(\"like I told you before\", \"the plan we made\", \"my usual routine\"), or when knowing what they said previously " +
+			"would change your advice. Do NOT call it for anything already visible in this conversation, and do not call it speculatively — " +
+			"an empty result is a real answer meaning they never mentioned it.",
+		Handler: func(ctx context.Context, in searchPastConversationsInput) (memoryOutput, error) {
+			if strings.TrimSpace(in.Query) == "" {
+				return memoryOutput{}, fmt.Errorf("search_past_conversations: query is required")
+			}
+			if memory == nil {
+				return memoryOutput{}, fmt.Errorf("search_past_conversations: long-term memory is not configured")
+			}
+			limit := in.Limit
+			if limit <= 0 || limit > 8 {
+				limit = 5
+			}
+
+			resp, err := memory.SearchMemory(ctx, &aicoachservice.SearchMemoryRequest{
+				UserId: userID,
+				Query:  in.Query,
+				Limit:  limit,
+			})
+			if err != nil {
+				return memoryOutput{}, fmt.Errorf("search_past_conversations: %w", err)
+			}
+
+			out := memoryOutput{Hits: make([]memoryHitSummary, 0, len(resp.Hits))}
+			for _, h := range resp.Hits {
+				if h.Content == "" {
+					continue
+				}
+				hit := memoryHitSummary{
+					Source: memorySourceLabel(h.EntityType, h.Role),
+					Text:   h.Content,
+					Habit:  h.HabitName,
+				}
+				if h.CreatedAt > 0 {
+					hit.When = time.Unix(h.CreatedAt, 0).UTC().Format("2006-01-02")
+				}
+				out.Hits = append(out.Hits, hit)
+			}
+			return out, nil
+		},
+	})
+}
+
+// memorySourceLabel gives each hit a provenance tag, so the coach can attribute
+// what it found ("in your check-in on the 3rd") instead of asserting it as
+// something it simply knows.
+func memorySourceLabel(entityType, role string) string {
+	switch entityType {
+	case "check_in":
+		return "check-in note"
+	case "weekly_review":
+		return "weekly review"
+	case "conversation_message":
+		if role == "assistant" {
+			return "your earlier reply"
+		}
+		return "what they said earlier"
+	default:
+		return entityType
+	}
 }

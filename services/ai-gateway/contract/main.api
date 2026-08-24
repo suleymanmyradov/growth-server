@@ -82,5 +82,20 @@ service aiapi {
 
 	@handler DeleteConversation
 	delete /conversations/:id (ConversationRequest) returns (DeleteConversationResponse)
+
+	// Long-term memory controls. Users must be able to see, correct, and delete
+	// what the coach remembers about them -- a coach whose memory cannot be
+	// inspected cannot be trusted, and cannot be corrected when it is wrong.
+	@handler ListMemoryFacts
+	get /memory/facts (ListMemoryFactsRequest) returns (ListMemoryFactsResponse)
+
+	@handler AddMemoryFact
+	post /memory/facts (AddMemoryFactRequest) returns (AddMemoryFactResponse)
+
+	@handler ForgetMemoryFact
+	delete /memory/facts/:id (ForgetMemoryFactRequest) returns (ForgetMemoryFactResponse)
+
+	@handler ForgetAllMemoryFacts
+	delete /memory/facts (ForgetAllMemoryFactsRequest) returns (ForgetAllMemoryFactsResponse)
 }
 

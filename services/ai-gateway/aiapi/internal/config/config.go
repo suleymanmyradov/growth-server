@@ -52,4 +52,16 @@ type CoachingConfig struct {
 	// applies a low internal default (~157 tokens) and truncates the
 	// response mid-sentence with finish_reason="length".
 	MaxTokens int `json:",optional"`
+	// HistoryTurns bounds how many prior messages are replayed into the model
+	// context per turn. Defaults to 20 when zero.
+	//
+	// This is deliberately NOT the UI's history page size: the chat pane can
+	// page back through the whole conversation while the model receives a
+	// bounded recent window. Tying the two together made the most expensive
+	// prompt grow with conversation length, with no ceiling.
+	HistoryTurns int `json:",optional"`
+	// HistoryMaxChars bounds the total characters of replayed history, applied
+	// after HistoryTurns. Defaults to 24000 when zero. Without it a single
+	// pasted wall of text inside one turn can consume the whole window.
+	HistoryMaxChars int `json:",optional"`
 }

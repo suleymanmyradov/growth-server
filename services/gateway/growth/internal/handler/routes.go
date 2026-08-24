@@ -498,6 +498,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: profile.DeleteAccountHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodPost,
+					Path:    "/profile/export",
+					Handler: profile.ExportDataHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodGet,
 					Path:    "/profile/me",
 					Handler: profile.GetProfileHandler(serverCtx),

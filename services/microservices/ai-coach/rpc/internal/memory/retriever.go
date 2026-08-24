@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/prompts"
 )
@@ -80,6 +81,15 @@ func (r *Retriever) Retrieve(ctx context.Context, userID, query string) ([]promp
 	}
 	if userID == "" || query == "" {
 		return nil, nil
+	}
+
+	// The user id is interpolated into the Meili filter below, so it must be a
+	// well-formed UUID and not an arbitrary caller-supplied string. Callers are
+	// expected to pass the authenticated principal's id; anything else is a bug
+	// upstream and we fail closed rather than build a filter we cannot reason
+	// about.
+	if _, err := uuid.Parse(userID); err != nil {
+		return nil, fmt.Errorf("memory search: invalid user id: %w", err)
 	}
 
 	filter := fmt.Sprintf("user_id = '%s' AND entity_type IN ['check_in','conversation_message','weekly_review']", userID)

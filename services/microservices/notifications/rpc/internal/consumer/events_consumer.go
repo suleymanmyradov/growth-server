@@ -166,6 +166,14 @@ func (h *EventsHandler) dispatch(ctx context.Context, repo *repository.Repositor
 		return h.onHabitCreated(ctx, repo, env)
 	case events.TypeHabitDeleted:
 		return h.onHabitDeleted(ctx, repo, env)
+	case events.TypeGoalCreated:
+		return h.onGoalCreated(ctx, repo, env)
+	case events.TypeGoalUpdated:
+		return h.onGoalUpdated(ctx, repo, env)
+	case events.TypeGoalCompleted:
+		return h.onGoalCompleted(ctx, repo, env)
+	case events.TypeGoalDeleted:
+		return h.onGoalDeleted(ctx, repo, env)
 	case events.TypeUserDeleted:
 		return h.onUserDeleted(ctx, repo, env)
 	case events.TypeUserProfileUpdated:
@@ -418,6 +426,186 @@ func (h *EventsHandler) onHabitDeleted(ctx context.Context, repo *repository.Rep
 	return nil
 }
 
+// onGoalCreated upserts the local goal read model and, if the goal has a
+// future deadline and the user has goal reminders enabled, enqueues a
+// goal_deadline reminder.
+func (h *EventsHandler) onGoalCreated(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
+	var p events.GoalCreated
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal GoalCreated: %v", err)
+		return nil
+	}
+
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		return nil
+	}
+	goalID, err := uuid.Parse(p.GoalID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid goalID %q: %v", p.GoalID, err)
+		return nil
+	}
+
+	var deadline time.Time
+	if p.DeadlineAt != "" {
+		if dl, dErr := time.Parse(time.RFC3339, p.DeadlineAt); dErr == nil {
+			deadline = dl
+		}
+	}
+
+	if repo.GoalState != nil {
+		if _, err := repo.GoalState.Upsert(ctx, goalID, userID, p.Title, deadline, false); err != nil {
+			return fmt.Errorf("upsert goal state: %w", err)
+		}
+	}
+
+	return h.enqueueGoalDeadlineIfEnabled(ctx, repo, userID, goalID, p.Title, deadline)
+}
+
+// onGoalUpdated upserts the local goal read model with the new deadline,
+// cancels any existing goal_deadline reminder for this goal, and enqueues a
+// fresh one if the new deadline is in the future and reminders are enabled.
+func (h *EventsHandler) onGoalUpdated(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
+	var p events.GoalUpdated
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal GoalUpdated: %v", err)
+		return nil
+	}
+
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		return nil
+	}
+	goalID, err := uuid.Parse(p.GoalID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid goalID %q: %v", p.GoalID, err)
+		return nil
+	}
+
+	var deadline time.Time
+	if p.DeadlineAt != "" {
+		if dl, dErr := time.Parse(time.RFC3339, p.DeadlineAt); dErr == nil {
+			deadline = dl
+		}
+	}
+
+	if repo.GoalState != nil {
+		if _, err := repo.GoalState.Upsert(ctx, goalID, userID, p.Title, deadline, false); err != nil {
+			return fmt.Errorf("upsert goal state: %w", err)
+		}
+	}
+
+	// Cancel the existing reminder (if any) so a deadline change or clearing
+	// doesn't leave a stale reminder.
+	if _, err := repo.Reminders.CancelPendingGoalDeadline(ctx, userID, p.GoalID); err != nil {
+		logx.WithContext(ctx).Errorf("cancel goal_deadline for %s: %v", p.GoalID, err)
+	}
+
+	return h.enqueueGoalDeadlineIfEnabled(ctx, repo, userID, goalID, p.Title, deadline)
+}
+
+// onGoalCompleted marks the goal as completed in the local read model and
+// cancels the pending goal_deadline reminder — no point reminding about a
+// completed goal.
+func (h *EventsHandler) onGoalCompleted(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
+	var p events.GoalCompleted
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal GoalCompleted: %v", err)
+		return nil
+	}
+
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		return nil
+	}
+	goalID, err := uuid.Parse(p.GoalID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid goalID %q: %v", p.GoalID, err)
+		return nil
+	}
+
+	if repo.GoalState != nil {
+		if err := repo.GoalState.MarkCompleted(ctx, goalID); err != nil {
+			logx.WithContext(ctx).Errorf("mark goal completed: %v", err)
+		}
+	}
+	if _, err := repo.Reminders.CancelPendingGoalDeadline(ctx, userID, p.GoalID); err != nil {
+		logx.WithContext(ctx).Errorf("cancel goal_deadline for completed goal %s: %v", p.GoalID, err)
+	}
+	return nil
+}
+
+// onGoalDeleted removes the goal from the local read model and cancels its
+// pending goal_deadline reminder.
+func (h *EventsHandler) onGoalDeleted(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
+	var p events.GoalDeleted
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal GoalDeleted: %v", err)
+		return nil
+	}
+
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid userID %q: %v", p.UserID, err)
+		return nil
+	}
+	goalID, err := uuid.Parse(p.GoalID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("invalid goalID %q: %v", p.GoalID, err)
+		return nil
+	}
+
+	if repo.GoalState != nil {
+		if err := repo.GoalState.Delete(ctx, goalID); err != nil {
+			logx.WithContext(ctx).Errorf("delete goal state: %v", err)
+		}
+	}
+	if _, err := repo.Reminders.CancelPendingGoalDeadline(ctx, userID, p.GoalID); err != nil {
+		logx.WithContext(ctx).Errorf("cancel goal_deadline for deleted goal %s: %v", p.GoalID, err)
+	}
+	return nil
+}
+
+// enqueueGoalDeadlineIfEnabled enqueues a goal_deadline reminder if the user
+// has goal reminders enabled and the deadline is in the future. The reminder
+// time is computed from the user's timezone (from reminder_state, fallback
+// UTC) via scheduler.GoalDeadlineReminderTime.
+func (h *EventsHandler) enqueueGoalDeadlineIfEnabled(ctx context.Context, repo *repository.Repository, userID, goalID uuid.UUID, goalTitle string, deadline time.Time) error {
+	if deadline.IsZero() {
+		return nil // no deadline — nothing to schedule
+	}
+
+	pref, err := repo.Preferences.Get(ctx, userID)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("get preferences for goal deadline: %v", err)
+		return nil
+	}
+	if !pref.GoalReminders {
+		return nil
+	}
+
+	tz := "UTC"
+	if repo.ReminderState != nil {
+		if rs, rsErr := repo.ReminderState.Get(ctx, userID); rsErr == nil && rs.Timezone != "" {
+			tz = rs.Timezone
+		}
+	}
+
+	reminderAt, err := scheduler.GoalDeadlineReminderTime(h.clock.Now(), deadline, tz)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("compute goal deadline reminder time: %v", err)
+		return nil
+	}
+
+	if _, err := repo.Reminders.EnqueueGoalDeadline(ctx, userID, goalID.String(), goalTitle, reminderAt); err != nil {
+		return fmt.Errorf("enqueue goal_deadline: %w", err)
+	}
+	return nil
+}
+
 func (h *EventsHandler) onUserProfileUpdated(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
 	var p events.UserProfileUpdated
 	if err := json.Unmarshal(env.Payload, &p); err != nil {
@@ -478,6 +666,11 @@ func (h *EventsHandler) onUserDeleted(ctx context.Context, repo *repository.Repo
 	if repo.HabitState != nil {
 		if err := repo.HabitState.DeleteByUser(ctx, userID); err != nil {
 			return fmt.Errorf("delete notification habit state: %w", err)
+		}
+	}
+	if repo.GoalState != nil {
+		if err := repo.GoalState.DeleteByUser(ctx, userID); err != nil {
+			return fmt.Errorf("delete notification goal state: %w", err)
 		}
 	}
 	return nil
@@ -554,6 +747,30 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 		}
 		if _, enqueueErr := repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", nextScan, nil); enqueueErr != nil {
 			return fmt.Errorf("enqueue streak_warning_scan: %w", enqueueErr)
+		}
+	}
+
+	// Reschedule goal_deadline reminders for active goals with future deadlines.
+	// Goal deadlines are per-goal (not recurring), so we cancel pending ones and
+	// re-enqueue from the local goal_state read model.
+	if rs.OnboardingCompleted && pref.GoalReminders && repo.GoalState != nil {
+		if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "goal_deadline"); err != nil {
+			logx.WithContext(ctx).Errorf("cancel goal_deadline for reschedule: %v", err)
+		}
+		goals, goalsErr := repo.GoalState.ListUpcomingDeadlines(ctx, userID, now)
+		if goalsErr != nil {
+			logx.WithContext(ctx).Errorf("list upcoming goal deadlines: %v", goalsErr)
+		} else {
+			for _, g := range goals {
+				reminderAt, rErr := scheduler.GoalDeadlineReminderTime(now, g.Deadline.Time, rs.Timezone)
+				if rErr != nil {
+					logx.WithContext(ctx).Errorf("compute goal deadline reminder for %s: %v", g.GoalID, rErr)
+					continue
+				}
+				if _, eErr := repo.Reminders.EnqueueGoalDeadline(ctx, userID, g.GoalID.String(), g.Title, reminderAt); eErr != nil {
+					logx.WithContext(ctx).Errorf("enqueue goal_deadline for %s: %v", g.GoalID, eErr)
+				}
+			}
 		}
 	}
 

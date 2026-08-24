@@ -287,6 +287,10 @@ type Entitlements struct {
 	CurrentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
 }
 
+type ExportDataResponse struct {
+	DownloadUrl string `json:"downloadUrl,example=https://minio.local/exports/user-123-abc.json"`
+}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email,example=john@example.com"`
 }

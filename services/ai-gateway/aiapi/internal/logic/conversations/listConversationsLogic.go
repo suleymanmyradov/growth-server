@@ -43,10 +43,11 @@ func (l *ListConversationsLogic) ListConversations(req *types.ListConversationsR
 	}
 
 	rpcResp, err := l.svcCtx.AICoachRpc.ConversationService.ListConversations(l.ctx, &conversationservice.ListConversationsRequest{
-		UserId: p.UserID,
-		Type:   req.ConversationType,
-		Page:   int32(page),
-		Limit:  int32(limit),
+		UserId:   p.UserID,
+		Type:     req.ConversationType,
+		Page:     int32(page),
+		Limit:    int32(limit),
+		Archived: req.Archived,
 	})
 	if err != nil {
 		return nil, err

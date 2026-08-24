@@ -2,6 +2,7 @@ package logic
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -94,12 +95,18 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 		}
 	}
 
-	// Goal reminders: cancel pending goal_deadline reminders when disabled.
-	// Rescheduling goal-deadline reminders is not yet implemented (no goal
-	// deadline producer exists); only cancellation is applied.
-	if prev.GoalReminders && !pref.GoalReminders {
+	// Goal reminders: cancel pending goal_deadline reminders when disabled;
+	// reschedule from the local goal_state read model when re-enabled.
+	goalWasEnabled := prev.GoalReminders
+	goalNowEnabled := pref.GoalReminders
+
+	if goalWasEnabled && !goalNowEnabled {
 		if _, err := l.svcCtx.Repo.Reminders.CancelPendingByType(ctx, userID, "goal_deadline"); err != nil {
 			logx.WithContext(ctx).Errorf("Failed to cancel pending goal reminders: %v", err)
+		}
+	} else if !goalWasEnabled && goalNowEnabled {
+		if err := l.scheduleNextGoalDeadlines(ctx, userID); err != nil {
+			logx.WithContext(ctx).Errorf("Failed to schedule goal deadline reminders: %v", err)
 		}
 	}
 
@@ -181,6 +188,35 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextStreakWarning(ctx conte
 	}
 	_, err = l.svcCtx.Repo.Reminders.Enqueue(ctx, userID, "streak_warning_scan", next, nil)
 	return err
+}
+
+// scheduleNextGoalDeadlines reschedules goal_deadline reminders for all of the
+// user's active goals with future deadlines, using the local goal_state read
+// model. Called when the user re-enables the goalReminders preference.
+func (l *UpdateNotificationPreferencesLogic) scheduleNextGoalDeadlines(ctx context.Context, userID uuid.UUID) error {
+	if l.svcCtx.Repo.GoalState == nil {
+		return nil
+	}
+	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
+	if err != nil || !rs.OnboardingCompleted {
+		return err
+	}
+	now := time.Now()
+	goals, err := l.svcCtx.Repo.GoalState.ListUpcomingDeadlines(ctx, userID, now)
+	if err != nil {
+		return fmt.Errorf("list upcoming goal deadlines: %w", err)
+	}
+	for _, g := range goals {
+		reminderAt, rErr := scheduler.GoalDeadlineReminderTime(now, g.Deadline.Time, rs.Timezone)
+		if rErr != nil {
+			logx.WithContext(ctx).Errorf("compute goal deadline reminder for %s: %v", g.GoalID, rErr)
+			continue
+		}
+		if _, eErr := l.svcCtx.Repo.Reminders.EnqueueGoalDeadline(ctx, userID, g.GoalID.String(), g.Title, reminderAt); eErr != nil {
+			logx.WithContext(ctx).Errorf("enqueue goal_deadline for %s: %v", g.GoalID, eErr)
+		}
+	}
+	return nil
 }
 
 // syncReminderStateHabitFlag updates the habit_reminders column in
