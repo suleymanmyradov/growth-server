@@ -22,15 +22,19 @@
 
 BEGIN;
 
--- Password hash below is bcrypt of "password" with cost 10
--- (same as the demo user in sample.sql).
--- Login: semiaactive.test@example.com / password
+-- Password hash below is bcrypt of "Password1!" with cost 10
+-- (bcrypt.DefaultCost), generated via golang.org/x/crypto/bcrypt.
+-- "Password1!" satisfies the registration validator (>=8 chars, upper,
+-- lower, digit, special). The previous hash here was a commonly-
+-- miscopied internet fixture that did NOT actually verify against
+-- "password", so logins returned 401.
+-- Login: semiaactive.test@example.com / Password1!
 INSERT INTO users (username, email, password_hash, full_name, bio, interests,
                    email_verified, created_at, updated_at)
 VALUES (
     'semiaactive_test',
     'semiaactive.test@example.com',
-    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    '$2a$10$/3.QTcUk7ugya9UxzGJzl.GjeFEBqkZWRGn7n7I19zCZvdcxSIIEe',
     'Semi Active Tester',
     'Testing the Growth platform — semi-active user.',
     ARRAY['work', 'self-knowledge', 'calm'],
@@ -42,7 +46,8 @@ ON CONFLICT (email) DO UPDATE SET
     full_name       = EXCLUDED.full_name,
     bio             = EXCLUDED.bio,
     interests       = EXCLUDED.interests,
-    email_verified  = EXCLUDED.email_verified;
+    email_verified  = EXCLUDED.email_verified,
+    password_hash   = EXCLUDED.password_hash;
 
 -- Wipe this user's existing child rows so re-runs don't duplicate.
 -- (conversation_messages cascade from conversations, but we delete
@@ -279,5 +284,5 @@ COMMIT;
 -- Done. Test user:
 --   username: semiaactive_test
 --   email:    semiaactive.test@example.com
---   password: password
+--   password: Password1!
 -- ============================================================

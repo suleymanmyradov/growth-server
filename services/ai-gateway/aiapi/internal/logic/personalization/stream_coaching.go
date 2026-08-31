@@ -48,13 +48,15 @@ var toolStatusMessages = map[string]string{
 }
 
 // coachingThinkingMessages are sent to the client as SSE "thinking" events
-// while the model is processing before the first token arrives.
+// while the model is processing before the first token arrives. Kept generic
+// since this fires on every turn regardless of context — tool-specific
+// status messages in toolStatusMessages handle the contextual cases.
 var coachingThinkingMessages = []string{
-	"Reviewing your goals and habits...",
-	"Looking at your recent check-ins...",
-	"Considering your patterns and blockers...",
-	"Reflecting on your coaching preferences...",
-	"Crafting your personalized response...",
+	"Thinking...",
+	"Composing a reply...",
+	"Putting my thoughts together...",
+	"Formulating my response...",
+	"Gathering my thoughts...",
 }
 
 // ConversationStore is the subset of the ai-coach conversation service
