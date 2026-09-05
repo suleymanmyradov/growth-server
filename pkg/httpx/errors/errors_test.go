@@ -2,6 +2,7 @@ package errors
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -201,4 +202,55 @@ func TestHandleGrpcError_PlanLimitDetail(t *testing.T) {
 	assert.Equal(t, "You have reached the Free plan limit for this feature", resp.Message)
 	assert.Equal(t, "active_goals", resp.Limit)
 	assert.Equal(t, "goal_limit", resp.UpgradeTrigger)
+}
+
+func TestGrpcErrorResponse_ParseErrorsReturn400(t *testing.T) {
+	tests := []struct {
+		name         string
+		err          error
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "missing required field",
+			err:          fmt.Errorf(`field "fact" is not set`),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"code":"bad_request","message":"Missing required field"}`,
+		},
+		{
+			name:         "invalid json syntax",
+			err:          fmt.Errorf(`invalid character 'x' looking for beginning of value`),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"code":"bad_request","message":"Invalid field format"}`,
+		},
+		{
+			name:         "unparseable value",
+			err:          fmt.Errorf(`cannot parse field page of type int64`),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"code":"bad_request","message":"Invalid field format"}`,
+		},
+		{
+			name:         "non-grpc non-parse error stays 500",
+			err:          fmt.Errorf("connection refused"),
+			expectedCode: http.StatusInternalServerError,
+			expectedBody: `{"code":"internal_error","message":"An error occurred"}`,
+		},
+		{
+			name:         "grpc invalid argument maps to 400",
+			err:          status.Error(codes.InvalidArgument, "fact is required"),
+			expectedCode: http.StatusBadRequest,
+			expectedBody: `{"code":"invalid_argument","message":"fact is required"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			code, body := GrpcErrorResponse(tt.err)
+			assert.Equal(t, tt.expectedCode, code)
+
+			raw, err := json.Marshal(body)
+			require.NoError(t, err)
+			assert.JSONEq(t, tt.expectedBody, string(raw))
+		})
+	}
 }
