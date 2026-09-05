@@ -44,6 +44,20 @@ func WriteParseError(w http.ResponseWriter, err error) {
 	WriteError(w, http.StatusBadRequest, sanitized)
 }
 
+// isParseError reports whether err looks like a go-zero request-parse error
+// (missing field, bad JSON, unparseable value). go-zero parse errors are plain
+// fmt.Errorf values with no sentinel type, so detection is message-based — the
+// same patterns sanitizeParseError matches. Gateways whose handlers route every
+// error through httpx.ErrorCtx (ai-gateway, adminway) rely on this so a client
+// sending a malformed body gets a 400 instead of a generic 500.
+func isParseError(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "is not set") ||
+		strings.Contains(msg, "cannot parse") ||
+		strings.Contains(msg, "invalid character") ||
+		strings.Contains(msg, "missing field")
+}
+
 // sanitizeParseError strips struct field names from go-zero parse errors
 // and returns a generic user-friendly message.
 func sanitizeParseError(msg string) string {
@@ -210,11 +224,18 @@ func GrpcCodeToSnakeCase(code codes.Code) string {
 // GrpcErrorResponse converts a gRPC status error into an (HTTP status, JSON body)
 // pair suitable for use with go-zero's httpx.SetErrorHandlerCtx. The message is
 // passed through verbatim — callers are responsible for using consolidated
-// message constants so internal details don't leak. Non-gRPC errors get a
-// generic 500.
+// message constants so internal details don't leak. Go-zero request parse errors
+// get a sanitized 400 (their messages leak struct field names). Non-gRPC errors
+// get a generic 500.
 func GrpcErrorResponse(err error) (int, ErrorResponse) {
 	st, ok := status.FromError(err)
 	if !ok {
+		if isParseError(err) {
+			return http.StatusBadRequest, ErrorResponse{
+				Code:    "bad_request",
+				Message: sanitizeParseError(err.Error()),
+			}
+		}
 		return http.StatusInternalServerError, ErrorResponse{
 			Code:    "internal_error",
 			Message: "An error occurred",
