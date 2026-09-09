@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 
 	// Install a custom error handler so gRPC status errors returned from logic
 	// layers are mapped to proper HTTP status codes with JSON bodies, instead

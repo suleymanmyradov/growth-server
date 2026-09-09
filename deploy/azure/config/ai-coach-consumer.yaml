@@ -1,0 +1,79 @@
+# Azure ai-coach-consumer configuration.
+# PostgreSQL → Azure Database for PostgreSQL (managed)
+# Events → Redis Streams (self-hosted Redis on VM)
+
+Name: ai-coach-consumer
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 2
+  ConnMaxLifetime: 1h
+
+# Kafka brokers left empty → Redis Streams is used as the event transport.
+Kafka:
+  Brokers: []
+  EventsTopic: growth.events
+  ConsumerGroup: ai-coach-consumer
+  DLQTopic: growth.events.dlq
+  ForceCommit: false
+  Processors: 8
+  Consumers: 8
+
+Redis:
+  Addr: redis:6379
+  Password: ${REDIS_PASSWORD}
+  DB: 0
+
+Consumer:
+  Timeout: 30s
+  Concurrency: 4
+
+AI:
+  api_key: ${AI_API_KEY}
+  base_url: ${AI_BASE_URL}
+  default_timeout: 30s
+  max_retries: 3
+  retry_backoff: 500ms
+  http_referer: ${APP_URL}
+  x_title: growth
+  models:
+    cheap: ${AI_MODEL_CHEAP}
+    cheap_long: ${AI_MODEL_CHEAP_LONG}
+    classifier: ${AI_MODEL_CLASSIFIER}
+    chat: ${AI_MODEL_CHAT}
+    fallback: ${AI_MODEL_FALLBACK}
+  fallback_policy:
+    enabled: true
+    max_failures: 2
+  fallback_providers:
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB1_CHEAP}
+        cheap_long: ${AI_FB1_CHEAP_LONG}
+        classifier: ${AI_FB1_CLASSIFIER}
+        chat: ${AI_FB1_CHAT}
+        fallback: ${AI_FB1_FALLBACK}
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB2_CHEAP}
+        cheap_long: ${AI_FB2_CHEAP_LONG}
+        classifier: ${AI_FB2_CLASSIFIER}
+        chat: ${AI_FB2_CHAT}
+        fallback: ${AI_FB2_FALLBACK}
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB3_CHEAP}
+        cheap_long: ${AI_FB3_CHEAP_LONG}
+        classifier: ${AI_FB3_CLASSIFIER}
+        chat: ${AI_FB3_CHAT}
+        fallback: ${AI_FB3_FALLBACK}
+
+Telemetry:
+  Name: ai-coach-consumer
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

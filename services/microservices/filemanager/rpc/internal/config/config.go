@@ -11,5 +11,8 @@ type Config struct {
 		UseSSL        bool
 		DefaultBucket string
 		Region        string `json:",optional"`
+		// PublicBaseUrl is the browser-reachable base (e.g. https://api.example.com/files)
+		// used when building public object URLs. Empty falls back to the Endpoint host.
+		PublicBaseUrl string `json:",optional"`
 	}
 }

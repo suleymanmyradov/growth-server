@@ -1,0 +1,7 @@
+# Production billing-reconciler configuration (one-shot CLI).
+
+Postgres:
+  Datasource: ${POSTGRES_DATASOURCE}
+  MaxOpenConns: 25
+  MaxIdleConns: 5
+  ConnMaxLifetime: 5m

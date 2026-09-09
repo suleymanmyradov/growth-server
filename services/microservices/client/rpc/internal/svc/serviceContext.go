@@ -12,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
@@ -102,43 +103,61 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	// without nil-guarding on every call site.
 	appCache = cache.New(redisClient)
 
-	// Set up the user_deleted consumer queue if Kafka is configured.
+	// Fall back to Redis Streams for the publisher if Kafka is not configured
+	// but Redis is available.
+	if eventsPub == nil && redisClient != nil && c.Kafka.EventsTopic != "" {
+		eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
+	}
+
+	// Set up the user_deleted and check-in consumer queues.
+	// Uses Kafka when brokers are configured, Redis Streams as a fallback
+	// when Redis is available, or nil (no-op) when neither is configured.
 	var authEventsQ queue.MessageQueue
 	var checkInEventsQ queue.MessageQueue
-	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
+	if c.Kafka.EventsTopic != "" {
 		handler := consumer.NewAuthEventsHandler(repo, queries)
 		checkInHandler := consumer.NewCheckInEventsHandler(repo, queries)
 		group := c.Kafka.ConsumerGroup
 		if group == "" {
 			group = "client"
 		}
-		// Consumers/Processors must be set explicitly: their `default=8` tags
-		// only apply when the KqConf is loaded via conf.Load, not for struct
-		// literals. With zero values kq starts no goroutines and the consumer
-		// exits immediately ("Consumer  is closed"). Offset "first" so a fresh
-		// consumer group backfills the read model from retained events.
-		authEventsQ = kq.MustNewQueue(
-			kq.KqConf{
-				Brokers:    c.Kafka.Brokers,
-				Group:      group + ".user-deleted",
-				Topic:      c.Kafka.EventsTopic,
-				Offset:     "first",
-				Consumers:  8,
-				Processors: 8,
-			},
-			kq.WithHandle(handler.Consume),
-		)
-		checkInEventsQ = kq.MustNewQueue(
-			kq.KqConf{
-				Brokers:    c.Kafka.Brokers,
-				Group:      group + ".checkin-events",
-				Topic:      c.Kafka.EventsTopic,
-				Offset:     "first",
-				Consumers:  4,
-				Processors: 4,
-			},
-			kq.WithHandle(checkInHandler.Consume),
-		)
+		if len(c.Kafka.Brokers) > 0 {
+			// Kafka backend.
+			authEventsQ = kq.MustNewQueue(
+				kq.KqConf{
+					Brokers:    c.Kafka.Brokers,
+					Group:      group + ".user-deleted",
+					Topic:      c.Kafka.EventsTopic,
+					Offset:     "first",
+					Consumers:  8,
+					Processors: 8,
+				},
+				kq.WithHandle(handler.Consume),
+			)
+			checkInEventsQ = kq.MustNewQueue(
+				kq.KqConf{
+					Brokers:    c.Kafka.Brokers,
+					Group:      group + ".checkin-events",
+					Topic:      c.Kafka.EventsTopic,
+					Offset:     "first",
+					Consumers:  4,
+					Processors: 4,
+				},
+				kq.WithHandle(checkInHandler.Consume),
+			)
+		} else if redisClient != nil {
+			// Redis Streams backend.
+			authEventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
+				Stream:   c.Kafka.EventsTopic,
+				Group:    group + ".user-deleted",
+				Consumers: 8,
+			}, handler)
+			checkInEventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
+				Stream:   c.Kafka.EventsTopic,
+				Group:    group + ".checkin-events",
+				Consumers: 4,
+			}, checkInHandler)
+		}
 	}
 
 	return &ServiceContext{

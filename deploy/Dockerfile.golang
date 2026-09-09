@@ -1,0 +1,43 @@
+# Shared multi-stage Dockerfile for all Go services in growth-server.
+#
+# Usage (from backend/ root):
+#   docker build -f deploy/Dockerfile.golang \
+#     --build-arg SERVICE_PATH=./services/gateway/growth \
+#     -t growth-gateway .
+#
+# In docker-compose.prod.yml, each service sets SERVICE_PATH as a build arg.
+# Config files are mounted at runtime (never baked into the image).
+
+ARG GO_VERSION=1.26
+ARG ALPINE_VERSION=3.20
+
+FROM golang:${GO_VERSION}-alpine AS builder
+
+ARG SERVICE_PATH
+# Bare declarations: BuildKit injects the actual target platform values
+# (linux/amd64 on the EC2 instance). Do not default these.
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /app
+
+# Cache dependency download in a separate layer.
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the full source (needed because services share pkg/ and other packages).
+COPY . .
+
+# Build a static binary for the target platform.
+# CGO_ENABLED=0 ensures a fully static binary (no glibc dependency).
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -ldflags="-s -w" -o /service ./${SERVICE_PATH}
+
+# -- Final image: minimal, no shell, no compiler --
+FROM alpine:${ALPINE_VERSION}
+
+RUN apk add --no-cache ca-certificates tzdata
+
+COPY --from=builder /service /usr/local/bin/service
+
+ENTRYPOINT ["service"]

@@ -1,0 +1,25 @@
+# Azure analytics consumer configuration.
+# Events → Redis Streams (self-hosted Redis on VM)
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 30m
+
+# Kafka brokers left empty → Redis Streams is used as the event transport.
+Kafka:
+  Brokers: []
+  EventsTopic: growth.events
+  ConsumerGroup: analytics-consumer
+  DLQTopic: growth.events.dlq
+  Processors: 4
+  Consumers: 4
+
+Redis:
+  Addr: redis:6379
+  Password: ${REDIS_PASSWORD}
+  DB: 0
+
+Telemetry:
+  Endpoint: ""

@@ -4,7 +4,9 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/repository"
@@ -51,6 +53,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var eventsQ queue.MessageQueue
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
 		eventsQ = kq.MustNewQueue(kqConf, kq.WithHandle(handler.Consume))
+	} else if c.Redis.Addr != "" && c.Kafka.EventsTopic != "" {
+		redisClient, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; analytics consumer disabled: %v", err)
+		} else {
+			group := c.Kafka.ConsumerGroup
+			if group == "" {
+				group = "analytics-consumer"
+			}
+			eventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
+				Stream:   c.Kafka.EventsTopic,
+				Group:    group + ".events",
+				Consumers: 4,
+			}, handler)
+		}
 	}
 
 	return &ServiceContext{

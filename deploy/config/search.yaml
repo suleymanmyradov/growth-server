@@ -1,0 +1,23 @@
+# Production search RPC service configuration.
+
+Name: search.rpc
+ListenOn: 0.0.0.0:9083
+
+Meili:
+  Host: http://meilisearch:7700
+  APIKey: ${MEILI_MASTER_KEY}
+  Index: growth_search
+
+JWT:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
+Telemetry:
+  Name: search.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

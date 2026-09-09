@@ -1,0 +1,47 @@
+# Azure search-sync consumer configuration.
+# PostgreSQL → Azure Database for PostgreSQL (managed)
+# Meilisearch → self-hosted on VM
+# Kafka → Upstash Kafka (managed)
+# NOTE: Hybrid/semantic search requires Ollama (disabled on 4GB VM for now).
+
+Name: search-sync
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 2
+  ConnMaxLifetime: 1h
+
+Meili:
+  Host: http://meilisearch:7700
+  APIKey: ${MEILI_MASTER_KEY}
+  Index: growth_search
+  MemoryIndex: user_memory
+  Embedder:
+    Name: default
+    Source: ollama
+    URL: http://ollama:11434/api/embeddings
+    APIKey: ""
+    Model: embeddinggemma:300m
+    Dimensions: 768
+    DocumentTemplate: "{{doc.content}}"
+
+Kafka:
+  Brokers:
+    - ${KAFKA_BROKER}
+  EventsTopic: growth.events
+  ConsumerGroup: search-sync
+  SaslUsername: ${KAFKA_SASL_USERNAME}
+  SaslPassword: ${KAFKA_SASL_PASSWORD}
+  Tls: true
+
+Sync:
+  ReconcileInterval: 2m
+  FullReconcileInterval: 24h
+Backfill: false
+
+Telemetry:
+  Name: search-sync
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

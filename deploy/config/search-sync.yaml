@@ -1,0 +1,44 @@
+# Production search-sync consumer configuration.
+#
+# NOTE: Hybrid/semantic search requires an embedder (Ollama). For the initial
+# launch on a memory-constrained VPS, Ollama is disabled — Meilisearch runs
+# in keyword-only mode. Set up Ollama separately to enable hybrid search.
+
+Name: search-sync
+
+Postgres:
+  Datasource: ${POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 2
+  ConnMaxLifetime: 1h
+
+Meili:
+  Host: http://meilisearch:7700
+  APIKey: ${MEILI_MASTER_KEY}
+  Index: growth_search
+  MemoryIndex: user_memory
+  Embedder:
+    Name: default
+    # Keyword-only mode for launch: empty URL disables the hybrid-search
+    # embedder (search-sync skips embedder setup when URL is empty).
+    # To enable semantic search later, run Ollama and set:
+    #   Source: ollama
+    #   URL: http://ollama:11434/api/embeddings
+    #   Model: embeddinggemma:300m
+    Source: ollama
+    URL: ""
+    APIKey: ""
+    Model: embeddinggemma:300m
+    Dimensions: 768
+    DocumentTemplate: "{{doc.content}}"
+
+Sync:
+  ReconcileInterval: 2m
+  FullReconcileInterval: 24h
+Backfill: false
+
+Telemetry:
+  Name: search-sync
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

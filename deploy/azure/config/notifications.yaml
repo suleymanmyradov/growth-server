@@ -1,0 +1,49 @@
+# Azure notifications RPC configuration.
+# PostgreSQL → Azure Database for PostgreSQL (managed)
+# Events → Redis Streams (self-hosted Redis on VM)
+
+Name: notifications.rpc
+ListenOn: 0.0.0.0:8080
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 1800s
+
+# Kafka brokers left empty → Redis Streams is used as the event transport.
+Kafka:
+  Brokers: []
+  EventsTopic: growth.events
+  ReminderDueTopic: growth.reminder.due
+  ConsumerGroup: notifications
+
+Redis:
+  Addr: redis:6379
+  Password: ${REDIS_PASSWORD}
+  DB: 0
+
+Expo:
+  Enabled: false
+  AccessToken: ""
+
+Email:
+  Provider: resend
+  APIKey: ${RESEND_API_KEY}
+  FromAddress: ${EMAIL_FROM_ADDRESS}
+  FrontendBaseURL: ${APP_URL}
+  Enabled: true
+
+JWT:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
+Telemetry:
+  Name: notifications.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

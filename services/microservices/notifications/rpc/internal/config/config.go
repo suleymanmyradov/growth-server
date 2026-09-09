@@ -23,6 +23,14 @@ type Config struct {
 		ConsumerGroup    string
 		DLQTopic         string `json:",optional"`
 	}
+	// Redis is used for Redis Streams event transport when Kafka brokers
+	// are not configured. If both Kafka.Brokers and Redis.Addr are empty,
+	// event publishing and consuming are disabled (no-op).
+	Redis struct {
+		Addr     string `json:",optional"`
+		Password string `json:",optional" secret:"true"`
+		DB       int    `json:",optional"`
+	}
 	// Expo push notifications configuration. See docs/push-notifications-design.md.
 	Expo struct {
 		// AccessToken is the optional Expo access token (raises rate limits).

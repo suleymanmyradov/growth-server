@@ -12,6 +12,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/middleware"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository"
@@ -95,6 +96,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var eventsPub *events.Publisher
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+	} else if c.Redis.Addr != "" && c.Kafka.EventsTopic != "" {
+		redisClient, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; adminway event publishing disabled: %v", err)
+		} else {
+			eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
+		}
 	}
 
 	return &ServiceContext{

@@ -1,0 +1,104 @@
+# Azure ai-coach RPC configuration.
+# PostgreSQL → Azure Database for PostgreSQL (managed)
+# Meilisearch → self-hosted on VM
+
+Name: aicoach.rpc
+ListenOn: 0.0.0.0:9086
+
+MethodTimeouts:
+  - FullMethod: /aicoach.AICoachService/GenerateOnboardingHabits
+    Timeout: 60s
+  - FullMethod: /aicoach.AICoachService/GeneratePersonalizedCoaching
+    Timeout: 60s
+  - FullMethod: /aicoach.AICoachService/GenerateWeeklyReview
+    Timeout: 90s
+  - FullMethod: /aicoach.AICoachService/GenerateCheckInFeedback
+    Timeout: 60s
+  - FullMethod: /aicoach.AICoachService/Transcribe
+    Timeout: 60s
+  - FullMethod: /aicoach.AICoachService/Synthesize
+    Timeout: 60s
+
+AI:
+  api_key: ${AI_API_KEY}
+  base_url: ${AI_BASE_URL}
+  default_timeout: 240s
+  max_retries: 3
+  retry_backoff: 500ms
+  http_referer: ${APP_URL}
+  x_title: growth
+  models:
+    cheap: ${AI_MODEL_CHEAP}
+    cheap_long: ${AI_MODEL_CHEAP_LONG}
+    classifier: ${AI_MODEL_CLASSIFIER}
+    chat: ${AI_MODEL_CHAT}
+    fallback: ${AI_MODEL_FALLBACK}
+  fallback_policy:
+    enabled: true
+    max_failures: 2
+  fallback_providers:
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB1_CHEAP}
+        cheap_long: ${AI_FB1_CHEAP_LONG}
+        classifier: ${AI_FB1_CLASSIFIER}
+        chat: ${AI_FB1_CHAT}
+        fallback: ${AI_FB1_FALLBACK}
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB2_CHEAP}
+        cheap_long: ${AI_FB2_CHEAP_LONG}
+        classifier: ${AI_FB2_CLASSIFIER}
+        chat: ${AI_FB2_CHAT}
+        fallback: ${AI_FB2_FALLBACK}
+    - api_key: ${AI_API_KEY}
+      base_url: ${AI_BASE_URL}
+      models:
+        cheap: ${AI_FB3_CHEAP}
+        cheap_long: ${AI_FB3_CHEAP_LONG}
+        classifier: ${AI_FB3_CLASSIFIER}
+        chat: ${AI_FB3_CHAT}
+        fallback: ${AI_FB3_FALLBACK}
+
+Speech:
+  api_key: ${AI_API_KEY}
+  base_url: ${AI_SPEECH_BASE_URL}
+  default_timeout: 60s
+  stt:
+    provider: gemini
+    model: ${AI_STT_MODEL}
+    language: ""
+  tts:
+    provider: openrouter
+    model: ""
+    voice: alloy
+    format: mp3
+    speed: 1.0
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 2
+  ConnMaxLifetime: 5m
+
+Meili:
+  Host: http://meilisearch:7700
+  APIKey: ${MEILI_MASTER_KEY}
+  MemoryIndex: user_memory
+
+CoachMemory:
+  Enabled: true
+  EmbedderName: default
+  SemanticRatio: 0.5
+  Limit: 5
+  ScoreFloor: 0.2
+  Timeout: 300ms
+  MaxSnippetChars: 240
+
+Telemetry:
+  Name: aicoach.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc
