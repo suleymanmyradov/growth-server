@@ -1,4 +1,64 @@
-# Deploying evolella.com backend — AWS EC2 (free plan)
+# Deploying evolella.com backend
+
+Current target: **UpCloud `STARTER-4xCPU-8GB`** (4 vCPU, 8 GB RAM, x86_64) in
+`us-east-1` zone `us-nyc1` (New York), public IP `194.113.74.65`.
+The AWS EC2 instructions below are kept as an alternative — the stack itself is
+provider-neutral Docker Compose; only VM provisioning differs.
+
+## UpCloud deployment (current)
+
+Prereqs: `upctl` CLI (`brew tap UpCloudLtd/tap && brew install upcloud-cli`),
+logged in with `upctl login`. SSH key: `~/.ssh/upcloud-growth` (ed25519).
+
+```bash
+# 1. Create VM + 30 GB Docker data disk (trial accounts cannot edit the
+#    firewall via API, but all inbound ports are open by default in trial mode)
+upctl server create --title growth-prod --hostname growth-prod \
+  --zone us-nyc1 --plan STARTER-4xCPU-8GB \
+  --ssh-keys ~/.ssh/upcloud-growth.pub --enable-firewall --wait
+upctl storage create --zone us-nyc1 --title growth-docker --size 30
+upctl server storage attach <SERVER-UUID> --storage <STORAGE-UUID>
+
+# 2. Format + mount the Docker disk (UpCloud template has no /home/ubuntu)
+ssh -i ~/.ssh/upcloud-growth root@<IP>
+mkfs.ext4 -F /dev/vdb && mkdir -p /var/lib/docker && mount /dev/vdb /var/lib/docker
+echo '/dev/vdb /var/lib/docker ext4 defaults,nofail 0 2' >> /etc/fstab
+mkdir -p /home/ubuntu/growth-server /home/ubuntu/self-dev /home/ubuntu/growth-admin-front /home/ubuntu/env
+
+# 3. Sync code + secrets (same layout as AWS; user is root, not ubuntu)
+rsync -az --exclude .git --exclude bin --exclude tmp backend/   root@<IP>:/home/ubuntu/growth-server/
+rsync -az --exclude .git --exclude node_modules --exclude .next --exclude .next-docs --exclude .turbo frontend/ root@<IP>:/home/ubuntu/self-dev/
+rsync -az --exclude .git --exclude node_modules --exclude .next --exclude .next-docs --exclude .turbo admin-frontend/ root@<IP>:/home/ubuntu/growth-admin-front/
+scp deploy/.env.prod root@<IP>:/home/ubuntu/env/growth.env   # chmod 600
+scp deploy/aws/bootstrap.sh root@<IP>:/home/ubuntu/bootstrap.sh
+
+# 4. Bootstrap (same script as AWS — installs Docker, builds 13 images
+#    sequentially, starts the stack, sets MinIO bucket policy)
+ssh root@<IP> 'bash /home/ubuntu/bootstrap.sh'
+
+# 5. Migrations (same script; runs on the compose network as root)
+scp deploy/../../run-migrations.sh root@<IP>:/home/ubuntu/  # or recreate inline
+ssh root@<IP> 'bash /home/ubuntu/run-migrations.sh'
+
+# 6. Admin panel lives behind the `admin` compose profile
+ssh root@<IP> 'cd /home/ubuntu/growth-server/deploy && docker compose -f docker-compose.prod.yml --env-file .env.prod --profile admin up -d admin-frontend'
+```
+
+DNS: Cloudflare A records `api` / `app` / `admin` → `194.113.74.65`, **DNS only**
+(gray cloud). Caddy obtains Let's Encrypt certs on first request; if a cert was
+attempted before DNS propagated, `docker restart deploy-caddy-1` forces retry.
+
+UpCloud notes:
+- The env file **must** define `APP_DOMAIN` and `ADMIN_DOMAIN` (plus
+  `API_DOMAIN`) — Caddy's site blocks are keyed on them; missing values make
+  Caddy exit with "server block without any key".
+- Trial accounts: resource limits shown by `upctl account show` (6 cores /
+  12 GB cap — the 4 vCPU plan fits).
+- Cost: $24/mo VM + ~$3.60/mo disk ≈ $28/mo; zero-cost egress.
+
+---
+
+## AWS EC2 deployment (alternative)
 
 Target: **AWS EC2 `m7i-flex.large`** (2 vCPU, 8 GB RAM, x86_64) in `us-east-1`,
 Elastic IP `100.63.36.119`. This is the largest instance type the AWS free plan
