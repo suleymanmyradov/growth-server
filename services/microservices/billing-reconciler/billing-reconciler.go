@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	logx.Infof("starting billing-reconciler with config: %+v", configsafe.MaskSecrets(c))
 
 	ctx := svc.NewServiceContext(c)

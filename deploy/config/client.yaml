@@ -1,0 +1,45 @@
+# Production client RPC service configuration.
+
+Name: client.rpc
+ListenOn: 0.0.0.0:9082
+Timeout: 30000
+
+Postgres:
+  Datasource: ${POSTGRES_DATASOURCE}
+  MaxOpenConns: 25
+  MaxIdleConns: 5
+  ConnMaxLifetime: 5m
+
+Telemetry:
+  Name: client.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc
+
+Kafka:
+  Brokers:
+    - redpanda:9092
+  EventsTopic: growth.events
+  ConsumerGroup: client
+
+AppRedis:
+  Addr: redis:6379
+  DB: 0
+  Password: ${REDIS_PASSWORD}
+
+JWT:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
+Billing:
+  Mode: ${BILLING_MODE}
+  StripeSecretKey: ${STRIPE_SECRET_KEY}
+  StripeWebhookSecret: ${STRIPE_WEBHOOK_SECRET}
+  FrontendURL: ${APP_URL}
+
+WeeklyReview:
+  RegenerationCooldown: 1s

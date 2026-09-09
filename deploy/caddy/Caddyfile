@@ -1,0 +1,86 @@
+# Caddy reverse proxy for evolella.com backend.
+#
+# Routes /api/v1/* to either gateway (CRUD) or ai-gateway (AI/streaming)
+# based on the path. Both share the /api/v1 prefix — see the route table below.
+#
+# TLS is automatic via Let's Encrypt (Caddy provisions on first request).
+# The domain is set from the ${API_DOMAIN} env var at container startup.
+
+{$API_DOMAIN} {
+	encode zstd gzip
+
+	# --- AI-gateway routes (matched first) ---
+	# Conversations + memory: all paths under these prefixes go to ai-gateway.
+	@ai_prefix {
+		path /api/v1/conversations /api/v1/conversations/* /api/v1/memory/facts /api/v1/memory/facts/*
+	}
+	handle @ai_prefix {
+		reverse_proxy ai-gateway:8889 {
+			# Long timeouts for SSE streaming (coaching, voice).
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+		}
+	}
+
+	# Specific AI-gateway endpoints (exact paths, not whole prefix).
+	@ai_exact {
+		path \
+			/api/v1/weekly-reviews/generate \
+			/api/v1/weekly-reviews/generate-stream \
+			/api/v1/personalization/coaching \
+			/api/v1/personalization/onboarding-habits \
+			/api/v1/personalization/transcribe \
+			/api/v1/personalization/voice-turn
+	}
+	handle @ai_exact {
+		reverse_proxy ai-gateway:8889 {
+			transport http {
+				read_timeout 300s
+				write_timeout 300s
+			}
+		}
+	}
+
+	# --- Gateway (everything else under /api/v1) ---
+	handle /api/v1/* {
+		reverse_proxy gateway:8888
+	}
+
+	# --- Public object storage (MinIO, path-style /bucket/key) ---
+	handle /files/* {
+		uri strip_prefix /files
+		reverse_proxy minio:9000
+	}
+
+	# --- Admin API (optional, on a subdomain or path) ---
+	# Uncomment to expose adminway on /admin/api/*
+	# handle /admin/api/* {
+	# 	uri strip_prefix /admin/api
+	# 	reverse_proxy adminway:8890
+	# }
+
+	# Health check endpoint
+	handle /health {
+		respond "ok" 200
+	}
+
+	# Default: 404 for non-API paths (Caddy is API-only, frontend is on a different host)
+	handle {
+		respond "Not Found" 404
+	}
+}
+
+# User-facing Next.js app.
+{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}
+
+# Admin panel (Next.js admin-frontend → adminway API).
+# Only resolvable when the `admin` compose profile is enabled; Caddy 502s otherwise.
+{$ADMIN_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy admin-frontend:3001
+}

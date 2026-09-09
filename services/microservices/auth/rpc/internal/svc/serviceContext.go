@@ -105,6 +105,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var eventsPub *events.Publisher
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.EventsTopic != "" {
 		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+	} else if redisClient != nil && c.Kafka.EventsTopic != "" {
+		eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
 	}
 
 	return &ServiceContext{

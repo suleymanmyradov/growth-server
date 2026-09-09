@@ -21,5 +21,12 @@ type Config struct {
 		Processors    int    `json:",optional"`
 		Consumers     int    `json:",optional"`
 	}
+	// Redis is used for Redis Streams event transport when Kafka brokers
+	// are not configured.
+	Redis struct {
+		Addr     string `json:",optional"`
+		Password string `json:",optional" secret:"true"`
+		DB       int    `json:",optional"`
+	}
 	Telemetry trace.Config `json:",optional"`
 }

@@ -1,0 +1,51 @@
+# Production auth RPC service configuration.
+
+Name: auth.rpc
+ListenOn: 0.0.0.0:9081
+
+Postgres:
+  Datasource: ${POSTGRES_DATASOURCE}
+  MaxOpenConns: 25
+  MaxIdleConns: 5
+  ConnMaxLifetime: 5m
+
+JWT:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+  AccessExpiryDuration: 15m
+  RefreshExpiryDuration: 168h
+
+Cache:
+  Redis:
+    Addr: redis:6379
+    Password: ${REDIS_PASSWORD}
+    DB: 0
+    Prefix: growth-auth
+
+Email:
+  Provider: resend
+  APIKey: ${RESEND_API_KEY}
+  FromAddress: ${EMAIL_FROM_ADDRESS}
+  FrontendBaseURL: ${APP_URL}
+
+GoogleOAuth:
+  ClientID: ${GOOGLE_CLIENT_ID}
+  ClientSecret: ${GOOGLE_CLIENT_SECRET}
+  RedirectURI: ${APP_URL}/auth/callback/google
+  AllowedRedirectURIs:
+    - ${APP_URL}/auth/callback/google
+    - com.suleymanmyradov.growth.dev:/oauthredirect
+    - com.suleymanmyradov.growth.preview:/oauthredirect
+    - com.suleymanmyradov.growth:/oauthredirect
+
+Kafka:
+  Brokers:
+    - redpanda:9092
+  EventsTopic: growth.events
+
+Telemetry:
+  Name: auth.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

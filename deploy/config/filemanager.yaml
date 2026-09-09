@@ -1,0 +1,20 @@
+# Production filemanager RPC service configuration.
+
+Name: filemanager.rpc
+ListenOn: 0.0.0.0:9087
+
+MinIO:
+  Endpoint: minio:9000
+  AccessKey: ${MINIO_ACCESS_KEY}
+  SecretKey: ${MINIO_SECRET_KEY}
+  UseSSL: false
+  DefaultBucket: growthmind
+  Region: us-east-1
+  # Browser-reachable base for public object URLs (proxied by Caddy to minio:9000).
+  PublicBaseUrl: ${MINIO_PUBLIC_BASE_URL}
+
+Telemetry:
+  Name: filemanager.rpc
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

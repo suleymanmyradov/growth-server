@@ -23,6 +23,13 @@ type Config struct {
 		Processors    int
 		Consumers     int
 	}
+	// Redis is used for Redis Streams event transport when Kafka brokers
+	// are not configured.
+	Redis struct {
+		Addr     string `json:",optional"`
+		Password string `json:",optional" secret:"true"`
+		DB       int    `json:",optional"`
+	}
 	Consumer struct {
 		Timeout     time.Duration
 		Concurrency int

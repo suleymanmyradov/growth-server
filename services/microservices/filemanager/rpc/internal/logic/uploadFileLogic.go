@@ -49,7 +49,9 @@ func (l *UploadFileLogic) UploadFile(in *filemanager.UploadFileRequest) (*filema
 	}
 
 	var url string
-	if l.svcCtx.Config.MinIO.UseSSL {
+	if publicBase := l.svcCtx.Config.MinIO.PublicBaseUrl; publicBase != "" {
+		url = fmt.Sprintf("%s/%s/%s", publicBase, bucket, key)
+	} else if l.svcCtx.Config.MinIO.UseSSL {
 		url = fmt.Sprintf("https://%s/%s/%s", l.svcCtx.Config.MinIO.Endpoint, bucket, key)
 	} else {
 		url = fmt.Sprintf("http://%s/%s/%s", l.svcCtx.Config.MinIO.Endpoint, bucket, key)

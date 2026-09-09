@@ -23,6 +23,13 @@ type Config struct {
 		Brokers     []string `json:",optional"`
 		EventsTopic string   `json:",optional"`
 	} `json:",optional"`
+	// Redis is used for Redis Streams event transport when Kafka brokers
+	// are not configured.
+	Redis struct {
+		Addr     string `json:",optional"`
+		Password string `json:",optional" secret:"true"`
+		DB       int    `json:",optional"`
+	} `json:",optional"`
 	Auth struct {
 		Secret                string        `json:",optional" secret:"true"`
 		Issuer                string        `json:",optional"`

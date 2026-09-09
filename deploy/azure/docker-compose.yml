@@ -1,0 +1,429 @@
+# =============================================================================
+# Azure Docker Compose for evolella.com backend.
+#
+# Runs on: Azure B2s VM (2 vCPU, 4GB RAM, Ubuntu 24.04).
+# Self-hosted on VM: Go services + Redis + Meilisearch + MinIO + Caddy
+# Managed by Azure: PostgreSQL (Azure Database for PostgreSQL Flexible Server)
+# Event transport: Redis Streams (self-hosted Redis, no Kafka needed)
+#
+# Memory budget (4GB VM):
+#   Go services (13):   ~1.2 GB
+#   Meilisearch:        ~512 MB
+#   Redis:              ~256 MB
+#   MinIO:              ~256 MB
+#   Caddy:              ~50 MB
+#   OS + overhead:      ~500 MB
+#   Total:              ~2.8 GB (1.2 GB headroom)
+#
+# Usage:
+#   1. Copy .env.azure.example → .env.azure, fill in real values
+#   2. docker compose -f deploy/azure/docker-compose.yml --env-file deploy/azure/.env.azure build
+#   3. docker compose -f deploy/azure/docker-compose.yml --env-file deploy/azure/.env.azure up -d
+#    Optional services (start with --profile analytics or --profile admin):
+#   docker compose ... --profile analytics up -d
+#   docker compose ... --profile admin up -d
+# =============================================================================
+
+services:
+  # ===================== Self-hosted dependencies =====================
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    networks:
+      - growth
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.11
+    restart: unless-stopped
+    environment:
+      - MEILI_ENV=production
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    networks:
+      - growth
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    networks:
+      - growth
+
+  # ===================== RPC microservices =====================
+
+  auth:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/auth/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/auth.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/auth.yaml:/config/auth.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - growth
+
+  client:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/client/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/client.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/client.yaml:/config/client.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - growth
+
+  search:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/search/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/search.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/search.yaml:/config/search.yaml:ro
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  ai-coach:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/ai-coach/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/aicoach.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/aicoach.yaml:/config/aicoach.yaml:ro
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - growth
+
+  filemanager:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/filemanager/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/filemanager.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/filemanager.yaml:/config/filemanager.yaml:ro
+    depends_on:
+      minio:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  notifications:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/notifications/rpc
+    restart: unless-stopped
+    command: ["-f", "/config/notifications.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/notifications.yaml:/config/notifications.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+    networks:
+      - growth
+
+  # ===================== Event consumers (Redis Streams) =====================
+
+  ai-coach-consumer:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/ai-coach-consumer
+    restart: unless-stopped
+    command: ["-f", "/config/ai-coach-consumer.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/ai-coach-consumer.yaml:/config/ai-coach-consumer.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - growth
+
+  search-sync:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/search-sync
+    restart: unless-stopped
+    command: ["-f", "/config/search-sync.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/search-sync.yaml:/config/search-sync.yaml:ro
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  analytics-consumer:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/microservices/analytics-consumer
+    restart: unless-stopped
+    command: ["-f", "/config/analytics.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/analytics.yaml:/config/analytics.yaml:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    profiles:
+      - analytics
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  # ===================== API gateways =====================
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/gateway/growth
+    restart: unless-stopped
+    command: ["-f", "/config/growthapi.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/growthapi.yaml:/config/growthapi.yaml:ro
+    depends_on:
+      auth:
+        condition: service_started
+      client:
+        condition: service_started
+      search:
+        condition: service_started
+      notifications:
+        condition: service_started
+      filemanager:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  ai-gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/ai-gateway/aiapi
+    restart: unless-stopped
+    command: ["-f", "/config/aiapi.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/aiapi.yaml:/config/aiapi.yaml:ro
+    depends_on:
+      auth:
+        condition: service_started
+      client:
+        condition: service_started
+      ai-coach:
+        condition: service_started
+      search:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  adminway:
+    build:
+      context: ../..
+      dockerfile: deploy/Dockerfile.golang
+      args:
+        SERVICE_PATH: ./services/adminway/adminapi
+    restart: unless-stopped
+    command: ["-f", "/config/adminapi.yaml"]
+    env_file:
+      - .env.azure
+    volumes:
+      - ./config/adminapi.yaml:/config/adminapi.yaml:ro
+    depends_on:
+      client:
+        condition: service_started
+      filemanager:
+        condition: service_started
+      search:
+        condition: service_started
+      auth:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    profiles:
+      - admin
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+  # ===================== Reverse proxy (TLS) =====================
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - API_DOMAIN=${API_DOMAIN}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      gateway:
+        condition: service_started
+      ai-gateway:
+        condition: service_started
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    networks:
+      - growth
+
+# ===================== Volumes =====================
+
+volumes:
+  redis_data:
+  meili_data:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+# ===================== Network =====================
+
+networks:
+  growth:
+    driver: bridge

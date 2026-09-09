@@ -1,0 +1,75 @@
+# Azure admin API configuration.
+# PostgreSQL → Azure Database for PostgreSQL (managed, direct connection)
+
+Name: admin-api
+Host: 0.0.0.0
+Port: 8890
+
+MaxConns: 10000
+MaxBytes: 10485760
+Timeout: 30000
+
+Middlewares:
+  Trace: true
+  Log: true
+  Prometheus: true
+  MaxConns: true
+  Breaker: true
+  Shedding: true
+  Timeout: true
+  Recover: true
+  Metrics: true
+  MaxBytes: true
+  Gunzip: true
+
+Postgres:
+  Datasource: ${AZURE_POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 5m
+
+ClientRpc:
+  Endpoints:
+    - client:9082
+  NonBlock: true
+
+FileManagerRpc:
+  Endpoints:
+    - filemanager:9087
+  NonBlock: true
+
+SearchRpc:
+  Endpoints:
+    - search:9083
+  NonBlock: true
+
+AuthRpc:
+  Endpoints:
+    - auth:9081
+  NonBlock: true
+
+# Kafka brokers left empty → Redis Streams is used as the event transport.
+Kafka:
+  Brokers: []
+  EventsTopic: growth.events
+
+Redis:
+  Addr: redis:6379
+  Password: ${REDIS_PASSWORD}
+  DB: 0
+
+Auth:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+  AccessExpiryDuration: 15m
+  RefreshExpiryDuration: 168h
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
+Telemetry:
+  Name: admin-api
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

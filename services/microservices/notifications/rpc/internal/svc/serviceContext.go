@@ -7,10 +7,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	expo "github.com/suleymanmyradov/growth-server/pkg/notifications/expo"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
@@ -68,15 +71,39 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	repo := repository.NewRepository(queries)
 	txRunner := postgres.NewPgxTxRunner(pool)
 
-	reminderPub := events.NewPublisher(c.Kafka.Brokers, c.Kafka.ReminderDueTopic)
-	dlqPub := events.NewDLQPublisher(c.Kafka.Brokers, events.DLQTopic)
+	useKafka := len(c.Kafka.Brokers) > 0
 
-	// Events publisher publishes domain events to the growth.events topic.
-	// Used by the coach_digest reminder handler to publish
-	// CoachDigestRequested events for the ai-coach-consumer to pick up.
+	// Connect to Redis for Redis Streams fallback when Kafka is not configured.
+	var redisClient *redis.Client
+	if !useKafka && c.Redis.Addr != "" {
+		client, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; redis streams event transport disabled: %v", err)
+		} else {
+			redisClient = client
+		}
+	}
+
+	// Publishers: use Kafka when brokers are configured, Redis Streams as
+	// fallback, or nil (no-op) when neither is available.
+	var reminderPub *events.Publisher
+	var dlqPub *events.DLQPublisher
 	var eventsPub *events.Publisher
-	if c.Kafka.EventsTopic != "" {
-		eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+
+	if useKafka {
+		reminderPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.ReminderDueTopic)
+		dlqPub = events.NewDLQPublisher(c.Kafka.Brokers, events.DLQTopic)
+		if c.Kafka.EventsTopic != "" {
+			eventsPub = events.NewPublisher(c.Kafka.Brokers, c.Kafka.EventsTopic)
+		}
+	} else if redisClient != nil {
+		if c.Kafka.ReminderDueTopic != "" {
+			reminderPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.ReminderDueTopic)
+		}
+		dlqPub = events.NewRedisStreamDLQPublisher(redisClient, events.DLQTopic)
+		if c.Kafka.EventsTopic != "" {
+			eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
+		}
 	}
 
 	sched := scheduler.NewScheduler(repo.Reminders, reminderPub, realClock{})
@@ -110,32 +137,55 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
 	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender, eventsPub)
 
-	// Consumers/Processors must be set explicitly: their `default=8` tags only
-	// apply when the KqConf is loaded via conf.Load, not for struct literals.
-	// With zero values kq starts no goroutines and the consumer exits immediately.
-	eventsQ := kq.MustNewQueue(
-		kq.KqConf{
-			Brokers:    c.Kafka.Brokers,
-			Group:      c.Kafka.ConsumerGroup + ".events",
-			Topic:      c.Kafka.EventsTopic,
-			Offset:     "first",
-			Consumers:  8,
-			Processors: 8,
-		},
-		kq.WithHandle(eventsHandler.Consume),
-	)
+	// Consumer queues: Kafka when brokers are configured, Redis Streams as
+	// fallback, or nil (no consumers) when neither is available.
+	var eventsQ queue.MessageQueue
+	var reminderDueQ queue.MessageQueue
 
-	reminderDueQ := kq.MustNewQueue(
-		kq.KqConf{
-			Brokers:    c.Kafka.Brokers,
-			Group:      c.Kafka.ConsumerGroup + ".reminders",
-			Topic:      c.Kafka.ReminderDueTopic,
-			Offset:     "first",
-			Consumers:  8,
-			Processors: 8,
-		},
-		kq.WithHandle(reminderDueHandler.Consume),
-	)
+	group := c.Kafka.ConsumerGroup
+	if group == "" {
+		group = "notifications"
+	}
+
+	if useKafka {
+		eventsQ = kq.MustNewQueue(
+			kq.KqConf{
+				Brokers:    c.Kafka.Brokers,
+				Group:      group + ".events",
+				Topic:      c.Kafka.EventsTopic,
+				Offset:     "first",
+				Consumers:  8,
+				Processors: 8,
+			},
+			kq.WithHandle(eventsHandler.Consume),
+		)
+		reminderDueQ = kq.MustNewQueue(
+			kq.KqConf{
+				Brokers:    c.Kafka.Brokers,
+				Group:      group + ".reminders",
+				Topic:      c.Kafka.ReminderDueTopic,
+				Offset:     "first",
+				Consumers:  8,
+				Processors: 8,
+			},
+			kq.WithHandle(reminderDueHandler.Consume),
+		)
+	} else if redisClient != nil {
+		if c.Kafka.EventsTopic != "" {
+			eventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
+				Stream:   c.Kafka.EventsTopic,
+				Group:    group + ".events",
+				Consumers: 8,
+			}, eventsHandler)
+		}
+		if c.Kafka.ReminderDueTopic != "" {
+			reminderDueQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
+				Stream:   c.Kafka.ReminderDueTopic,
+				Group:    group + ".reminders",
+				Consumers: 8,
+			}, reminderDueHandler)
+		}
+	}
 
 	return &ServiceContext{
 		Config:         c,
@@ -158,14 +208,18 @@ func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 	return repository.NewRepository(db.New(tx))
 }
 
-// StartConsumers launches the scheduler goroutine and both kq queues.
+// StartConsumers launches the scheduler goroutine and both event queues.
 func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	s.schedCancel = cancel
 
 	go s.Scheduler.Run(ctx)
-	go s.EventsQ.Start()
-	go s.ReminderDueQ.Start()
+	if s.EventsQ != nil {
+		go s.EventsQ.Start()
+	}
+	if s.ReminderDueQ != nil {
+		go s.ReminderDueQ.Start()
+	}
 	if s.ReceiptWorker != nil {
 		go s.ReceiptWorker.Run(ctx)
 	}
@@ -173,7 +227,7 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 		go s.DeliveryWorker.Run(ctx)
 	}
 
-	logx.Info("started scheduler, kafka consumers, and notification delivery workers")
+	logx.Info("started scheduler, event consumers, and notification delivery workers")
 	return cancel
 }
 

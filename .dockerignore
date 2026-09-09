@@ -1,0 +1,37 @@
+# Build artifacts
+bin/
+logs/
+tmp/
+
+# IDE / OS
+.idea/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# Docker
+deploy/docker-compose.prod.yml
+Dockerfile*
+deploy/Dockerfile*
+
+# Docs / non-Go files not needed for build
+*.md
+docs/
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Local config (secrets — never bake into images)
+services/**/etc/*.yaml
+services/**/etc/*.yml
+.env
+.env.*
+deploy/.env.prod
+deploy/config/
+
+# Go test / coverage
+*.out
+coverage.txt

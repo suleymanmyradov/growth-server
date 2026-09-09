@@ -26,7 +26,7 @@ func main() {
 	flag.Parse()
 
 	var c config.Config
-	conf.MustLoad(*configFile, &c)
+	conf.MustLoad(*configFile, &c, conf.UseEnv())
 	logx.Infof("starting gateway with config: %+v", configsafe.MaskSecrets(c))
 
 	// Harden defaults if not explicitly configured in YAML

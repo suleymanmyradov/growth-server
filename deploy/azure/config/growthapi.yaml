@@ -1,0 +1,73 @@
+# Azure gateway configuration.
+# PostgreSQL → Azure Database for PostgreSQL Flexible Server (managed)
+# Redis → self-hosted on VM
+# Kafka → Upstash Kafka (managed, Kafka-compatible)
+
+Name: growth-gateway
+Host: 0.0.0.0
+Port: 8888
+
+MaxConns: 10000
+MaxBytes: 1048576
+Timeout: 300000
+
+Middlewares:
+  Trace: true
+  Log: true
+  Prometheus: true
+  MaxConns: true
+  Breaker: true
+  Shedding: true
+  Timeout: true
+  Recover: true
+  Metrics: true
+  MaxBytes: true
+  Gunzip: true
+
+AuthRpc:
+  Endpoints:
+    - auth:9081
+  NonBlock: true
+
+ClientRpc:
+  Endpoints:
+    - client:9082
+  NonBlock: true
+
+SearchRpc:
+  Endpoints:
+    - search:9083
+  NonBlock: true
+
+NotificationsRpc:
+  Endpoints:
+    - notifications:8080
+  NonBlock: true
+
+FileManagerRpc:
+  Endpoints:
+    - filemanager:9087
+  NonBlock: true
+
+Auth:
+  Secret: ${JWT_SECRET}
+  Issuer: ${JWT_ISSUER}
+  Audience: ${JWT_AUDIENCE}
+
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
+RateLimit:
+  Redis:
+    Host: redis:6379
+    Type: node
+    Pass: ${REDIS_PASSWORD}
+  AuthQuota: "60,10"
+  AIQuota: "60,10"
+  SearchQuota: "60,30"
+
+Telemetry:
+  Name: growth-gateway
+  Endpoint:
+  Sampler: 1.0
+  Batcher: otlpgrpc

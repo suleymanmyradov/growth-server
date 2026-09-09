@@ -118,34 +118,38 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		// embeddings themselves. The Source is config-driven ("openAi" for an
 		// OpenAI-compatible cloud endpoint, "ollama" for a local Ollama
 		// instance) so the same code path serves both.
-		embedderName := c.Meili.Embedder.Name
-		if embedderName == "" {
-			embedderName = "default"
-		}
-		docTpl := c.Meili.Embedder.DocumentTemplate
-		if docTpl == "" {
-			docTpl = "{{doc.content}}"
-		}
-		source := c.Meili.Embedder.Source
-		if source == "" {
-			source = "openAi"
-		}
-		embedders := map[string]meilisearch.Embedder{
-			embedderName: {
-				Source:           source,
-				URL:              c.Meili.Embedder.URL,
-				APIKey:           c.Meili.Embedder.APIKey,
-				Model:            c.Meili.Embedder.Model,
-				Dimensions:       c.Meili.Embedder.Dimensions,
-				DocumentTemplate: docTpl,
-			},
-		}
-		task, err := memoryIndex.UpdateEmbedders(embedders)
-		if err != nil {
-			logx.Must(fmt.Errorf("update memory embedders: %w", err))
-		}
-		if _, err := memoryIndex.WaitForTask(task.TaskUID, 5*time.Second); err != nil {
-			logx.Must(fmt.Errorf("wait for memory embedders task: %w", err))
+		// Keyword-only mode: an empty Embedder.URL skips embedder setup
+		// entirely (no Ollama / vector store required).
+		if c.Meili.Embedder.URL != "" {
+			embedderName := c.Meili.Embedder.Name
+			if embedderName == "" {
+				embedderName = "default"
+			}
+			docTpl := c.Meili.Embedder.DocumentTemplate
+			if docTpl == "" {
+				docTpl = "{{doc.content}}"
+			}
+			source := c.Meili.Embedder.Source
+			if source == "" {
+				source = "openAi"
+			}
+			embedders := map[string]meilisearch.Embedder{
+				embedderName: {
+					Source:           source,
+					URL:              c.Meili.Embedder.URL,
+					APIKey:           c.Meili.Embedder.APIKey,
+					Model:            c.Meili.Embedder.Model,
+					Dimensions:       c.Meili.Embedder.Dimensions,
+					DocumentTemplate: docTpl,
+				},
+			}
+			task, err := memoryIndex.UpdateEmbedders(embedders)
+			if err != nil {
+				logx.Must(fmt.Errorf("update memory embedders: %w", err))
+			}
+			if _, err := memoryIndex.WaitForTask(task.TaskUID, 5*time.Second); err != nil {
+				logx.Must(fmt.Errorf("wait for memory embedders task: %w", err))
+			}
 		}
 	}
 
