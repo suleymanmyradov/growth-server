@@ -30,7 +30,8 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 		return nil, err
 	}
 
-	var plans []types.Plan
+	// make() (not var nil) so an empty plan list marshals as [] instead of null.
+	plans := make([]types.Plan, 0, len(rpcResp.Plans))
 	for _, p := range rpcResp.Plans {
 		plans = append(plans, types.Plan{
 			Id:                       p.Id,
