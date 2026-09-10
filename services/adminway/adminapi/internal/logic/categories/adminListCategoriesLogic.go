@@ -34,7 +34,8 @@ func (l *AdminListCategoriesLogic) AdminListCategories(req *types.ListCategories
 		return nil, err
 	}
 
-	var cats []types.Category
+	// make() (not var nil) so an empty list marshals as [] instead of null.
+	cats := make([]types.Category, 0, len(rpcResp.Categories))
 	for _, c := range rpcResp.Categories {
 		cats = append(cats, mapCategory(c))
 	}

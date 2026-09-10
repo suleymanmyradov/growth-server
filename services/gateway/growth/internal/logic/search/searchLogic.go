@@ -55,7 +55,7 @@ func (l *SearchLogic) Search(req *types.SearchRequest) (resp *types.SearchRespon
 		return nil, err
 	}
 
-	var results []types.SearchResult
+	results := make([]types.SearchResult, 0, len(rpcResp.Results))
 	for _, r := range rpcResp.Results {
 		results = append(results, types.SearchResult{
 			Id:          r.Id,
