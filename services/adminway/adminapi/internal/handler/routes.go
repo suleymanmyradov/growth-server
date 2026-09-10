@@ -96,11 +96,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/auth/refresh",
 				Handler: auth.AuthRefreshHandler(serverCtx),
 			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/auth/register",
-				Handler: auth.AuthRegisterHandler(serverCtx),
-			},
 		},
 		rest.WithPrefix("/api/v1/admin"),
 	)

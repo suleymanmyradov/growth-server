@@ -8,6 +8,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-queue/kq"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
+
 	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
@@ -20,9 +24,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
-	"github.com/zeromicro/go-queue/kq"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/queue"
 )
 
 type ServiceContext struct {
@@ -173,15 +174,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	} else if redisClient != nil {
 		if c.Kafka.EventsTopic != "" {
 			eventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
-				Stream:   c.Kafka.EventsTopic,
-				Group:    group + ".events",
+				Stream:    c.Kafka.EventsTopic,
+				Group:     group + ".events",
 				Consumers: 8,
 			}, eventsHandler)
 		}
 		if c.Kafka.ReminderDueTopic != "" {
 			reminderDueQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
-				Stream:   c.Kafka.ReminderDueTopic,
-				Group:    group + ".reminders",
+				Stream:    c.Kafka.ReminderDueTopic,
+				Group:     group + ".reminders",
 				Consumers: 8,
 			}, reminderDueHandler)
 		}

@@ -7,6 +7,10 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-queue/kq"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
+
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
@@ -17,9 +21,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository/db"
-	"github.com/zeromicro/go-queue/kq"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/queue"
 )
 
 type ServiceContext struct {
@@ -138,8 +139,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsQ = kq.MustNewQueue(kqConf, kq.WithHandle(handler.Consume))
 	} else if streamRedisClient != nil {
 		eventsQ = redisstream.MustNewQueue(streamRedisClient, redisstream.Config{
-			Stream:   c.Kafka.EventsTopic,
-			Group:    c.Kafka.ConsumerGroup + ".events",
+			Stream:    c.Kafka.EventsTopic,
+			Group:     c.Kafka.ConsumerGroup + ".events",
 			Consumers: consumers,
 		}, handler)
 	}

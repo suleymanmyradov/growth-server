@@ -27,9 +27,6 @@ import (
 const (
 	MsgEmailAndPasswordRequired = "Email and password are required"
 	MsgInvalidCredentials       = "Invalid email or password"
-	MsgEmailAlreadyExists       = "An admin with this email already exists"
-	MsgFailedHashPassword       = "Failed to process password"
-	MsgFailedCreateAdmin        = "Failed to create admin user"
 	MsgFailedGenAccessToken     = "Failed to generate access token"
 	MsgFailedGenRefreshToken    = "Failed to generate refresh token"
 	MsgInvalidOrExpiredRefresh  = "Invalid or expired refresh token"
@@ -39,7 +36,6 @@ const (
 // Sentinel gRPC errors for the most reused (code, message) pairings.
 var (
 	ErrInvalidCredentials    = status.Error(codes.Unauthenticated, MsgInvalidCredentials)
-	ErrEmailAlreadyExists    = status.Error(codes.AlreadyExists, MsgEmailAlreadyExists)
 	ErrInvalidExpiredRefresh = status.Error(codes.Unauthenticated, MsgInvalidOrExpiredRefresh)
 	ErrAdminNotFound         = status.Error(codes.NotFound, MsgAdminNotFound)
 	ErrFailedGenAccessToken  = status.Error(codes.Internal, MsgFailedGenAccessToken)
@@ -48,4 +44,3 @@ var (
 
 // err* helpers pair a gRPC code with a message constant.
 func errInvalidArgument(msg string) error { return status.Error(codes.InvalidArgument, msg) }
-func errInternal(msg string) error        { return status.Error(codes.Internal, msg) }

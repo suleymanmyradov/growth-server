@@ -154,13 +154,6 @@ type (
 		password string `json:"password"`
 	}
 
-	RegisterRequest {
-		email    string `json:"email"`
-		password string `json:"password"`
-		fullName string `json:"fullName"`
-		role     string `json:"role,optional"`
-	}
-
 	RefreshTokenRequest {
 		refreshToken string `json:"refreshToken"`
 	}
