@@ -21,6 +21,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      # Localhost-only on the VM — reached via SSH tunnel, never exposed publicly.
+      - "127.0.0.1:5433:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -493,9 +496,13 @@ services:
       - HOSTNAME=0.0.0.0
       - NEXT_PUBLIC_ADMIN_API_URL=http://adminway:8890
       - NEXT_PUBLIC_APP_URL=${APP_URL}
+      # adminway issues tokens for the "growth-admin" audience (see
+      # deploy/config/adminapi.yaml Auth.Audience) — NOT the gateway's
+      # ${JWT_AUDIENCE} (growth-api). Verifying against the wrong audience
+      # makes proxy.ts reject every valid token → login redirect loop.
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
-      - JWT_AUDIENCE=${JWT_AUDIENCE}
+      - JWT_AUDIENCE=growth-admin
     profiles:
       - admin
     deploy:
