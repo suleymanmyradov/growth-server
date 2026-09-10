@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
@@ -28,6 +29,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	logx.Must(c.ServiceAuth.MustValidate())
 	logx.Infof("starting auth service with config: %+v", configsafe.MaskSecrets(c))
 	ctx := svc.NewServiceContext(c)
 
@@ -39,12 +41,15 @@ func main() {
 		}
 	})
 
-	// Extract the caller's principal from the gateway-propagated JWT so authed
-	// methods (e.g. GetProfile, UpdateProfile) can identify the user. Optional
-	// because public methods (Login, Register, RefreshToken, ValidateToken) are
-	// called without a principal and must still pass through.
+	// Service-to-service auth first: every caller (gateway, ai-gateway,
+	// adminway) must present a valid HMAC signature. Then extract the caller's
+	// principal from the gateway-propagated JWT so authed methods (e.g.
+	// GetProfile, UpdateProfile) can identify the user. Optional because public
+	// methods (Login, Register, RefreshToken, ValidateToken) are called without
+	// a principal and must still pass through.
 	s.AddUnaryInterceptors(
 		recovery.UnaryServerInterceptor(),
+		s2s.UnaryServerInterceptor(c.ServiceAuth),
 		mdpropagate.UnaryServerInterceptorOptional(ctx.TokenMaker),
 	)
 

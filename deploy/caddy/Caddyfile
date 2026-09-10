@@ -9,8 +9,16 @@
 {$API_DOMAIN} {
 	encode zstd gzip
 
+	# Baseline security headers for every response from this site.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
 	# --- AI-gateway routes (matched first) ---
-	# Conversations + memory: all paths under these prefixes go to ai-gateway.
 	@ai_prefix {
 		path /api/v1/conversations /api/v1/conversations/* /api/v1/memory/facts /api/v1/memory/facts/*
 	}
@@ -75,6 +83,15 @@
 # User-facing Next.js app.
 {$APP_DOMAIN} {
 	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
 	reverse_proxy frontend:3000
 }
 
@@ -82,5 +99,14 @@
 # Only resolvable when the `admin` compose profile is enabled; Caddy 502s otherwise.
 {$ADMIN_DOMAIN} {
 	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
 	reverse_proxy admin-frontend:3001
 }

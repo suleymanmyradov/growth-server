@@ -3,12 +3,16 @@ package config
 import (
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	Postgres struct {
+	// ServiceAuth is the shared secret required on every incoming RPC call
+	// (enforced by the s2s server interceptor).
+	ServiceAuth s2s.Config
+	Postgres    struct {
 		Datasource      string `json:",optional" secret:"true"`
 		MaxOpenConns    int
 		MaxIdleConns    int

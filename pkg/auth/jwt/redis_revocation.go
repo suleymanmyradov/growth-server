@@ -1,4 +1,4 @@
-package repository
+package jwt
 
 import (
 	"context"
@@ -6,9 +6,12 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 )
+
+// Redis-backed RevocationRepository, shared by every service that issues or
+// verifies revocable tokens (auth RPC, adminway). Keys are namespaced by the
+// prefixes below; entries expire with the token's own lifetime.
 
 const (
 	revokedAccessPrefix  = "revoked:access:"
@@ -17,30 +20,33 @@ const (
 	minRedisTTL          = 100 * time.Millisecond
 )
 
-type CmdableRedisRepository struct {
+// RedisRevocationRepository implements RevocationRepository on top of any
+// redis.Cmdable (standalone client, cluster client, ...).
+type RedisRevocationRepository struct {
 	client redis.Cmdable
 }
 
-func NewCmdableRedisRepository(client redis.Cmdable) (jwt.RevocationRepository, error) {
+// NewRedisRevocationRepository returns a Redis-backed revocation repository.
+func NewRedisRevocationRepository(client redis.Cmdable) (RevocationRepository, error) {
 	if client == nil {
 		return nil, fmt.Errorf("redis client cannot be nil")
 	}
 
-	return &CmdableRedisRepository{
+	return &RedisRevocationRepository{
 		client: client,
 	}, nil
 }
 
-func (r *CmdableRedisRepository) MarkTokenRevoke(ctx context.Context, tokenType jwt.TokenType, token string, ttl time.Duration) error {
+func (r *RedisRevocationRepository) MarkTokenRevoke(ctx context.Context, tokenType TokenType, token string, ttl time.Duration) error {
 	if ttl < minRedisTTL {
 		ttl = minRedisTTL
 	}
 
 	var key string
 	switch tokenType {
-	case jwt.AccessToken:
+	case AccessToken:
 		key = revokedAccessPrefix + token
-	case jwt.RefreshToken:
+	case RefreshToken:
 		key = revokedRefreshPrefix + token
 	default:
 		return fmt.Errorf("invalid token type: %v", tokenType)
@@ -51,12 +57,12 @@ func (r *CmdableRedisRepository) MarkTokenRevoke(ctx context.Context, tokenType 
 	return r.client.Set(ctx, key, "1", ttl).Err()
 }
 
-func (r *CmdableRedisRepository) IsTokenRevoked(ctx context.Context, tokenType jwt.TokenType, token string) (bool, error) {
+func (r *RedisRevocationRepository) IsTokenRevoked(ctx context.Context, tokenType TokenType, token string) (bool, error) {
 	var key string
 	switch tokenType {
-	case jwt.AccessToken:
+	case AccessToken:
 		key = revokedAccessPrefix + token
-	case jwt.RefreshToken:
+	case RefreshToken:
 		key = revokedRefreshPrefix + token
 	default:
 		return false, fmt.Errorf("invalid token type: %v", tokenType)
@@ -72,7 +78,7 @@ func (r *CmdableRedisRepository) IsTokenRevoked(ctx context.Context, tokenType j
 	return exists > 0, nil
 }
 
-func (r *CmdableRedisRepository) MarkSessionRevoked(ctx context.Context, sessionID string, ttl time.Duration) error {
+func (r *RedisRevocationRepository) MarkSessionRevoked(ctx context.Context, sessionID string, ttl time.Duration) error {
 	if ttl < minRedisTTL {
 		ttl = minRedisTTL
 	}
@@ -83,7 +89,7 @@ func (r *CmdableRedisRepository) MarkSessionRevoked(ctx context.Context, session
 	return r.client.Set(ctx, key, "1", ttl).Err()
 }
 
-func (r *CmdableRedisRepository) IsSessionRevoked(ctx context.Context, sessionID string) (bool, error) {
+func (r *RedisRevocationRepository) IsSessionRevoked(ctx context.Context, sessionID string) (bool, error) {
 	key := revokedSessionPrefix + sessionID
 	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()

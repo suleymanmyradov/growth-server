@@ -37,6 +37,10 @@ func classifyAIGatewayEndpoint(path, method string) sharedmw.RateBucket {
 	if path == "/api/v1/weekly-reviews/generate" && method == http.MethodPost {
 		return sharedmw.RateBucketAI
 	}
+	// Weekly review generation (streaming)
+	if path == "/api/v1/weekly-reviews/generate-stream" && method == http.MethodPost {
+		return sharedmw.RateBucketAI
+	}
 	// Personalized coaching (streaming and non-streaming)
 	if path == "/api/v1/personalization/coaching" && method == http.MethodPost {
 		return sharedmw.RateBucketAI

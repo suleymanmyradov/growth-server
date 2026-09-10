@@ -99,6 +99,7 @@ Coaching:
   MaxTokens: 4096
 
 RateLimit:
+  Namespace: ai-gateway
   Redis:
     Host: redis:6379
     Type: node

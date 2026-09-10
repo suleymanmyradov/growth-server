@@ -4,13 +4,17 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/speech"
 	"github.com/zeromicro/go-zero/zrpc"
 )
 
 type Config struct {
 	zrpc.RpcServerConf
-	AI ai.Config
+	// ServiceAuth is the shared secret required on every incoming RPC call
+	// (enforced by the s2s server interceptor).
+	ServiceAuth s2s.Config `json:",optional"`
+	AI          ai.Config
 	// Speech configures STT (dictate / live voice input) and TTS (live voice
 	// output). Optional: if APIKey is empty, both clients are nil and the
 	// Transcribe/Synthesize RPCs return Unavailable.

@@ -47,6 +47,12 @@ AuthRpc:
     - auth:9081
   NonBlock: true
 
+# Redis is used for admin token revocation (logout) and Redis Streams events.
+Redis:
+  Addr: redis:6379
+  Password: ${REDIS_PASSWORD}
+  DB: 0
+
 Kafka:
   Brokers:
     - redpanda:9092
@@ -55,7 +61,7 @@ Kafka:
 Auth:
   Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
-  Audience: ${JWT_AUDIENCE}
+  Audience: growth-admin
   AccessExpiryDuration: 15m
   RefreshExpiryDuration: 168h
 
@@ -63,6 +69,7 @@ ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
 RateLimit:
+  Namespace: adminway
   Redis:
     Host: redis:6379
     Type: node

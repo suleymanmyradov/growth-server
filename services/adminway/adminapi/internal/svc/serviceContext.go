@@ -76,13 +76,27 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		zrpc.WithTimeout(time.Second * 3),
 	}
 
+	// Redis-backed token revocation: lets logout invalidate a session so its
+	// refresh tokens are rejected. Disabled (with a warning) when Redis is not
+	// configured — refresh tokens then stay valid until they expire.
+	var revocationRepo jwt.RevocationRepository
+	if c.Redis.Addr != "" {
+		revocationClient, err := redisutil.NewClient(c.Redis.Addr, c.Redis.Password, c.Redis.DB)
+		if err != nil {
+			logx.Errorf("redis unavailable; admin token revocation disabled: %v", err)
+		} else if revocationRepo, err = jwt.NewRedisRevocationRepository(revocationClient); err != nil {
+			logx.Errorf("admin revocation repository init failed: %v", err)
+			revocationRepo = nil
+		}
+	}
+
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
 		Secret:                c.Auth.Secret,
 		Issuer:                c.Auth.Issuer,
 		Audience:              c.Auth.Audience,
 		AccessExpiryDuration:  c.Auth.AccessExpiryDuration,
 		RefreshExpiryDuration: c.Auth.RefreshExpiryDuration,
-	}, nil)
+	}, revocationRepo)
 	if err != nil {
 		logx.Must(fmt.Errorf("init token maker: %w", err))
 	}
