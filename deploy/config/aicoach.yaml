@@ -100,3 +100,6 @@ Telemetry:
   Endpoint:
   Sampler: 1.0
   Batcher: otlpgrpc
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+

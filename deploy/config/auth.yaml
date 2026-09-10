@@ -39,6 +39,9 @@ GoogleOAuth:
     - com.suleymanmyradov.growth.preview:/oauthredirect
     - com.suleymanmyradov.growth:/oauthredirect
 
+ServiceAuth:
+  Secret: ${SERVICE_AUTH_SECRET}
+
 Kafka:
   Brokers:
     - redpanda:9092

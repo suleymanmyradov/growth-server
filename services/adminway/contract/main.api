@@ -113,6 +113,19 @@ service adminapi {
 	post /auth/refresh (RefreshTokenRequest) returns (AuthResponse)
 }
 
+// Logout requires a valid access token: the session is revoked server-side so
+// the refresh token dies with it.
+@server (
+	prefix:     /api/v1/admin
+	group:      auth
+	middleware: Auth
+	tags:       "Admin Auth"
+)
+service adminapi {
+	@handler AuthLogout
+	post /auth/logout returns (EmptyResponse)
+}
+
 @server (
 	prefix:     /api/v1/admin
 	group:      sitesettings

@@ -103,7 +103,7 @@ func setupIntegrationTestEnv(t *testing.T) *integrationTestEnv {
 	txRunner := postgres.NewPgxTxRunner(pool)
 
 	// Create token maker with Redis-backed revocation repo
-	tokenRepo, err := repository.NewCmdableRedisRepository(redisCli)
+	tokenRepo, err := jwt.NewRedisRevocationRepository(redisCli)
 	require.NoError(t, err)
 
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{

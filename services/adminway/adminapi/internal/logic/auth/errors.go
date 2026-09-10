@@ -31,6 +31,7 @@ const (
 	MsgFailedGenRefreshToken    = "Failed to generate refresh token"
 	MsgInvalidOrExpiredRefresh  = "Invalid or expired refresh token"
 	MsgAdminNotFound            = "Admin user not found"
+	MsgFailedRevokeSession      = "Failed to log out, please try again"
 )
 
 // Sentinel gRPC errors for the most reused (code, message) pairings.
@@ -44,3 +45,4 @@ var (
 
 // err* helpers pair a gRPC code with a message constant.
 func errInvalidArgument(msg string) error { return status.Error(codes.InvalidArgument, msg) }
+func errInternal(msg string) error        { return status.Error(codes.Internal, msg) }

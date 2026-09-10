@@ -3,6 +3,7 @@ package logic
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/internal/svc"
@@ -39,11 +40,25 @@ func (l *GetPresignedURLLogic) GetPresignedURL(in *filemanager.GetPresignedURLRe
 		expiry = 15 * time.Minute
 	}
 
+	// Presign against the public-origin client when configured: SigV4
+	// signatures are host-bound, so a URL signed for the cluster-internal
+	// endpoint would fail validation when the browser fetches it through the
+	// reverse proxy. The path prefix (e.g. "/files") is prepended afterwards —
+	// the proxy strips it, so MinIO receives the exact path that was signed.
+	client := l.svcCtx.Minio
+	if l.svcCtx.PresignMinio != nil {
+		client = l.svcCtx.PresignMinio
+	}
+
 	reqParams := make(map[string][]string)
-	presignedURL, err := l.svcCtx.Minio.PresignedGetObject(ctx, bucket, in.Key, expiry, reqParams)
+	presignedURL, err := client.PresignedGetObject(ctx, bucket, in.Key, expiry, reqParams)
 	if err != nil {
 		logx.WithContext(ctx).Errorf("minio presigned url failed: %v", err)
 		return nil, fmt.Errorf("presigned url failed: %w", err)
+	}
+
+	if prefix := l.svcCtx.PresignPathPrefix; prefix != "" {
+		presignedURL.Path = strings.TrimSuffix(prefix, "/") + presignedURL.Path
 	}
 
 	return &filemanager.GetPresignedURLResponse{

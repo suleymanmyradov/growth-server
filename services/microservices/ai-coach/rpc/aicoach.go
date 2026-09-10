@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
 	aicoachserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server/aicoachservice"
@@ -12,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 
 	"github.com/zeromicro/go-zero/core/conf"
+	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/service"
 	"github.com/zeromicro/go-zero/zrpc"
 	"google.golang.org/grpc"
@@ -25,6 +27,7 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	logx.Must(c.ServiceAuth.MustValidate())
 	ctx := svc.NewServiceContext(c)
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
@@ -37,7 +40,10 @@ func main() {
 	})
 	defer s.Stop()
 
-	s.AddUnaryInterceptors(recovery.UnaryServerInterceptor())
+	s.AddUnaryInterceptors(
+		recovery.UnaryServerInterceptor(),
+		s2s.UnaryServerInterceptor(c.ServiceAuth),
+	)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)
 	s.Start()

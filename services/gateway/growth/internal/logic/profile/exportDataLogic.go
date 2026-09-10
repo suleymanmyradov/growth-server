@@ -231,7 +231,18 @@ func (l *ExportDataLogic) ExportData() (resp *types.ExportDataResponse, err erro
 		return nil, status.Error(codes.Internal, "failed to upload export file")
 	}
 
+	// The exports/ prefix is not publicly readable, so hand back a short-lived
+	// presigned URL instead of the bucket's public URL.
+	presignResp, err := l.svcCtx.FileManagerRpc.GetPresignedURL(l.ctx, &fileManagerClient.GetPresignedURLRequest{
+		Key:           uploadResp.Key,
+		ExpirySeconds: 900,
+	})
+	if err != nil {
+		l.Errorf("export: failed to presign download url: %v", err)
+		return nil, status.Error(codes.Internal, "failed to generate export download link")
+	}
+
 	return &types.ExportDataResponse{
-		DownloadUrl: uploadResp.Url,
+		DownloadUrl: presignResp.Url,
 	}, nil
 }

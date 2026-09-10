@@ -3,6 +3,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
@@ -80,4 +81,33 @@ func TestRateLimitMiddleware_AuthQuotaEnforced(t *testing.T) {
 // Without a Redis host the limiters are nil and the middleware is a no-op.
 func TestBuildRateLimiters_DisabledWithoutRedis(t *testing.T) {
 	assert.Nil(t, BuildRateLimiters(RateLimitConfig{}))
+}
+
+// The Namespace setting must isolate Redis keys per service so gateways sharing
+// one Redis instance do not draw from each other's buckets.
+func TestBuildRateLimiters_NamespacedKeys(t *testing.T) {
+	mr := miniredis.RunT(t)
+
+	limiters := BuildRateLimiters(RateLimitConfig{
+		Redis:       redis.RedisConf{Host: mr.Addr(), Type: "node"},
+		Namespace:   "adminway",
+		AuthQuota:   "60,1",
+		AIQuota:     "60,10",
+		SearchQuota: "60,30",
+	})
+	require.NotNil(t, limiters)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/admin/auth/login", nil)
+	wrapped := RateLimitMiddleware(limiters)(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+	rec := httptest.NewRecorder()
+	wrapped(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	keys := mr.Keys()
+	require.NotEmpty(t, keys)
+	for _, key := range keys {
+		assert.True(t, strings.HasPrefix(key, "adminway:auth"), "keys must be namespaced, got %q", key)
+	}
 }

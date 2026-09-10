@@ -36,7 +36,9 @@ func main() {
 		return code, body
 	})
 
-	server := rest.MustNewServer(c.RestConf, rest.WithCors("*"))
+	// No CORS: the admin panel is same-origin behind the admin-frontend BFF
+	// proxy, so no browser ever calls adminway cross-origin.
+	server := rest.MustNewServer(c.RestConf)
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)

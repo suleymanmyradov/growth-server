@@ -16,6 +16,10 @@ import (
 // RateLimitConfig holds per-endpoint rate limit settings backed by Redis.
 type RateLimitConfig struct {
 	Redis redis.RedisConf
+	// Namespace prefixes the Redis keys so services sharing one Redis instance
+	// do not draw from each other's buckets (e.g. "gateway", "adminway").
+	// Defaults to "ratelimit" when empty.
+	Namespace string `json:",optional"`
 	// AuthQuota is the per-IP fixed-window quota for auth endpoints (login/register/refresh).
 	// Format: periodSeconds,quota (e.g., "60,5" means 5 requests per 60 seconds).
 	AuthQuota string `json:",default=60,5"`
@@ -61,11 +65,16 @@ func BuildRateLimiters(cfg RateLimitConfig) *RateLimiters {
 		return nil
 	}
 
+	namespace := cfg.Namespace
+	if namespace == "" {
+		namespace = "ratelimit"
+	}
+
 	store := cfg.Redis.NewRedis()
 	return &RateLimiters{
-		AuthLimiter:   newPeriodLimit(cfg.AuthQuota, store, "ratelimit:auth"),
-		AILimiter:     newPeriodLimit(cfg.AIQuota, store, "ratelimit:ai"),
-		SearchLimiter: newPeriodLimit(cfg.SearchQuota, store, "ratelimit:search"),
+		AuthLimiter:   newPeriodLimit(cfg.AuthQuota, store, namespace+":auth"),
+		AILimiter:     newPeriodLimit(cfg.AIQuota, store, namespace+":ai"),
+		SearchLimiter: newPeriodLimit(cfg.SearchQuota, store, namespace+":search"),
 	}
 }
 

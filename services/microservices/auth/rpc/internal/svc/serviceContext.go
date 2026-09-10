@@ -67,7 +67,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			logx.Errorf("redis unavailable; token revocation disabled: %v", err)
 		} else {
 			redisClient = client
-			tokenRepo, err = repository.NewCmdableRedisRepository(client)
+			tokenRepo, err = jwt.NewRedisRevocationRepository(client)
 			if err != nil {
 				logx.Errorf("redis revocation repository init failed: %v", err)
 				tokenRepo = nil
