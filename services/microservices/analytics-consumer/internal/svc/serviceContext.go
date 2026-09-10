@@ -4,6 +4,10 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/zeromicro/go-queue/kq"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
+
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
@@ -11,9 +15,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/analytics-consumer/internal/repository/db"
-	"github.com/zeromicro/go-queue/kq"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/queue"
 )
 
 type ServiceContext struct {
@@ -63,8 +64,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				group = "analytics-consumer"
 			}
 			eventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
-				Stream:   c.Kafka.EventsTopic,
-				Group:    group + ".events",
+				Stream:    c.Kafka.EventsTopic,
+				Group:     group + ".events",
 				Consumers: 4,
 			}, handler)
 		}

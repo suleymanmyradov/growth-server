@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 )
@@ -28,10 +29,11 @@ func RateLimitMiddleware(limiters *RateLimiters) func(http.HandlerFunc) http.Han
 // gateway's route table. After the AI/streaming routes moved to ai-gateway,
 // the only remaining AI endpoint here is check-in creation (AI feedback).
 func classifyGatewayEndpoint(path, method string) sharedmw.RateBucket {
-	// Auth endpoints: per-IP brute-force protection
-	if path == "/api/v1/auth/login" ||
-		path == "/api/v1/auth/register" ||
-		path == "/api/v1/auth/refresh" {
+	// Auth endpoints: per-IP brute-force protection. Covers every
+	// unauthenticated route in the auth group (login, register, refresh,
+	// verify-email, resend-verification, google/apple exchange, forgot/reset
+	// password) — all of them are anonymous and abuse-prone.
+	if strings.HasPrefix(path, "/api/v1/auth/") {
 		return sharedmw.RateBucketAuth
 	}
 

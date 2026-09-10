@@ -262,13 +262,6 @@ type RefreshTokenRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	FullName string `json:"fullName"`
-	Role     string `json:"role,optional"`
-}
-
 type ReorderCategoriesRequest struct {
 	Ids        []string `json:"ids"`
 	SortOrders []int    `json:"sortOrders"`

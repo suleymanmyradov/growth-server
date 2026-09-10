@@ -9,6 +9,11 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/zeromicro/go-queue/kq"
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
+	"golang.org/x/sync/singleflight"
+
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
@@ -21,10 +26,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/consumer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/zeromicro/go-queue/kq"
-	"github.com/zeromicro/go-zero/core/logx"
-	"github.com/zeromicro/go-zero/core/queue"
-	"golang.org/x/sync/singleflight"
 )
 
 type ServiceContext struct {
@@ -148,13 +149,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		} else if redisClient != nil {
 			// Redis Streams backend.
 			authEventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
-				Stream:   c.Kafka.EventsTopic,
-				Group:    group + ".user-deleted",
+				Stream:    c.Kafka.EventsTopic,
+				Group:     group + ".user-deleted",
 				Consumers: 8,
 			}, handler)
 			checkInEventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
-				Stream:   c.Kafka.EventsTopic,
-				Group:    group + ".checkin-events",
+				Stream:    c.Kafka.EventsTopic,
+				Group:     group + ".checkin-events",
 				Consumers: 4,
 			}, checkInHandler)
 		}

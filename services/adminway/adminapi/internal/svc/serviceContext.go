@@ -37,6 +37,7 @@ type ServiceContext struct {
 	Config            config.Config
 	Auth              rest.Middleware
 	AdminAuth         rest.Middleware
+	RateLimit         rest.Middleware
 	TokenMaker        *jwt.TokenMaker
 	ArticlesRpc       clientarticles.Articles
 	CategoriesRpc     clientcategories.Categories
@@ -113,6 +114,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			Audience: c.Auth.Audience,
 		}),
 		AdminAuth:         middleware.AdminAuth(),
+		RateLimit:         middleware.RateLimitMiddleware(middleware.BuildRateLimiters(c.RateLimit)),
 		TokenMaker:        tokenMaker,
 		ArticlesRpc:       clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		CategoriesRpc:     clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),

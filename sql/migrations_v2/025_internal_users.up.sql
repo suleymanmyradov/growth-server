@@ -14,8 +14,15 @@ CREATE TRIGGER internal_users_set_updated_at
     BEFORE UPDATE ON internal_users
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- Seed a default admin user (password: admin123)
--- The hash is generated with bcrypt cost 10.
-INSERT INTO internal_users (email, password_hash, full_name, role)
-VALUES ('admin@growth.app', '$2b$10$9W.x8XhNL7YdBnnEURKtXe6Dhc.w.TgcIWPGJ/m1HFUI6oCvrvUji', 'Admin', 'admin')
-ON CONFLICT (email) DO NOTHING;
+-- No seed admin: a migration-seeded password would be publicly known on every
+-- fresh deployment, and the admin panel has no self-registration route
+-- (removed from services/adminway/contract/main.api on purpose).
+--
+-- First-admin bootstrap (run once after `make migrate-up`):
+--   1. Generate a bcrypt hash (htpasswd output is accepted by Go's bcrypt):
+--        htpasswd -bnBC 10 "" 'YOUR_STRONG_PASSWORD' | tr -d ':\n'
+--   2. Insert the admin:
+--        INSERT INTO internal_users (email, password_hash, full_name, role)
+--        VALUES ('admin@evolella.com', '<BCRYPT_HASH>', 'Admin', 'admin');
+--   3. Log in at https://admin.evolella.com/login and delete this row's
+--      shell history if it contains the password.

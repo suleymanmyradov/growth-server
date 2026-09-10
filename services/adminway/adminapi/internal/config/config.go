@@ -3,6 +3,7 @@ package config
 import (
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/middleware"
 	"github.com/zeromicro/go-zero/rest"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -37,6 +38,9 @@ type Config struct {
 		AccessExpiryDuration  time.Duration `json:",optional"`
 		RefreshExpiryDuration time.Duration `json:",optional"`
 	}
+	// RateLimit holds the Redis-backed per-IP quotas for the unauthenticated
+	// auth routes (login/refresh brute-force protection).
+	RateLimit   middleware.RateLimitConfig
 	ServiceAuth struct {
 		Secret string `json:",optional" secret:"true"`
 	}

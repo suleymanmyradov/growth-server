@@ -40,6 +40,11 @@ func main() {
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
+
+	// Rate limit first so abusive requests to the unauthenticated auth routes
+	// are rejected before any handler or auth overhead.
+	server.Use(ctx.RateLimit)
+
 	handler.RegisterHandlers(server, ctx)
 
 	fmt.Printf("Starting server at %s:%d...\n", c.Host, c.Port)
