@@ -41,7 +41,9 @@ echo "==> Pulling images"
 "${COMPOSE[@]}" pull "${BACKEND_SERVICES[@]}" migrate
 
 echo "==> Running migrations"
-"${COMPOSE[@]}" run --rm migrate up
+# No trailing args: `compose run <svc> <cmd>` would REPLACE the service
+# command (which already carries -path/-database/up).
+"${COMPOSE[@]}" run --rm migrate
 
 echo "==> Recreating changed services"
 "${COMPOSE[@]}" up -d --no-deps "${BACKEND_SERVICES[@]}" caddy
