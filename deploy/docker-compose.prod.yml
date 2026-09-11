@@ -8,11 +8,17 @@
 # mounted from deploy/config/. The Next.js frontends build from sibling repos
 # (self-dev/, growth-admin-front/) via their own Dockerfiles.
 #
+# Images: Go services and frontends are pulled from GHCR (built by GitHub
+# Actions, tagged sha-<commit> and latest). The build: blocks are kept as a
+# fallback for local/emergency builds. Override tags via env: BACKEND_TAG,
+# FRONTEND_TAG, ADMIN_TAG (e.g. rollback: BACKEND_TAG=sha-abc1234 ... up -d).
+#
 # Usage:
 #   1. Copy .env.prod.example → .env.prod, fill in real secrets
-#   2. docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod build
+#   2. docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod pull
 #   3. docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d
-#   4. Run migrations (see deploy/README.md)
+#   4. Migrations run automatically in CI deploys (deploy/deploy.sh);
+#      manually: docker compose ... run --rm migrate up
 # =============================================================================
 
 services:
@@ -133,6 +139,7 @@ services:
   # All use the shared Dockerfile.golang with different SERVICE_PATH.
 
   auth:
+    image: ghcr.io/suleymanmyradov/growth-server-auth:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -159,6 +166,7 @@ services:
       - growth
 
   client:
+    image: ghcr.io/suleymanmyradov/growth-server-client:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -185,6 +193,7 @@ services:
       - growth
 
   search:
+    image: ghcr.io/suleymanmyradov/growth-server-search:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -207,6 +216,7 @@ services:
       - growth
 
   ai-coach:
+    image: ghcr.io/suleymanmyradov/growth-server-ai-coach:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -231,6 +241,7 @@ services:
       - growth
 
   filemanager:
+    image: ghcr.io/suleymanmyradov/growth-server-filemanager:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -253,6 +264,7 @@ services:
       - growth
 
   notifications:
+    image: ghcr.io/suleymanmyradov/growth-server-notifications:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -279,6 +291,7 @@ services:
   # ===================== Kafka consumers =====================
 
   ai-coach-consumer:
+    image: ghcr.io/suleymanmyradov/growth-server-ai-coach-consumer:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -303,6 +316,7 @@ services:
       - growth
 
   search-sync:
+    image: ghcr.io/suleymanmyradov/growth-server-search-sync:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -329,6 +343,7 @@ services:
       - growth
 
   analytics-consumer:
+    image: ghcr.io/suleymanmyradov/growth-server-analytics-consumer:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -354,9 +369,32 @@ services:
     networks:
       - growth
 
+  # ===================== Migrations (one-shot) =====================
+  # Run explicitly: docker compose ... run --rm migrate up
+  # CI deploys (deploy/deploy.sh) run it before restarting services.
+
+  migrate:
+    image: ghcr.io/suleymanmyradov/growth-server-migrations:${BACKEND_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.migrate
+    command: ["-path=/migrations", "-database", "${DATABASE_URL}", "up"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    networks:
+      - growth
+
   # ===================== API gateways =====================
 
   gateway:
+    image: ghcr.io/suleymanmyradov/growth-server-gateway:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -389,6 +427,7 @@ services:
       - growth
 
   ai-gateway:
+    image: ghcr.io/suleymanmyradov/growth-server-ai-gateway:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -419,6 +458,7 @@ services:
       - growth
 
   adminway:
+    image: ghcr.io/suleymanmyradov/growth-server-adminway:${BACKEND_TAG:-latest}
     build:
       context: ..
       dockerfile: deploy/Dockerfile.golang
@@ -455,6 +495,7 @@ services:
   # ===================== Web frontends =====================
 
   frontend:
+    image: ghcr.io/suleymanmyradov/self-dev:${FRONTEND_TAG:-latest}
     build:
       context: ../../self-dev
       dockerfile: Dockerfile
@@ -484,6 +525,7 @@ services:
       - growth
 
   admin-frontend:
+    image: ghcr.io/suleymanmyradov/growth-admin-front:${ADMIN_TAG:-latest}
     build:
       context: ../../growth-admin-front
       dockerfile: Dockerfile
