@@ -1,0 +1,10 @@
+# One-shot DB migration image: golang-migrate CLI + versioned SQL migrations.
+# Run: docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod run --rm migrate up
+# CI deploys run it automatically before restarting services (deploy/deploy.sh).
+
+FROM migrate/migrate:v4.20.1
+
+COPY sql/migrations_v2 /migrations
+
+# golang-migrate's entrypoint is /migrate; compose supplies
+# ["-path=/migrations", "-database", "${DATABASE_URL}", "up"].
