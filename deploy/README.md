@@ -5,6 +5,51 @@ Current target: **UpCloud `STARTER-4xCPU-8GB`** (4 vCPU, 8 GB RAM, x86_64) in
 The AWS EC2 instructions below are kept as an alternative — the stack itself is
 provider-neutral Docker Compose; only VM provisioning differs.
 
+## CI/CD (current — how deploys actually happen)
+
+GitHub Actions builds every image and deploys automatically; the VM is a git
+clone of this repo (not rsync'd) and only pulls prebuilt images.
+
+- **PRs** → `test` job: `go build`, `go test`, golangci-lint, `make check-ownership`.
+- **Push to `main`** → test → build every service image (matrix, GHA-cached) →
+  push to GHCR (`ghcr.io/suleymanmyradov/growth-server-<svc>:{sha-<sha>,latest}`)
+  → SSH deploy: `deploy/deploy.sh` pulls images, runs migrations as a one-shot
+  container, recreates changed services, and health-checks the public domains.
+  Fails red (and leaves the old containers running) if any check fails.
+- Frontends deploy the same way from their own repos (`self-dev`,
+  `growth-admin-front`): image build → pull → recreate only that service.
+- The VM at `/home/ubuntu/growth-server` is a **git clone of origin/main**;
+  `deploy.sh` does `git fetch && git reset --hard origin/main` each deploy.
+  `deploy/.env.prod` and `logs/` are gitignored and survive resets.
+
+Required repo secrets (all three repos): `DEPLOY_SSH_KEY` (dedicated deploy
+key, `~/.ssh/growth-deploy-key` locally, pubkey in the VM's
+`authorized_keys`), `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_KNOWN_HOSTS`.
+
+**Rollback** — every build is tagged with its commit SHA:
+
+```bash
+ssh root@194.113.74.65
+cd /home/ubuntu/growth-server
+BACKEND_TAG=sha-<old-sha> docker compose -f deploy/docker-compose.prod.yml \
+  --env-file deploy/.env.prod --profile admin up -d --no-deps <services>
+# frontends: FRONTEND_TAG=sha-<sha> ... up -d --no-deps frontend
+#            ADMIN_TAG=sha-<sha>   ... up -d --no-deps admin-frontend
+```
+
+**Manual deploy** (if CI is down): `git pull` on the VM, then run the steps of
+`deploy/deploy.sh` by hand (pull → `run --rm -T migrate` → `up -d`).
+
+Notes:
+- GHCR images are private; the free tier includes 500 MB of package storage.
+  The workflows prune old versions (keep 3). If pushes ever fail on quota,
+  flip the packages public in the GitHub UI (Packages → Package settings →
+  Danger Zone) — the repos are public, so public images leak nothing new.
+  Visibility cannot be changed via the REST API.
+- Builds run on GitHub runners (GHA-cached, ~2 min per service, all in
+  parallel); the VM only pulls. The `build:` blocks in the compose file are
+  kept as an emergency fallback for building on the VM.
+
 ## UpCloud deployment (current)
 
 Prereqs: `upctl` CLI (`brew tap UpCloudLtd/tap && brew install upcloud-cli`),

@@ -127,6 +127,10 @@ make swagger-api      # regenerate gateway Swagger spec (Swagger 2.0, goctl)
 make swagger-combined # build unified OpenAPI 3.0 spec (gateway + ai-gateway + custom transports; used by mobile openapi-typescript)
 ```
 
+## Deployment (automated — do not rsync)
+
+Production deploys are fully automated via GitHub Actions (`.github/workflows/ci.yml`): pushing to `main` runs build/test/lint, builds every service image into GHCR (`ghcr.io/suleymanmyradov/growth-server-<svc>:sha-<sha>`), then SSH-deploys to the VM (pull → one-shot `migrate` container → recreate changed services → health checks). The VM at `/home/ubuntu/growth-server` is a git clone of `origin/main`, not an rsync target. Rollback = redeploy a previous `sha-<sha>` tag (see `deploy/README.md`). The frontends (`self-dev`, `growth-admin-front`) have their own pipelines that rebuild and recreate only their containers.
+
 ## Conventions & expectations
 
 - Follow the Uber Go Style Guide (enforced via golangci-lint). Wrap errors with context; validate inputs at the logic layer (`pkg/validator`).
