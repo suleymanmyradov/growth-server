@@ -144,15 +144,9 @@ jobs:
           printf '%s' "$GHCR_TOKEN" | ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" \
             "docker login $REGISTRY -u '${{ github.actor }}' --password-stdin" >/dev/null
           ssh -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" 'bash -s' < deploy/deploy.sh
-      - name: Make GHCR images public (free storage for public repo)
-        if: success()
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for svc in auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway migrations; do
-            gh api -X PATCH "/user/packages/container/growth-server-$svc" -f visibility=public >/dev/null 2>&1 || true
-          done
+      # NOTE: GHCR visibility can't be changed via REST API (UI-only), so these
+      # packages stay private. The prune step keeps storage within the free
+      # tier; if quota becomes an issue, flip packages public in the GitHub UI.
       - name: Prune old image versions (keep 3)
         if: always()
         continue-on-error: true
@@ -160,7 +154,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           for svc in auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway migrations; do
-            gh api --paginate "/user/packages/container/growth-server-$svc/versions" --jq '.[].id' 2>/dev/null \
+            gh api --paginate "/user/packages/container/growth-server-$svc/versions" --jq '.[].id' \
               | tail -n +4 \
               | while read -r id; do gh api -X DELETE "/user/packages/container/growth-server-$svc/versions/$id" || true; done
           done
