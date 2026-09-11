@@ -61,7 +61,39 @@ AI:
         classifier: ${AI_FB3_CLASSIFIER}
         chat: ${AI_FB3_CHAT}
         fallback: ${AI_FB3_FALLBACK}
-
+  # Per-1K-token USD rates, deliberately OVERestimated so the internal cost
+  # counter runs ahead of real Google AI Studio billing and the global cap
+  # trips before real spend reaches it.
+  cost_rates:
+    gemini-flash-latest:
+      prompt_per_1k: 0.0003
+      completion_per_1k: 0.0025
+    gemini-flash-lite-latest:
+      prompt_per_1k: 0.0001
+      completion_per_1k: 0.0005
+    gemini-3.1-flash-lite:
+      prompt_per_1k: 0.0001
+      completion_per_1k: 0.0005
+    gemini-3.5-flash-lite:
+      prompt_per_1k: 0.0001
+      completion_per_1k: 0.0005
+    gemini-3.5-flash:
+      prompt_per_1k: 0.0003
+      completion_per_1k: 0.0025
+    gemini-3-flash-preview:
+      prompt_per_1k: 0.0003
+      completion_per_1k: 0.0025
+    gemma-4-31b-it:
+      prompt_per_1k: 0.0001
+      completion_per_1k: 0.0005
+  # Hard spend guardrails: per-user daily token cap + platform-wide daily
+  # cost cap. Checks fail CLOSED (Redis down = AI calls blocked).
+  quota:
+    redis_addr: redis:6379
+    redis_password: ${REDIS_PASSWORD}
+    redis_db: 0
+    user_daily_token_cap: 1000000
+    global_daily_cost_cap_usd: 5
 Speech:
   api_key: ${AI_API_KEY}
   base_url: ${AI_SPEECH_BASE_URL}

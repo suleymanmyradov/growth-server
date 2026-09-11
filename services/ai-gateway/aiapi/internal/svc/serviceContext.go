@@ -13,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
+	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/middleware"
 	aicoachrpc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client"
@@ -88,7 +89,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	limiters := sharedmw.BuildRateLimiters(c.RateLimit)
 
-	aiClient, err := ai.New(c.AI)
+	// Quota store (optional). Wired when AI.quota.redis_addr is set; the
+	// agentic coaching path is the most expensive AI surface, so it must
+	// honour the per-user token cap and global daily cost cap.
+	aiOpts := []ai.Option{}
+	if c.AI.Quota.RedisAddr != "" {
+		quotaRedis, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
+		if err == nil {
+			aiOpts = append(aiOpts, ai.WithQuotaStore(ai.NewRedisQuotaStore(quotaRedis)))
+		} else {
+			logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
+		}
+	}
+	aiClient, err := ai.New(c.AI, aiOpts...)
 	if err != nil {
 		logx.Must(fmt.Errorf("failed to create AI client: %w", err))
 	}
