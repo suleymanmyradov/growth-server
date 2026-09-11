@@ -147,6 +147,8 @@ jobs:
       - name: Make GHCR images public (free storage for public repo)
         if: success()
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           for svc in auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway migrations; do
             gh api -X PATCH "/user/packages/container/growth-server-$svc" -f visibility=public >/dev/null 2>&1 || true
@@ -154,6 +156,8 @@ jobs:
       - name: Prune old image versions (keep 3)
         if: always()
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           for svc in auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway migrations; do
             gh api --paginate "/user/packages/container/growth-server-$svc/versions" --jq '.[].id' 2>/dev/null \
