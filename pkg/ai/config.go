@@ -40,8 +40,8 @@ var requiredProfiles = []ModelProfile{
 
 // CostRate describes the per-1K-token cost in USD for a model.
 type CostRate struct {
-	PromptPer1K     float64
-	CompletionPer1K float64
+	PromptPer1K     float64 `json:"prompt_per_1k,optional"`
+	CompletionPer1K float64 `json:"completion_per_1k,optional"`
 }
 
 // FallbackPolicy controls automatic retry with a fallback model.

@@ -131,7 +131,7 @@ AI:
 
 - **Per-user daily token cap**: Redis-backed, returns `ErrQuotaExceeded` when exceeded
 - **Global daily spend cap**: Redis-backed, tracked in microdollars
-- **Fail-open**: If Redis is unavailable, calls proceed (with error log)
+- **Fail-closed**: If Redis is unavailable or errors, calls are blocked (with error log)
 
 ## Testing
 
