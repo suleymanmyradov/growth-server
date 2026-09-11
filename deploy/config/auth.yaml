@@ -3,6 +3,24 @@
 Name: auth.rpc
 ListenOn: 0.0.0.0:9081
 
+# Never log request payloads for methods that carry credentials — the stat
+# interceptor otherwise dumps the full request (passwords, tokens, OAuth
+# codes) into the logs. Slow calls still get logged, without content.
+Middlewares:
+  StatConf:
+    IgnoreContentMethods:
+      - /auth.AuthService/Register
+      - /auth.AuthService/Login
+      - /auth.AuthService/RefreshToken
+      - /auth.AuthService/Logout
+      - /auth.AuthService/VerifyAccessToken
+      - /auth.AuthService/ChangePassword
+      - /auth.AuthService/ForgotPassword
+      - /auth.AuthService/ResetPassword
+      - /auth.AuthService/VerifyEmail
+      - /auth.AuthService/GoogleLogin
+      - /auth.AuthService/AppleLogin
+
 Postgres:
   Datasource: ${POSTGRES_DATASOURCE}
   MaxOpenConns: 25
