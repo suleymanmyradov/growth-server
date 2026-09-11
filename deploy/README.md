@@ -241,10 +241,25 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod --project-directo
 ```
 
 ### PostgreSQL backup
+Automated: nightly `pg_dump -Fc` at 04:00 UTC via systemd timer
+(`growth-backup.timer`), 7-day retention, stored in `/home/ubuntu/backups/`
+(script: `deploy/scripts/backup-postgres.sh`). Check status with
+`systemctl list-timers growth-backup.timer`; dumps land in
+`/home/ubuntu/backups/`.
+
+Manual ad-hoc dump:
 ```bash
-docker exec deploy-postgres-1 pg_dump -U growthmind growthmind | gzip > backup_$(date +%Y%m%d).sql.gz
+docker exec deploy-postgres-1 pg_dump -U growthmind -d growthmind -Fc > backup_$(date +%Y%m%d).dump
 ```
-(Cron this — see beforeprod.md #18 for the full backup/DR gap.)
+
+Restore:
+```bash
+docker exec -i deploy-postgres-1 pg_restore -U growthmind -d growthmind \
+  --clean --if-exists < /home/ubuntu/backups/growthmind-<ts>.dump
+```
+
+Backups are local to the VM — copy one off-box periodically (e.g. `scp`) until
+off-site storage (R2/UpCloud object storage) is wired up.
 
 ### Secrets
 All secrets live in `deploy/.env.prod` on the VM (chmod 600, gitignored).

@@ -21,6 +21,16 @@ JWT:
   Issuer: ${JWT_ISSUER}
   Audience: ${JWT_AUDIENCE}
 
+# Reminder/broadcast email delivery (habit reminders, digests). Verification
+# email is sent by the auth service; this enables the notifications worker's
+# own email channel via the same Resend account.
+Email:
+  Enabled: true
+  Provider: resend
+  APIKey: ${RESEND_API_KEY}
+  FromAddress: ${EMAIL_FROM_ADDRESS}
+  FrontendBaseURL: ${APP_URL}
+
 ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
