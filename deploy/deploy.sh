@@ -41,11 +41,12 @@ echo "==> Pulling images"
 "${COMPOSE[@]}" pull "${BACKEND_SERVICES[@]}" migrate
 
 echo "==> Running migrations"
-# -T: without it, `compose run` attaches stdin and CONSUMES the rest of this
-# script (the script itself is piped in over SSH), so the deploy would stop
-# silently after migrations. No trailing args either: `compose run <svc> cmd`
-# would REPLACE the service command (which carries -path/-database/up).
-"${COMPOSE[@]}" run --rm -T migrate
+# -T + </dev/null: `compose run` attaches stdin by default and would CONSUME
+# the rest of this script (the script itself is piped in over SSH), so the
+# deploy silently stopped after migrations. No trailing args either:
+# `compose run <svc> cmd` would REPLACE the service command (which carries
+# -path/-database/up).
+"${COMPOSE[@]}" run --rm -T migrate < /dev/null
 
 echo "==> Recreating changed services"
 "${COMPOSE[@]}" up -d --no-deps "${BACKEND_SERVICES[@]}" caddy
