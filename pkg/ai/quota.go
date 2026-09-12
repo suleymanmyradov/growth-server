@@ -14,6 +14,9 @@ import (
 type QuotaStore interface {
 	// CheckUserQuota returns false if the user has exceeded their daily token cap.
 	CheckUserQuota(ctx context.Context, userID string, cap int64) (ok bool, err error)
+	// UserDailyTokens returns the user's token usage for the current UTC day.
+	// Used by edge enforcement layers that share the same counters.
+	UserDailyTokens(ctx context.Context, userID string) (int64, error)
 	// IncrUserTokens increments the user's daily token count.
 	IncrUserTokens(ctx context.Context, userID string, tokens int64) error
 	// CheckGlobalQuota returns false if the global daily cost cap is exceeded.
@@ -47,6 +50,18 @@ func (s *redisQuotaStore) CheckUserQuota(ctx context.Context, userID string, cap
 		return false, fmt.Errorf("ai.QuotaStore: get user quota: %w", err)
 	}
 	return val < cap, nil
+}
+
+func (s *redisQuotaStore) UserDailyTokens(ctx context.Context, userID string) (int64, error) {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	key := dailyKey("user", userID)
+	val, err := s.client.Get(ctx, key).Int64()
+	if err != nil && err != redis.Nil {
+		return 0, fmt.Errorf("ai.QuotaStore: get user quota: %w", err)
+	}
+	return val, nil
 }
 
 func (s *redisQuotaStore) IncrUserTokens(ctx context.Context, userID string, tokens int64) error {
@@ -93,6 +108,9 @@ type noopQuotaStore struct{}
 
 func (noopQuotaStore) CheckUserQuota(_ context.Context, _ string, _ int64) (bool, error) {
 	return true, nil
+}
+func (noopQuotaStore) UserDailyTokens(_ context.Context, _ string) (int64, error) {
+	return 0, nil
 }
 func (noopQuotaStore) IncrUserTokens(_ context.Context, _ string, _ int64) error { return nil }
 func (noopQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error) { return true, nil }

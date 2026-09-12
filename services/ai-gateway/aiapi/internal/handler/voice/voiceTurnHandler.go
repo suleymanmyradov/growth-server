@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/personalization"
@@ -52,6 +53,14 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		p, ok := principal.PrincipalFrom(r.Context())
 		if !ok {
 			errors.HandleGrpcError(w, status.Error(codes.Unauthenticated, "not authenticated"))
+			return
+		}
+
+		// Plan-aware daily token cap, enforced at the edge before any AI work
+		// (including STT, which is not token-metered but always precedes the
+		// coaching turn).
+		if err := svcCtx.CheckDailyTokenQuota(r.Context(), p.UserID); err != nil {
+			sse.NewWriter(w).WriteError(ai.UserFacingMessage(err))
 			return
 		}
 

@@ -87,6 +87,14 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
+		// Plan-aware daily token cap, enforced at the edge before any AI work.
+		// Placed after the cached-review return so existing reviews stay
+		// readable even when the user is capped out.
+		if err := svcCtx.CheckDailyTokenQuota(r.Context(), p.UserID); err != nil {
+			sse.NewWriter(w).WriteError(ai.UserFacingMessage(err))
+			return
+		}
+
 		// Step 2: Open the ai-coach streaming RPC directly.
 		aiReq := weeklyreview.BuildWeeklyReviewAIRequest(prepResp.Data)
 		logx.WithContext(r.Context()).Infof("SSE stream: opening ai-coach stream for user=%s", p.UserID)

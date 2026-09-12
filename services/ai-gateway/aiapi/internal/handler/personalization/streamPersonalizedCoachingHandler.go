@@ -3,6 +3,7 @@ package personalization
 import (
 	"net/http"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/personalization"
@@ -43,6 +44,12 @@ func StreamPersonalizedCoachingHandler(svcCtx *svc.ServiceContext) http.HandlerF
 		p, ok := principal.PrincipalFrom(r.Context())
 		if !ok {
 			errors.HandleGrpcError(w, status.Error(codes.Unauthenticated, "not authenticated"))
+			return
+		}
+
+		// Plan-aware daily token cap, enforced at the edge before any AI work.
+		if err := svcCtx.CheckDailyTokenQuota(r.Context(), p.UserID); err != nil {
+			sse.NewWriter(w).WriteEvent("error", map[string]string{"message": ai.UserFacingMessage(err)})
 			return
 		}
 

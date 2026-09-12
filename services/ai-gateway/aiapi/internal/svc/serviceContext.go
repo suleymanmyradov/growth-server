@@ -4,7 +4,9 @@
 package svc
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
@@ -19,6 +21,7 @@ import (
 	aicoachrpc "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/client"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
 	clientrpc "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client"
+	clientbilling "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/billingservice"
 	searchservice "github.com/suleymanmyradov/growth-server/services/microservices/search/rpc/searchservice"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/rest"
@@ -41,6 +44,78 @@ type ServiceContext struct {
 	// AIClient is the LLM client for the agentic coaching flow.
 	AIClient   ai.Client
 	Classifier safety.Classifier
+	// QuotaStore is the shared Redis quota counter store (same counters the
+	// AI clients record usage into). Nil when AI.quota.redis_addr is unset —
+	// edge quota checks then pass through and only the internal pkg/ai
+	// backstop applies.
+	QuotaStore ai.QuotaStore
+	// planCapCache caches per-user plan→cap decisions for planCapCacheTTL so
+	// bursty AI traffic does not hammer the client billing RPC.
+	planCapCache sync.Map
+}
+
+// planCapCacheTTL is how long a resolved per-user token cap is reused.
+const planCapCacheTTL = time.Minute
+
+type planCapEntry struct {
+	cap       int64
+	expiresAt time.Time
+}
+
+// DailyTokenCap resolves the per-user daily AI token cap from the user's
+// plan: an active Pro subscription gets the configured default cap, everyone
+// else gets FreeUserDailyTokenCap. When plan-aware caps are not configured
+// (free cap unset) or the billing lookup fails, the default cap applies —
+// the global daily cost cap still bounds total platform spend.
+func (s *ServiceContext) DailyTokenCap(ctx context.Context, userID string) int64 {
+	defaultCap := s.Config.AI.Quota.UserDailyTokenCap
+	freeCap := s.Config.AI.Quota.FreeUserDailyTokenCap
+	if freeCap <= 0 {
+		return defaultCap
+	}
+	if entry, ok := s.planCapCache.Load(userID); ok {
+		if e, ok := entry.(planCapEntry); ok && time.Now().Before(e.expiresAt) {
+			return e.cap
+		}
+	}
+
+	cap := freeCap
+	resp, err := s.ClientRpc.BillingService.GetBillingOverview(ctx, &clientbilling.GetBillingOverviewRequest{})
+	if err != nil {
+		logx.WithContext(ctx).Errorf("ai quota: billing lookup failed for user %s, applying free cap: %v", userID, err)
+	} else if ent := resp.GetEntitlements(); ent != nil && ent.GetPlanCode() == "pro" {
+		switch ent.GetStatus() {
+		case "active", "trialing", "past_due":
+			cap = defaultCap
+		}
+	}
+
+	s.planCapCache.Store(userID, planCapEntry{cap: cap, expiresAt: time.Now().Add(planCapCacheTTL)})
+	return cap
+}
+
+// CheckDailyTokenQuota enforces the plan-aware daily token cap at the edge,
+// before any AI work is dispatched. Usage is recorded into the same Redis
+// counters by the AI clients, so this reads the shared counter. Best-effort:
+// if the quota store is unavailable the check passes — the fail-closed
+// per-call check inside pkg/ai still applies.
+func (s *ServiceContext) CheckDailyTokenQuota(ctx context.Context, userID string) error {
+	if s.QuotaStore == nil {
+		return nil
+	}
+	cap := s.DailyTokenCap(ctx, userID)
+	if cap <= 0 {
+		return nil
+	}
+	ok, err := s.QuotaStore.CheckUserQuota(ctx, userID, cap)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("ai quota: edge check error for user %s: %v", userID, err)
+		return nil
+	}
+	if !ok {
+		return ai.ErrQuotaExceeded
+	}
+	return nil
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -91,12 +166,15 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	// Quota store (optional). Wired when AI.quota.redis_addr is set; the
 	// agentic coaching path is the most expensive AI surface, so it must
-	// honour the per-user token cap and global daily cost cap.
+	// honour the per-user token cap and global daily cost cap. The same
+	// store is kept on the ServiceContext for edge quota checks.
+	var quotaStore ai.QuotaStore
 	aiOpts := []ai.Option{}
 	if c.AI.Quota.RedisAddr != "" {
 		quotaRedis, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
 		if err == nil {
-			aiOpts = append(aiOpts, ai.WithQuotaStore(ai.NewRedisQuotaStore(quotaRedis)))
+			quotaStore = ai.NewRedisQuotaStore(quotaRedis)
+			aiOpts = append(aiOpts, ai.WithQuotaStore(quotaStore))
 		} else {
 			logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
 		}
@@ -139,5 +217,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		SearchRpc:  searchRpc,
 		AIClient:   aiClient,
 		Classifier: classifier,
+		QuotaStore: quotaStore,
 	}
 }
