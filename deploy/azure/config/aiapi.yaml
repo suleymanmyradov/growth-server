@@ -67,6 +67,19 @@ AI:
     enabled: true
     max_failures: 2
   fallback_providers:
+    # OpenRouter -> DeepSeek V4 Flash 0731: first fallback for Google free-tier
+    # rate limits (429/RESOURCE_EXHAUSTED). Different provider + prepaid credits,
+    # so failover actually works when the whole Google quota is exhausted.
+    - api_key: ${OPENROUTER_API_KEY}
+      base_url: https://openrouter.ai/api/v1
+      http_referer: ${APP_URL}
+      x_title: evolella
+      models:
+        cheap: deepseek/deepseek-v4-flash-0731
+        cheap_long: deepseek/deepseek-v4-flash-0731
+        classifier: deepseek/deepseek-v4-flash-0731
+        chat: deepseek/deepseek-v4-flash-0731
+        fallback: deepseek/deepseek-v4-flash-0731
     - api_key: ${AI_API_KEY}
       base_url: ${AI_BASE_URL}
       models:
@@ -97,6 +110,9 @@ AI:
   # Jan 1 2027 its price doubles to 0.0015/0.0075 — update then (or pin an
   # exact model version).
   cost_rates:
+    deepseek/deepseek-v4-flash-0731:
+      prompt_per_1k: 0.00004
+      completion_per_1k: 0.00008
     gemini-flash-latest:
       prompt_per_1k: 0.0008
       completion_per_1k: 0.004
