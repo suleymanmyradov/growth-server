@@ -49,7 +49,10 @@ echo "==> Running migrations"
 "${COMPOSE[@]}" run --rm -T migrate < /dev/null
 
 echo "==> Recreating changed services"
-"${COMPOSE[@]}" up -d --no-deps "${BACKEND_SERVICES[@]}" caddy
+# --force-recreate: deploy/config/*.yaml are bind-mounted, not baked into the
+# image, so compose sees no container definition change on config-only deploys
+# and would silently keep running the old config.
+"${COMPOSE[@]}" up -d --no-deps --force-recreate "${BACKEND_SERVICES[@]}" caddy
 
 echo "==> Health checks"
 check() { curl -fsS --max-time 5 -o /dev/null "$1"; }
