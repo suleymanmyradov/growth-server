@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/types"
@@ -49,6 +50,13 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(req *types.GenerateWeek
 	// If a cached review exists, return it directly.
 	if prepResp.ExistingReview != nil {
 		return &types.WeeklyReviewResponse{Data: ProtoToWeeklyReview(prepResp.ExistingReview)}, nil
+	}
+
+	// Plan-aware daily token cap, enforced at the edge before any AI work.
+	// Placed after the cached-review return so existing reviews stay readable
+	// even when the user is capped out.
+	if err := l.svcCtx.CheckDailyTokenQuota(l.ctx, p.UserID); err != nil {
+		return nil, status.Error(codes.ResourceExhausted, ai.UserFacingMessage(err))
 	}
 
 	if prepResp.Data == nil {

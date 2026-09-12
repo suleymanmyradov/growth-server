@@ -141,6 +141,9 @@ type mockQuotaStore struct {
 func (m *mockQuotaStore) CheckUserQuota(_ context.Context, _ string, _ int64) (bool, error) {
 	return m.userOK, m.userErr
 }
+func (m *mockQuotaStore) UserDailyTokens(_ context.Context, _ string) (int64, error) {
+	return 0, nil
+}
 func (m *mockQuotaStore) IncrUserTokens(_ context.Context, _ string, _ int64) error { return nil }
 func (m *mockQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error) {
 	return m.globalOK, m.globalErr

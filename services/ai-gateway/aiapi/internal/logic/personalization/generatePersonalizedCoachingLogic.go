@@ -7,6 +7,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/types"
@@ -36,6 +37,11 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(req *ty
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "missing principal")
+	}
+
+	// Plan-aware daily token cap, enforced at the edge before any AI work.
+	if err := l.svcCtx.CheckDailyTokenQuota(l.ctx, p.UserID); err != nil {
+		return nil, status.Error(codes.ResourceExhausted, ai.UserFacingMessage(err))
 	}
 
 	// Fetch the personalization context from the client RPC (DB-backed).

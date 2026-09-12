@@ -123,8 +123,14 @@ type QuotaConfig struct {
 	// RedisDB selects the Redis database number.
 	RedisDB int `json:"redis_db,optional"`
 	// UserDailyTokenCap is the max tokens a single user can consume per day.
-	// 0 means unlimited.
+	// 0 means unlimited. This is the default (paid/Pro) cap; edge layers may
+	// substitute FreeUserDailyTokenCap for non-Pro users.
 	UserDailyTokenCap int64 `json:"user_daily_token_cap,optional"`
+	// FreeUserDailyTokenCap is the daily token cap for users NOT on an active
+	// paid plan. 0 means "use UserDailyTokenCap for everyone" (no plan-aware
+	// differentiation). Enforced at the API edge (ai-gateway); the per-call
+	// backstop in checkQuota always uses UserDailyTokenCap.
+	FreeUserDailyTokenCap int64 `json:"free_user_daily_token_cap,optional"`
 	// GlobalDailyCostCapUSD is the max total spend across all users per day.
 	// 0 means unlimited.
 	GlobalDailyCostCapUSD float64 `json:"global_daily_cost_cap_usd,optional"`
