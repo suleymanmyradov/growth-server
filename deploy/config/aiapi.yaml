@@ -68,9 +68,21 @@ AI:
     enabled: true
     max_failures: 2
   fallback_providers:
-    # OpenRouter -> DeepSeek V4 Flash 0731: first fallback for Google free-tier
-    # rate limits (429/RESOURCE_EXHAUSTED). Different provider + prepaid credits,
-    # so failover actually works when the whole Google quota is exhausted.
+    # OpenRouter fallbacks for Google free-tier rate limits (429/RESOURCE_
+    # EXHAUSTED). Different provider + prepaid credits, so failover actually
+    # works when the whole Google quota is exhausted. GLM-5.3-Flash first:
+    # AA intelligence 57 (vs DeepSeek 0731 at 52, Gemini 3.8 Flash at 41) at
+    # $0.075/$0.25 per 1M. DeepSeek 0731 kept as an independent-lab second.
+    - api_key: ${OPENROUTER_API_KEY}
+      base_url: https://openrouter.ai/api/v1
+      http_referer: ${APP_URL}
+      x_title: evolella
+      models:
+        cheap: z-ai/glm-flash-latest
+        cheap_long: z-ai/glm-flash-latest
+        classifier: z-ai/glm-flash-latest
+        chat: z-ai/glm-flash-latest
+        fallback: z-ai/glm-flash-latest
     - api_key: ${OPENROUTER_API_KEY}
       base_url: https://openrouter.ai/api/v1
       http_referer: ${APP_URL}
@@ -111,6 +123,9 @@ AI:
   # Jan 1 2027 its price doubles to 0.0015/0.0075 — update then (or pin an
   # exact model version).
   cost_rates:
+    z-ai/glm-flash-latest:
+      prompt_per_1k: 0.000075
+      completion_per_1k: 0.00025
     deepseek/deepseek-v4-flash-0731:
       prompt_per_1k: 0.00004
       completion_per_1k: 0.00008
