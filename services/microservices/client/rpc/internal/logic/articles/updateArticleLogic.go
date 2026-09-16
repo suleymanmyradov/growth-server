@@ -53,9 +53,12 @@ func (l *UpdateArticleLogic) UpdateArticle(in *client.UpdateArticleRequest) (*cl
 		imageUrl = &in.CoverImage
 	}
 
-	articleStatus := in.Status
-	if articleStatus == "" {
-		articleStatus = "published"
+	// Empty status means "keep current" (enforced by the UPDATE query); only
+	// draft and published are valid explicit transitions.
+	switch in.Status {
+	case "", "draft", "published":
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid article status")
 	}
 
 	row, err := l.svcCtx.Repo.Articles.UpdateArticle(ctx, db.UpdateArticleParams{
@@ -67,7 +70,7 @@ func (l *UpdateArticleLogic) UpdateArticle(in *client.UpdateArticleRequest) (*cl
 		ReadTimeMinutes: in.ReadTime,
 		ImageUrl:        imageUrl,
 		Author:          in.AuthorId,
-		Status:          articleStatus,
+		Status:          in.Status,
 	})
 	if err != nil {
 		l.Errorf("update article failed: %v", err)

@@ -27,12 +27,23 @@ var uploadPolicy = map[string]map[string]bool{
 	"exports":  {"text/plain": true}, // JSON export payloads sniff as text/plain
 }
 
+// canonicalExt maps each allowed content type to the extension used in the
+// object key, so bytes, Content-Type metadata, and key always agree.
+var canonicalExt = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+	"image/webp": ".webp",
+	"image/gif":  ".gif",
+	"text/plain": ".txt",
+}
+
 // validateUpload enforces the per-folder content-type allowlist. It sniffs the
-// payload so a mislabeled HTML/SVG file cannot pass as an image.
-func validateUpload(folder string, data []byte) error {
+// payload so a mislabeled HTML/SVG file cannot pass as an image, and returns
+// the detected type — the only Content-Type the object may be stored with.
+func validateUpload(folder string, data []byte) (string, error) {
 	allowed, ok := uploadPolicy[folder]
 	if !ok {
-		return fmt.Errorf("folder %q is not permitted for uploads", folder)
+		return "", fmt.Errorf("folder %q is not permitted for uploads", folder)
 	}
 
 	sniff := data
@@ -44,9 +55,9 @@ func validateUpload(folder string, data []byte) error {
 		detected = strings.TrimSpace(detected[:i])
 	}
 	if !allowed[detected] {
-		return fmt.Errorf("content type %q is not allowed in folder %q", detected, folder)
+		return "", fmt.Errorf("content type %q is not allowed in folder %q", detected, folder)
 	}
-	return nil
+	return detected, nil
 }
 
 type UploadFileLogic struct {
@@ -72,16 +83,20 @@ func (l *UploadFileLogic) UploadFile(in *filemanager.UploadFileRequest) (*filema
 		return nil, fmt.Errorf("minio default bucket not configured")
 	}
 
-	if err := validateUpload(in.Folder, in.Data); err != nil {
+	contentType, err := validateUpload(in.Folder, in.Data)
+	if err != nil {
 		logx.WithContext(ctx).Errorf("upload rejected: %v", err)
 		return nil, fmt.Errorf("upload rejected: %w", err)
 	}
 
-	ext := filepath.Ext(in.Filename)
+	ext, ok := canonicalExt[contentType]
+	if !ok {
+		ext = filepath.Ext(in.Filename)
+	}
 	key := fmt.Sprintf("%s/%s%s", in.Folder, uuid.New().String(), ext)
 
-	_, err := l.svcCtx.Minio.PutObject(ctx, bucket, key, bytes.NewReader(in.Data), int64(len(in.Data)), minio.PutObjectOptions{
-		ContentType: in.ContentType,
+	_, err = l.svcCtx.Minio.PutObject(ctx, bucket, key, bytes.NewReader(in.Data), int64(len(in.Data)), minio.PutObjectOptions{
+		ContentType: contentType,
 	})
 	if err != nil {
 		logx.WithContext(ctx).Errorf("minio put object failed: %v", err)

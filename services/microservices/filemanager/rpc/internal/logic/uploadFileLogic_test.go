@@ -18,18 +18,21 @@ var (
 
 func TestValidateUpload_Allowed(t *testing.T) {
 	tests := []struct {
-		name   string
-		folder string
-		data   []byte
+		name    string
+		folder  string
+		data    []byte
+		wantTyp string
 	}{
-		{"png avatar", "avatars", pngBytes},
-		{"jpeg avatar", "avatars", jpegBytes},
-		{"gif article cover", "articles", gifBytes},
-		{"json export", "exports", jsonBytes},
+		{"png avatar", "avatars", pngBytes, "image/png"},
+		{"jpeg avatar", "avatars", jpegBytes, "image/jpeg"},
+		{"gif article cover", "articles", gifBytes, "image/gif"},
+		{"json export", "exports", jsonBytes, "text/plain"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.NoError(t, validateUpload(tt.folder, tt.data))
+			typ, err := validateUpload(tt.folder, tt.data)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantTyp, typ)
 		})
 	}
 }
@@ -50,7 +53,8 @@ func TestValidateUpload_Rejected(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Error(t, validateUpload(tt.folder, tt.data))
+			_, err := validateUpload(tt.folder, tt.data)
+			assert.Error(t, err)
 		})
 	}
 }

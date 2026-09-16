@@ -338,6 +338,8 @@ type Querier interface {
 	ToggleGoalMilestone(ctx context.Context, iD uuid.UUID, goalID uuid.UUID) (GoalMilestone, error)
 	// Remove all habit links for a goal. Call before LinkGoalHabitsBatch to replace.
 	UnlinkAllGoalHabits(ctx context.Context, goalID uuid.UUID) error
+	// Empty status means "keep the current status" so callers that don't manage
+	// the draft/published lifecycle can't silently re-publish a draft.
 	UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error)
 	UpdateCategory(ctx context.Context, iD uuid.UUID, name string, slug string, sortOrder int32) (Category, error)
 	UpdateCoachingProfileBlockers(ctx context.Context, userID uuid.UUID, commonBlockers []byte) (UpdateCoachingProfileBlockersRow, error)
