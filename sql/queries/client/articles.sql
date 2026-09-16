@@ -141,9 +141,12 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, sqlc.arg(status))
 RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
 
 -- name: UpdateArticle :one
+-- Empty status means "keep the current status" so callers that don't manage
+-- the draft/published lifecycle can't silently re-publish a draft.
 UPDATE articles
 SET title = $2, excerpt = $3, content = $4, category_id = $5,
-    read_time_minutes = $6, image_url = $7, author = $8, status = sqlc.arg(status)
+    read_time_minutes = $6, image_url = $7, author = $8,
+    status = CASE WHEN sqlc.arg(status)::text = '' THEN articles.status ELSE sqlc.arg(status)::text END
 WHERE id = $1
 RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
 

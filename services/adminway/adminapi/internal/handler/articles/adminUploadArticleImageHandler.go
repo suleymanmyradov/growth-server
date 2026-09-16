@@ -6,9 +6,7 @@ package articles
 import (
 	"context"
 	"io"
-	"mime"
 	"net/http"
-	"path/filepath"
 
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/logic/articles"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
@@ -38,20 +36,10 @@ func AdminUploadArticleImageHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 			return
 		}
 
-		contentType := header.Header.Get("Content-Type")
-		if contentType == "" {
-			ext := filepath.Ext(header.Filename)
-			contentType = mime.TypeByExtension(ext)
-			if contentType == "" {
-				contentType = "application/octet-stream"
-			}
-		}
-
 		// Pass file data to the logic layer via context.
 		ctx := context.WithValue(r.Context(), articles.UploadCtxKey{}, &articles.UploadFileData{
-			Data:        data,
-			Filename:    header.Filename,
-			ContentType: contentType,
+			Data:     data,
+			Filename: header.Filename,
 		})
 
 		l := articles.NewAdminUploadArticleImageLogic(ctx, svcCtx)

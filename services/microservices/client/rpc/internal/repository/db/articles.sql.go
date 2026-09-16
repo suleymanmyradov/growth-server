@@ -967,7 +967,8 @@ func (q *Queries) ListTags(ctx context.Context) ([]ListTagsRow, error) {
 const updateArticle = `-- name: UpdateArticle :one
 UPDATE articles
 SET title = $2, excerpt = $3, content = $4, category_id = $5,
-    read_time_minutes = $6, image_url = $7, author = $8, status = $9
+    read_time_minutes = $6, image_url = $7, author = $8,
+    status = CASE WHEN $9::text = '' THEN articles.status ELSE $9::text END
 WHERE id = $1
 RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at
 `
@@ -998,6 +999,8 @@ type UpdateArticleRow struct {
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
+// Empty status means "keep the current status" so callers that don't manage
+// the draft/published lifecycle can't silently re-publish a draft.
 func (q *Queries) UpdateArticle(ctx context.Context, arg UpdateArticleParams) (UpdateArticleRow, error) {
 	row := q.db.QueryRow(ctx, updateArticle,
 		arg.ID,
