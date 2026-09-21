@@ -1,0 +1,6 @@
+[Unit]
+Description=Nightly growth off-site backup sync
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/offsite-sync.sh
