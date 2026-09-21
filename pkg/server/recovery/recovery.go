@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/zeromicro/go-zero/core/logx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,6 +26,7 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 					logx.Field("panic", fmt.Sprintf("%v", r)),
 					logx.Field("stack", string(debug.Stack())),
 				)
+				sentryx.Capture(ctx, r)
 				err = status.Error(codes.Internal, "internal error")
 			}
 		}()

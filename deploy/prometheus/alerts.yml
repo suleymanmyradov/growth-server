@@ -1,0 +1,78 @@
+# Alert rules for the growth stack.
+# These fire inside Prometheus; to receive notifications wire an
+# Alertmanager (or Grafana alert contacts) later — Grafana's built-in
+# alerting can also evaluate these same queries.
+
+groups:
+  - name: growth-availability
+    rules:
+      - alert: ServiceDown
+        expr: up{job="growth"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.instance }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.instance }} for >2 minutes."
+
+      - alert: ContainerRestarting
+        expr: changes(container_start_time_seconds{name=~"deploy-.*"}[15m]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} restarted >2 times in 15m"
+
+  - name: growth-errors
+    rules:
+      - alert: HighHttp5xxRate
+        expr: rate(http_server_requests_code_total{code=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx rate on {{ $labels.instance }} ({{ $labels.path }})"
+          description: "HTTP 5xx responses above 0.1/s for 5 minutes."
+
+      - alert: HighRpcErrorRate
+        expr: rate(rpc_server_requests_code_total{code!="OK"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "gRPC errors on {{ $labels.instance }} ({{ $labels.method }})"
+
+      - alert: SqlErrors
+        expr: rate(sql_client_requests_error_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SQL client errors on {{ $labels.instance }}"
+
+      - alert: DLQMessages
+        expr: increase(consumer_events_dlq_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Events routed to DLQ ({{ $labels.event_type }}: {{ $labels.reason }})"
+          description: "Poison messages are landing in growth.events.dlq — investigate the consumer logs."
+
+  - name: growth-latency
+    rules:
+      - alert: HighHttpLatency
+        expr: histogram_quantile(0.95, rate(http_server_requests_duration_ms_bucket[5m])) > 2000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 HTTP latency >2s on {{ $labels.instance }}"
+
+      - alert: HighRpcLatency
+        expr: histogram_quantile(0.95, rate(rpc_server_requests_duration_ms_bucket[5m])) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 gRPC latency >1s on {{ $labels.instance }}"

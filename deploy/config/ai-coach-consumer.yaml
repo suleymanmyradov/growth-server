@@ -136,6 +136,17 @@ AI:
 
 Telemetry:
   Name: ai-coach-consumer
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
+
+Log:
+  ServiceName: ai-coach-consumer
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9110
+  Path: /metrics

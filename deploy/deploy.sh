@@ -23,7 +23,7 @@ cd "$REPO_DIR"
 git fetch origin main
 git reset --hard origin/main
 
-COMPOSE=(docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod --profile admin --profile tools)
+COMPOSE=(docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod --profile admin --profile tools --profile monitoring)
 
 # The migrate service reads DATABASE_URL from the env file. Create it once
 # from the existing Postgres credentials without printing anything.
@@ -35,10 +35,11 @@ if ! grep -q '^DATABASE_URL=' deploy/.env.prod; then
     "$PG_USER" "$PG_PASS" "$PG_DB" >> deploy/.env.prod
 fi
 
-BACKEND_SERVICES=(auth client search ai-coach filemanager notifications ai-coach-consumer search-sync gateway ai-gateway adminway)
+BACKEND_SERVICES=(auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway)
+MONITORING_SERVICES=(prometheus grafana loki promtail tempo cadvisor)
 
 echo "==> Pulling images"
-"${COMPOSE[@]}" pull "${BACKEND_SERVICES[@]}" migrate
+"${COMPOSE[@]}" pull "${BACKEND_SERVICES[@]}" migrate "${MONITORING_SERVICES[@]}"
 
 echo "==> Running migrations"
 # -T + </dev/null: `compose run` attaches stdin by default and would CONSUME
@@ -52,7 +53,7 @@ echo "==> Recreating changed services"
 # --force-recreate: deploy/config/*.yaml are bind-mounted, not baked into the
 # image, so compose sees no container definition change on config-only deploys
 # and would silently keep running the old config.
-"${COMPOSE[@]}" up -d --no-deps --force-recreate "${BACKEND_SERVICES[@]}" caddy
+"${COMPOSE[@]}" up -d --no-deps --force-recreate "${BACKEND_SERVICES[@]}" "${MONITORING_SERVICES[@]}" caddy
 
 echo "==> Health checks"
 check() { curl -fsS --max-time 5 -o /dev/null "$1"; }

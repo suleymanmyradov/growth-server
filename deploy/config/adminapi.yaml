@@ -80,6 +80,17 @@ RateLimit:
 
 Telemetry:
   Name: admin-api
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
+
+Log:
+  ServiceName: admin-api
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9103
+  Path: /metrics

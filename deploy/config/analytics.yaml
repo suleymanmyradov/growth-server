@@ -16,4 +16,15 @@ Kafka:
   Consumers: 4
 
 Telemetry:
-  Endpoint: ""
+  Endpoint: tempo:4317
+
+Log:
+  ServiceName: analytics-consumer
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9112
+  Path: /metrics

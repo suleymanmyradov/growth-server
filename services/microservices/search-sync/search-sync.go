@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/indexer"
 	"github.com/suleymanmyradov/growth-server/services/microservices/search-sync/internal/repository"
@@ -25,6 +26,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("search-sync")
+	defer sentryx.Flush()
 	c.MustSetUp()
 	logx.Infof("starting search-sync with config: %+v", configsafe.MaskSecrets(c))
 

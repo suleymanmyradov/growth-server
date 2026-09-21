@@ -11,6 +11,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/handler"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/handler/personalization"
@@ -31,6 +32,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("ai-gateway")
+	defer sentryx.Flush()
 	logx.Infof("starting ai-gateway with config: %+v", configsafe.MaskSecrets(c))
 
 	// Harden defaults if not explicitly configured in YAML
@@ -55,6 +58,7 @@ func main() {
 
 	// Order matters: rate limit first so abusive requests are rejected
 	// before auth or response-shape overhead.
+	server.Use(rest.ToMiddleware(sentryx.Middleware()))
 	server.Use(ctx.RateLimit)
 	server.Use(middleware.ResponseShapeMiddleware())
 

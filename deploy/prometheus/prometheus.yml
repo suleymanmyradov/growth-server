@@ -1,0 +1,38 @@
+# Prometheus scrape config for the growth stack.
+# Services expose /metrics on the ports below (go-zero prometheus agent,
+# configured via the `Prometheus:` block in each deploy/config/*.yaml).
+# All targets are on the `growth` docker network — no host ports needed.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    env: production
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: growth
+    static_configs:
+      - targets:
+          - gateway:9101
+          - ai-gateway:9102
+          - adminway:9103
+          - auth:9104
+          - client:9105
+          - search:9106
+          - ai-coach:9107
+          - filemanager:9108
+          - notifications:9109
+          - ai-coach-consumer:9110
+          - search-sync:9111
+          - analytics-consumer:9112
+        labels:
+          stack: growth
+
+  # Container-level CPU/mem/restart metrics.
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080

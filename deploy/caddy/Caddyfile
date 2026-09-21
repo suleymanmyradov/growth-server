@@ -110,3 +110,23 @@
 
 	reverse_proxy admin-frontend:3001
 }
+
+# Grafana dashboards (monitoring profile). Binds to localhost by default —
+# access via SSH tunnel: ssh -L 3001:localhost:3001 root@<vm-ip>.
+# To expose publicly: add a DNS record for grafana.<domain> in Cloudflare,
+# set GRAFANA_DOMAIN in deploy/.env.prod, uncomment this block, and recreate
+# caddy. Grafana's own login protects it — set a strong GF admin password.
+#
+# {$GRAFANA_DOMAIN} {
+# 	encode zstd gzip
+#
+# 	header {
+# 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# 		X-Content-Type-Options "nosniff"
+# 		X-Frame-Options "DENY"
+# 		Referrer-Policy "strict-origin-when-cross-origin"
+# 		-Server
+# 	}
+#
+# 	reverse_proxy grafana:3000
+# }
