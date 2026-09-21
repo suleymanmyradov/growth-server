@@ -82,3 +82,12 @@ Prometheus:
   Host: 127.0.0.1
   Port: 9101
   Path: /metrics
+
+DevServer:
+  Enabled: true
+  Host: 127.0.0.1
+  Port: 9201
+  HealthPath: /healthz
+  HealthResponse: ok
+  EnableMetrics: false
+  EnablePprof: false

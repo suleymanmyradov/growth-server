@@ -193,3 +193,14 @@ Prometheus:
   Host: 0.0.0.0
   Port: 9102
   Path: /metrics
+
+# Liveness probe server (go-zero DevServer) — compose healthcheck hits
+# /healthz. Metrics are served by the Prometheus agent above; pprof stays off.
+DevServer:
+  Enabled: true
+  Host: 0.0.0.0
+  Port: 9202
+  HealthPath: /healthz
+  HealthResponse: ok
+  EnableMetrics: false
+  EnablePprof: false

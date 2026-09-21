@@ -56,6 +56,28 @@ echo "==> Recreating changed services"
 "${COMPOSE[@]}" up -d --no-deps --force-recreate "${BACKEND_SERVICES[@]}" "${MONITORING_SERVICES[@]}" caddy
 
 echo "==> Health checks"
+# Per-service docker healthchecks first — they catch a service that is
+# running but wedged (the external /health check only proves Caddy is up).
+# Containers are named deploy-<svc>-1 (compose project = deploy).
+unhealthy=""
+for _ in $(seq 1 40); do
+  unhealthy=""
+  for svc in "${BACKEND_SERVICES[@]}"; do
+    status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
+      "deploy-${svc}-1" 2>/dev/null || echo missing)
+    [ "$status" = healthy ] || unhealthy="$unhealthy $svc:${status}"
+  done
+  [ -z "$unhealthy" ] && break
+  sleep 3
+done
+
+if [ -n "$unhealthy" ]; then
+  echo "!! Services failed health checks:$unhealthy" >&2
+  docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod ps >&2
+  exit 1
+fi
+echo "==> All services report healthy"
+
 check() { curl -fsS --max-time 5 -o /dev/null "$1"; }
 for _ in $(seq 1 30); do
   if check https://api.evolella.com/health \
