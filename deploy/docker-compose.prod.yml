@@ -163,7 +163,7 @@ services:
         limits:
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9204/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9204/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -196,7 +196,7 @@ services:
         limits:
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9205/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9205/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -225,7 +225,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9206/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9206/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -256,7 +256,7 @@ services:
         limits:
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9207/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9207/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -285,7 +285,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9208/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9208/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -316,7 +316,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9209/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9209/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -349,7 +349,7 @@ services:
         limits:
           memory: 256M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9110/metrics"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9110/metrics"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -382,7 +382,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9211/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9111/metrics"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -415,7 +415,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9112/metrics"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9112/metrics"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -478,7 +478,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9201/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9201/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -515,7 +515,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9202/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9202/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -556,7 +556,7 @@ services:
         limits:
           memory: 128M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9203/healthz"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9203/healthz"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -599,7 +599,7 @@ services:
         limits:
           memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -640,7 +640,7 @@ services:
         limits:
           memory: 384M
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3001/login"]
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/login"]
       interval: 15s
       timeout: 3s
       retries: 4
@@ -682,7 +682,7 @@ services:
   # ============ Observability (profile: monitoring) ============
   # Prometheus + Grafana + Loki + Promtail + Tempo + cAdvisor.
   # Grafana binds to localhost only — access via SSH tunnel:
-  #   ssh -L 3001:localhost:3001 root@<vm-ip>  →  http://localhost:3001
+  #   ssh -L 3001:localhost:3001 root@<vm-ip>  →  http://127.0.0.1:3001
   # To expose it publicly, uncomment the grafana block in the Caddyfile and
   # add a DNS record for ${GRAFANA_DOMAIN}.
 
