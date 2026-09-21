@@ -504,6 +504,7 @@ services:
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
         NEXT_PUBLIC_ENABLE_ANALYTICS: ${NEXT_PUBLIC_ENABLE_ANALYTICS:-false}
         NEXT_PUBLIC_ENABLE_PWA: ${NEXT_PUBLIC_ENABLE_PWA:-false}
+        NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -514,6 +515,10 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=${JWT_AUDIENCE}
+      # Server-side error capture (instrumentation.ts); empty = disabled.
+      # Uses the growth-web project DSN so browser + server errors share one project.
+      - SENTRY_DSN=${NEXT_PUBLIC_SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
     depends_on:
       gateway:
         condition: service_started
@@ -531,6 +536,7 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_APP_URL: ${APP_URL}
+        NEXT_PUBLIC_SENTRY_DSN: ${ADMIN_SENTRY_DSN:-}
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -545,6 +551,10 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=growth-admin
+      # Server-side error capture (instrumentation.ts); empty = disabled.
+      # Uses the growth-admin project DSN so browser + server errors share one project.
+      - SENTRY_DSN=${ADMIN_SENTRY_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
     profiles:
       - admin
     deploy:
@@ -585,6 +595,133 @@ services:
     networks:
       - growth
 
+  # ============ Observability (profile: monitoring) ============
+  # Prometheus + Grafana + Loki + Promtail + Tempo + cAdvisor.
+  # Grafana binds to localhost only — access via SSH tunnel:
+  #   ssh -L 3001:localhost:3001 root@<vm-ip>  →  http://localhost:3001
+  # To expose it publicly, uncomment the grafana block in the Caddyfile and
+  # add a DNS record for ${GRAFANA_DOMAIN}.
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  grafana:
+    image: grafana/grafana:12.0.2
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  loki:
+    image: grafana/loki:3.4.2
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  promtail:
+    image: grafana/promtail:3.4.2
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yaml
+    volumes:
+      - ./promtail/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/positions
+    depends_on:
+      - loki
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  tempo:
+    image: grafana/tempo:2.7.1
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: unless-stopped
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
 # ===================== Volumes =====================
 
 volumes:
@@ -595,6 +732,11 @@ volumes:
   minio_data:
   caddy_data:
   caddy_config:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:
+  promtail_positions:
 
 # ===================== Network =====================
 

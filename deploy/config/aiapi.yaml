@@ -179,6 +179,17 @@ RateLimit:
 
 Telemetry:
   Name: ai-gateway
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
+
+Log:
+  ServiceName: ai-gateway
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9102
+  Path: /metrics

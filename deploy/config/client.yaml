@@ -12,8 +12,8 @@ Postgres:
 
 Telemetry:
   Name: client.rpc
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
 
 Kafka:
@@ -43,3 +43,14 @@ Billing:
 
 WeeklyReview:
   RegenerationCooldown: 1s
+
+Log:
+  ServiceName: client
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9105
+  Path: /metrics

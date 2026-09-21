@@ -1,0 +1,45 @@
+# Promtail config — discovers growth-stack containers via the docker socket
+# and ships their stdout/stderr to Loki. The go-zero services emit JSON logs
+# (Log.Encoding: json in deploy/config/*.yaml), so a json pipeline stage
+# lifts the level/trace fields out for filtering in Grafana.
+
+server:
+  http_listen_port: 9080
+  log_level: warn
+
+positions:
+  filename: /positions/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # Keep only the growth stack's containers (compose project "deploy").
+      - source_labels: [__meta_docker_container_name]
+        regex: /deploy-.*
+        action: keep
+      - source_labels: [__meta_docker_container_name]
+        regex: /(.*)
+        target_label: container
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
+    pipeline_stages:
+      # App logs are JSON (logx); infra logs (postgres, caddy...) are not —
+      # tolerate parse failures so both end up in Loki.
+      - json:
+          expressions:
+            level: level
+            ts: "@timestamp"
+            caller: caller
+            duration: duration
+            trace: trace
+            span: span
+      # level is a label (low cardinality); trace/span stay in the log line
+      # — labelling them would explode the index with per-request values.
+      - labels:
+          level:

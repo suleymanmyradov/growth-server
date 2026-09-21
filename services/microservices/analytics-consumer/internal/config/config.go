@@ -3,6 +3,8 @@ package config
 import (
 	"time"
 
+	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/prometheus"
 	"github.com/zeromicro/go-zero/core/trace"
 )
 
@@ -29,4 +31,8 @@ type Config struct {
 		DB       int    `json:",optional"`
 	}
 	Telemetry trace.Config `json:",optional"`
+	// Prometheus serves /metrics when Host is set (scraped in prod).
+	Prometheus prometheus.Config `json:",optional"`
+	// Log configures logx output (JSON encoding in prod).
+	Log logx.LogConf `json:",optional"`
 }

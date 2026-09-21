@@ -39,6 +39,17 @@ Backfill: false
 
 Telemetry:
   Name: search-sync
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
+
+Log:
+  ServiceName: search-sync
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9111
+  Path: /metrics

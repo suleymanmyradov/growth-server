@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/internal/server"
@@ -26,6 +27,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("filemanager")
+	defer sentryx.Flush()
 	logx.Must(c.ServiceAuth.MustValidate())
 	ctx := svc.NewServiceContext(c)
 

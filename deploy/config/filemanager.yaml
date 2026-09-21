@@ -15,9 +15,19 @@ MinIO:
 
 Telemetry:
   Name: filemanager.rpc
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
 ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
+Log:
+  ServiceName: filemanager
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9108
+  Path: /metrics

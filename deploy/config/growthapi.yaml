@@ -70,6 +70,17 @@ RateLimit:
 
 Telemetry:
   Name: growth-gateway
-  Endpoint:
-  Sampler: 1.0
+  Endpoint: tempo:4317
+  Sampler: 0.3
   Batcher: otlpgrpc
+
+Log:
+  ServiceName: growth-gateway
+  Mode: console
+  Encoding: json
+  Level: info
+
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9101
+  Path: /metrics

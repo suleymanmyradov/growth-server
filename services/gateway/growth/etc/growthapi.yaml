@@ -77,3 +77,8 @@ Telemetry:
   Endpoint:
   Sampler: 1.0
   Batcher: otlpgrpc             # otlpgrpc | otlphttp | zipkin | file
+
+Prometheus:
+  Host: 127.0.0.1
+  Port: 9101
+  Path: /metrics

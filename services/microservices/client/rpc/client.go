@@ -8,6 +8,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/configsafe"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/pkg/server/runtime"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
@@ -45,6 +46,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("client")
+	defer sentryx.Flush()
 	logx.Infof("starting client service with config: %+v", configsafe.MaskSecrets(c))
 	ctx := svc.NewServiceContext(c)
 

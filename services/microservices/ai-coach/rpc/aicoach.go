@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/config"
 	aicoachserver "github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/server/aicoachservice"
@@ -27,6 +28,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("ai-coach")
+	defer sentryx.Flush()
 	logx.Must(c.ServiceAuth.MustValidate())
 	ctx := svc.NewServiceContext(c)
 

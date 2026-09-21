@@ -1,0 +1,36 @@
+# Tempo single-binary config — receives OTLP traces from the go-zero
+# services (Telemetry.Endpoint: tempo:4317, batcher otlpgrpc — go-zero's
+# exporter is plaintext gRPC, fine inside the docker network).
+# Local block storage, 7-day retention. Queried from Grafana.
+
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 168h
+    compacted_block_retention: 1h
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks
+    pool:
+      max_workers: 100
+      queue_depth: 10000

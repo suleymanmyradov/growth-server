@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
+	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/handler"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
@@ -25,6 +26,8 @@ func main() {
 
 	var c config.Config
 	conf.MustLoad(*configFile, &c, conf.UseEnv())
+	sentryx.Init("adminway")
+	defer sentryx.Flush()
 
 	// Install a custom error handler so gRPC status errors returned from logic
 	// layers are mapped to proper HTTP status codes with JSON bodies, instead
@@ -45,6 +48,7 @@ func main() {
 
 	// Rate limit first so abusive requests to the unauthenticated auth routes
 	// are rejected before any handler or auth overhead.
+	server.Use(rest.ToMiddleware(sentryx.Middleware()))
 	server.Use(ctx.RateLimit)
 
 	handler.RegisterHandlers(server, ctx)
