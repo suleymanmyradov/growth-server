@@ -53,9 +53,9 @@ GoogleOAuth:
   RedirectURI: ${APP_URL}/auth/callback/google
   AllowedRedirectURIs:
     - ${APP_URL}/auth/callback/google
-    - com.suleymanmyradov.growth.dev:/oauthredirect
-    - com.suleymanmyradov.growth.preview:/oauthredirect
-    - com.suleymanmyradov.growth:/oauthredirect
+    - com.evolella.app.dev:/oauthredirect
+    - com.evolella.app.preview:/oauthredirect
+    - com.evolella.app:/oauthredirect
 
 ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
