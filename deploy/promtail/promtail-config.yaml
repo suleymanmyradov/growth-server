@@ -34,7 +34,7 @@ scrape_configs:
       - json:
           expressions:
             level: level
-            ts: "@timestamp"
+            ts: '"@timestamp"'
             caller: caller
             duration: duration
             trace: trace
