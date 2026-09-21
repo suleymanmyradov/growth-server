@@ -1,0 +1,6 @@
+[Unit]
+Description=Nightly growth MinIO backup
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/backup-minio.sh

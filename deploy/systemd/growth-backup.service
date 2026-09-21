@@ -1,0 +1,6 @@
+[Unit]
+Description=Nightly growth PostgreSQL backup
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/backup-postgres.sh
