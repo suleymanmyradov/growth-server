@@ -30,6 +30,7 @@
 			/api/v1/weekly-reviews/generate \
 			/api/v1/weekly-reviews/generate-stream \
 			/api/v1/personalization/coaching \
+			/api/v1/personalization/coaching-stream \
 			/api/v1/personalization/onboarding-habits \
 			/api/v1/personalization/transcribe \
 			/api/v1/personalization/voice-turn
