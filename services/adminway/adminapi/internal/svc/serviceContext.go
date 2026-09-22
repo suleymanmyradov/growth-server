@@ -58,8 +58,11 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	if c.Auth.Secret == "" {
-		logx.Must(fmt.Errorf("Auth.Secret is required"))
+	// Adminway mints admin tokens (growth-admin audience) — it needs a signing
+	// credential. ES256 via Auth.PrivateKey is the production path; Auth.Secret
+	// alone keeps legacy HS256 mode working for local development.
+	if c.Auth.PrivateKey == "" && c.Auth.Secret == "" {
+		logx.Must(fmt.Errorf("Auth.PrivateKey (or legacy Auth.Secret) is required"))
 	}
 	if c.Auth.Issuer == "" {
 		logx.Must(fmt.Errorf("Auth.Issuer is required"))
@@ -91,6 +94,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
+		PrivateKey:            c.Auth.PrivateKey,
+		PublicKey:             c.Auth.PublicKey,
 		Secret:                c.Auth.Secret,
 		Issuer:                c.Auth.Issuer,
 		Audience:              c.Auth.Audience,
@@ -122,11 +127,10 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	return &ServiceContext{
 		Config: c,
-		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
-			Secret:   c.Auth.Secret,
-			Issuer:   c.Auth.Issuer,
-			Audience: c.Auth.Audience,
-		}),
+		// The TokenMaker doubles as the verifier — it always knows the public
+		// half of its own signing key, so admin ES256 tokens verify even when
+		// only Auth.PrivateKey is configured.
+		Auth:              sharedmw.JWTMiddleware(tokenMaker),
 		AdminAuth:         middleware.AdminAuth(),
 		RateLimit:         middleware.RateLimitMiddleware(middleware.BuildRateLimiters(c.RateLimit)),
 		TokenMaker:        tokenMaker,

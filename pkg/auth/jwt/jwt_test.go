@@ -77,7 +77,7 @@ func TestParseTokenWithoutTimeClaims(t *testing.T) {
 		"aud": []string{"test-audience"},
 		"typ": "access",
 	})
-	tokenString, err := token.SignedString([]byte(maker.secret))
+	tokenString, err := token.SignedString(maker.resolver.legacySecret)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}

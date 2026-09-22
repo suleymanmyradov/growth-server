@@ -25,6 +25,20 @@ git reset --hard origin/main
 
 COMPOSE=(docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod --profile admin --profile tools --profile monitoring)
 
+# JWT private keys live in per-service env files so they never land in
+# verifier containers' env (.env.prod is attached to every backend service).
+# Create placeholders so compose doesn't fail on a missing env_file; the
+# services fail closed at startup if no key is actually configured.
+touch deploy/.env.auth deploy/.env.adminway
+if ! grep -qs '^JWT_PRIVATE_KEY=' deploy/.env.auth deploy/.env.prod; then
+  echo "!! WARNING: JWT_PRIVATE_KEY unset (deploy/.env.auth) — auth will only" >&2
+  echo "!! sign legacy HS256 tokens while JWT_SECRET remains configured." >&2
+fi
+if ! grep -qs '^ADMIN_JWT_PRIVATE_KEY=' deploy/.env.adminway deploy/.env.prod; then
+  echo "!! WARNING: ADMIN_JWT_PRIVATE_KEY unset (deploy/.env.adminway) — adminway" >&2
+  echo "!! will only sign legacy HS256 tokens while JWT_SECRET remains configured." >&2
+fi
+
 # The migrate service reads DATABASE_URL from the env file. Create it once
 # from the existing Postgres credentials without printing anything.
 if ! grep -q '^DATABASE_URL=' deploy/.env.prod; then

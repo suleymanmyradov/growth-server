@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"strings"
 
@@ -11,26 +11,16 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-// JWTVerifierConfig holds the parameters needed to verify access tokens.
-type JWTVerifierConfig struct {
-	Secret   string
-	Issuer   string
-	Audience string
+// AccessTokenVerifier is the minimal token-verification surface the
+// middleware needs. *jwt.Verifier and *jwt.TokenMaker both satisfy it.
+type AccessTokenVerifier interface {
+	VerifyAccessToken(ctx context.Context, tokenString string) (*jwt.TokenClaims, error)
 }
 
 // JWTMiddleware returns a go-zero rest.Middleware that validates the
 // "Authorization: Bearer <token>" header, verifies the JWT, and injects the
 // authenticated principal (and raw token) into the request context.
-func JWTMiddleware(cfg JWTVerifierConfig) rest.Middleware {
-	maker, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:   cfg.Secret,
-		Issuer:   cfg.Issuer,
-		Audience: cfg.Audience,
-	}, nil)
-	if err != nil {
-		panic(fmt.Sprintf("failed to create token verifier: %v", err))
-	}
-
+func JWTMiddleware(verifier AccessTokenVerifier) rest.Middleware {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
@@ -47,7 +37,7 @@ func JWTMiddleware(cfg JWTVerifierConfig) rest.Middleware {
 
 			tokenString := parts[1]
 
-			claims, err := maker.VerifyAccessToken(r.Context(), tokenString)
+			claims, err := verifier.VerifyAccessToken(r.Context(), tokenString)
 			if err != nil {
 				errors.WriteUnauthorized(w, "invalid or expired token")
 				return

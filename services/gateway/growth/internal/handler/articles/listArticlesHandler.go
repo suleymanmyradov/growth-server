@@ -48,11 +48,11 @@ func optionalAuth(r *http.Request, svcCtx *svc.ServiceContext) context.Context {
 		return r.Context()
 	}
 
-	if svcCtx.TokenMaker == nil {
+	if svcCtx.TokenVerifier == nil {
 		return r.Context()
 	}
 
-	claims, err := svcCtx.TokenMaker.VerifyAccessToken(r.Context(), parts[1])
+	claims, err := svcCtx.TokenVerifier.VerifyAccessToken(r.Context(), parts[1])
 	if err != nil {
 		return r.Context()
 	}

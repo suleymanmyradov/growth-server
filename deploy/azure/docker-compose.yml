@@ -96,8 +96,10 @@ services:
         SERVICE_PATH: ./services/microservices/auth/rpc
     restart: unless-stopped
     command: ["-f", "/config/auth.yaml"]
+    # .env.auth carries JWT_PRIVATE_KEY — only the auth container may hold it.
     env_file:
       - .env.azure
+      - .env.auth
     volumes:
       - ./config/auth.yaml:/config/auth.yaml:ro
     depends_on:
@@ -362,8 +364,10 @@ services:
         SERVICE_PATH: ./services/adminway/adminapi
     restart: unless-stopped
     command: ["-f", "/config/adminapi.yaml"]
+    # .env.adminway carries ADMIN_JWT_PRIVATE_KEY — only adminway may hold it.
     env_file:
       - .env.azure
+      - .env.adminway
     volumes:
       - ./config/adminapi.yaml:/config/adminapi.yaml:ro
     depends_on:

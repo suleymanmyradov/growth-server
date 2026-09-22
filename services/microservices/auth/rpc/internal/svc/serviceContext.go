@@ -75,12 +75,17 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 	}
 
-	if c.JWT.Secret == "" {
-		logx.Must(fmt.Errorf("JWT.Secret is required"))
+	// This service mints tokens — it needs a signing credential. ES256 is the
+	// production path; Secret alone keeps legacy HS256 mode working for local
+	// development.
+	if c.JWT.PrivateKey == "" && c.JWT.Secret == "" {
+		logx.Must(fmt.Errorf("JWT.PrivateKey (or legacy JWT.Secret) is required"))
 	}
 
 	cancel := func() {}
 	tokenConfig := jwt.Config{
+		PrivateKey:            c.JWT.PrivateKey,
+		PublicKey:             c.JWT.PublicKey,
 		Secret:                c.JWT.Secret,
 		Issuer:                c.JWT.Issuer,
 		Audience:              c.JWT.Audience,

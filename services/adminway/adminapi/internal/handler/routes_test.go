@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/zeromicro/go-zero/rest"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	sharedmw "github.com/suleymanmyradov/growth-server/pkg/httpx/middleware"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/middleware"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
@@ -21,13 +22,16 @@ import (
 func newTestServer(t *testing.T) *rest.Serverless {
 	t.Helper()
 
+	verifier, err := jwt.NewVerifier(jwt.Config{
+		Secret:   strings.Repeat("t", 32),
+		Issuer:   "growth-auth",
+		Audience: "growth-api",
+	})
+	require.NoError(t, err)
+
 	server := rest.MustNewServer(rest.RestConf{Host: "127.0.0.1", Port: 0})
 	svcCtx := &svc.ServiceContext{
-		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
-			Secret:   strings.Repeat("t", 32),
-			Issuer:   "growth-auth",
-			Audience: "growth-api",
-		}),
+		Auth:      sharedmw.JWTMiddleware(verifier),
 		AdminAuth: middleware.AdminAuth(),
 	}
 	RegisterHandlers(server, svcCtx)

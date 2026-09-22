@@ -20,7 +20,14 @@ clone of this repo (not rsync'd) and only pulls prebuilt images.
   `growth-admin-front`): image build → pull → recreate only that service.
 - The VM at `/home/ubuntu/growth-server` is a **git clone of origin/main**;
   `deploy.sh` does `git fetch && git reset --hard origin/main` each deploy.
-  `deploy/.env.prod` and `logs/` are gitignored and survive resets.
+  `deploy/.env.prod`, `deploy/.env.auth`, `deploy/.env.adminway` and `logs/`
+  are gitignored and survive resets.
+- Env files are split so JWT private keys stay off verifier containers:
+  `.env.prod` (shared config + `JWT_PUBLIC_KEY`/`ADMIN_JWT_PUBLIC_KEY` +
+  legacy `JWT_SECRET` during the dual-verify window) is attached to every
+  backend container; `.env.auth` (`JWT_PRIVATE_KEY`) attaches only to `auth`;
+  `.env.adminway` (`ADMIN_JWT_PRIVATE_KEY`) only to `adminway`. Generate
+  keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
 
 Required repo secrets (all three repos): `DEPLOY_SSH_KEY` (dedicated deploy
 key, `~/.ssh/growth-deploy-key` locally, pubkey in the VM's
@@ -75,6 +82,8 @@ rsync -az --exclude .git --exclude bin --exclude tmp backend/   root@<IP>:/home/
 rsync -az --exclude .git --exclude node_modules --exclude .next --exclude .next-docs --exclude .turbo frontend/ root@<IP>:/home/ubuntu/self-dev/
 rsync -az --exclude .git --exclude node_modules --exclude .next --exclude .next-docs --exclude .turbo admin-frontend/ root@<IP>:/home/ubuntu/growth-admin-front/
 scp deploy/.env.prod root@<IP>:/home/ubuntu/env/growth.env   # chmod 600
+# JWT private keys go in per-service files inside deploy/ (gitignored):
+scp deploy/.env.auth deploy/.env.adminway root@<IP>:/home/ubuntu/growth-server/deploy/
 scp deploy/aws/bootstrap.sh root@<IP>:/home/ubuntu/bootstrap.sh
 
 # 4. Bootstrap (same script as AWS — installs Docker, builds 13 images
@@ -175,6 +184,8 @@ rsync -az --exclude .git --exclude node_modules --exclude .next \
 rsync -az --exclude node_modules --exclude .next frontend/ ubuntu@<IP>:self-dev/
 rsync -az --exclude node_modules --exclude .next admin-frontend/ ubuntu@<IP>:growth-admin-front/
 scp deploy/.env.prod ubuntu@<IP>:env/growth.env   # chmod 600
+# JWT private keys go in per-service files inside deploy/ (gitignored):
+scp deploy/.env.auth deploy/.env.adminway ubuntu@<IP>:growth-server/deploy/
 scp deploy/aws/bootstrap.sh ubuntu@<IP>:bootstrap.sh
 ```
 

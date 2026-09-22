@@ -59,6 +59,8 @@ Redis:
   DB: 0
 
 Auth:
+  PrivateKey: ${ADMIN_JWT_PRIVATE_KEY}
+  # Legacy HS256 fallback — dual-verify window only.
   Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
   Audience: ${JWT_AUDIENCE}

@@ -17,9 +17,13 @@ type Config struct {
 	SearchRpc        zrpc.RpcClientConf
 	FileManagerRpc   zrpc.RpcClientConf
 	Auth             struct {
-		Secret   string `json:",optional" secret:"true"`
-		Issuer   string `json:",optional"`
-		Audience string `json:",optional"`
+		// PublicKey is the ES256 public key (PEM) for verifying tokens minted
+		// by the auth service. Secret is the legacy HS256 fallback kept only
+		// for the dual-verify migration window.
+		PublicKey string `json:",optional"`
+		Secret    string `json:",optional" secret:"true"`
+		Issuer    string `json:",optional"`
+		Audience  string `json:",optional"`
 	}
 	ServiceAuth struct {
 		Secret string `json:",optional" secret:"true"`

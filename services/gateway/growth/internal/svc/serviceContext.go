@@ -27,7 +27,7 @@ type ServiceContext struct {
 	Config           config.Config
 	Auth             rest.Middleware
 	RateLimit        rest.Middleware
-	TokenMaker       *jwt.TokenMaker
+	TokenVerifier    *jwt.Verifier
 	AuthRpc          authservice.AuthService
 	NotificationsRpc notificationsClient.Notifications
 	ClientRpc        *clientrpc.Service
@@ -36,8 +36,8 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	if c.Auth.Secret == "" {
-		logx.Must(fmt.Errorf("Auth.Secret is required"))
+	if c.Auth.PublicKey == "" && c.Auth.Secret == "" {
+		logx.Must(fmt.Errorf("Auth.PublicKey (or legacy Auth.Secret) is required"))
 	}
 	if c.Auth.Issuer == "" {
 		logx.Must(fmt.Errorf("Auth.Issuer is required"))
@@ -70,23 +70,20 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	limiters := middleware.BuildRateLimiters(c.RateLimit)
 
-	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:   c.Auth.Secret,
-		Issuer:   c.Auth.Issuer,
-		Audience: c.Auth.Audience,
-	}, nil)
+	tokenVerifier, err := jwt.NewVerifier(jwt.Config{
+		PublicKey: c.Auth.PublicKey,
+		Secret:    c.Auth.Secret,
+		Issuer:    c.Auth.Issuer,
+		Audience:  c.Auth.Audience,
+	})
 	if err != nil {
-		logx.Must(fmt.Errorf("init token maker: %w", err))
+		logx.Must(fmt.Errorf("init token verifier: %w", err))
 	}
 
 	return &ServiceContext{
-		Config: c,
-		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
-			Secret:   c.Auth.Secret,
-			Issuer:   c.Auth.Issuer,
-			Audience: c.Auth.Audience,
-		}),
-		TokenMaker:       tokenMaker,
+		Config:           c,
+		Auth:             sharedmw.JWTMiddleware(tokenVerifier),
+		TokenVerifier:    tokenVerifier,
 		RateLimit:        middleware.RateLimitMiddleware(limiters),
 		AuthRpc:          authRpc,
 		NotificationsRpc: notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),

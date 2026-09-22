@@ -29,13 +29,13 @@ import (
 )
 
 type ServiceContext struct {
-	Config     config.Config
-	Auth       rest.Middleware
-	RateLimit  rest.Middleware
-	TokenMaker *jwt.TokenMaker
-	AuthRpc    authservice.AuthService
-	ClientRpc  *clientrpc.Service
-	AICoachRpc *aicoachrpc.Service
+	Config        config.Config
+	Auth          rest.Middleware
+	RateLimit     rest.Middleware
+	TokenVerifier *jwt.Verifier
+	AuthRpc       authservice.AuthService
+	ClientRpc     *clientrpc.Service
+	AICoachRpc    *aicoachrpc.Service
 	// SearchRpc is the search microservice client, used by the article
 	// reference coaching tool. Optional — nil when SearchRpc is not
 	// configured, in which case the search_articles tool returns an error
@@ -119,8 +119,8 @@ func (s *ServiceContext) CheckDailyTokenQuota(ctx context.Context, userID string
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	if c.Auth.Secret == "" {
-		logx.Must(fmt.Errorf("Auth.Secret is required"))
+	if c.Auth.PublicKey == "" && c.Auth.Secret == "" {
+		logx.Must(fmt.Errorf("Auth.PublicKey (or legacy Auth.Secret) is required"))
 	}
 	if c.Auth.Issuer == "" {
 		logx.Must(fmt.Errorf("Auth.Issuer is required"))
@@ -185,13 +185,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 	classifier := safety.NewLLMClassifier(aiClient)
 
-	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:   c.Auth.Secret,
-		Issuer:   c.Auth.Issuer,
-		Audience: c.Auth.Audience,
-	}, nil)
+	tokenVerifier, err := jwt.NewVerifier(jwt.Config{
+		PublicKey: c.Auth.PublicKey,
+		Secret:    c.Auth.Secret,
+		Issuer:    c.Auth.Issuer,
+		Audience:  c.Auth.Audience,
+	})
 	if err != nil {
-		logx.Must(fmt.Errorf("init token maker: %w", err))
+		logx.Must(fmt.Errorf("init token verifier: %w", err))
 	}
 
 	// Search RPC (optional). Used by the article reference coaching tool.
@@ -203,20 +204,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	return &ServiceContext{
-		Config: c,
-		Auth: sharedmw.JWTMiddleware(sharedmw.JWTVerifierConfig{
-			Secret:   c.Auth.Secret,
-			Issuer:   c.Auth.Issuer,
-			Audience: c.Auth.Audience,
-		}),
-		TokenMaker: tokenMaker,
-		RateLimit:  middleware.RateLimitMiddleware(limiters),
-		AuthRpc:    authRpc,
-		ClientRpc:  clientRpc,
-		AICoachRpc: aiCoachRpc,
-		SearchRpc:  searchRpc,
-		AIClient:   aiClient,
-		Classifier: classifier,
-		QuotaStore: quotaStore,
+		Config:        c,
+		Auth:          sharedmw.JWTMiddleware(tokenVerifier),
+		TokenVerifier: tokenVerifier,
+		RateLimit:     middleware.RateLimitMiddleware(limiters),
+		AuthRpc:       authRpc,
+		ClientRpc:     clientRpc,
+		AICoachRpc:    aiCoachRpc,
+		SearchRpc:     searchRpc,
+		AIClient:      aiClient,
+		Classifier:    classifier,
+		QuotaStore:    quotaStore,
 	}
 }
