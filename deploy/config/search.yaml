@@ -10,7 +10,7 @@ Meili:
 
 JWT:
   # Verify-only: public key of the auth service's ES256 pair.
-  PublicKey: ${JWT_PUBLIC_KEY}
+  PublicKey: "${JWT_PUBLIC_KEY}"
   # Legacy HS256 fallback — dual-verify migration window only.
   Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
