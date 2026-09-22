@@ -1,0 +1,8 @@
+[Unit]
+Description=Growth data-retention cleanup (Postgres)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/retention-cleanup.sh
