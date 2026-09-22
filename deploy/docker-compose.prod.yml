@@ -147,8 +147,11 @@ services:
         SERVICE_PATH: ./services/microservices/auth/rpc
     restart: unless-stopped
     command: ["-f", "/config/auth.yaml"]
+    # .env.auth carries JWT_PRIVATE_KEY — it must ONLY be attached to this
+    # container. Every other service verifies with the public key.
     env_file:
       - .env.prod
+      - .env.auth
     volumes:
       - ./config/auth.yaml:/config/auth.yaml:ro
     depends_on:
@@ -532,8 +535,11 @@ services:
         SERVICE_PATH: ./services/adminway/adminapi
     restart: unless-stopped
     command: ["-f", "/config/adminapi.yaml"]
+    # .env.adminway carries ADMIN_JWT_PRIVATE_KEY — adminway is the only
+    # issuer of admin tokens (audience growth-admin).
     env_file:
       - .env.prod
+      - .env.adminway
     volumes:
       - ./config/adminapi.yaml:/config/adminapi.yaml:ro
     depends_on:
@@ -584,6 +590,9 @@ services:
       - NEXT_PUBLIC_AI_GATEWAY_URL=http://ai-gateway:8889
       - NEXT_PUBLIC_APP_URL=${APP_URL}
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      # ES256 public key — verify-only; cannot mint tokens.
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      # Legacy HS256 secret — dual-verify migration window only; remove after.
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=${JWT_AUDIENCE}
@@ -626,6 +635,9 @@ services:
       # deploy/config/adminapi.yaml Auth.Audience) — NOT the gateway's
       # ${JWT_AUDIENCE} (growth-api). Verifying against the wrong audience
       # makes proxy.ts reject every valid token → login redirect loop.
+      # ES256 public half of adminway's keypair — verify-only.
+      - JWT_PUBLIC_KEY=${ADMIN_JWT_PUBLIC_KEY}
+      # Legacy HS256 secret — dual-verify migration window only; remove after.
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=growth-admin

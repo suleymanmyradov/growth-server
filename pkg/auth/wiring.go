@@ -84,8 +84,8 @@ func ExampleServiceServerOptions(cfg ExampleConfig, tokenVerifier mdpropagate.To
 	if err := cfg.S2S.MustValidate(); err != nil {
 		logx.Must(err)
 	}
-	if cfg.JWT.Secret == "" {
-		logx.Must(fmt.Errorf("jwt secret is required"))
+	if cfg.JWT.PublicKey == "" && cfg.JWT.Secret == "" {
+		logx.Must(fmt.Errorf("jwt public key (or legacy secret) is required"))
 	}
 
 	s2sInterceptor := s2s.UnaryServerInterceptor(s2s.Config{Secret: cfg.S2S.Secret})

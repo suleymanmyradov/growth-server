@@ -37,7 +37,7 @@ func makeTokenWithCustomExpiry(t *testing.T, maker *TokenMaker, expiresAt, notBe
 		TokenType: AccessToken,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString([]byte(maker.secret))
+	tokenString, err := token.SignedString(maker.resolver.legacySecret)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}
@@ -195,7 +195,7 @@ func TestClockTolerance_RefreshTokenAlsoUsesLeeway(t *testing.T) {
 		TokenType: RefreshToken,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString([]byte(maker.secret))
+	tokenString, err := token.SignedString(maker.resolver.legacySecret)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}

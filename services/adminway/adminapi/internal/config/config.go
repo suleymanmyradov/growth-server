@@ -32,6 +32,11 @@ type Config struct {
 		DB       int    `json:",optional"`
 	} `json:",optional"`
 	Auth struct {
+		// PrivateKey is adminway's own PEM-encoded ES256 signing key (the
+		// growth-admin audience has a separate keypair from user tokens).
+		// Secret is the legacy HS256 fallback for the migration window.
+		PrivateKey            string        `json:",optional" secret:"true"`
+		PublicKey             string        `json:",optional"`
 		Secret                string        `json:",optional" secret:"true"`
 		Issuer                string        `json:",optional"`
 		Audience              string        `json:",optional"`

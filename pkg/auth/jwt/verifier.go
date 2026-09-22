@@ -2,85 +2,65 @@ package jwt
 
 import (
 	"context"
+	"crypto/elliptic"
 	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// KeyFunc resolves the public key for a given key ID (kid).
-// Return nil to indicate the key is unknown.
-type KeyFunc interface {
-	// GetKey returns the public key for the given kid and algorithm.
-	// Supported key types: *rsa.PublicKey, *ecdsa.PublicKey, ed25519.PublicKey.
-	GetKey(kid, alg string) (interface{}, error)
-}
-
-// StaticKeyFunc wraps a single public key for deployments that do not use JWKS.
-type StaticKeyFunc struct {
-	Key interface{}
-}
-
-// GetKey returns the static key, ignoring kid and alg.
-func (s *StaticKeyFunc) GetKey(_, _ string) (interface{}, error) {
-	if s.Key == nil {
-		return nil, fmt.Errorf("static key is nil")
-	}
-	return s.Key, nil
-}
-
-// Verifier verifies access tokens using asymmetric cryptography (RS256, ES256, EdDSA).
-// It satisfies the mdpropagate.TokenVerifier interface so downstream services can
-// verify tokens without possessing the signing secret.
+// Verifier verifies access tokens without holding any signing credential.
+// It satisfies the mdpropagate.TokenVerifier interface so downstream services
+// can verify tokens with only the public key — a leaked verifier config
+// cannot mint tokens.
 type Verifier struct {
 	issuer   string
 	audience string
-	keyFunc  KeyFunc
+	resolver keyResolver
 	leeway   time.Duration
 }
 
-// VerifierConfig holds configuration for the asymmetric token verifier.
-type VerifierConfig struct {
-	Issuer   string
-	Audience string
-	KeyFunc  KeyFunc
-	// Leeway defaults to DefaultLeeway if zero.
-	Leeway time.Duration
-}
-
-// NewVerifier creates an asymmetric token verifier.
-func NewVerifier(cfg VerifierConfig) (*Verifier, error) {
+// NewVerifier creates a verify-only token checker from the shared Config.
+// It requires Config.PublicKey (ES256) and/or Config.Secret (legacy HS256
+// fallback for the migration window). PrivateKey is ignored — verifiers
+// never sign.
+func NewVerifier(cfg Config) (*Verifier, error) {
 	if cfg.Issuer == "" {
-		return nil, fmt.Errorf("verifier issuer is required")
+		return nil, fmt.Errorf("config.Issuer is required")
 	}
 	if cfg.Audience == "" {
-		return nil, fmt.Errorf("verifier audience is required")
+		return nil, fmt.Errorf("config.Audience is required")
 	}
-	if cfg.KeyFunc == nil {
-		return nil, fmt.Errorf("verifier keyFunc is required")
-	}
-	leeway := cfg.Leeway
-	if leeway == 0 {
-		leeway = DefaultLeeway
-	}
-	return &Verifier{
+
+	v := &Verifier{
 		issuer:   cfg.Issuer,
 		audience: cfg.Audience,
-		keyFunc:  cfg.KeyFunc,
-		leeway:   leeway,
-	}, nil
+		leeway:   DefaultLeeway,
+	}
+	if cfg.PublicKey != "" {
+		key, err := ParsePublicKeyPEM(cfg.PublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("config.PublicKey: %w", err)
+		}
+		if key.Curve != elliptic.P256() {
+			return nil, fmt.Errorf("config.PublicKey: ES256 requires a P-256 key")
+		}
+		v.resolver.publicKey = key
+	}
+	if cfg.Secret != "" {
+		v.resolver.legacySecret = []byte(cfg.Secret)
+	}
+	if len(v.resolver.validMethods()) == 0 {
+		return nil, fmt.Errorf("config requires PublicKey and/or Secret")
+	}
+	return v, nil
 }
 
-// VerifyAccessToken validates an access token using the configured public key(s).
+// VerifyAccessToken validates an access token's signature, issuer, audience,
+// type, and time claims.
 func (v *Verifier) VerifyAccessToken(_ context.Context, tokenString string) (*TokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		alg, ok := token.Header["alg"].(string)
-		if !ok {
-			return nil, ErrInvalidToken
-		}
-		kid, _ := token.Header["kid"].(string)
-		return v.keyFunc.GetKey(kid, alg)
-	}, jwt.WithLeeway(v.leeway))
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, v.resolver.keyfunc,
+		jwt.WithValidMethods(v.resolver.validMethods()), jwt.WithLeeway(v.leeway))
 	if err != nil || !token.Valid {
 		return nil, ErrInvalidToken
 	}

@@ -25,6 +25,8 @@ sql/conf/*.yaml
 # Allow .env.prod.example (template, no secrets) to be committed
 !.env.prod.example
 !.env.azure.example
+!.env.auth.example
+!.env.adminway.example
 services/microservices/client/rpc/etc/client.yaml
 services/gateway/growth/etc/growthapi.yaml
 

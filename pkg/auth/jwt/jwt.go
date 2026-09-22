@@ -2,6 +2,8 @@ package jwt
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"fmt"
 	"time"
 
@@ -73,8 +75,48 @@ type RevocationRepository interface {
 	IsSessionRevoked(ctx context.Context, sessionID string) (bool, error)
 }
 
+// keyResolver maps a token's signing method to the credential that verifies
+// it. ES256 tokens resolve to the ECDSA public key; HS256 tokens (issued
+// before the asymmetric cutover) resolve to the legacy shared secret only
+// while it remains configured. Keeping the two strictly separated by method
+// type prevents algorithm-confusion attacks — the PEM public key is never
+// usable as an HMAC secret.
+type keyResolver struct {
+	publicKey    *ecdsa.PublicKey
+	legacySecret []byte
+}
+
+func (r keyResolver) validMethods() []string {
+	var methods []string
+	if r.publicKey != nil {
+		methods = append(methods, "ES256")
+	}
+	if len(r.legacySecret) > 0 {
+		methods = append(methods, "HS256")
+	}
+	return methods
+}
+
+func (r keyResolver) keyfunc(token *jwt.Token) (interface{}, error) {
+	switch token.Method.(type) {
+	case *jwt.SigningMethodECDSA:
+		if r.publicKey == nil {
+			return nil, ErrInvalidToken
+		}
+		return r.publicKey, nil
+	case *jwt.SigningMethodHMAC:
+		if len(r.legacySecret) == 0 {
+			return nil, ErrInvalidToken
+		}
+		return r.legacySecret, nil
+	}
+	return nil, ErrInvalidToken
+}
+
 type TokenMaker struct {
-	secret        string
+	signingKey    *ecdsa.PrivateKey
+	signingKeyID  string
+	resolver      keyResolver
 	issuer        string
 	audience      string
 	accessExpiry  time.Duration
@@ -83,6 +125,18 @@ type TokenMaker struct {
 }
 
 type Config struct {
+	// PrivateKey is a PEM-encoded ECDSA P-256 private key (PKCS#8 or SEC1)
+	// used to sign tokens with ES256. Only token-issuing services (auth,
+	// adminway) should have it. Newlines may be escaped ("\n") for env vars.
+	PrivateKey string `json:",optional" secret:"true"`
+	// PublicKey is the PEM-encoded ECDSA P-256 public key used to verify
+	// ES256 tokens. Safe to distribute to every verifying service. When
+	// PrivateKey is set the public half is derived from it instead.
+	PublicKey string `json:",optional"`
+	// Secret is the legacy HS256 shared secret. When set alongside keys it
+	// acts as the dual-verify fallback for pre-cutover tokens during the
+	// migration window; when set alone the maker runs in legacy HS256
+	// sign+verify mode. Remove it once the window closes.
 	Secret                string        `json:",optional" secret:"true"`
 	Issuer                string        `json:",optional"`
 	Audience              string        `json:",optional"`
@@ -91,24 +145,75 @@ type Config struct {
 }
 
 func NewTokenMaker(cfg Config, repo RevocationRepository) (*TokenMaker, error) {
-	if cfg.Secret == "" {
-		return nil, fmt.Errorf("config.Secret is required")
-	}
 	if cfg.Issuer == "" {
 		return nil, fmt.Errorf("config.Issuer is required")
 	}
 	if cfg.Audience == "" {
 		return nil, fmt.Errorf("config.Audience is required")
 	}
+	if cfg.PrivateKey == "" && cfg.PublicKey == "" && cfg.Secret == "" {
+		return nil, fmt.Errorf("config requires one of PrivateKey, PublicKey, Secret")
+	}
 
-	return &TokenMaker{
-		secret:        cfg.Secret,
+	tm := &TokenMaker{
 		issuer:        cfg.Issuer,
 		audience:      cfg.Audience,
 		accessExpiry:  cfg.AccessExpiryDuration,
 		refreshExpiry: cfg.RefreshExpiryDuration,
 		repo:          repo,
-	}, nil
+	}
+
+	if cfg.Secret != "" {
+		tm.resolver.legacySecret = []byte(cfg.Secret)
+	}
+	if cfg.PrivateKey != "" {
+		key, err := ParsePrivateKeyPEM(cfg.PrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("config.PrivateKey: %w", err)
+		}
+		if key.Curve != elliptic.P256() {
+			return nil, fmt.Errorf("config.PrivateKey: ES256 requires a P-256 key")
+		}
+		tm.signingKey = key
+		tm.signingKeyID = KeyID(&key.PublicKey)
+		// A signer verifies exactly what it signs — the public half always
+		// comes from the private key, ignoring config.PublicKey.
+		tm.resolver.publicKey = &key.PublicKey
+	} else if cfg.PublicKey != "" {
+		key, err := ParsePublicKeyPEM(cfg.PublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("config.PublicKey: %w", err)
+		}
+		if key.Curve != elliptic.P256() {
+			return nil, fmt.Errorf("config.PublicKey: ES256 requires a P-256 key")
+		}
+		tm.resolver.publicKey = key
+	}
+
+	return tm, nil
+}
+
+// signClaims serializes claims into a signed JWT. ES256 is used whenever a
+// private key is configured; otherwise the maker falls back to legacy HS256.
+func (tm *TokenMaker) signClaims(claims *TokenClaims) (string, error) {
+	var token *jwt.Token
+	var key interface{}
+	switch {
+	case tm.signingKey != nil:
+		token = jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+		token.Header["kid"] = tm.signingKeyID
+		key = tm.signingKey
+	case len(tm.resolver.legacySecret) > 0:
+		token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		key = tm.resolver.legacySecret
+	default:
+		return "", fmt.Errorf("no signing credential configured")
+	}
+	tokenString, err := token.SignedString(key)
+	if err != nil {
+		return "", fmt.Errorf("sign token: %w", err)
+	}
+	return tokenString, nil
 }
 
 func (tm *TokenMaker) CreateAccessToken(_ context.Context, userID uuid.UUID, username string, roles []string, sessionID uuid.UUID) (*TokenResponse, error) {
@@ -129,10 +234,9 @@ func (tm *TokenMaker) CreateAccessToken(_ context.Context, userID uuid.UUID, use
 		TokenType: AccessToken,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString([]byte(tm.secret))
+	tokenString, err := tm.signClaims(&claims)
 	if err != nil {
-		return nil, fmt.Errorf("sign token: %w", err)
+		return nil, err
 	}
 
 	return &TokenResponse{
@@ -159,10 +263,9 @@ func (tm *TokenMaker) CreateRefreshToken(_ context.Context, userID uuid.UUID, us
 		TokenType: RefreshToken,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString([]byte(tm.secret))
+	tokenString, err := tm.signClaims(&claims)
 	if err != nil {
-		return nil, fmt.Errorf("sign token: %w", err)
+		return nil, err
 	}
 
 	return &TokenResponse{
@@ -223,12 +326,8 @@ func (tm *TokenMaker) VerifyRefreshToken(ctx context.Context, tokenString string
 }
 
 func (tm *TokenMaker) verifyToken(tokenString string, expectedType TokenType) (*TokenClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithLeeway(DefaultLeeway))
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, tm.resolver.keyfunc,
+		jwt.WithValidMethods(tm.resolver.validMethods()), jwt.WithLeeway(DefaultLeeway))
 	if err != nil || !token.Valid {
 		return nil, ErrInvalidToken
 	}
@@ -253,12 +352,8 @@ func (tm *TokenMaker) RevokeAccessToken(ctx context.Context, tokenString string)
 
 	// Parse token without claims validation to allow revocation of expired tokens.
 	// Signature and algorithm are still verified; issuer/audience/type are checked manually below.
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, tm.resolver.keyfunc,
+		jwt.WithValidMethods(tm.resolver.validMethods()), jwt.WithoutClaimsValidation())
 	if err != nil || !token.Valid {
 		return ErrInvalidToken
 	}
@@ -309,12 +404,8 @@ func (tm *TokenMaker) RevokeRefreshToken(ctx context.Context, tokenString string
 	}
 
 	// Parse without time validation to allow revoking expired tokens.
-	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrInvalidToken
-		}
-		return []byte(tm.secret), nil
-	}, jwt.WithValidMethods([]string{"HS256"}), jwt.WithoutClaimsValidation())
+	token, err := jwt.ParseWithClaims(tokenString, &TokenClaims{}, tm.resolver.keyfunc,
+		jwt.WithValidMethods(tm.resolver.validMethods()), jwt.WithoutClaimsValidation())
 	if err != nil || !token.Valid {
 		return ErrInvalidToken
 	}

@@ -27,6 +27,14 @@ type Config struct {
 		}
 	}
 	JWT struct {
+		// PrivateKey is the PEM-encoded ES256 signing key. Only this service
+		// (and adminway, with its own pair) holds a private key.
+		PrivateKey string `json:",optional" secret:"true"`
+		// PublicKey is optional here — the public half is derived from
+		// PrivateKey at startup.
+		PublicKey string `json:",optional"`
+		// Secret is the legacy HS256 shared secret, kept only as the
+		// dual-verify fallback for pre-cutover tokens.
 		Secret                string        `json:",optional" secret:"true"`
 		Issuer                string        `json:",optional"`
 		Audience              string        `json:",optional"`

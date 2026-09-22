@@ -47,9 +47,9 @@ func main() {
 		}
 	})
 
-	// Verify JWT tokens so downstream services don't blindly trust gateway headers.
-	// In production, replace this with jwt.NewVerifier using a public key (RS256/ES256).
-	tokenVerifier, err := jwt.NewTokenMaker(c.JWT, nil)
+	// Verify JWT tokens so downstream services don't blindly trust gateway
+	// headers. This service only holds the public key — it cannot mint tokens.
+	tokenVerifier, err := jwt.NewVerifier(c.JWT)
 	if err != nil {
 		logx.Must(err)
 	}

@@ -12,6 +12,8 @@ Postgres:
   ConnMaxLifetime: 5m
 
 JWT:
+  PrivateKey: ${JWT_PRIVATE_KEY}
+  # Legacy HS256 fallback — dual-verify window only.
   Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
   Audience: ${JWT_AUDIENCE}

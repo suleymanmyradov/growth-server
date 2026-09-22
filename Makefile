@@ -411,3 +411,9 @@ check-openapi-drift:
 check-types-api-sync:
 	@echo "Running types.api sync check (gateway vs ai-gateway)..."
 	@bash scripts/check-types-api-sync.sh
+
+jwt-keygen:
+	@bash scripts/gen-jwt-keys.sh
+
+jwt-keygen-admin:
+	@bash scripts/gen-jwt-keys.sh ADMIN_JWT
