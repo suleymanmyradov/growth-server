@@ -18,6 +18,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
+	"github.com/suleymanmyradov/growth-server/pkg/paddle"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/stripe"
@@ -34,6 +35,7 @@ type ServiceContext struct {
 	EventsPub        *events.Publisher
 	PatternDetection *analytics.PatternDetection
 	StripeClient     *stripe.Client
+	PaddleClient     *paddle.Client
 	TxRunner         *postgres.PgxTxRunner
 	Authz            *authz.Checker
 	// Cache is a Redis-backed read-through cache (with singleflight dedup)
@@ -69,6 +71,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	var stripeClient *stripe.Client
 	if c.Billing.StripeSecretKey != "" {
 		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
+	}
+
+	var paddleClient *paddle.Client
+	if c.Billing.Paddle.APIKey != "" {
+		paddleClient = paddle.NewClient(c.Billing.Paddle.APIKey, c.Billing.Paddle.Environment == "sandbox", nil)
 	}
 
 	var redisClient *redis.Client
@@ -167,6 +174,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		EventsPub:        eventsPub,
 		PatternDetection: patternDetection,
 		StripeClient:     stripeClient,
+		PaddleClient:     paddleClient,
 		TxRunner:         txRunner,
 		Authz:            authzChecker,
 		Cache:            appCache,

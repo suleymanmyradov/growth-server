@@ -103,6 +103,21 @@ func (m *mockBilling) IsRevenueCatEventProcessed(ctx context.Context, eventID st
 func (m *mockBilling) MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error {
 	panic("not used in webhook tests")
 }
+func (m *mockBilling) GetUserSubscriptionByPaddleCustomerID(ctx context.Context, paddleCustomerID *string) (db.GetUserSubscriptionByPaddleCustomerIDRow, error) {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) UpsertUserSubscriptionPaddle(ctx context.Context, params db.UpsertUserSubscriptionPaddleParams) (db.Subscription, error) {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) IsPaddleEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	panic("not used in webhook tests")
+}
+func (m *mockBilling) MarkPaddleEventProcessed(ctx context.Context, eventID string) error {
+	panic("not used in webhook tests")
+}
 
 // --- Test helpers ---
 
@@ -184,7 +199,7 @@ func TestHandleCheckoutCompleted_HappyPath(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleCheckoutCompleted(data)
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -233,7 +248,7 @@ func TestHandleCheckoutCompleted_AlreadyActivePreservesPeriodDates(t *testing.T)
 		},
 	})
 
-	resp, err := l.handleCheckoutCompleted(data)
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -260,7 +275,7 @@ func TestHandleCheckoutCompleted_CustomerNotFound(t *testing.T) {
 		Object: stripeCheckoutSession{Customer: "cus_unknown", Subscription: "sub_1"},
 	})
 
-	resp, err := l.handleCheckoutCompleted(data)
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, data)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Empty(t, m.upsertCalls) // no upsert on failure
@@ -277,7 +292,7 @@ func TestHandleCheckoutCompleted_NoSubscriptionID(t *testing.T) {
 		Object: stripeCheckoutSession{Customer: testCustomerID, Subscription: ""},
 	})
 
-	resp, err := l.handleCheckoutCompleted(data)
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 	// Upgrade event recorded, but no upsert (no subscription ID)
@@ -303,7 +318,7 @@ func TestHandleCheckoutCompleted_PlanLookupFails_ReturnsError(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleCheckoutCompleted(data)
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, data)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	// Upgrade event still recorded (it happens before plan lookup)
@@ -345,7 +360,7 @@ func TestHandleSubscriptionUpdated_PeriodDatesFromItemLevel(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleSubscriptionUpdated(data)
+	resp, err := l.handleSubscriptionUpdated(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -383,7 +398,7 @@ func TestHandleSubscriptionUpdated_PeriodDatesFromTopLevel(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleSubscriptionUpdated(data)
+	resp, err := l.handleSubscriptionUpdated(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -410,7 +425,7 @@ func TestHandleSubscriptionUpdated_StaleWebhookIgnored(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleSubscriptionUpdated(data)
+	resp, err := l.handleSubscriptionUpdated(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 	assert.Empty(t, m.upsertCalls) // no upsert — stale webhook
@@ -427,7 +442,7 @@ func TestHandleSubscriptionUpdated_CustomerNotFound(t *testing.T) {
 		Object: stripeSubscription{ID: testSubID, Customer: "cus_unknown", Status: "active"},
 	})
 
-	resp, err := l.handleSubscriptionUpdated(data)
+	resp, err := l.handleSubscriptionUpdated(context.Background(), l.svcCtx.Repo, data)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }
@@ -448,7 +463,7 @@ func TestHandleSubscriptionDeleted_DowngradesToFree(t *testing.T) {
 		Object: stripeSubscription{ID: testSubID, Customer: testCustomerID},
 	})
 
-	resp, err := l.handleSubscriptionDeleted(data)
+	resp, err := l.handleSubscriptionDeleted(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -471,7 +486,7 @@ func TestHandleSubscriptionDeleted_StaleWebhookIgnored(t *testing.T) {
 		Object: stripeSubscription{ID: "sub_old_111", Customer: testCustomerID},
 	})
 
-	resp, err := l.handleSubscriptionDeleted(data)
+	resp, err := l.handleSubscriptionDeleted(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 	assert.Empty(t, m.upsertCalls)
@@ -497,7 +512,7 @@ func TestHandlePaymentFailed_SetsPastDue(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handlePaymentFailed(data)
+	resp, err := l.handlePaymentFailed(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -516,7 +531,7 @@ func TestHandlePaymentFailed_CustomerNotFound(t *testing.T) {
 		Object: stripeInvoice{Customer: "cus_unknown"},
 	})
 
-	resp, err := l.handlePaymentFailed(data)
+	resp, err := l.handlePaymentFailed(context.Background(), l.svcCtx.Repo, data)
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 	assert.Empty(t, m.upsertCalls)
@@ -543,7 +558,7 @@ func TestHandlePaymentFailed_EmptySubscriptionPreservesExistingID(t *testing.T) 
 		},
 	})
 
-	resp, err := l.handlePaymentFailed(data)
+	resp, err := l.handlePaymentFailed(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 
@@ -573,7 +588,7 @@ func TestHandleDisputeCreated_JustLogs(t *testing.T) {
 		},
 	})
 
-	resp, err := l.handleDisputeCreated(data)
+	resp, err := l.handleDisputeCreated(context.Background(), l.svcCtx.Repo, data)
 	require.NoError(t, err)
 	assert.True(t, resp.Processed)
 	// No DB calls — dispute only logs for now
@@ -586,7 +601,7 @@ func TestHandleCheckoutCompleted_InvalidJSON(t *testing.T) {
 	m := &mockBilling{}
 	l := newTestLogic(m).withRepo(m)
 
-	resp, err := l.handleCheckoutCompleted(json.RawMessage(`{invalid`))
+	resp, err := l.handleCheckoutCompleted(context.Background(), l.svcCtx.Repo, json.RawMessage(`{invalid`))
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }
@@ -595,7 +610,7 @@ func TestHandleSubscriptionUpdated_InvalidJSON(t *testing.T) {
 	m := &mockBilling{}
 	l := newTestLogic(m).withRepo(m)
 
-	resp, err := l.handleSubscriptionUpdated(json.RawMessage(`{invalid`))
+	resp, err := l.handleSubscriptionUpdated(context.Background(), l.svcCtx.Repo, json.RawMessage(`{invalid`))
 	assert.Nil(t, resp)
 	assert.Error(t, err)
 }

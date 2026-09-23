@@ -2,8 +2,10 @@ package articleslogic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -61,16 +63,42 @@ func (l *UpdateArticleLogic) UpdateArticle(in *client.UpdateArticleRequest) (*cl
 		return nil, status.Error(codes.InvalidArgument, "invalid article status")
 	}
 
-	row, err := l.svcCtx.Repo.Articles.UpdateArticle(ctx, db.UpdateArticleParams{
-		ID:              articleID,
-		Title:           in.Title,
-		Excerpt:         excerpt,
-		Content:         in.Content,
-		CategoryID:      categoryID,
-		ReadTimeMinutes: in.ReadTime,
-		ImageUrl:        imageUrl,
-		Author:          in.AuthorId,
-		Status:          in.Status,
+	// Article update and tag rewrite must be atomic — running them on the pool
+	// leaves the article with zero tags if the link step fails partway.
+	var row db.UpdateArticleRow
+	err = l.svcCtx.RunInTx(ctx, "", func(txRepo *repository.Repository) error {
+		var uErr error
+		row, uErr = txRepo.Articles.UpdateArticle(ctx, db.UpdateArticleParams{
+			ID:              articleID,
+			Title:           in.Title,
+			Excerpt:         excerpt,
+			Content:         in.Content,
+			CategoryID:      categoryID,
+			ReadTimeMinutes: in.ReadTime,
+			ImageUrl:        imageUrl,
+			Author:          in.AuthorId,
+			Status:          in.Status,
+		})
+		if uErr != nil {
+			return fmt.Errorf("update article: %w", uErr)
+		}
+
+		// Tags are only rewritten when the request carries a non-empty list —
+		// an omitted list must preserve existing tags (there is no wire-level
+		// way to distinguish "leave alone" from "clear all" today).
+		if len(in.Tags) > 0 {
+			if dErr := txRepo.Articles.DeleteArticleTags(ctx, articleID); dErr != nil {
+				return fmt.Errorf("delete article tags: %w", dErr)
+			}
+			tagSlugs := slugifyTags(in.Tags)
+			if _, uErr := txRepo.Articles.UpsertTags(ctx, in.Tags, tagSlugs); uErr != nil {
+				return fmt.Errorf("upsert tags: %w", uErr)
+			}
+			if lErr := txRepo.Articles.LinkArticleTags(ctx, articleID, in.Tags); lErr != nil {
+				return fmt.Errorf("link article tags: %w", lErr)
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		l.Errorf("update article failed: %v", err)
@@ -94,8 +122,8 @@ func (l *UpdateArticleLogic) UpdateArticle(in *client.UpdateArticleRequest) (*cl
 	if row.ImageUrl != nil {
 		pb.CoverImage = *row.ImageUrl
 	}
-	if categoryID.Valid {
-		cat, err := l.svcCtx.Repo.Categories.GetCategoryByID(ctx, categoryID.UUID)
+	if row.CategoryID.Valid {
+		cat, err := l.svcCtx.Repo.Categories.GetCategoryByID(ctx, row.CategoryID.UUID)
 		if err == nil {
 			pb.Category = &client.ArticleCategory{
 				Id:   cat.ID.String(),
@@ -105,18 +133,17 @@ func (l *UpdateArticleLogic) UpdateArticle(in *client.UpdateArticleRequest) (*cl
 		}
 	}
 
-	if err := l.svcCtx.Repo.Articles.DeleteArticleTags(ctx, articleID); err != nil {
-		l.Errorf("delete article tags failed: %v", err)
-	}
 	if len(in.Tags) > 0 {
-		tagSlugs := slugifyTags(in.Tags)
-		if _, err := l.svcCtx.Repo.Articles.UpsertTags(ctx, in.Tags, tagSlugs); err != nil {
-			l.Errorf("upsert tags failed: %v", err)
-		}
-		if err := l.svcCtx.Repo.Articles.LinkArticleTags(ctx, articleID, in.Tags); err != nil {
-			l.Errorf("link article tags failed: %v", err)
-		}
 		pb.Tags = in.Tags
+	} else {
+		// Tags were preserved server-side — echo the persisted set back.
+		tagRows, err := l.svcCtx.Repo.Articles.GetTagsByArticleIDs(ctx, []uuid.UUID{articleID})
+		if err == nil {
+			pb.Tags = make([]string, 0, len(tagRows))
+			for _, t := range tagRows {
+				pb.Tags = append(pb.Tags, t.Name)
+			}
+		}
 	}
 	if pb.Tags == nil {
 		pb.Tags = []string{}

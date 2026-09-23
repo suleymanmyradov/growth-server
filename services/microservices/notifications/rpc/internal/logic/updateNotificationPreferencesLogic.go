@@ -58,14 +58,18 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 		return nil, status.Error(codes.Internal, "failed to get previous preferences")
 	}
 
+	// Merge: only fields explicitly present on the request are changed; the
+	// rest keep their previous values. Without proto3 optional presence an
+	// omitted bool would serialize as false and silently reset every other
+	// toggle (and fire false enabled->disabled transitions below).
 	pref, err := l.svcCtx.Repo.Preferences.Upsert(ctx, db.UpsertNotificationPreferencesParams{
 		UserID:             userID,
-		EmailNotifications: in.Preferences.EmailEnabled,
-		PushNotifications:  in.Preferences.PushEnabled,
-		HabitReminders:     in.Preferences.HabitRemindersEnabled,
-		GoalReminders:      in.Preferences.GoalRemindersEnabled,
-		StreakWarnings:     in.Preferences.StreakWarningsEnabled,
-		SundayReview:       in.Preferences.SundayReviewEnabled,
+		EmailNotifications: pickBool(in.Preferences.EmailEnabled, prev.EmailNotifications),
+		PushNotifications:  pickBool(in.Preferences.PushEnabled, prev.PushNotifications),
+		HabitReminders:     pickBool(in.Preferences.HabitRemindersEnabled, prev.HabitReminders),
+		GoalReminders:      pickBool(in.Preferences.GoalRemindersEnabled, prev.GoalReminders),
+		StreakWarnings:     pickBool(in.Preferences.StreakWarningsEnabled, prev.StreakWarnings),
+		SundayReview:       pickBool(in.Preferences.SundayReviewEnabled, prev.SundayReview),
 	})
 	if err != nil {
 		logx.WithContext(ctx).Errorf("Failed to upsert notification preferences: %v", err)
@@ -133,14 +137,22 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 
 	return &notifications.UpdateNotificationPreferencesResponse{
 		Preferences: &notifications.NotificationPreferences{
-			EmailEnabled:          pref.EmailNotifications,
-			PushEnabled:           pref.PushNotifications,
-			HabitRemindersEnabled: pref.HabitReminders,
-			GoalRemindersEnabled:  pref.GoalReminders,
-			StreakWarningsEnabled: pref.StreakWarnings,
-			SundayReviewEnabled:   pref.SundayReview,
+			EmailEnabled:          &pref.EmailNotifications,
+			PushEnabled:           &pref.PushNotifications,
+			HabitRemindersEnabled: &pref.HabitReminders,
+			GoalRemindersEnabled:  &pref.GoalReminders,
+			StreakWarningsEnabled: &pref.StreakWarnings,
+			SundayReviewEnabled:   &pref.SundayReview,
 		},
 	}, nil
+}
+
+// pickBool returns *v when present, otherwise the previous stored value.
+func pickBool(v *bool, fallback bool) bool {
+	if v == nil {
+		return fallback
+	}
+	return *v
 }
 
 // scheduleNextHabitReminder enqueues the next habit_reminder based on the

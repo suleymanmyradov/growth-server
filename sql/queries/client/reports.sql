@@ -33,9 +33,11 @@ WHERE (sqlc.arg(status)::text = '' OR status = sqlc.arg(status)::text)
   AND (sqlc.arg(reporter_id)::uuid = '00000000-0000-0000-0000-000000000000' OR reporter_id = sqlc.arg(reporter_id)::uuid);
 
 -- name: UpdateReportStatus :one
+-- adminNotes is optional in the contract: NULL means "not provided" and keeps
+-- the stored notes — a status-only change must not wipe them.
 UPDATE reports
 SET status = $2,
-    admin_notes = $3,
+    admin_notes = COALESCE($3, reports.admin_notes),
     updated_at = now()
 WHERE id = $1
 RETURNING id, reporter_id, target_id, target_type, category, title, description, email,
@@ -45,7 +47,7 @@ RETURNING id, reporter_id, target_id, target_type, category, title, description,
 UPDATE reports
 SET status = 'closed',
     close_reason = $2,
-    admin_notes = $3,
+    admin_notes = COALESCE($3, reports.admin_notes),
     updated_at = now()
 WHERE id = $1
 RETURNING id, reporter_id, target_id, target_type, category, title, description, email,

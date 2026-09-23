@@ -3,6 +3,7 @@ package settingslogic
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,12 +56,14 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 
 	// Handle onboarding settings update (check-in time, onboarding flag → user_preferences;
 	// accountability style → coaching_profiles).
+	var checkInTime pgtype.Time
 	if in.Settings != nil && (in.Settings.AccountabilityStyle != "" || in.Settings.CheckInTime != "" || in.Settings.OnboardingCompleted) {
-		var checkInTime pgtype.Time
 		if in.Settings.CheckInTime != "" {
-			if t, err := time.Parse("15:04", in.Settings.CheckInTime); err == nil {
-				checkInTime = pgtype.Time{Microseconds: (int64(t.Hour())*3600 + int64(t.Minute())*60) * 1_000_000, Valid: true}
+			t, err := time.Parse("15:04", in.Settings.CheckInTime)
+			if err != nil {
+				return nil, status.Error(codes.InvalidArgument, "invalid checkInTime format, expected HH:MM")
 			}
+			checkInTime = pgtype.Time{Microseconds: (int64(t.Hour())*3600 + int64(t.Minute())*60) * 1_000_000, Valid: true}
 		}
 		_, err = l.svcCtx.Repo.UserPreferences.UpdateOnboardingCompleted(ctx, userID, checkInTime, in.Settings.OnboardingCompleted)
 		if err != nil {
@@ -73,6 +76,7 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 			_, err = l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(ctx, userID, in.Settings.AccountabilityStyle, "", "")
 			if err != nil {
 				l.Errorf("Failed to update coaching profile: %v", err)
+				return nil, status.Error(codes.Internal, "failed to update coaching profile")
 			}
 		}
 	}
@@ -126,13 +130,28 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 		}
 
 		if in.Settings != nil && (in.Settings.Timezone != "" || in.Settings.CheckInTime != "") {
+			// Publish the merged persisted values, not just the fields present
+			// in this request — the notifications consumer upserts whatever the
+			// event carries, and a partial payload would reset the other column.
+			mergedTimezone := in.Settings.Timezone
+			mergedCheckIn := in.Settings.CheckInTime
+			if cur, err := l.svcCtx.Repo.UserPreferences.GetUserPreferences(ctx, userID); err == nil {
+				if mergedTimezone == "" {
+					mergedTimezone = cur.Timezone
+				}
+				if mergedCheckIn == "" && cur.CheckInTime.Valid {
+					mergedCheckIn = formatCheckInTime(cur.CheckInTime)
+				}
+			} else if !errors.Is(err, pgx.ErrNoRows) {
+				l.Errorf("Failed to fetch user preferences for settings event: %v", err)
+			}
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer cancel()
 				env, err := events.NewEnvelope(events.TypeSettingsChanged, events.SettingsChanged{
 					UserID:      userID.String(),
-					Timezone:    in.Settings.Timezone,
-					CheckInTime: in.Settings.CheckInTime,
+					Timezone:    mergedTimezone,
+					CheckInTime: mergedCheckIn,
 				})
 				if err != nil {
 					logx.Errorf("envelope: %v", err)
@@ -148,4 +167,14 @@ func (l *UpdateSettingsLogic) UpdateSettings(in *client.UpdateSettingsRequest) (
 	return &client.UpdateSettingsResponse{
 		Success: true,
 	}, nil
+}
+
+// formatCheckInTime renders a pgtype.Time as "HH:MM" for the SettingsChanged
+// event payload (empty string when unset).
+func formatCheckInTime(t pgtype.Time) string {
+	if !t.Valid {
+		return ""
+	}
+	totalMin := t.Microseconds / 60_000_000
+	return fmt.Sprintf("%02d:%02d", totalMin/60, totalMin%60)
 }

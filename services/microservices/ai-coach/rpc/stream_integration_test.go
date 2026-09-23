@@ -228,15 +228,15 @@ func (s *mockClientRPCServer) StreamWeeklyReview(in *clientpb.GenerateWeeklyRevi
 			return stream.Send(&clientpb.WeeklyReviewStreamChunk{
 				Complete: true,
 				Review: &clientpb.WeeklyReview{
-					Id:                  "test-review-id",
-					UserId:              in.UserId,
-					WeekStart:           "2026-06-22",
-					TotalHabits:         3,
-					CompletionRate:      75.0,
-					AiSummary:           chunk.Review.AiSummary,
-					GeneratedAt:         time.Now().Unix(),
+					Id:                   "test-review-id",
+					UserId:               in.UserId,
+					WeekStart:            "2026-06-22",
+					TotalHabits:          3,
+					CompletionRate:       75.0,
+					AiSummary:            chunk.Review.AiSummary,
+					GeneratedAt:          time.Now().Unix(),
 					SuggestedAdjustments: toClientAdjustments(chunk.Review.SuggestedAdjustments),
-					NextWeekPlan:        toClientPlan(chunk.Review.NextWeekPlan),
+					NextWeekPlan:         toClientPlan(chunk.Review.NextWeekPlan),
 				},
 			})
 		}

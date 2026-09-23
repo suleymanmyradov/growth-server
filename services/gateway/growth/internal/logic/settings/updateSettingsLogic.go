@@ -53,23 +53,18 @@ func (l *UpdateSettingsLogic) UpdateSettings(req *types.UpdateSettingsRequest) (
 	// Forward notification preference updates to the notifications service,
 	// which owns the notification_preferences table. Only update fields that
 	// were explicitly provided (non-nil *bool) to avoid resetting unrelated
-	// toggles when the client sends a partial update.
+	// toggles when the client sends a partial update. The proto fields are
+	// proto3 optional, so a nil *bool stays absent on the wire and the
+	// notifications service preserves the stored value.
 	if req.EmailNotifications != nil || req.PushNotifications != nil ||
 		req.HabitReminders != nil || req.GoalReminders != nil {
 		prefReq := &notificationsClient.UpdateNotificationPreferencesRequest{
-			Preferences: &notificationsClient.NotificationPreferences{},
-		}
-		if req.EmailNotifications != nil {
-			prefReq.Preferences.EmailEnabled = *req.EmailNotifications
-		}
-		if req.PushNotifications != nil {
-			prefReq.Preferences.PushEnabled = *req.PushNotifications
-		}
-		if req.HabitReminders != nil {
-			prefReq.Preferences.HabitRemindersEnabled = *req.HabitReminders
-		}
-		if req.GoalReminders != nil {
-			prefReq.Preferences.GoalRemindersEnabled = *req.GoalReminders
+			Preferences: &notificationsClient.NotificationPreferences{
+				EmailEnabled:          req.EmailNotifications,
+				PushEnabled:           req.PushNotifications,
+				HabitRemindersEnabled: req.HabitReminders,
+				GoalRemindersEnabled:  req.GoalReminders,
+			},
 		}
 		if _, err := l.svcCtx.NotificationsRpc.UpdateNotificationPreferences(l.ctx, prefReq); err != nil {
 			l.Errorf("UpdateSettings: failed to update notification preferences: %v", err)

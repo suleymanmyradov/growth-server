@@ -117,11 +117,22 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		return nil, status.Error(codes.InvalidArgument, "numeric goals require a target value different from start value")
 	}
 
-	var desc *string
+	// Backfill the remaining columns from the existing row when the request
+	// omits them — the UpdateGoal SQL writes every column unconditionally, so
+	// a partial update would otherwise blank title/description/category/due_date.
+	title := in.Title
+	if title == "" {
+		title = existing.Title
+	}
+	desc := existing.Description
 	if in.Description != "" {
 		desc = &in.Description
 	}
-	var dueTime pgtype.Timestamptz
+	slug := in.Category
+	if slug == "" {
+		slug = existing.Category
+	}
+	dueTime := existing.DueDate
 	if in.DueDate > 0 {
 		dueTime = pgtype.Timestamptz{Time: time.Unix(in.DueDate, 0), Valid: true}
 	}
@@ -132,9 +143,9 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 
 	params := db.UpdateGoalParams{
 		ID:           goalID,
-		Title:        in.Title,
+		Title:        title,
 		Description:  desc,
-		Slug:         in.Category,
+		Slug:         slug,
 		DueDate:      dueTime,
 		Measurement:  measurement,
 		StartValue:   floatToNumeric(startValue),
@@ -147,8 +158,11 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	// recompute atomically inside a transaction. This is the operation doing
 	// the most multi-row work (habit links + milestones + recompute), so it
 	// must be atomic like the milestone/value RPCs.
+	// relatedHabitIDs is what the response echoes back — the request list when
+	// provided, otherwise the preserved existing links.
 	var goal db.GetGoalRow
 	var milestones []db.GoalMilestone
+	relatedHabitIDs := in.RelatedHabitIds
 	err = l.svcCtx.RunInTx(ctx, p.UserID, func(txRepo *repository.Repository) error {
 		var uErr error
 		goal, uErr = txRepo.Goals.UpdateGoal(ctx, params)
@@ -156,14 +170,27 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 			return status.Error(codes.Internal, "failed to update goal")
 		}
 
-		// Replace goal-habit links: unlink all existing, then link the new set.
-		if hErr := txRepo.Goals.UnlinkAllGoalHabits(ctx, goalID); hErr != nil {
-			return fmt.Errorf("unlink old goal-habits: %w", hErr)
-		}
-		habitIDs := parseHabitIDs(in.RelatedHabitIds)
-		if len(habitIDs) > 0 {
-			if lErr := txRepo.Goals.LinkGoalHabitsBatch(ctx, goalID, habitIDs); lErr != nil {
-				return fmt.Errorf("link habits to goal: %w", lErr)
+		// Replace goal-habit links only when the client sent a new set. An
+		// empty list means "not provided" — preserve existing links instead of
+		// wiping them (proto can't distinguish omitted from explicitly-empty).
+		if len(in.RelatedHabitIds) > 0 {
+			if hErr := txRepo.Goals.UnlinkAllGoalHabits(ctx, goalID); hErr != nil {
+				return fmt.Errorf("unlink old goal-habits: %w", hErr)
+			}
+			habitIDs := parseHabitIDs(in.RelatedHabitIds)
+			if len(habitIDs) > 0 {
+				if lErr := txRepo.Goals.LinkGoalHabitsBatch(ctx, goalID, habitIDs); lErr != nil {
+					return fmt.Errorf("link habits to goal: %w", lErr)
+				}
+			}
+		} else {
+			linked, lErr := txRepo.Goals.ListGoalHabitIDsByGoal(ctx, goalID)
+			if lErr != nil {
+				return fmt.Errorf("list goal-habit links: %w", lErr)
+			}
+			relatedHabitIDs = make([]string, 0, len(linked))
+			for _, h := range linked {
+				relatedHabitIDs = append(relatedHabitIDs, h.String())
 			}
 		}
 
@@ -177,7 +204,10 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		// clients that don't send `milestones` yet.
 		if measurement == MeasurementMilestone {
 			if len(in.Milestones) > 0 {
-				existingMs, _ := txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				existingMs, lErr := txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				if lErr != nil {
+					return fmt.Errorf("list goal milestones: %w", lErr)
+				}
 				existingByID := make(map[uuid.UUID]db.GoalMilestone, len(existingMs))
 				for _, m := range existingMs {
 					existingByID[m.ID] = m
@@ -191,13 +221,13 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 					if mi.Id != "" {
 						mID, pErr := uuid.Parse(mi.Id)
 						if pErr != nil {
-							continue
+							return status.Error(codes.InvalidArgument, "invalid milestone id")
 						}
 						if _, ok := existingByID[mID]; ok {
 							seen[mID] = true
 							updated, uErr := txRepo.Goals.UpdateGoalMilestone(ctx, mID, goalID, mi.Title, int32(i))
 							if uErr != nil {
-								continue
+								return fmt.Errorf("update goal milestone: %w", uErr)
 							}
 							milestones = append(milestones, updated)
 							continue
@@ -206,20 +236,25 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 					// New milestone (empty id or id not found).
 					m, cErr := txRepo.Goals.CreateGoalMilestone(ctx, goalID, mi.Title, int32(i))
 					if cErr != nil {
-						continue
+						return fmt.Errorf("create goal milestone: %w", cErr)
 					}
 					milestones = append(milestones, m)
 				}
 				// Delete milestones not in the new list.
 				for _, m := range existingMs {
 					if !seen[m.ID] {
-						_ = txRepo.Goals.DeleteGoalMilestone(ctx, m.ID, goalID)
+						if dErr := txRepo.Goals.DeleteGoalMilestone(ctx, m.ID, goalID); dErr != nil {
+							return fmt.Errorf("delete goal milestone: %w", dErr)
+						}
 					}
 				}
 			} else if len(in.MilestoneTitles) > 0 {
 				// Deprecated path: reconcile by title (preserves done_at for
 				// unchanged titles, loses it on rename).
-				existingMs, _ := txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				existingMs, lErr := txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				if lErr != nil {
+					return fmt.Errorf("list goal milestones: %w", lErr)
+				}
 				existingByTitle := make(map[string]db.GoalMilestone, len(existingMs))
 				for _, m := range existingMs {
 					existingByTitle[m.Title] = m
@@ -242,17 +277,23 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 					}
 					m, cErr := txRepo.Goals.CreateGoalMilestone(ctx, goalID, title, int32(i))
 					if cErr != nil {
-						continue
+						return fmt.Errorf("create goal milestone: %w", cErr)
 					}
 					milestones = append(milestones, m)
 				}
 				for _, m := range existingMs {
 					if !seen[m.Title] {
-						_ = txRepo.Goals.DeleteGoalMilestone(ctx, m.ID, goalID)
+						if dErr := txRepo.Goals.DeleteGoalMilestone(ctx, m.ID, goalID); dErr != nil {
+							return fmt.Errorf("delete goal milestone: %w", dErr)
+						}
 					}
 				}
 			} else {
-				milestones, _ = txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				var lErr error
+				milestones, lErr = txRepo.Goals.ListGoalMilestones(ctx, goalID)
+				if lErr != nil {
+					return fmt.Errorf("list goal milestones: %w", lErr)
+				}
 			}
 		}
 
@@ -303,6 +344,6 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	}
 
 	return &client.UpdateGoalResponse{
-		Goal: goalToProto(goal, in.RelatedHabitIds, milestones),
+		Goal: goalToProto(goal, relatedHabitIDs, milestones),
 	}, nil
 }

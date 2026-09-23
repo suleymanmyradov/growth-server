@@ -33,6 +33,9 @@ type Querier interface {
 	SetEmailVerified(ctx context.Context, id uuid.UUID) (User, error)
 	UpdateUserFullName(ctx context.Context, iD uuid.UUID, fullName string) (User, error)
 	UpdateUserPassword(ctx context.Context, iD uuid.UUID, passwordHash *string) (User, error)
+	// Partial update: NULL args mean "not provided" and preserve the stored value
+	// (an empty string/empty slice on the wire must not clear the column — there
+	// is no presence signal in the proto contract to distinguish omit from clear).
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error)
 }
 

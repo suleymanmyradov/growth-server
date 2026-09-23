@@ -50,11 +50,11 @@ func notificationPreferencesFromRPC(p *notificationsClient.NotificationPreferenc
 		return types.NotificationPreferences{}
 	}
 	return types.NotificationPreferences{
-		EmailEnabled:          p.EmailEnabled,
-		PushEnabled:           p.PushEnabled,
-		HabitRemindersEnabled: p.HabitRemindersEnabled,
-		GoalRemindersEnabled:  p.GoalRemindersEnabled,
-		StreakWarningsEnabled: p.StreakWarningsEnabled,
-		SundayReviewEnabled:   p.SundayReviewEnabled,
+		EmailEnabled:          p.GetEmailEnabled(),
+		PushEnabled:           p.GetPushEnabled(),
+		HabitRemindersEnabled: p.GetHabitRemindersEnabled(),
+		GoalRemindersEnabled:  p.GetGoalRemindersEnabled(),
+		StreakWarningsEnabled: p.GetStreakWarningsEnabled(),
+		SundayReviewEnabled:   p.GetSundayReviewEnabled(),
 	}
 }

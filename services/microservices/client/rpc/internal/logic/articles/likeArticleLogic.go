@@ -2,8 +2,10 @@ package articleslogic
 
 import (
 	"context"
+	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -47,29 +49,31 @@ func (l *LikeArticleLogic) LikeArticle(in *client.LikeArticleRequest) (*client.L
 		return nil, status.Error(codes.Internal, "invalid user id")
 	}
 
-	// Check if already liked
-	isLiked, err := l.svcCtx.Repo.Articles.IsArticleLikedByUser(ctx, articleID, userID)
-	if err != nil {
-		l.Errorf("Failed to check if article is liked: %v", err)
-		return nil, status.Error(codes.Internal, "failed to check like status")
-	}
-
-	if isLiked {
-		// Unlike: delete the like
-		err = l.svcCtx.Repo.Articles.DeleteArticleLike(ctx, articleID, userID)
-		if err != nil {
-			l.Errorf("Failed to delete article like: %v", err)
-			return nil, status.Error(codes.Internal, "failed to unlike article")
+	var isLiked bool
+	if in.Liked != nil {
+		// Desired-state semantics: the call is idempotent — repeating a request
+		// (e.g. a mobile retry after a timeout) converges to the same state
+		// instead of inverting it.
+		if *in.Liked {
+			if _, err := l.svcCtx.Repo.Articles.CreateArticleLike(ctx, articleID, userID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+				l.Errorf("Failed to create article like: %v", err)
+				return nil, status.Error(codes.Internal, "failed to like article")
+			}
+		} else {
+			if err := l.svcCtx.Repo.Articles.DeleteArticleLike(ctx, articleID, userID); err != nil {
+				l.Errorf("Failed to delete article like: %v", err)
+				return nil, status.Error(codes.Internal, "failed to unlike article")
+			}
 		}
-		l.Infof("User %s unliked article %s", userID, articleID)
+		isLiked = *in.Liked
 	} else {
-		// Like: create the like
-		_, err = l.svcCtx.Repo.Articles.CreateArticleLike(ctx, articleID, userID)
+		// Legacy toggle path: flip atomically in one statement so concurrent
+		// taps can't race a read-then-write.
+		isLiked, err = l.svcCtx.Repo.Articles.ToggleArticleLike(ctx, articleID, userID)
 		if err != nil {
-			l.Errorf("Failed to create article like: %v", err)
-			return nil, status.Error(codes.Internal, "failed to like article")
+			l.Errorf("Failed to toggle article like: %v", err)
+			return nil, status.Error(codes.Internal, "failed to toggle like")
 		}
-		l.Infof("User %s liked article %s", userID, articleID)
 	}
 
 	// Get the updated count
@@ -82,6 +86,6 @@ func (l *LikeArticleLogic) LikeArticle(in *client.LikeArticleRequest) (*client.L
 	return &client.LikeArticleResponse{
 		Success:      true,
 		NewLikeCount: int32(count),
-		IsLiked:      !isLiked,
+		IsLiked:      isLiked,
 	}, nil
 }

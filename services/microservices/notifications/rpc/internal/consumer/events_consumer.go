@@ -311,15 +311,15 @@ func (h *EventsHandler) onSettingsChanged(ctx context.Context, repo *repository.
 	// not the client settings event — so we read it from our own preferences
 	// table rather than trusting the event payload.
 	if repo.ReminderState != nil {
+		// Empty timezone / unparsed check-in time mean "not provided"; the
+		// upsert preserves the stored value for those (see
+		// UpsertReminderStateSettings). Never default to UTC here — that would
+		// silently overwrite a real timezone when the event omits it.
 		var checkInTime pgtype.Time
 		if p.CheckInTime != "" {
 			if t, err := time.Parse("15:04", p.CheckInTime); err == nil {
 				checkInTime = pgtype.Time{Microseconds: (int64(t.Hour())*3600 + int64(t.Minute())*60) * 1_000_000, Valid: true}
 			}
-		}
-		timezone := p.Timezone
-		if timezone == "" {
-			timezone = "UTC"
 		}
 		habitReminders := true
 		if repo.Preferences != nil {
@@ -327,7 +327,7 @@ func (h *EventsHandler) onSettingsChanged(ctx context.Context, repo *repository.
 				habitReminders = pref.HabitReminders
 			}
 		}
-		if err := repo.ReminderState.UpsertSettings(ctx, userID, timezone, checkInTime, habitReminders); err != nil {
+		if err := repo.ReminderState.UpsertSettings(ctx, userID, p.Timezone, checkInTime, habitReminders); err != nil {
 			logx.WithContext(ctx).Errorf("upsert reminder state settings: %v", err)
 		}
 	}

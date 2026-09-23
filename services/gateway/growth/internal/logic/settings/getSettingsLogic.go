@@ -48,10 +48,10 @@ func (l *GetSettingsLogic) GetSettings() (resp *types.SettingsResponse, err erro
 		l.Errorf("GetSettings: failed to fetch notification preferences: %v", err)
 		// Non-fatal: default all notification flags to false.
 	} else if prefResp.Preferences != nil {
-		emailNotif = prefResp.Preferences.EmailEnabled
-		pushNotif = prefResp.Preferences.PushEnabled
-		habitRem = prefResp.Preferences.HabitRemindersEnabled
-		goalRem = prefResp.Preferences.GoalRemindersEnabled
+		emailNotif = prefResp.Preferences.GetEmailEnabled()
+		pushNotif = prefResp.Preferences.GetPushEnabled()
+		habitRem = prefResp.Preferences.GetHabitRemindersEnabled()
+		goalRem = prefResp.Preferences.GetGoalRemindersEnabled()
 	}
 
 	return &types.SettingsResponse{

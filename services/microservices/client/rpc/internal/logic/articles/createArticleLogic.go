@@ -2,8 +2,10 @@ package articleslogic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -53,15 +55,34 @@ func (l *CreateArticleLogic) CreateArticle(in *client.CreateArticleRequest) (*cl
 		articleStatus = "published"
 	}
 
-	row, err := l.svcCtx.Repo.Articles.CreateArticle(ctx, db.CreateArticleParams{
-		Title:           in.Title,
-		Excerpt:         excerpt,
-		Content:         in.Content,
-		CategoryID:      categoryID,
-		ReadTimeMinutes: in.ReadTime,
-		ImageUrl:        imageUrl,
-		Author:          in.AuthorId,
-		Status:          articleStatus,
+	// Article insert and tag upsert/link must be atomic — a tag failure must
+	// roll back the article rather than silently producing an untagged row.
+	var row db.CreateArticleRow
+	err := l.svcCtx.RunInTx(ctx, "", func(txRepo *repository.Repository) error {
+		var cErr error
+		row, cErr = txRepo.Articles.CreateArticle(ctx, db.CreateArticleParams{
+			Title:           in.Title,
+			Excerpt:         excerpt,
+			Content:         in.Content,
+			CategoryID:      categoryID,
+			ReadTimeMinutes: in.ReadTime,
+			ImageUrl:        imageUrl,
+			Author:          in.AuthorId,
+			Status:          articleStatus,
+		})
+		if cErr != nil {
+			return fmt.Errorf("create article: %w", cErr)
+		}
+		if len(in.Tags) > 0 {
+			tagSlugs := slugifyTags(in.Tags)
+			if _, uErr := txRepo.Articles.UpsertTags(ctx, in.Tags, tagSlugs); uErr != nil {
+				return fmt.Errorf("upsert tags: %w", uErr)
+			}
+			if lErr := txRepo.Articles.LinkArticleTags(ctx, row.ID, in.Tags); lErr != nil {
+				return fmt.Errorf("link article tags: %w", lErr)
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		l.Errorf("create article failed: %v", err)

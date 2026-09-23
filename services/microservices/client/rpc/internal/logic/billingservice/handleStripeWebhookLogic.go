@@ -3,9 +3,12 @@ package billingservicelogic
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -96,6 +99,9 @@ type HandleStripeWebhookLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	// In production this is nil and the service context's TxRunner is used.
+	testTxRunner txRunner
 }
 
 func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext) *HandleStripeWebhookLogic {
@@ -104,6 +110,26 @@ func NewHandleStripeWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
+}
+
+// getTxRunner returns the transaction runner to use. In production this is the
+// service context's PgxTxRunner. In tests, a no-op runner can be injected via
+// the testTxRunner field.
+func (l *HandleStripeWebhookLogic) getTxRunner() txRunner {
+	if l.testTxRunner != nil {
+		return l.testTxRunner
+	}
+	return l.svcCtx.TxRunner
+}
+
+// getTxRepo returns the repository to use inside a transaction. In production
+// this creates a new repository backed by the transaction. In tests (where
+// testTxRunner is a no-op that passes nil tx), this returns the mock repo.
+func (l *HandleStripeWebhookLogic) getTxRepo(tx pgx.Tx) *repository.Repository {
+	if l.testTxRunner != nil {
+		return l.svcCtx.Repo
+	}
+	return l.svcCtx.WithTx(tx)
 }
 
 func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWebhookRequest) (*client.HandleStripeWebhookResponse, error) {
@@ -129,51 +155,65 @@ func (l *HandleStripeWebhookLogic) HandleStripeWebhook(in *client.HandleStripeWe
 		return nil, status.Error(codes.InvalidArgument, "invalid event payload")
 	}
 
-	// Idempotency: skip duplicate events using the Stripe event ID.
+	// Idempotency: run the check, the handler, and the mark-processed inside
+	// one serializable transaction. Concurrent deliveries of the same event
+	// can both pass a non-transactional check and double-apply side effects
+	// (e.g. duplicate upgrade_events rows on checkout.session.completed).
 	stripeEventID := event.ID
-	if stripeEventID != "" {
-		processed, err := l.svcCtx.Repo.Billing.IsStripeEventProcessed(ctx, stripeEventID)
-		if err != nil {
-			l.Errorf("idempotency check failed: %v", err)
-			return nil, status.Error(codes.Internal, "idempotency check failed")
-		}
-		if processed {
-			l.Infof("duplicate webhook skipped: %s", stripeEventID)
-			return &client.HandleStripeWebhookResponse{Processed: true}, nil
-		}
-	}
-
 	var result *client.HandleStripeWebhookResponse
-	var handleErr error
 
-	switch eventType {
-	case "checkout.session.completed":
-		result, handleErr = l.handleCheckoutCompleted(event.Data)
-	case "customer.subscription.created", "customer.subscription.updated":
-		result, handleErr = l.handleSubscriptionUpdated(event.Data)
-	case "customer.subscription.deleted":
-		result, handleErr = l.handleSubscriptionDeleted(event.Data)
-	case "invoice.payment_failed":
-		result, handleErr = l.handlePaymentFailed(event.Data)
-	case "charge.dispute.created":
-		result, handleErr = l.handleDisputeCreated(event.Data)
-	default:
-		l.Infof("Unhandled webhook event type: %s", eventType)
-		result = &client.HandleStripeWebhookResponse{Processed: true}
-	}
+	err = l.getTxRunner().RunSerializable(ctx, "", func(tx pgx.Tx) error {
+		txRepo := l.getTxRepo(tx)
 
-	// Mark as processed only on success to allow retries on transient failures.
-	if handleErr == nil && stripeEventID != "" {
-		if markErr := l.svcCtx.Repo.Billing.MarkStripeEventProcessed(ctx, stripeEventID); markErr != nil {
-			l.Errorf("failed to mark stripe event processed: %v", markErr)
-			// Non-fatal: the business logic succeeded.
+		if stripeEventID != "" {
+			processed, err := txRepo.Billing.IsStripeEventProcessed(ctx, stripeEventID)
+			if err != nil {
+				return fmt.Errorf("idempotency check: %w", err)
+			}
+			if processed {
+				l.Infof("duplicate webhook skipped: %s", stripeEventID)
+				result = &client.HandleStripeWebhookResponse{Processed: true}
+				return nil
+			}
 		}
-	}
 
-	return result, handleErr
+		var handleErr error
+		switch eventType {
+		case "checkout.session.completed":
+			result, handleErr = l.handleCheckoutCompleted(ctx, txRepo, event.Data)
+		case "customer.subscription.created", "customer.subscription.updated":
+			result, handleErr = l.handleSubscriptionUpdated(ctx, txRepo, event.Data)
+		case "customer.subscription.deleted":
+			result, handleErr = l.handleSubscriptionDeleted(ctx, txRepo, event.Data)
+		case "invoice.payment_failed":
+			result, handleErr = l.handlePaymentFailed(ctx, txRepo, event.Data)
+		case "charge.dispute.created":
+			result, handleErr = l.handleDisputeCreated(ctx, txRepo, event.Data)
+		default:
+			l.Infof("Unhandled webhook event type: %s", eventType)
+			result = &client.HandleStripeWebhookResponse{Processed: true}
+		}
+		if handleErr != nil {
+			// Roll the whole transaction back so Stripe retries the event;
+			// nothing (including the processed marker) is committed.
+			return handleErr
+		}
+
+		// Mark as processed only on success to allow retries on transient failures.
+		if stripeEventID != "" {
+			if err := txRepo.Billing.MarkStripeEventProcessed(ctx, stripeEventID); err != nil {
+				return fmt.Errorf("mark stripe event processed: %w", err)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
-func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(ctx context.Context, repo *repository.Repository, data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
 	var checkout stripeCheckoutData
 	if err := json.Unmarshal(data, &checkout); err != nil {
 		l.Errorf("Failed to parse checkout data: %v", err)
@@ -182,7 +222,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 
 	// Find user by Stripe customer ID
 	customerID := checkout.Object.Customer
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
+	existingSub, err := repo.Billing.GetUserSubscriptionByStripeCustomerID(ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -190,7 +230,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 
 	// Record checkout completion event for audit trail
 	planCode := "pro"
-	_, eventErr := l.svcCtx.Repo.Billing.CreateUpgradeEvent(l.ctx, db.CreateUpgradeEventParams{
+	_, eventErr := repo.Billing.CreateUpgradeEvent(ctx, db.CreateUpgradeEventParams{
 		UserID:    existingSub.UserID,
 		EventType: "checkout_completed",
 		Surface:   "stripe_webhook",
@@ -210,7 +250,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 	// interval when carrying forward an already-active status — otherwise the
 	// upsert nulls those columns and the constraint fires.
 	if checkout.Object.Subscription != "" {
-		proPlan, planErr := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "pro")
+		proPlan, planErr := repo.Billing.GetPlanByCode(ctx, "pro")
 		if planErr != nil {
 			// Return an error so Stripe retries the webhook. If we silently
 			// succeed, the event is marked processed and the subscription ID
@@ -218,7 +258,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 			l.Errorf("Failed to get pro plan during checkout completion: %v", planErr)
 			return nil, status.Error(codes.NotFound, "pro plan not found")
 		}
-		_, upsertErr := l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
+		_, upsertErr := repo.Billing.UpsertUserSubscription(ctx, db.UpsertUserSubscriptionParams{
 			UserID:               existingSub.UserID,
 			PlanID:               proPlan.ID,
 			Status:               existingSub.Status,
@@ -240,7 +280,7 @@ func (l *HandleStripeWebhookLogic) handleCheckoutCompleted(data json.RawMessage)
 	return &client.HandleStripeWebhookResponse{Processed: true}, nil
 }
 
-func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(ctx context.Context, repo *repository.Repository, data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
 	var subData stripeSubscriptionData
 	if err := json.Unmarshal(data, &subData); err != nil {
 		l.Errorf("Failed to parse subscription data: %v", err)
@@ -252,7 +292,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 
 	// Find user by Stripe customer ID - query the subscription table
 	customerID := sub.Customer
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
+	existingSub, err := repo.Billing.GetUserSubscriptionByStripeCustomerID(ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -268,7 +308,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 
 	// Determine plan based on Stripe price ID
 	planCode := "pro" // Default to pro for paid subscriptions
-	plan, err := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, planCode)
+	plan, err := repo.Billing.GetPlanByCode(ctx, planCode)
 	if err != nil {
 		l.Errorf("Failed to get plan: %v", err)
 		return nil, status.Error(codes.NotFound, "plan not found")
@@ -318,7 +358,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 		billingIntervalPtr = &bi
 	}
 
-	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
+	_, err = repo.Billing.UpsertUserSubscription(ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               plan.ID,
 		Status:               (localStatus),
@@ -338,7 +378,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionUpdated(data json.RawMessag
 	return &client.HandleStripeWebhookResponse{Processed: true}, nil
 }
 
-func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(ctx context.Context, repo *repository.Repository, data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
 	var subData stripeSubscriptionData
 	if err := json.Unmarshal(data, &subData); err != nil {
 		l.Errorf("Failed to parse subscription data: %v", err)
@@ -346,7 +386,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	}
 
 	customerID := subData.Object.Customer
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
+	existingSub, err := repo.Billing.GetUserSubscriptionByStripeCustomerID(ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -361,13 +401,13 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	}
 
 	// Downgrade to free plan
-	freePlan, err := l.svcCtx.Repo.Billing.GetPlanByCode(l.ctx, "free")
+	freePlan, err := repo.Billing.GetPlanByCode(ctx, "free")
 	if err != nil {
 		l.Errorf("Failed to get free plan: %v", err)
 		return nil, status.Error(codes.NotFound, "free plan not found")
 	}
 
-	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
+	_, err = repo.Billing.UpsertUserSubscription(ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               freePlan.ID,
 		Status:               "canceled",
@@ -383,7 +423,7 @@ func (l *HandleStripeWebhookLogic) handleSubscriptionDeleted(data json.RawMessag
 	return &client.HandleStripeWebhookResponse{Processed: true}, nil
 }
 
-func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+func (l *HandleStripeWebhookLogic) handlePaymentFailed(ctx context.Context, repo *repository.Repository, data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
 	var invoiceData stripeInvoiceData
 	if err := json.Unmarshal(data, &invoiceData); err != nil {
 		l.Errorf("Failed to parse invoice data: %v", err)
@@ -392,7 +432,7 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 
 	invoice := invoiceData.Object
 	customerID := invoice.Customer
-	existingSub, err := l.svcCtx.Repo.Billing.GetUserSubscriptionByStripeCustomerID(l.ctx, &customerID)
+	existingSub, err := repo.Billing.GetUserSubscriptionByStripeCustomerID(ctx, &customerID)
 	if err != nil {
 		l.Errorf("Failed to find subscription by Stripe customer ID: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
@@ -405,7 +445,7 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 	if invoice.Subscription == "" && existingSub.StripeSubscriptionID != nil {
 		subIDPtr = existingSub.StripeSubscriptionID
 	}
-	_, err = l.svcCtx.Repo.Billing.UpsertUserSubscription(l.ctx, db.UpsertUserSubscriptionParams{
+	_, err = repo.Billing.UpsertUserSubscription(ctx, db.UpsertUserSubscriptionParams{
 		UserID:               existingSub.UserID,
 		PlanID:               existingSub.PlanID,
 		Status:               "past_due",
@@ -421,7 +461,7 @@ func (l *HandleStripeWebhookLogic) handlePaymentFailed(data json.RawMessage) (*c
 	return &client.HandleStripeWebhookResponse{Processed: true}, nil
 }
 
-func (l *HandleStripeWebhookLogic) handleDisputeCreated(data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
+func (l *HandleStripeWebhookLogic) handleDisputeCreated(ctx context.Context, repo *repository.Repository, data json.RawMessage) (*client.HandleStripeWebhookResponse, error) {
 	var disputeData stripeDisputeData
 	if err := json.Unmarshal(data, &disputeData); err != nil {
 		l.Errorf("Failed to parse dispute data: %v", err)

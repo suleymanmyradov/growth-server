@@ -35,12 +35,12 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(req *
 	}
 
 	rpcResp, err := l.svcCtx.NotificationsRpc.UpdateNotificationPreferences(l.ctx, &notificationsClient.UpdateNotificationPreferencesRequest{Preferences: &notificationsClient.NotificationPreferences{
-		EmailEnabled:          req.Preferences.EmailEnabled,
-		PushEnabled:           req.Preferences.PushEnabled,
-		HabitRemindersEnabled: req.Preferences.HabitRemindersEnabled,
-		GoalRemindersEnabled:  req.Preferences.GoalRemindersEnabled,
-		StreakWarningsEnabled: req.Preferences.StreakWarningsEnabled,
-		SundayReviewEnabled:   req.Preferences.SundayReviewEnabled,
+		EmailEnabled:          &req.Preferences.EmailEnabled,
+		PushEnabled:           &req.Preferences.PushEnabled,
+		HabitRemindersEnabled: &req.Preferences.HabitRemindersEnabled,
+		GoalRemindersEnabled:  &req.Preferences.GoalRemindersEnabled,
+		StreakWarningsEnabled: &req.Preferences.StreakWarningsEnabled,
+		SundayReviewEnabled:   &req.Preferences.SundayReviewEnabled,
 	},
 	})
 	if err != nil {

@@ -44,6 +44,11 @@ Billing:
   StripeSecretKey: ${STRIPE_SECRET_KEY}
   StripeWebhookSecret: ${STRIPE_WEBHOOK_SECRET}
   FrontendURL: ${APP_URL}
+  Paddle:
+    Enabled: ${PADDLE_ENABLED}
+    Environment: ${PADDLE_ENVIRONMENT}
+    APIKey: ${PADDLE_API_KEY}
+    WebhookSecret: ${PADDLE_WEBHOOK_SECRET}
 
 WeeklyReview:
   RegenerationCooldown: 1s

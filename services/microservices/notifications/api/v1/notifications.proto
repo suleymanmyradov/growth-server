@@ -80,13 +80,16 @@ message GetUnreadCountResponse {
 // NotificationPreferences owns the per-user notification delivery flags.
 // Owned exclusively by the notifications service. The user is derived from
 // the authenticated principal in the RPC context, not from a request field.
+// Fields use proto3 optional presence so UpdateNotificationPreferences can
+// distinguish "not sent" (nil) from "explicitly false" — required for partial
+// updates from PUT /settings where only a subset of toggles is provided.
 message NotificationPreferences {
-  bool emailEnabled = 1;
-  bool pushEnabled = 2;
-  bool habitRemindersEnabled = 3;
-  bool goalRemindersEnabled = 4;
-  bool streakWarningsEnabled = 5;
-  bool sundayReviewEnabled = 6;
+  optional bool emailEnabled = 1;
+  optional bool pushEnabled = 2;
+  optional bool habitRemindersEnabled = 3;
+  optional bool goalRemindersEnabled = 4;
+  optional bool streakWarningsEnabled = 5;
+  optional bool sundayReviewEnabled = 6;
 }
 
 message GetNotificationPreferencesRequest {}

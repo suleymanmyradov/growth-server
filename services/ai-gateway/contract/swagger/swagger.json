@@ -51,6 +51,14 @@
             "name": "limit",
             "in": "query",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "name": "archived",
+            "in": "query",
+            "required": true
           }
         ],
         "responses": {
@@ -563,10 +571,10 @@
                 "content"
               ],
               "properties": {
-                "content": {
+                "clientMessageId": {
                   "type": "string"
                 },
-                "role": {
+                "content": {
                   "type": "string"
                 }
               }
@@ -726,6 +734,270 @@
         }
       }
     },
+    "/api/v1/memory/facts": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ListMemoryFacts",
+        "operationId": "conversationsListMemoryFacts",
+        "parameters": [
+          {
+            "type": "integer",
+            "default": 1,
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "default": 50,
+            "example": 50,
+            "name": "limit",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "fact",
+                      "category",
+                      "confidence",
+                      "userAuthored",
+                      "createdAt"
+                    ],
+                    "properties": {
+                      "category": {
+                        "type": "string",
+                        "example": "commitment"
+                      },
+                      "confidence": {
+                        "type": "number",
+                        "example": 0.9
+                      },
+                      "createdAt": {
+                        "type": "string"
+                      },
+                      "fact": {
+                        "type": "string"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "userAuthored": {
+                        "type": "boolean"
+                      }
+                    }
+                  }
+                },
+                "page": {
+                  "type": "object",
+                  "required": [
+                    "total",
+                    "page",
+                    "limit",
+                    "totalPages"
+                  ],
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "example": 20
+                    },
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "AddMemoryFact",
+        "operationId": "conversationsAddMemoryFact",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": [
+                "fact",
+                "category"
+              ],
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "example": "commitment"
+                },
+                "fact": {
+                  "type": "string"
+                },
+                "supersedesId": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "fact",
+                    "category",
+                    "confidence",
+                    "userAuthored",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "category": {
+                      "type": "string",
+                      "example": "commitment"
+                    },
+                    "confidence": {
+                      "type": "number",
+                      "example": 0.9
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "fact": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "userAuthored": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ForgetAllMemoryFacts",
+        "operationId": "conversationsForgetAllMemoryFacts",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "example": false,
+            "name": "confirm",
+            "in": "formData",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "forgotten": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/memory/facts/{id}": {
+      "delete": {
+        "consumes": [
+          "application/x-www-form-urlencoded"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "schemes": [
+          "https"
+        ],
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ForgetMemoryFact",
+        "operationId": "conversationsForgetMemoryFact",
+        "parameters": [
+          {
+            "type": "string",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
     "/api/v1/personalization/coaching": {
       "post": {
         "consumes": [
@@ -782,6 +1054,9 @@
                       }
                     }
                   }
+                },
+                "clientMessageId": {
+                  "type": "string"
                 },
                 "context": {
                   "type": "string",
@@ -1351,7 +1626,7 @@
       }
     }
   },
-  "x-date": "2026-08-22 14:20:51",
+  "x-date": "2026-09-16 11:17:31",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

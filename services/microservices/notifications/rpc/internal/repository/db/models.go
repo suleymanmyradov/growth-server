@@ -129,11 +129,12 @@ type Conversation struct {
 }
 
 type ConversationMessage struct {
-	ID             uuid.UUID          `db:"id" json:"id"`
-	ConversationID uuid.UUID          `db:"conversation_id" json:"conversation_id"`
-	Role           string             `db:"role" json:"role"`
-	Content        string             `db:"content" json:"content"`
-	CreatedAt      pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ID              uuid.UUID          `db:"id" json:"id"`
+	ConversationID  uuid.UUID          `db:"conversation_id" json:"conversation_id"`
+	Role            string             `db:"role" json:"role"`
+	Content         string             `db:"content" json:"content"`
+	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	ClientMessageID *string            `db:"client_message_id" json:"client_message_id"`
 }
 
 type ConversionFunnel struct {
@@ -522,6 +523,20 @@ type User struct {
 	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	EmailVerified bool               `db:"email_verified" json:"email_verified"`
+}
+
+type UserFact struct {
+	ID              uuid.UUID          `db:"id" json:"id"`
+	UserID          uuid.UUID          `db:"user_id" json:"user_id"`
+	Fact            string             `db:"fact" json:"fact"`
+	Category        string             `db:"category" json:"category"`
+	Confidence      float32            `db:"confidence" json:"confidence"`
+	SourceMessageID uuid.NullUUID      `db:"source_message_id" json:"source_message_id"`
+	UserAuthored    bool               `db:"user_authored" json:"user_authored"`
+	SupersededBy    uuid.NullUUID      `db:"superseded_by" json:"superseded_by"`
+	SupersededAt    pgtype.Timestamptz `db:"superseded_at" json:"superseded_at"`
+	CreatedAt       pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type UserLifecycleEvent struct {

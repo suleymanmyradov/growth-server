@@ -4254,6 +4254,7 @@ const (
 	BillingService_CreateCustomerPortalSession_FullMethodName = "/client.BillingService/CreateCustomerPortalSession"
 	BillingService_HandleStripeWebhook_FullMethodName         = "/client.BillingService/HandleStripeWebhook"
 	BillingService_HandleRevenueCatWebhook_FullMethodName     = "/client.BillingService/HandleRevenueCatWebhook"
+	BillingService_HandlePaddleWebhook_FullMethodName         = "/client.BillingService/HandlePaddleWebhook"
 	BillingService_ListSubscriptionStatuses_FullMethodName    = "/client.BillingService/ListSubscriptionStatuses"
 )
 
@@ -4267,6 +4268,7 @@ type BillingServiceClient interface {
 	CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
 	HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error)
+	HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
@@ -4340,6 +4342,16 @@ func (c *billingServiceClient) HandleRevenueCatWebhook(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *billingServiceClient) HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HandlePaddleWebhookResponse)
+	err := c.cc.Invoke(ctx, BillingService_HandlePaddleWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingServiceClient) ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSubscriptionStatusesResponse)
@@ -4360,6 +4372,7 @@ type BillingServiceServer interface {
 	CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error)
 	HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error)
 	HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error)
+	HandlePaddleWebhook(context.Context, *HandlePaddleWebhookRequest) (*HandlePaddleWebhookResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error)
@@ -4390,6 +4403,9 @@ func (UnimplementedBillingServiceServer) HandleStripeWebhook(context.Context, *H
 }
 func (UnimplementedBillingServiceServer) HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HandleRevenueCatWebhook not implemented")
+}
+func (UnimplementedBillingServiceServer) HandlePaddleWebhook(context.Context, *HandlePaddleWebhookRequest) (*HandlePaddleWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method HandlePaddleWebhook not implemented")
 }
 func (UnimplementedBillingServiceServer) ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSubscriptionStatuses not implemented")
@@ -4523,6 +4539,24 @@ func _BillingService_HandleRevenueCatWebhook_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingService_HandlePaddleWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HandlePaddleWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).HandlePaddleWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_HandlePaddleWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).HandlePaddleWebhook(ctx, req.(*HandlePaddleWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BillingService_ListSubscriptionStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSubscriptionStatusesRequest)
 	if err := dec(in); err != nil {
@@ -4571,6 +4605,10 @@ var BillingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandleRevenueCatWebhook",
 			Handler:    _BillingService_HandleRevenueCatWebhook_Handler,
+		},
+		{
+			MethodName: "HandlePaddleWebhook",
+			Handler:    _BillingService_HandlePaddleWebhook_Handler,
 		},
 		{
 			MethodName: "ListSubscriptionStatuses",

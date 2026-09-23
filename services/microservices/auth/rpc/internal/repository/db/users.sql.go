@@ -298,32 +298,35 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, iD uuid.UUID, password
 
 const updateUserProfile = `-- name: UpdateUserProfile :one
 UPDATE users
-SET bio        = $2,
-    location   = $3,
-    website    = $4,
-    interests  = $5,
-    avatar_url = $6
-WHERE id = $1
+SET bio        = COALESCE($1, users.bio),
+    location   = COALESCE($2, users.location),
+    website    = COALESCE($3, users.website),
+    interests  = COALESCE($4, users.interests),
+    avatar_url = COALESCE($5, users.avatar_url)
+WHERE id = $6
 RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified
 `
 
 type UpdateUserProfileParams struct {
-	ID        uuid.UUID `db:"id" json:"id"`
 	Bio       *string   `db:"bio" json:"bio"`
 	Location  *string   `db:"location" json:"location"`
 	Website   *string   `db:"website" json:"website"`
 	Interests []string  `db:"interests" json:"interests"`
 	AvatarUrl *string   `db:"avatar_url" json:"avatar_url"`
+	ID        uuid.UUID `db:"id" json:"id"`
 }
 
+// Partial update: NULL args mean "not provided" and preserve the stored value
+// (an empty string/empty slice on the wire must not clear the column — there
+// is no presence signal in the proto contract to distinguish omit from clear).
 func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUserProfile,
-		arg.ID,
 		arg.Bio,
 		arg.Location,
 		arg.Website,
 		arg.Interests,
 		arg.AvatarUrl,
+		arg.ID,
 	)
 	var i User
 	err := row.Scan(

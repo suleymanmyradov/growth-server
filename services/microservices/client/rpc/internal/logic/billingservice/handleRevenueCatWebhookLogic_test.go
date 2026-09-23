@@ -100,6 +100,21 @@ func (m *rcMockBilling) IsRevenueCatEventProcessed(_ context.Context, _ string) 
 func (m *rcMockBilling) MarkRevenueCatEventProcessed(_ context.Context, _ string) error {
 	return m.markProcessedErr
 }
+func (m *rcMockBilling) GetUserSubscriptionByPaddleCustomerID(ctx context.Context, _ *string) (db.GetUserSubscriptionByPaddleCustomerIDRow, error) {
+	panic("not used")
+}
+func (m *rcMockBilling) SetPaddleCustomerID(ctx context.Context, _ uuid.UUID, _ *string) error {
+	panic("not used")
+}
+func (m *rcMockBilling) UpsertUserSubscriptionPaddle(ctx context.Context, _ db.UpsertUserSubscriptionPaddleParams) (db.Subscription, error) {
+	panic("not used")
+}
+func (m *rcMockBilling) IsPaddleEventProcessed(ctx context.Context, _ string) (bool, error) {
+	panic("not used")
+}
+func (m *rcMockBilling) MarkPaddleEventProcessed(ctx context.Context, _ string) error {
+	panic("not used")
+}
 
 // noopTxRunner is a test-only transaction runner that calls fn directly
 // without a real database transaction. It passes a nil pgx.Tx — the test

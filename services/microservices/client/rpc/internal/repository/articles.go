@@ -176,6 +176,15 @@ func (r *ArticlesRepo) DeleteArticleLike(ctx context.Context, articleID uuid.UUI
 	return r.db.DeleteArticleLike(ctx, articleID, userID)
 }
 
+// ToggleArticleLike atomically flips the like state in one statement and
+// returns the resulting liked flag.
+func (r *ArticlesRepo) ToggleArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.ToggleArticleLike")
+	defer span.End()
+
+	return r.db.ToggleArticleLike(ctx, articleID, userID)
+}
+
 func (r *ArticlesRepo) CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ArticlesRepo.CountArticleLikes")
 	defer span.End()

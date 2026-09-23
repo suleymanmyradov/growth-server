@@ -19,8 +19,12 @@ VALUES ($1, $2, $3)
 RETURNING id, name, slug, sort_order, created_at, updated_at;
 
 -- name: UpdateCategory :one
+-- sort_order is a plain int in the contract, so an omitted field arrives as 0
+-- and must preserve the stored order rather than resetting the category to
+-- the top of the list.
 UPDATE categories
-SET name = $2, slug = $3, sort_order = $4
+SET name = $2, slug = $3,
+    sort_order = CASE WHEN $4 = 0 THEN categories.sort_order ELSE $4 END
 WHERE id = $1
 RETURNING id, name, slug, sort_order, created_at, updated_at;
 
