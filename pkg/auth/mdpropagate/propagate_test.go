@@ -22,8 +22,10 @@ type fakeVerifier struct {
 }
 
 func newFakeVerifier(t *testing.T) *fakeVerifier {
+	privPEM, _, err := jwtpkg.GenerateKeyPair()
+	require.NoError(t, err)
 	cfg := jwtpkg.Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
+		PrivateKey:            privPEM,
 		Issuer:                "test-issuer",
 		Audience:              "test-audience",
 		AccessExpiryDuration:  time.Hour,
@@ -253,8 +255,10 @@ func TestUnaryServerInterceptorOptional(t *testing.T) {
 
 func TestTokenVerifierInterface(t *testing.T) {
 	// Ensure the real jwtpkg.TokenMaker satisfies our TokenVerifier interface
+	privPEM, _, err := jwtpkg.GenerateKeyPair()
+	require.NoError(t, err)
 	cfg := jwtpkg.Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
+		PrivateKey:            privPEM,
 		Issuer:                "test-issuer",
 		Audience:              "test-audience",
 		AccessExpiryDuration:  time.Hour,
@@ -289,9 +293,11 @@ func TestClockSkewTolerance(t *testing.T) {
 func TestGenericErrorMessages(t *testing.T) {
 	fv := newFakeVerifier(t)
 
-	// Tampered token (change payload without changing signature)
+	// Token minted under a different key/issuer must be rejected
+	otherPrivPEM, _, err := jwtpkg.GenerateKeyPair()
+	require.NoError(t, err)
 	cfg := jwtpkg.Config{
-		Secret:                "different-secret-must-be-at-least-32-by",
+		PrivateKey:            otherPrivPEM,
 		Issuer:                "other-issuer",
 		Audience:              "other-audience",
 		AccessExpiryDuration:  time.Hour,

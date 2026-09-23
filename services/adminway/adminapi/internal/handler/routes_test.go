@@ -22,10 +22,13 @@ import (
 func newTestServer(t *testing.T) *rest.Serverless {
 	t.Helper()
 
+	_, pubPEM, err := jwt.GenerateKeyPair()
+	require.NoError(t, err)
+
 	verifier, err := jwt.NewVerifier(jwt.Config{
-		Secret:   strings.Repeat("t", 32),
-		Issuer:   "growth-auth",
-		Audience: "growth-api",
+		PublicKey: pubPEM,
+		Issuer:    "growth-auth",
+		Audience:  "growth-api",
 	})
 	require.NoError(t, err)
 

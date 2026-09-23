@@ -119,8 +119,8 @@ func (s *ServiceContext) CheckDailyTokenQuota(ctx context.Context, userID string
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	if c.Auth.PublicKey == "" && c.Auth.Secret == "" {
-		logx.Must(fmt.Errorf("Auth.PublicKey (or legacy Auth.Secret) is required"))
+	if c.Auth.PublicKey == "" {
+		logx.Must(fmt.Errorf("Auth.PublicKey is required"))
 	}
 	if c.Auth.Issuer == "" {
 		logx.Must(fmt.Errorf("Auth.Issuer is required"))
@@ -187,7 +187,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	tokenVerifier, err := jwt.NewVerifier(jwt.Config{
 		PublicKey: c.Auth.PublicKey,
-		Secret:    c.Auth.Secret,
 		Issuer:    c.Auth.Issuer,
 		Audience:  c.Auth.Audience,
 	})

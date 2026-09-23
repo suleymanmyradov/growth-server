@@ -106,8 +106,11 @@ func setupIntegrationTestEnv(t *testing.T) *integrationTestEnv {
 	tokenRepo, err := jwt.NewRedisRevocationRepository(redisCli)
 	require.NoError(t, err)
 
+	privPEM, _, err := jwt.GenerateKeyPair()
+	require.NoError(t, err)
+
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
-		Secret:                "test-secret-at-least-32-characters-long-xxxxx",
+		PrivateKey:            privPEM,
 		Issuer:                "test-issuer",
 		Audience:              "test-audience",
 		AccessExpiryDuration:  15 * time.Minute,

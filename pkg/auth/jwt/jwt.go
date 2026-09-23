@@ -76,39 +76,23 @@ type RevocationRepository interface {
 }
 
 // keyResolver maps a token's signing method to the credential that verifies
-// it. ES256 tokens resolve to the ECDSA public key; HS256 tokens (issued
-// before the asymmetric cutover) resolve to the legacy shared secret only
-// while it remains configured. Keeping the two strictly separated by method
-// type prevents algorithm-confusion attacks — the PEM public key is never
-// usable as an HMAC secret.
+// it. Only ES256 is accepted: tokens resolve to the ECDSA public key and any
+// other signing method — including HS256 — is rejected, so the PEM public
+// key can never be abused as an HMAC secret (algorithm-confusion).
 type keyResolver struct {
-	publicKey    *ecdsa.PublicKey
-	legacySecret []byte
+	publicKey *ecdsa.PublicKey
 }
 
 func (r keyResolver) validMethods() []string {
-	var methods []string
-	if r.publicKey != nil {
-		methods = append(methods, "ES256")
+	if r.publicKey == nil {
+		return nil
 	}
-	if len(r.legacySecret) > 0 {
-		methods = append(methods, "HS256")
-	}
-	return methods
+	return []string{"ES256"}
 }
 
 func (r keyResolver) keyfunc(token *jwt.Token) (interface{}, error) {
-	switch token.Method.(type) {
-	case *jwt.SigningMethodECDSA:
-		if r.publicKey == nil {
-			return nil, ErrInvalidToken
-		}
+	if _, ok := token.Method.(*jwt.SigningMethodECDSA); ok && r.publicKey != nil {
 		return r.publicKey, nil
-	case *jwt.SigningMethodHMAC:
-		if len(r.legacySecret) == 0 {
-			return nil, ErrInvalidToken
-		}
-		return r.legacySecret, nil
 	}
 	return nil, ErrInvalidToken
 }
@@ -132,12 +116,7 @@ type Config struct {
 	// PublicKey is the PEM-encoded ECDSA P-256 public key used to verify
 	// ES256 tokens. Safe to distribute to every verifying service. When
 	// PrivateKey is set the public half is derived from it instead.
-	PublicKey string `json:",optional"`
-	// Secret is the legacy HS256 shared secret. When set alongside keys it
-	// acts as the dual-verify fallback for pre-cutover tokens during the
-	// migration window; when set alone the maker runs in legacy HS256
-	// sign+verify mode. Remove it once the window closes.
-	Secret                string        `json:",optional" secret:"true"`
+	PublicKey             string        `json:",optional"`
 	Issuer                string        `json:",optional"`
 	Audience              string        `json:",optional"`
 	AccessExpiryDuration  time.Duration `json:",optional"`
@@ -151,8 +130,8 @@ func NewTokenMaker(cfg Config, repo RevocationRepository) (*TokenMaker, error) {
 	if cfg.Audience == "" {
 		return nil, fmt.Errorf("config.Audience is required")
 	}
-	if cfg.PrivateKey == "" && cfg.PublicKey == "" && cfg.Secret == "" {
-		return nil, fmt.Errorf("config requires one of PrivateKey, PublicKey, Secret")
+	if cfg.PrivateKey == "" && cfg.PublicKey == "" {
+		return nil, fmt.Errorf("config requires one of PrivateKey, PublicKey")
 	}
 
 	tm := &TokenMaker{
@@ -163,9 +142,6 @@ func NewTokenMaker(cfg Config, repo RevocationRepository) (*TokenMaker, error) {
 		repo:          repo,
 	}
 
-	if cfg.Secret != "" {
-		tm.resolver.legacySecret = []byte(cfg.Secret)
-	}
 	if cfg.PrivateKey != "" {
 		key, err := ParsePrivateKeyPEM(cfg.PrivateKey)
 		if err != nil {
@@ -193,23 +169,15 @@ func NewTokenMaker(cfg Config, repo RevocationRepository) (*TokenMaker, error) {
 	return tm, nil
 }
 
-// signClaims serializes claims into a signed JWT. ES256 is used whenever a
-// private key is configured; otherwise the maker falls back to legacy HS256.
+// signClaims serializes claims into a signed JWT with ES256. It requires a
+// configured private key — there is no symmetric fallback.
 func (tm *TokenMaker) signClaims(claims *TokenClaims) (string, error) {
-	var token *jwt.Token
-	var key interface{}
-	switch {
-	case tm.signingKey != nil:
-		token = jwt.NewWithClaims(jwt.SigningMethodES256, claims)
-		token.Header["kid"] = tm.signingKeyID
-		key = tm.signingKey
-	case len(tm.resolver.legacySecret) > 0:
-		token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		key = tm.resolver.legacySecret
-	default:
+	if tm.signingKey == nil {
 		return "", fmt.Errorf("no signing credential configured")
 	}
-	tokenString, err := token.SignedString(key)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token.Header["kid"] = tm.signingKeyID
+	tokenString, err := token.SignedString(tm.signingKey)
 	if err != nil {
 		return "", fmt.Errorf("sign token: %w", err)
 	}

@@ -30,9 +30,6 @@ Postgres:
 JWT:
   # ES256 signing key — this service is the only issuer of user tokens.
   PrivateKey: "${JWT_PRIVATE_KEY}"
-  # Legacy HS256 shared secret kept for the dual-verify migration window.
-  # Remove this line (and the env var) once pre-cutover refresh tokens expire.
-  Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
   Audience: ${JWT_AUDIENCE}
   AccessExpiryDuration: 15m

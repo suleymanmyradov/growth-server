@@ -58,11 +58,11 @@ type ServiceContext struct {
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
-	// Adminway mints admin tokens (growth-admin audience) — it needs a signing
-	// credential. ES256 via Auth.PrivateKey is the production path; Auth.Secret
-	// alone keeps legacy HS256 mode working for local development.
-	if c.Auth.PrivateKey == "" && c.Auth.Secret == "" {
-		logx.Must(fmt.Errorf("Auth.PrivateKey (or legacy Auth.Secret) is required"))
+	// Adminway mints admin tokens (growth-admin audience) — it needs the ES256
+	// signing key. There is no symmetric fallback; run `make jwt-keygen-admin`
+	// for local development.
+	if c.Auth.PrivateKey == "" {
+		logx.Must(fmt.Errorf("Auth.PrivateKey is required"))
 	}
 	if c.Auth.Issuer == "" {
 		logx.Must(fmt.Errorf("Auth.Issuer is required"))
@@ -96,7 +96,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	tokenMaker, err := jwt.NewTokenMaker(jwt.Config{
 		PrivateKey:            c.Auth.PrivateKey,
 		PublicKey:             c.Auth.PublicKey,
-		Secret:                c.Auth.Secret,
 		Issuer:                c.Auth.Issuer,
 		Audience:              c.Auth.Audience,
 		AccessExpiryDuration:  c.Auth.AccessExpiryDuration,

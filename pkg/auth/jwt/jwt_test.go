@@ -59,17 +59,14 @@ func TestValidateClaims_NilTimeFields(t *testing.T) {
 
 // Test that parsing a token without standard time claims leaves pointers nil.
 func TestParseTokenWithoutTimeClaims(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:   "test-secret-must-be-at-least-32-bytes",
-		Issuer:   "test-issuer",
-		Audience: "test-audience",
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
 
 	// Create a minimal token directly with MapClaims (bypassing our helpers)
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
 		"jti": uuid.New().String(),
 		"sub": uuid.New().String(),
 		"sid": uuid.New().String(),
@@ -77,7 +74,7 @@ func TestParseTokenWithoutTimeClaims(t *testing.T) {
 		"aud": []string{"test-audience"},
 		"typ": "access",
 	})
-	tokenString, err := token.SignedString(maker.resolver.legacySecret)
+	tokenString, err := token.SignedString(maker.signingKey)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}
@@ -92,14 +89,11 @@ func TestParseTokenWithoutTimeClaims(t *testing.T) {
 // Test that RevokeAccessToken can revoke an expired token (the bug it previously
 // failed at because jwt.ParseWithClaims validated time by default).
 func TestRevokeAccessToken_ExpiredToken(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	cfg := testECConfig(privPEM)
+	cfg.AccessExpiryDuration = time.Millisecond
 	repo := newMockRevocationRepo()
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Millisecond,
-		RefreshExpiryDuration: time.Hour,
-	}, repo)
+	maker, err := NewTokenMaker(cfg, repo)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -135,14 +129,9 @@ func TestRevokeAccessToken_ExpiredToken(t *testing.T) {
 // copied the refresh token value before logout, the session revocation check
 // in VerifyRefreshToken blocks the refresh attempt.
 func TestRefreshAfterLogout_RejectedBySessionRevocation(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
 	repo := newMockRevocationRepo()
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, repo)
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -192,14 +181,9 @@ func TestRefreshAfterLogout_RejectedBySessionRevocation(t *testing.T) {
 // token-value revocation also blocks refresh, even if the session check were
 // somehow bypassed.
 func TestRefreshAfterLogout_RejectedByTokenRevocation(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
 	repo := newMockRevocationRepo()
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, repo)
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}

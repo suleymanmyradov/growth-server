@@ -32,10 +32,7 @@ type Config struct {
 		PrivateKey string `json:",optional" secret:"true"`
 		// PublicKey is optional here — the public half is derived from
 		// PrivateKey at startup.
-		PublicKey string `json:",optional"`
-		// Secret is the legacy HS256 shared secret, kept only as the
-		// dual-verify fallback for pre-cutover tokens.
-		Secret                string        `json:",optional" secret:"true"`
+		PublicKey             string        `json:",optional"`
 		Issuer                string        `json:",optional"`
 		Audience              string        `json:",optional"`
 		AccessExpiryDuration  time.Duration `json:",optional"`
