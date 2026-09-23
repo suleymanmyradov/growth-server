@@ -592,8 +592,6 @@ services:
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       # ES256 public key — verify-only; cannot mint tokens.
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
-      # Legacy HS256 secret — dual-verify migration window only; remove after.
-      - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=${JWT_AUDIENCE}
       # Server-side error capture (instrumentation.ts); empty = disabled.
@@ -637,8 +635,6 @@ services:
       # makes proxy.ts reject every valid token → login redirect loop.
       # ES256 public half of adminway's keypair — verify-only.
       - JWT_PUBLIC_KEY=${ADMIN_JWT_PUBLIC_KEY}
-      # Legacy HS256 secret — dual-verify migration window only; remove after.
-      - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=${JWT_ISSUER}
       - JWT_AUDIENCE=growth-admin
       # Server-side error capture (instrumentation.ts); empty = disabled.

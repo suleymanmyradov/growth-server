@@ -52,8 +52,6 @@ FileManagerRpc:
 Auth:
   # Verify-only: public key of the auth service's ES256 pair.
   PublicKey: "${JWT_PUBLIC_KEY}"
-  # Legacy HS256 fallback — dual-verify window only.
-  Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
   Audience: ${JWT_AUDIENCE}
 

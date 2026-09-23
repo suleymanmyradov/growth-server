@@ -3,8 +3,6 @@ package jwt
 import (
 	"context"
 	"crypto/elliptic"
-	"crypto/x509"
-	"encoding/pem"
 	"strings"
 	"testing"
 	"time"
@@ -122,52 +120,7 @@ func TestES256_RefreshTokenAndRevocation(t *testing.T) {
 	}
 }
 
-func TestDualVerify_LegacyHS256AcceptedDuringWindow(t *testing.T) {
-	privPEM, _ := testKeyPair(t)
-	cfg := testECConfig(privPEM)
-	cfg.Secret = "legacy-secret-must-be-at-least-32-bytes"
-
-	maker, err := NewTokenMaker(cfg, nil)
-	if err != nil {
-		t.Fatalf("create token maker: %v", err)
-	}
-
-	// A pre-cutover HS256 token must still verify while Secret is configured.
-	legacyToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
-		ID:        uuid.New(),
-		Subject:   uuid.New(),
-		SessionID: uuid.New(),
-		Username:  "legacy-user",
-		Roles:     []string{"user"},
-		Issuer:    "test-issuer",
-		Audience:  []string{"test-audience"},
-		IssuedAt:  jwt.NewNumericDate(time.Now()),
-		ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
-		NotBefore: jwt.NewNumericDate(time.Now()),
-		TokenType: AccessToken,
-	}).SignedString([]byte(cfg.Secret))
-	if err != nil {
-		t.Fatalf("sign legacy token: %v", err)
-	}
-
-	verifier, err := NewVerifier(Config{
-		PublicKey: mustPublicFromPrivate(t, privPEM),
-		Secret:    cfg.Secret,
-		Issuer:    "test-issuer",
-		Audience:  "test-audience",
-	})
-	if err != nil {
-		t.Fatalf("create verifier: %v", err)
-	}
-	if _, err := verifier.VerifyAccessToken(context.Background(), legacyToken); err != nil {
-		t.Fatalf("expected legacy HS256 token to verify during window: %v", err)
-	}
-	if _, err := maker.VerifyAccessToken(context.Background(), legacyToken); err != nil {
-		t.Fatalf("expected maker to accept legacy HS256 token during window: %v", err)
-	}
-}
-
-func TestES256_HS256RejectedAfterWindow(t *testing.T) {
+func TestES256_HS256Rejected(t *testing.T) {
 	privPEM, pubPEM := testKeyPair(t)
 	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
@@ -178,9 +131,9 @@ func TestES256_HS256RejectedAfterWindow(t *testing.T) {
 		t.Fatalf("create verifier: %v", err)
 	}
 
-	// With no Secret configured, HS256 tokens must be rejected — including a
-	// token signed with the public key PEM as the HMAC secret (the classic
-	// RS256→HS256 algorithm-confusion attack).
+	// HS256 tokens must always be rejected — including a token signed with
+	// the public key PEM as the HMAC secret (the classic RS256→HS256
+	// algorithm-confusion attack).
 	confused, err := jwt.NewWithClaims(jwt.SigningMethodHS256, &TokenClaims{
 		ID:        uuid.New(),
 		Subject:   uuid.New(),
@@ -254,24 +207,10 @@ func TestNewTokenMaker_RequiresCredential(t *testing.T) {
 	}
 }
 
-func TestNewVerifier_RequiresKeyOrSecret(t *testing.T) {
+func TestNewVerifier_RequiresPublicKey(t *testing.T) {
 	if _, err := NewVerifier(Config{Issuer: "i", Audience: "a"}); err == nil {
-		t.Fatal("expected error when neither PublicKey nor Secret is set")
+		t.Fatal("expected error when PublicKey is not set")
 	}
-}
-
-// mustPublicFromPrivate derives the PEM public key from a PEM private key.
-func mustPublicFromPrivate(t *testing.T, privPEM string) string {
-	t.Helper()
-	priv, err := ParsePrivateKeyPEM(privPEM)
-	if err != nil {
-		t.Fatalf("parse private key: %v", err)
-	}
-	der, err := x509.MarshalPKIXPublicKey(&priv.PublicKey)
-	if err != nil {
-		t.Fatalf("marshal public key: %v", err)
-	}
-	return string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der}))
 }
 
 // Sanity: generated keys are real P-256 ECDSA.

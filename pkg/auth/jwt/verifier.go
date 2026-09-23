@@ -21,8 +21,7 @@ type Verifier struct {
 }
 
 // NewVerifier creates a verify-only token checker from the shared Config.
-// It requires Config.PublicKey (ES256) and/or Config.Secret (legacy HS256
-// fallback for the migration window). PrivateKey is ignored — verifiers
+// It requires Config.PublicKey (ES256). PrivateKey is ignored — verifiers
 // never sign.
 func NewVerifier(cfg Config) (*Verifier, error) {
 	if cfg.Issuer == "" {
@@ -31,28 +30,23 @@ func NewVerifier(cfg Config) (*Verifier, error) {
 	if cfg.Audience == "" {
 		return nil, fmt.Errorf("config.Audience is required")
 	}
+	if cfg.PublicKey == "" {
+		return nil, fmt.Errorf("config.PublicKey is required")
+	}
 
 	v := &Verifier{
 		issuer:   cfg.Issuer,
 		audience: cfg.Audience,
 		leeway:   DefaultLeeway,
 	}
-	if cfg.PublicKey != "" {
-		key, err := ParsePublicKeyPEM(cfg.PublicKey)
-		if err != nil {
-			return nil, fmt.Errorf("config.PublicKey: %w", err)
-		}
-		if key.Curve != elliptic.P256() {
-			return nil, fmt.Errorf("config.PublicKey: ES256 requires a P-256 key")
-		}
-		v.resolver.publicKey = key
+	key, err := ParsePublicKeyPEM(cfg.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("config.PublicKey: %w", err)
 	}
-	if cfg.Secret != "" {
-		v.resolver.legacySecret = []byte(cfg.Secret)
+	if key.Curve != elliptic.P256() {
+		return nil, fmt.Errorf("config.PublicKey: ES256 requires a P-256 key")
 	}
-	if len(v.resolver.validMethods()) == 0 {
-		return nil, fmt.Errorf("config requires PublicKey and/or Secret")
-	}
+	v.resolver.publicKey = key
 	return v, nil
 }
 

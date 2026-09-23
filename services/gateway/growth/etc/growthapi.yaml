@@ -52,7 +52,6 @@ FileManagerRpc:
   NonBlock: true
 
 Auth:
-  Secret: 36be8f513d378b3e8560303d509a7a540385bc50b717c3d487c788210703390b
   PublicKey: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEFZ5ncp7p/oKJ9s0LW+KF/ofBJsNC\n/20dPvl2zaVhwedImuxwliPLuDIFbiWiPD60TGQdVlFD53s9ANtG32bmIg==\n-----END PUBLIC KEY-----"
   Issuer: "growth-auth"
   Audience: "growth-api"

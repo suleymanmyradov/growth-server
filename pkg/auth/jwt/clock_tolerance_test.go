@@ -36,8 +36,8 @@ func makeTokenWithCustomExpiry(t *testing.T, maker *TokenMaker, expiresAt, notBe
 		NotBefore: jwt.NewNumericDate(notBefore),
 		TokenType: AccessToken,
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString(maker.resolver.legacySecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, &claims)
+	tokenString, err := token.SignedString(maker.signingKey)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}
@@ -45,13 +45,8 @@ func makeTokenWithCustomExpiry(t *testing.T, maker *TokenMaker, expiresAt, notBe
 }
 
 func TestClockTolerance_TokenExpiredWithinLeeway_IsValid(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -70,13 +65,8 @@ func TestClockTolerance_TokenExpiredWithinLeeway_IsValid(t *testing.T) {
 }
 
 func TestClockTolerance_TokenExpiredBeyondLeeway_IsRejected(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -92,13 +82,8 @@ func TestClockTolerance_TokenExpiredBeyondLeeway_IsRejected(t *testing.T) {
 }
 
 func TestClockTolerance_TokenExpiredExactlyAtLeewayBoundary(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -117,13 +102,8 @@ func TestClockTolerance_TokenExpiredExactlyAtLeewayBoundary(t *testing.T) {
 }
 
 func TestClockTolerance_NotBeforeInNearFuture_IsValid(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -139,13 +119,8 @@ func TestClockTolerance_NotBeforeInNearFuture_IsValid(t *testing.T) {
 }
 
 func TestClockTolerance_NotBeforeTooFarInFuture_IsRejected(t *testing.T) {
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -169,13 +144,8 @@ func TestClockTolerance_DefaultLeewayValue(t *testing.T) {
 
 func TestClockTolerance_RefreshTokenAlsoUsesLeeway(t *testing.T) {
 	// Refresh tokens should also benefit from the leeway
-	maker, err := NewTokenMaker(Config{
-		Secret:                "test-secret-must-be-at-least-32-bytes",
-		Issuer:                "test-issuer",
-		Audience:              "test-audience",
-		AccessExpiryDuration:  time.Minute,
-		RefreshExpiryDuration: time.Hour,
-	}, nil)
+	privPEM, _ := testKeyPair(t)
+	maker, err := NewTokenMaker(testECConfig(privPEM), nil)
 	if err != nil {
 		t.Fatalf("create token maker: %v", err)
 	}
@@ -194,8 +164,8 @@ func TestClockTolerance_RefreshTokenAlsoUsesLeeway(t *testing.T) {
 		NotBefore: jwt.NewNumericDate(time.Now().Add(-time.Hour)),
 		TokenType: RefreshToken,
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims)
-	tokenString, err := token.SignedString(maker.resolver.legacySecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, &claims)
+	tokenString, err := token.SignedString(maker.signingKey)
 	if err != nil {
 		t.Fatalf("sign token: %v", err)
 	}

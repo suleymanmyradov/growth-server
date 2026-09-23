@@ -23,11 +23,10 @@ clone of this repo (not rsync'd) and only pulls prebuilt images.
   `deploy/.env.prod`, `deploy/.env.auth`, `deploy/.env.adminway` and `logs/`
   are gitignored and survive resets.
 - Env files are split so JWT private keys stay off verifier containers:
-  `.env.prod` (shared config + `JWT_PUBLIC_KEY`/`ADMIN_JWT_PUBLIC_KEY` +
-  legacy `JWT_SECRET` during the dual-verify window) is attached to every
-  backend container; `.env.auth` (`JWT_PRIVATE_KEY`) attaches only to `auth`;
-  `.env.adminway` (`ADMIN_JWT_PRIVATE_KEY`) only to `adminway`. Generate
-  keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
+  `.env.prod` (shared config + `JWT_PUBLIC_KEY`/`ADMIN_JWT_PUBLIC_KEY`) is
+  attached to every backend container; `.env.auth` (`JWT_PRIVATE_KEY`)
+  attaches only to `auth`; `.env.adminway` (`ADMIN_JWT_PRIVATE_KEY`) only to
+  `adminway`. Generate keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
 
 Required repo secrets (all three repos): `DEPLOY_SSH_KEY` (dedicated deploy
 key, `~/.ssh/growth-deploy-key` locally, pubkey in the VM's

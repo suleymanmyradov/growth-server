@@ -104,7 +104,7 @@ The codebase currently has **zero** RPC-to-RPC calls — keep it that way. Refer
 
 ## Config & secrets
 
-- Runtime configs are `services/**/etc/*.yaml` and are **gitignored** — real values live only on the local machine / deploy environment. Committed files are examples at most. Never commit an etc yaml or embed secrets (JWT secrets, Stripe keys, DB passwords) in code, docs, or tests — use placeholders like `<JWT_SECRET>`.
+- Runtime configs are `services/**/etc/*.yaml` and are **gitignored** — real values live only on the local machine / deploy environment. Committed files are examples at most. Never commit an etc yaml or embed secrets (JWT keys, Stripe keys, DB passwords) in code, docs, or tests — use placeholders like `<JWT_PRIVATE_KEY>`.
 - Config structs live in each service's `internal/config`; `pkg/configsafe` is for safe config handling.
 - Telemetry (OTLP tracing) is configured per service in the yaml; empty endpoint disables export.
 
@@ -134,7 +134,7 @@ Production deploys are fully automated via GitHub Actions (`.github/workflows/ci
 ## Conventions & expectations
 
 - Follow the Uber Go Style Guide (enforced via golangci-lint). Wrap errors with context; validate inputs at the logic layer (`pkg/validator`).
-- Auth: JWT signed with **ES256** (asymmetric) — the `auth` service holds `JWT.PrivateKey` and is the only issuer of user tokens; `adminway` issues admin tokens (audience `growth-admin`) with its own keypair. All other services verify-only via `jwt.NewVerifier` + `JWT.PublicKey` (issuer `growth-auth`, audience `growth-api`). `JWT.Secret` is a legacy HS256 fallback for the dual-verify migration window — do not use it for new signing. Internal service-to-service calls use a shared `ServiceAuth` secret. Authorization helpers in `pkg/authz`. Generate keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
+- Auth: JWT signed with **ES256** (asymmetric, ES256-only — the HS256 legacy path is removed) — the `auth` service holds `JWT.PrivateKey` and is the only issuer of user tokens; `adminway` issues admin tokens (audience `growth-admin`) with its own keypair. All other services verify-only via `jwt.NewVerifier` + `JWT.PublicKey` (issuer `growth-auth`, audience `growth-api`). Internal service-to-service calls use a shared `ServiceAuth` secret. Authorization helpers in `pkg/authz`. Generate keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
 - AI features use cloudwego/eino with OpenAI-compatible models (`pkg/ai`, `pkg/prompts`); ai-coach streams responses.
 - Redis (`pkg/cache`, `pkg/redisutil`): set TTLs; treat as cache, not source of truth.
 - For new endpoints, the full checklist is: contract (`.api`/`.proto`) → `make generate` → logic → queries + `make sqlc` if DB access → tests → `make lint && make check-ownership`.

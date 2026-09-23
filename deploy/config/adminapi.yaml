@@ -63,8 +63,6 @@ Auth:
   # keypair — separate from the user-token pair so an adminway compromise
   # cannot mint user tokens.
   PrivateKey: "${ADMIN_JWT_PRIVATE_KEY}"
-  # Legacy HS256 shared secret kept for the dual-verify migration window.
-  Secret: ${JWT_SECRET}
   Issuer: ${JWT_ISSUER}
   Audience: growth-admin
   AccessExpiryDuration: 15m
