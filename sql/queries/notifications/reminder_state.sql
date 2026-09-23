@@ -4,11 +4,16 @@ SELECT user_id, timezone, check_in_time, habit_reminders, onboarding_completed,
 FROM reminder_state WHERE user_id = $1;
 
 -- name: UpsertReminderStateSettings :exec
+-- SettingsChanged events may carry only the fields that changed. An empty
+-- timezone or a NULL check_in_time means "not provided" and must preserve the
+-- existing value rather than overwriting it (a partial PUT /settings would
+-- otherwise reset timezone to UTC or check_in_time to NULL — which is also
+-- impossible since the column is NOT NULL).
 INSERT INTO reminder_state (user_id, timezone, check_in_time, habit_reminders)
-VALUES ($1, $2, $3, $4)
+VALUES ($1, COALESCE(NULLIF($2::varchar, ''), 'UTC'), COALESCE($3::time, '09:00'::time), $4)
 ON CONFLICT (user_id) DO UPDATE SET
-    timezone = EXCLUDED.timezone,
-    check_in_time = EXCLUDED.check_in_time,
+    timezone = COALESCE(NULLIF(EXCLUDED.timezone, ''), reminder_state.timezone),
+    check_in_time = COALESCE(EXCLUDED.check_in_time, reminder_state.check_in_time),
     habit_reminders = EXCLUDED.habit_reminders;
 
 -- name: SetOnboardingCompleted :exec

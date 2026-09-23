@@ -46,6 +46,9 @@ func (m *mockBilling) HandleStripeWebhook(_ context.Context, _ *clientbilling.Ha
 func (m *mockBilling) HandleRevenueCatWebhook(_ context.Context, _ *clientbilling.HandleRevenueCatWebhookRequest, _ ...grpc.CallOption) (*clientbilling.HandleRevenueCatWebhookResponse, error) {
 	return nil, nil
 }
+func (m *mockBilling) HandlePaddleWebhook(_ context.Context, _ *clientbilling.HandlePaddleWebhookRequest, _ ...grpc.CallOption) (*clientbilling.HandlePaddleWebhookResponse, error) {
+	return nil, nil
+}
 func (m *mockBilling) ListSubscriptionStatuses(_ context.Context, _ *clientbilling.ListSubscriptionStatusesRequest, _ ...grpc.CallOption) (*clientbilling.ListSubscriptionStatusesResponse, error) {
 	return nil, nil
 }

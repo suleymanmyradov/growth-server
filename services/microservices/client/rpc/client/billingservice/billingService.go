@@ -20,6 +20,8 @@ type (
 	CreateCustomerPortalSessionResponse = client.CreateCustomerPortalSessionResponse
 	GetBillingOverviewRequest           = client.GetBillingOverviewRequest
 	GetBillingOverviewResponse          = client.GetBillingOverviewResponse
+	HandlePaddleWebhookRequest          = client.HandlePaddleWebhookRequest
+	HandlePaddleWebhookResponse         = client.HandlePaddleWebhookResponse
 	HandleRevenueCatWebhookRequest      = client.HandleRevenueCatWebhookRequest
 	HandleRevenueCatWebhookResponse     = client.HandleRevenueCatWebhookResponse
 	HandleStripeWebhookRequest          = client.HandleStripeWebhookRequest
@@ -36,6 +38,7 @@ type (
 		CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
 		HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
 		HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error)
+		HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error)
 		// Admin: list every user's subscription plan code + status. Used by adminway
 		ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
 	}
@@ -79,6 +82,11 @@ func (m *defaultBillingService) HandleStripeWebhook(ctx context.Context, in *Han
 func (m *defaultBillingService) HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error) {
 	client := client.NewBillingServiceClient(m.cli.Conn())
 	return client.HandleRevenueCatWebhook(ctx, in, opts...)
+}
+
+func (m *defaultBillingService) HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error) {
+	client := client.NewBillingServiceClient(m.cli.Conn())
+	return client.HandlePaddleWebhook(ctx, in, opts...)
 }
 
 // Admin: list every user's subscription plan code + status. Used by adminway

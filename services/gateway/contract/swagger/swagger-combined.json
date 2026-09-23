@@ -310,181 +310,6 @@
             "url": "https://localhost/api/v1"
           }
         ]
-      },
-      "post": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "CreateArticle",
-        "operationId": "articlesCreateArticle",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "title",
-                  "content",
-                  "authorId",
-                  "readTime"
-                ],
-                "properties": {
-                  "authorId": {
-                    "type": "string",
-                    "example": "user-123"
-                  },
-                  "categoryId": {
-                    "type": "string",
-                    "example": "cat-123"
-                  },
-                  "content": {
-                    "type": "string",
-                    "example": "Full article content here..."
-                  },
-                  "coverImage": {
-                    "type": "string",
-                    "example": "https://example.com/article.jpg"
-                  },
-                  "readTime": {
-                    "type": "integer",
-                    "example": 5
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "title": {
-                    "type": "string",
-                    "example": "10 Habits for Personal Growth"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "excerpt",
-                        "content",
-                        "category",
-                        "readTime",
-                        "imageUrl",
-                        "author",
-                        "publishedAt",
-                        "createdAt",
-                        "updatedAt",
-                        "isSaved",
-                        "likeCount",
-                        "isLiked"
-                      ],
-                      "properties": {
-                        "author": {
-                          "type": "string",
-                          "example": "John Smith"
-                        },
-                        "category": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name",
-                            "slug"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "cat-123"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Personal Development"
-                            },
-                            "slug": {
-                              "type": "string",
-                              "example": "personal-development"
-                            }
-                          }
-                        },
-                        "content": {
-                          "type": "string",
-                          "example": "Full article content here..."
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "example": "2024-01-01T00:00:00Z"
-                        },
-                        "excerpt": {
-                          "type": "string",
-                          "example": "Discover the top habits that can transform your life..."
-                        },
-                        "id": {
-                          "type": "string",
-                          "example": "article-123"
-                        },
-                        "imageUrl": {
-                          "type": "string",
-                          "example": "https://example.com/article.jpg"
-                        },
-                        "isLiked": {
-                          "type": "boolean"
-                        },
-                        "isSaved": {
-                          "type": "boolean"
-                        },
-                        "likeCount": {
-                          "type": "integer"
-                        },
-                        "publishedAt": {
-                          "type": "string",
-                          "example": "2024-01-01T00:00:00Z"
-                        },
-                        "readTime": {
-                          "type": "integer",
-                          "example": 5
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "10 Habits for Personal Growth"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "example": "2024-01-15T00:00:00Z"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
       }
     },
     "/api/v1/articles/author/{authorId}": {
@@ -923,213 +748,6 @@
                       }
                     }
                   }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "UpdateArticle",
-        "operationId": "articlesUpdateArticle",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "authorId": {
-                    "type": "string"
-                  },
-                  "categoryId": {
-                    "type": "string"
-                  },
-                  "content": {
-                    "type": "string"
-                  },
-                  "coverImage": {
-                    "type": "string"
-                  },
-                  "readTime": {
-                    "type": "integer"
-                  },
-                  "summary": {
-                    "type": "string"
-                  },
-                  "tags": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "title": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "object",
-                      "required": [
-                        "id",
-                        "title",
-                        "excerpt",
-                        "content",
-                        "category",
-                        "readTime",
-                        "imageUrl",
-                        "author",
-                        "publishedAt",
-                        "createdAt",
-                        "updatedAt",
-                        "isSaved",
-                        "likeCount",
-                        "isLiked"
-                      ],
-                      "properties": {
-                        "author": {
-                          "type": "string",
-                          "example": "John Smith"
-                        },
-                        "category": {
-                          "type": "object",
-                          "required": [
-                            "id",
-                            "name",
-                            "slug"
-                          ],
-                          "properties": {
-                            "id": {
-                              "type": "string",
-                              "example": "cat-123"
-                            },
-                            "name": {
-                              "type": "string",
-                              "example": "Personal Development"
-                            },
-                            "slug": {
-                              "type": "string",
-                              "example": "personal-development"
-                            }
-                          }
-                        },
-                        "content": {
-                          "type": "string",
-                          "example": "Full article content here..."
-                        },
-                        "createdAt": {
-                          "type": "string",
-                          "example": "2024-01-01T00:00:00Z"
-                        },
-                        "excerpt": {
-                          "type": "string",
-                          "example": "Discover the top habits that can transform your life..."
-                        },
-                        "id": {
-                          "type": "string",
-                          "example": "article-123"
-                        },
-                        "imageUrl": {
-                          "type": "string",
-                          "example": "https://example.com/article.jpg"
-                        },
-                        "isLiked": {
-                          "type": "boolean"
-                        },
-                        "isSaved": {
-                          "type": "boolean"
-                        },
-                        "likeCount": {
-                          "type": "integer"
-                        },
-                        "publishedAt": {
-                          "type": "string",
-                          "example": "2024-01-01T00:00:00Z"
-                        },
-                        "readTime": {
-                          "type": "integer",
-                          "example": 5
-                        },
-                        "tags": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "title": {
-                          "type": "string",
-                          "example": "10 Habits for Personal Growth"
-                        },
-                        "updatedAt": {
-                          "type": "string",
-                          "example": "2024-01-15T00:00:00Z"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      },
-      "delete": {
-        "tags": [
-          "Articles"
-        ],
-        "summary": "DeleteArticle",
-        "operationId": "articlesDeleteArticle",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
                 }
               }
             }
@@ -7646,6 +7264,38 @@
         ]
       }
     },
+    "/api/v1/profile/export": {
+      "post": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "ExportData",
+        "operationId": "profileExportData",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "downloadUrl": {
+                      "type": "string",
+                      "example": "https://minio.local/exports/user-123-abc.json"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
     "/api/v1/profile/me": {
       "get": {
         "tags": [
@@ -9517,6 +9167,16 @@
               "type": "integer",
               "default": 20
             }
+          },
+          {
+            "example": false,
+            "name": "archived",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -10049,10 +9709,10 @@
                   "content"
                 ],
                 "properties": {
-                  "content": {
+                  "clientMessageId": {
                     "type": "string"
                   },
-                  "role": {
+                  "content": {
                     "type": "string"
                   }
                 }
@@ -10225,6 +9885,288 @@
         ]
       }
     },
+    "/api/v1/memory/facts": {
+      "get": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ListMemoryFacts",
+        "operationId": "conversationsListMemoryFacts",
+        "parameters": [
+          {
+            "example": 1,
+            "name": "page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "example": 50,
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "fact",
+                          "category",
+                          "confidence",
+                          "userAuthored",
+                          "createdAt"
+                        ],
+                        "properties": {
+                          "category": {
+                            "type": "string",
+                            "example": "commitment"
+                          },
+                          "confidence": {
+                            "type": "number",
+                            "example": 0.9
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "fact": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "userAuthored": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "required": [
+                        "total",
+                        "page",
+                        "limit",
+                        "totalPages"
+                      ],
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "example": 20
+                        },
+                        "page": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "total": {
+                          "type": "integer",
+                          "example": 100
+                        },
+                        "totalPages": {
+                          "type": "integer",
+                          "example": 5
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "AddMemoryFact",
+        "operationId": "conversationsAddMemoryFact",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fact",
+                  "category"
+                ],
+                "properties": {
+                  "category": {
+                    "type": "string",
+                    "example": "commitment"
+                  },
+                  "fact": {
+                    "type": "string"
+                  },
+                  "supersedesId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "fact",
+                        "category",
+                        "confidence",
+                        "userAuthored",
+                        "createdAt"
+                      ],
+                      "properties": {
+                        "category": {
+                          "type": "string",
+                          "example": "commitment"
+                        },
+                        "confidence": {
+                          "type": "number",
+                          "example": 0.9
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "fact": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "userAuthored": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ForgetAllMemoryFacts",
+        "operationId": "conversationsForgetAllMemoryFacts",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                },
+                "required": [
+                  "confirm"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "forgotten": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/memory/facts/{id}": {
+      "delete": {
+        "tags": [
+          "Conversations"
+        ],
+        "summary": "ForgetMemoryFact",
+        "operationId": "conversationsForgetMemoryFact",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
     "/api/v1/personalization/coaching": {
       "post": {
         "tags": [
@@ -10270,6 +10212,9 @@
                         }
                       }
                     }
+                  },
+                  "clientMessageId": {
+                    "type": "string"
                   },
                   "context": {
                     "type": "string",
@@ -11232,7 +11177,7 @@
       }
     }
   },
-  "x-date": "2026-08-22 14:20:51",
+  "x-date": "2026-09-16 11:17:31",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

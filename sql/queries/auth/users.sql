@@ -49,13 +49,16 @@ WHERE id = $1
 RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified;
 
 -- name: UpdateUserProfile :one
+-- Partial update: NULL args mean "not provided" and preserve the stored value
+-- (an empty string/empty slice on the wire must not clear the column — there
+-- is no presence signal in the proto contract to distinguish omit from clear).
 UPDATE users
-SET bio        = $2,
-    location   = $3,
-    website    = $4,
-    interests  = $5,
-    avatar_url = $6
-WHERE id = $1
+SET bio        = COALESCE(sqlc.narg(bio), users.bio),
+    location   = COALESCE(sqlc.narg(location), users.location),
+    website    = COALESCE(sqlc.narg(website), users.website),
+    interests  = COALESCE(sqlc.narg(interests), users.interests),
+    avatar_url = COALESCE(sqlc.narg(avatar_url), users.avatar_url)
+WHERE id = sqlc.arg(id)
 RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified;
 
 -- name: DeleteUser :exec

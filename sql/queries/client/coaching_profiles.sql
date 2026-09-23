@@ -9,19 +9,31 @@ FROM coaching_profiles
 WHERE user_id = $1;
 
 -- name: UpsertCoachingProfile :one
+-- Partial upsert: every contract field is optional, so an empty string / NULL
+-- arg means "not provided" and must preserve the stored value — never blank
+-- accumulated coaching context on a partial POST.
 INSERT INTO coaching_profiles (
     user_id, accountability_style, coach_tone, difficulty,
     primary_motivation, common_blockers, coaching_notes, last_context_refresh_at
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+VALUES (
+    sqlc.arg(user_id),
+    COALESCE(NULLIF(sqlc.arg(accountability_style)::text, ''), 'balanced'),
+    COALESCE(NULLIF(sqlc.arg(coach_tone)::text, ''), 'supportive'),
+    COALESCE(NULLIF(sqlc.arg(difficulty)::text, ''), 'adaptive'),
+    sqlc.narg(primary_motivation)::text,
+    COALESCE(sqlc.narg(common_blockers)::jsonb, '[]'::jsonb),
+    COALESCE(sqlc.narg(coaching_notes)::jsonb, '{}'::jsonb),
+    now()
+)
 ON CONFLICT (user_id)
 DO UPDATE SET
-    accountability_style = EXCLUDED.accountability_style,
-    coach_tone = EXCLUDED.coach_tone,
-    difficulty = EXCLUDED.difficulty,
-    primary_motivation = EXCLUDED.primary_motivation,
-    common_blockers = EXCLUDED.common_blockers,
-    coaching_notes = EXCLUDED.coaching_notes,
+    accountability_style = COALESCE(NULLIF(sqlc.arg(accountability_style)::text, ''), coaching_profiles.accountability_style),
+    coach_tone = COALESCE(NULLIF(sqlc.arg(coach_tone)::text, ''), coaching_profiles.coach_tone),
+    difficulty = COALESCE(NULLIF(sqlc.arg(difficulty)::text, ''), coaching_profiles.difficulty),
+    primary_motivation = COALESCE(sqlc.narg(primary_motivation)::text, coaching_profiles.primary_motivation),
+    common_blockers = COALESCE(sqlc.narg(common_blockers)::jsonb, coaching_profiles.common_blockers),
+    coaching_notes = COALESCE(sqlc.narg(coaching_notes)::jsonb, coaching_profiles.coaching_notes),
     last_context_refresh_at = now()
 RETURNING user_id, accountability_style, coach_tone AS preferred_tone,
           difficulty AS difficulty_preference, primary_motivation,

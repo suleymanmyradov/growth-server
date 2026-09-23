@@ -30,6 +30,7 @@ type IArticles interface {
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (db.ArticleShare, error)
 	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (db.ArticleLike, error)
 	DeleteArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) error
+	ToggleArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 	CountArticleLikes(ctx context.Context, articleID uuid.UUID) (int64, error)
 	IsArticleLikedByUser(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (bool, error)
 	UpsertTags(ctx context.Context, names []string, slugs []string) ([]db.UpsertTagsRow, error)
@@ -210,6 +211,12 @@ type IBilling interface {
 	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
 	IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error)
 	MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error
+	// Paddle
+	GetUserSubscriptionByPaddleCustomerID(ctx context.Context, paddleCustomerID *string) (db.GetUserSubscriptionByPaddleCustomerIDRow, error)
+	SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error
+	UpsertUserSubscriptionPaddle(ctx context.Context, params db.UpsertUserSubscriptionPaddleParams) (db.Subscription, error)
+	IsPaddleEventProcessed(ctx context.Context, eventID string) (bool, error)
+	MarkPaddleEventProcessed(ctx context.Context, eventID string) error
 }
 
 type IPlanAdjustmentSuggestions interface {

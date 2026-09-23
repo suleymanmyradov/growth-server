@@ -229,6 +229,38 @@ func (r *billingRepo) MarkRevenueCatEventProcessed(ctx context.Context, eventID 
 	return r.db.MarkRevenueCatEventProcessed(ctx, eventID)
 }
 
+// ─── Paddle ──────────────────────────────────────────────────────────────────
+
+func (r *billingRepo) GetUserSubscriptionByPaddleCustomerID(ctx context.Context, paddleCustomerID *string) (db.GetUserSubscriptionByPaddleCustomerIDRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetUserSubscriptionByPaddleCustomerID")
+	defer span.End()
+	return r.db.GetUserSubscriptionByPaddleCustomerID(ctx, paddleCustomerID)
+}
+
+func (r *billingRepo) SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.SetPaddleCustomerID")
+	defer span.End()
+	return r.db.SetPaddleCustomerID(ctx, userID, paddleCustomerID)
+}
+
+func (r *billingRepo) UpsertUserSubscriptionPaddle(ctx context.Context, params db.UpsertUserSubscriptionPaddleParams) (db.Subscription, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.UpsertUserSubscriptionPaddle")
+	defer span.End()
+	return r.db.UpsertUserSubscriptionPaddle(ctx, params)
+}
+
+func (r *billingRepo) IsPaddleEventProcessed(ctx context.Context, eventID string) (bool, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.IsPaddleEventProcessed")
+	defer span.End()
+	return r.db.IsPaddleEventProcessed(ctx, eventID)
+}
+
+func (r *billingRepo) MarkPaddleEventProcessed(ctx context.Context, eventID string) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.MarkPaddleEventProcessed")
+	defer span.End()
+	return r.db.MarkPaddleEventProcessed(ctx, eventID)
+}
+
 // NullJSON returns json.RawMessage for metadata.
 func NullJSON(m map[string]interface{}) json.RawMessage {
 	if m == nil {

@@ -18,6 +18,14 @@ func HandleStripeWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read raw body — signature verification happens in the client RPC service,
 		// which owns all Stripe secrets. The gateway is just a transport layer here.
+		//
+		// Limit the body to 1 MiB before reading it into memory. Stripe event
+		// payloads are small JSON envelopes; anything larger is either a bug or
+		// an abuse attempt and must be rejected before allocation. The go-zero
+		// MaxBytes middleware only checks Content-Length, so chunked requests
+		// would bypass it without this cap (same as the RevenueCat webhook).
+		const maxStripeBody = 1 << 20 // 1 MiB
+		r.Body = http.MaxBytesReader(w, r.Body, maxStripeBody)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			errors.HandleGrpcError(w, err)

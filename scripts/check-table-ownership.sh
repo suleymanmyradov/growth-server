@@ -80,7 +80,7 @@ for service in auth client notifications adminway conversations; do
                 # SQL keywords / syntax
                 set|update|select|insert|values|where|with|returning|delete|into|from|join|left|right|inner|outer|on|and|or|not|null|exists|distinct|order|group|having|limit|offset|as|case|when|then|else|end|count|coalesce|round|filter|max|min|sum|avg|row_number|unnest|now|date|numeric|text|varchar|uuid|bool|true|false|skip|locked) continue ;;
                 # CTE names used in the codebase
-                subquery|cte|tmp|temp|new_sort|ins|upd|user_tz|today|completed|islands|last_dates|last_date|bounds|days|numbered|groups|streaks) continue ;;
+                subquery|cte|tmp|temp|new_sort|ins|upd|del|user_tz|today|completed|islands|last_dates|last_date|bounds|days|numbered|groups|streaks) continue ;;
                 # Single-letter aliases (e.g., "FROM habits h", "FROM user_preferences s")
                 a|b|c|d|e|f|g|h|i|j|k|l|m|n|o|p|q|r|s|t|u|v|w|x|y|z) continue ;;
                 # Common non-table words from SQL

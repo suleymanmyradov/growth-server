@@ -94,18 +94,23 @@ func (q *Queries) SetOnboardingCompleted(ctx context.Context, userID uuid.UUID) 
 
 const upsertReminderStateSettings = `-- name: UpsertReminderStateSettings :exec
 INSERT INTO reminder_state (user_id, timezone, check_in_time, habit_reminders)
-VALUES ($1, $2, $3, $4)
+VALUES ($1, COALESCE(NULLIF($2::varchar, ''), 'UTC'), COALESCE($3::time, '09:00'::time), $4)
 ON CONFLICT (user_id) DO UPDATE SET
-    timezone = EXCLUDED.timezone,
-    check_in_time = EXCLUDED.check_in_time,
+    timezone = COALESCE(NULLIF(EXCLUDED.timezone, ''), reminder_state.timezone),
+    check_in_time = COALESCE(EXCLUDED.check_in_time, reminder_state.check_in_time),
     habit_reminders = EXCLUDED.habit_reminders
 `
 
-func (q *Queries) UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error {
+// SettingsChanged events may carry only the fields that changed. An empty
+// timezone or a NULL check_in_time means "not provided" and must preserve the
+// existing value rather than overwriting it (a partial PUT /settings would
+// otherwise reset timezone to UTC or check_in_time to NULL — which is also
+// impossible since the column is NOT NULL).
+func (q *Queries) UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, column2 string, column3 pgtype.Time, habitReminders bool) error {
 	_, err := q.db.Exec(ctx, upsertReminderStateSettings,
 		userID,
-		timezone,
-		checkInTime,
+		column2,
+		column3,
 		habitReminders,
 	)
 	return err

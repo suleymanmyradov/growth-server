@@ -3,12 +3,14 @@ package goalslogic
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	commonlogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/common"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -84,47 +86,62 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 
 	params := protoToGoalParams(in.Title, in.Description, in.Category, in.DueDate, userID,
 		measurement, in.StartValue, in.CurrentValue, in.TargetValue, in.Unit)
-	goal, err := l.svcCtx.Repo.Goals.CreateGoal(ctx, params)
+
+	// Create the goal, habit links, milestones, and initial progress recompute
+	// atomically — a habit-goal returned 200 with zero links and 0% progress
+	// forever when these steps failed silently outside a transaction.
+	var goal db.GetGoalRow
+	var milestones []db.GoalMilestone
+	err = l.svcCtx.RunInTx(ctx, p.UserID, func(txRepo *repository.Repository) error {
+		var cErr error
+		goal, cErr = txRepo.Goals.CreateGoal(ctx, params)
+		if cErr != nil {
+			return fmt.Errorf("create goal: %w", cErr)
+		}
+
+		// Link habits to the new goal if any were provided.
+		habitIDs := parseHabitIDs(in.RelatedHabitIds)
+		if len(habitIDs) > 0 {
+			if lErr := txRepo.Goals.LinkGoalHabitsBatch(ctx, goal.ID, habitIDs); lErr != nil {
+				return fmt.Errorf("link habits to goal: %w", lErr)
+			}
+		}
+
+		// Create initial milestones for milestone-type goals.
+		if measurement == MeasurementMilestone && len(in.MilestoneTitles) > 0 {
+			milestones = make([]db.GoalMilestone, 0, len(in.MilestoneTitles))
+			for i, title := range in.MilestoneTitles {
+				m, mErr := txRepo.Goals.CreateGoalMilestone(ctx, goal.ID, title, int32(i))
+				if mErr != nil {
+					return fmt.Errorf("create goal milestone: %w", mErr)
+				}
+				milestones = append(milestones, m)
+			}
+		}
+
+		// Recompute progress for all non-manual types. numeric goals may have
+		// current_value already at target (100%), habit goals derive from check-ins,
+		// milestone goals from the initial milestones. binary starts at 0 (not
+		// completed) which matches the DB default, but recompute is harmless.
+		if measurement != MeasurementManual {
+			var rErr error
+			goal, rErr = RecomputeGoalProgressWithRepo(ctx, txRepo.Goals, txRepo.CheckIns, goal.ID)
+			if rErr != nil {
+				return fmt.Errorf("recompute goal progress: %w", rErr)
+			}
+			if measurement == MeasurementMilestone && milestones == nil {
+				var lErr error
+				milestones, lErr = txRepo.Goals.ListGoalMilestones(ctx, goal.ID)
+				if lErr != nil {
+					return fmt.Errorf("list goal milestones: %w", lErr)
+				}
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		l.Errorf("Failed to create goal: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create goal")
-	}
-
-	// Link habits to the new goal if any were provided.
-	habitIDs := parseHabitIDs(in.RelatedHabitIds)
-	if len(habitIDs) > 0 {
-		if err := l.svcCtx.Repo.Goals.LinkGoalHabitsBatch(ctx, goal.ID, habitIDs); err != nil {
-			l.Errorf("Failed to link habits to goal: %v", err)
-			// Non-fatal: goal was created, just without habit links.
-		}
-	}
-
-	// Create initial milestones for milestone-type goals.
-	var milestones []db.GoalMilestone
-	if measurement == MeasurementMilestone && len(in.MilestoneTitles) > 0 {
-		milestones = make([]db.GoalMilestone, 0, len(in.MilestoneTitles))
-		for i, title := range in.MilestoneTitles {
-			m, mErr := l.svcCtx.Repo.Goals.CreateGoalMilestone(ctx, goal.ID, title, int32(i))
-			if mErr != nil {
-				l.Errorf("Failed to create milestone: %v", mErr)
-				continue
-			}
-			milestones = append(milestones, m)
-		}
-	}
-
-	// Recompute progress for all non-manual types. numeric goals may have
-	// current_value already at target (100%), habit goals derive from check-ins,
-	// milestone goals from the initial milestones. binary starts at 0 (not
-	// completed) which matches the DB default, but recompute is harmless.
-	if measurement != MeasurementManual {
-		goal, err = recomputeAndPersist(ctx, l.svcCtx, goal.ID)
-		if err != nil {
-			l.Errorf("Failed to recompute goal progress: %v", err)
-		}
-		if measurement == MeasurementMilestone && milestones == nil {
-			milestones, _ = l.svcCtx.Repo.Goals.ListGoalMilestones(ctx, goal.ID)
-		}
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)

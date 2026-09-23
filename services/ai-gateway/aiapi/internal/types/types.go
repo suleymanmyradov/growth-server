@@ -185,17 +185,6 @@ type ConversationRequest struct {
 	Id string `path:"id"`
 }
 
-type CreateArticleRequest struct {
-	Title      string   `json:"title,example=10 Habits for Personal Growth"`
-	Content    string   `json:"content,example=Full article content here..."`
-	Summary    string   `json:"summary,optional"`
-	AuthorId   string   `json:"authorId,example=user-123"`
-	CoverImage string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
-	Tags       []string `json:"tags,optional"`
-	ReadTime   int      `json:"readTime,example=5"`
-	CategoryId string   `json:"categoryId,optional,example=cat-123"`
-}
-
 type CreateCheckInRequest struct {
 	HabitId string `json:"habitId,example=habit-123"`
 	Status  string `json:"status,example=completed"`
@@ -295,6 +284,10 @@ type Entitlements struct {
 	CurrentActiveGoals         int    `json:"currentActiveGoals,example=1"`
 	CurrentActiveHabits        int    `json:"currentActiveHabits,example=2"`
 	CurrentPendingAdjustments  int    `json:"currentPendingAdjustments,example=1"`
+}
+
+type ExportDataResponse struct {
+	DownloadUrl string `json:"downloadUrl,example=https://minio.local/exports/user-123-abc.json"`
 }
 
 type ForgetAllMemoryFactsRequest struct {
@@ -505,7 +498,8 @@ type HasCheckedInTodayResponse struct {
 }
 
 type LikeArticleRequest struct {
-	Id string `path:"id"`
+	Id    string `path:"id"`
+	Liked *bool  `json:"liked,optional"`
 }
 
 type LikeArticleResponse struct {
@@ -904,18 +898,6 @@ type UnreadNotificationCountResponse struct {
 
 type UnregisterDeviceRequest struct {
 	InstallationId string `path:"installationId"`
-}
-
-type UpdateArticleRequest struct {
-	Id         string   `path:"id"`
-	Title      string   `json:"title,optional"`
-	Content    string   `json:"content,optional"`
-	Summary    string   `json:"summary,optional"`
-	AuthorId   string   `json:"authorId,optional"`
-	CoverImage string   `json:"coverImage,optional"`
-	Tags       []string `json:"tags,optional"`
-	ReadTime   int      `json:"readTime,optional"`
-	CategoryId string   `json:"categoryId,optional"`
 }
 
 type UpdateCoachingProfilePreferencesRequest struct {

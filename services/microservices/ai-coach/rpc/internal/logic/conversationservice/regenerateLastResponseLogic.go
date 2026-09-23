@@ -3,8 +3,10 @@ package conversationservicelogic
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 	"google.golang.org/grpc/codes"
@@ -47,19 +49,34 @@ func (l *RegenerateLastResponseLogic) RegenerateLastResponse(in *aicoach.Regener
 		return nil, status.Error(codes.NotFound, "conversation not found")
 	}
 
-	if _, err := l.svcCtx.Queries.RegenerateLastResponse(l.ctx, convID); errors.Is(err, pgx.ErrNoRows) {
-		return nil, status.Error(codes.FailedPrecondition, "conversation does not end with an assistant response")
-	} else if err != nil {
-		l.Errorf("failed to prepare response regeneration: %v", err)
+	// Delete the assistant tail, locate the preceding user message, and refresh
+	// the conversation's last_message atomically — a partial regeneration used
+	// to leave last_message pointing at a deleted assistant turn.
+	var userMessage db.ConversationMessage
+	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
+		qtx := l.svcCtx.Queries.WithTx(tx)
+
+		if _, err := qtx.RegenerateLastResponse(l.ctx, convID); errors.Is(err, pgx.ErrNoRows) {
+			return status.Error(codes.FailedPrecondition, "conversation does not end with an assistant response")
+		} else if err != nil {
+			return fmt.Errorf("prepare response regeneration: %w", err)
+		}
+		var err error
+		userMessage, err = qtx.GetLastMessage(l.ctx, convID)
+		if err != nil || userMessage.Role != "user" {
+			return status.Error(codes.FailedPrecondition, "assistant response has no preceding user message")
+		}
+		if _, err := qtx.UpdateConversationLastMessage(l.ctx, convID, userMessage.Content); err != nil {
+			return fmt.Errorf("update conversation last_message: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		if st, ok := status.FromError(err); ok && st.Code() != codes.Unknown {
+			return nil, st.Err()
+		}
+		l.Errorf("failed to regenerate response: %v", err)
 		return nil, status.Error(codes.Internal, "failed to regenerate response")
-	}
-	userMessage, err := l.svcCtx.Queries.GetLastMessage(l.ctx, convID)
-	if err != nil || userMessage.Role != "user" {
-		l.Errorf("failed to find user message after preparing regeneration: %v", err)
-		return nil, status.Error(codes.FailedPrecondition, "assistant response has no preceding user message")
-	}
-	if _, err := l.svcCtx.Queries.UpdateConversationLastMessage(l.ctx, convID, userMessage.Content); err != nil {
-		l.Errorf("failed to update conversation after preparing regeneration: %v", err)
 	}
 
 	return &aicoach.RegenerateLastResponseResponse{UserMessage: protoMessage(userMessage)}, nil

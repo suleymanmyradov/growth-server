@@ -142,13 +142,21 @@ RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url
 
 -- name: UpdateArticle :one
 -- Empty status means "keep the current status" so callers that don't manage
--- the draft/published lifecycle can't silently re-publish a draft.
+-- the draft/published lifecycle can't silently re-publish a draft. The same
+-- convention applies to every other column: empty text / NULL / 0 means
+-- "not provided" and preserves the stored value, because the admin PUT is a
+-- partial update, not a full replace.
 UPDATE articles
-SET title = $2, excerpt = $3, content = $4, category_id = $5,
-    read_time_minutes = $6, image_url = $7, author = $8,
+SET title = COALESCE(NULLIF(sqlc.arg(title)::text, ''), articles.title),
+    excerpt = COALESCE(sqlc.narg(excerpt), articles.excerpt),
+    content = COALESCE(NULLIF(sqlc.arg(content)::text, ''), articles.content),
+    category_id = COALESCE(sqlc.narg(category_id), articles.category_id),
+    read_time_minutes = CASE WHEN sqlc.arg(read_time_minutes)::int = 0 THEN articles.read_time_minutes ELSE sqlc.arg(read_time_minutes)::int END,
+    image_url = COALESCE(sqlc.narg(image_url), articles.image_url),
+    author = COALESCE(NULLIF(sqlc.arg(author)::text, ''), articles.author),
     status = CASE WHEN sqlc.arg(status)::text = '' THEN articles.status ELSE sqlc.arg(status)::text END
-WHERE id = $1
-RETURNING id, title, excerpt, content, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
+WHERE id = sqlc.arg(id)
+RETURNING id, title, excerpt, content, category_id, read_time_minutes AS read_time, image_url, author, status, published_at, created_at, updated_at;
 
 -- name: DeleteArticle :exec
 DELETE FROM articles WHERE id = $1;

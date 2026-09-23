@@ -2,8 +2,11 @@ package conversationservicelogic
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
 
@@ -55,32 +58,43 @@ func (l *StartConversationLogic) StartConversation(in *aicoach.StartConversation
 		return nil, status.Error(codes.InvalidArgument, "invalid userId")
 	}
 
-	conv, err := l.svcCtx.Queries.CreateConversation(l.ctx, userID, title, convType)
+	// Create the conversation, the optional initial message, and the
+	// last_message denormalization atomically — a swallowed failure here used
+	// to leave a conversation with a stale/missing last_message.
+	var conv db.Conversation
+	var initialMsg db.ConversationMessage
+	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
+		qtx := l.svcCtx.Queries.WithTx(tx)
+
+		var cErr error
+		conv, cErr = qtx.CreateConversation(l.ctx, userID, title, convType)
+		if cErr != nil {
+			return fmt.Errorf("create conversation: %w", cErr)
+		}
+
+		if in.InitialMessage != "" {
+			var mErr error
+			initialMsg, mErr = qtx.CreateMessage(l.ctx, conv.ID, "user", in.InitialMessage)
+			if mErr != nil {
+				return fmt.Errorf("create initial message: %w", mErr)
+			}
+			conv, mErr = qtx.UpdateConversationLastMessage(l.ctx, conv.ID, in.InitialMessage)
+			if mErr != nil {
+				return fmt.Errorf("update conversation last_message: %w", mErr)
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		l.Errorf("failed to create conversation: %v", err)
+		l.Errorf("failed to start conversation: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create conversation")
 	}
 
 	resp := &aicoach.StartConversationResponse{
 		Conversation: protoConversation(conv),
 	}
-
-	// If an initial message was provided, persist it and update the conversation's
-	// last_message.
 	if in.InitialMessage != "" {
-		msg, err := l.svcCtx.Queries.CreateMessage(l.ctx, conv.ID, "user", in.InitialMessage)
-		if err != nil {
-			l.Errorf("failed to create initial message: %v", err)
-			return nil, status.Error(codes.Internal, "failed to create initial message")
-		}
-		resp.InitialMessageRow = protoMessage(msg)
-
-		updatedConv, err := l.svcCtx.Queries.UpdateConversationLastMessage(l.ctx, conv.ID, in.InitialMessage)
-		if err != nil {
-			l.Errorf("failed to update conversation last_message: %v", err)
-		} else {
-			resp.Conversation = protoConversation(updatedConv)
-		}
+		resp.InitialMessageRow = protoMessage(initialMsg)
 	}
 
 	l.Infof("started conversation: user=%s conv=%s", in.UserId, conv.ID)

@@ -50,12 +50,12 @@ func (l *GetNotificationPreferencesLogic) GetNotificationPreferences(in *notific
 
 	return &notifications.GetNotificationPreferencesResponse{
 		Preferences: &notifications.NotificationPreferences{
-			EmailEnabled:          pref.EmailNotifications,
-			PushEnabled:           pref.PushNotifications,
-			HabitRemindersEnabled: pref.HabitReminders,
-			GoalRemindersEnabled:  pref.GoalReminders,
-			StreakWarningsEnabled: pref.StreakWarnings,
-			SundayReviewEnabled:   pref.SundayReview,
+			EmailEnabled:          &pref.EmailNotifications,
+			PushEnabled:           &pref.PushNotifications,
+			HabitRemindersEnabled: &pref.HabitReminders,
+			GoalRemindersEnabled:  &pref.GoalReminders,
+			StreakWarningsEnabled: &pref.StreakWarnings,
+			SundayReviewEnabled:   &pref.SundayReview,
 		},
 	}, nil
 }

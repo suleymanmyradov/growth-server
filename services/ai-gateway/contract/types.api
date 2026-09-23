@@ -3,6 +3,9 @@ syntax = "v1"
 // Base types
 type (
 	EmptyResponse  {}
+	ExportDataResponse {
+		downloadUrl string `json:"downloadUrl,example=https://minio.local/exports/user-123-abc.json"`
+	}
 	PageRequest {
 		page  int `form:"page,default=1,example=1"`
 		limit int `form:"limit,default=20,example=20"`
@@ -327,7 +330,8 @@ type (
 		limit        int    `form:"limit,default=20"`
 	}
 	LikeArticleRequest {
-		id string `path:"id"`
+		id    string `path:"id"`
+		liked *bool  `json:"liked,optional"`
 	}
 	LikeArticleResponse {
 		success      bool `json:"success"`
@@ -345,27 +349,6 @@ type (
 		authorId string `form:"authorId"`
 		page     int    `form:"page,default=1"`
 		limit    int    `form:"limit,default=20"`
-	}
-	CreateArticleRequest {
-		title       string   `json:"title,example=10 Habits for Personal Growth"`
-		content     string   `json:"content,example=Full article content here..."`
-		summary     string   `json:"summary,optional"`
-		authorId    string   `json:"authorId,example=user-123"`
-		coverImage  string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
-		tags        []string `json:"tags,optional"`
-		readTime    int      `json:"readTime,example=5"`
-		categoryId  string   `json:"categoryId,optional,example=cat-123"`
-	}
-	UpdateArticleRequest {
-		id          string   `path:"id"`
-		title       string   `json:"title,optional"`
-		content     string   `json:"content,optional"`
-		summary     string   `json:"summary,optional"`
-		authorId    string   `json:"authorId,optional"`
-		coverImage  string   `json:"coverImage,optional"`
-		tags        []string `json:"tags,optional"`
-		readTime    int      `json:"readTime,optional"`
-		categoryId  string   `json:"categoryId,optional"`
 	}
 )
 
@@ -961,6 +944,9 @@ type (
 		processed bool `json:"processed,example=true"`
 	}
 	RevenueCatWebhookResponse {
+		processed bool `json:"processed,example=true"`
+	}
+	PaddleWebhookResponse {
 		processed bool `json:"processed,example=true"`
 	}
 )

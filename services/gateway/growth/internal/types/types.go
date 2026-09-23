@@ -18,10 +18,20 @@ type ActivityResponse struct {
 	Page PageResponse `json:"page"`
 }
 
+type AddMemoryFactRequest struct {
+	Fact         string `json:"fact"`
+	Category     string `json:"category,example=commitment"`
+	SupersedesId string `json:"supersedesId,optional"`
+}
+
+type AddMemoryFactResponse struct {
+	Data MemoryFact `json:"data"`
+}
+
 type AppendMessageRequest struct {
-	Id      string `path:"id"`
-	Content string `json:"content"`
-	Role    string `json:"role,optional"`
+	Id              string `path:"id"`
+	Content         string `json:"content"`
+	ClientMessageId string `json:"clientMessageId,optional"`
 }
 
 type AppendMessageResponse struct {
@@ -175,17 +185,6 @@ type ConversationRequest struct {
 	Id string `path:"id"`
 }
 
-type CreateArticleRequest struct {
-	Title      string   `json:"title,example=10 Habits for Personal Growth"`
-	Content    string   `json:"content,example=Full article content here..."`
-	Summary    string   `json:"summary,optional"`
-	AuthorId   string   `json:"authorId,example=user-123"`
-	CoverImage string   `json:"coverImage,optional,example=https://example.com/article.jpg"`
-	Tags       []string `json:"tags,optional"`
-	ReadTime   int      `json:"readTime,example=5"`
-	CategoryId string   `json:"categoryId,optional,example=cat-123"`
-}
-
 type CreateCheckInRequest struct {
 	HabitId string `json:"habitId,example=habit-123"`
 	Status  string `json:"status,example=completed"`
@@ -291,6 +290,21 @@ type ExportDataResponse struct {
 	DownloadUrl string `json:"downloadUrl,example=https://minio.local/exports/user-123-abc.json"`
 }
 
+type ForgetAllMemoryFactsRequest struct {
+	Confirm bool `form:"confirm,default=false"`
+}
+
+type ForgetAllMemoryFactsResponse struct {
+	Forgotten bool `json:"forgotten"`
+}
+
+type ForgetMemoryFactRequest struct {
+	Id string `path:"id"`
+}
+
+type ForgetMemoryFactResponse struct {
+}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email,example=john@example.com"`
 }
@@ -309,12 +323,13 @@ type GenerateOnboardingHabitsResponse struct {
 }
 
 type GeneratePersonalizedCoachingRequest struct {
-	UserMessage    string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
-	Context        string       `json:"context,optional,example=User has been struggling with motivation"`
-	ConversationId string       `json:"conversationId,optional"`
-	GoalId         string       `json:"goalId,optional"`
-	Attachments    []Attachment `json:"attachments,optional"`
-	Regenerate     bool         `json:"regenerate,optional"`
+	UserMessage     string       `json:"userMessage,example=User missed 3 consecutive check-ins"`
+	Context         string       `json:"context,optional,example=User has been struggling with motivation"`
+	ConversationId  string       `json:"conversationId,optional"`
+	GoalId          string       `json:"goalId,optional"`
+	Attachments     []Attachment `json:"attachments,optional"`
+	Regenerate      bool         `json:"regenerate,optional"`
+	ClientMessageId string       `json:"clientMessageId,optional"`
 }
 
 type GeneratePersonalizedCoachingResponse struct {
@@ -483,7 +498,8 @@ type HasCheckedInTodayResponse struct {
 }
 
 type LikeArticleRequest struct {
-	Id string `path:"id"`
+	Id    string `path:"id"`
+	Liked *bool  `json:"liked,optional"`
 }
 
 type LikeArticleResponse struct {
@@ -506,11 +522,22 @@ type ListConversationsRequest struct {
 	ConversationType string `form:"type,optional"`
 	Page             int    `form:"page,default=1"`
 	Limit            int    `form:"limit,default=20"`
+	Archived         bool   `form:"archived,default=false"`
 }
 
 type ListConversationsResponse struct {
 	Data []Conversation `json:"data"`
 	Page PageResponse   `json:"page"`
+}
+
+type ListMemoryFactsRequest struct {
+	Page  int `form:"page,default=1"`
+	Limit int `form:"limit,default=50"`
+}
+
+type ListMemoryFactsResponse struct {
+	Data []MemoryFact `json:"data"`
+	Page PageResponse `json:"page"`
 }
 
 type LogGoalValueRequest struct {
@@ -527,6 +554,15 @@ type LoginRequest struct {
 type LogoutRequest struct {
 	RefreshToken string `json:"refreshToken,optional,example=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
 	DeviceId     string `header:"X-Device-Id,optional,example=device-12345"`
+}
+
+type MemoryFact struct {
+	Id           string  `json:"id"`
+	Fact         string  `json:"fact"`
+	Category     string  `json:"category,example=commitment"`
+	Confidence   float32 `json:"confidence,example=0.9"`
+	UserAuthored bool    `json:"userAuthored"`
+	CreatedAt    string  `json:"createdAt"`
 }
 
 type MilestoneInput struct {
@@ -577,6 +613,10 @@ type NotificationsResponse struct {
 type OnboardingHabitSuggestion struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+}
+
+type PaddleWebhookResponse struct {
+	Processed bool `json:"processed,example=true"`
 }
 
 type PageRequest struct {
@@ -862,18 +902,6 @@ type UnreadNotificationCountResponse struct {
 
 type UnregisterDeviceRequest struct {
 	InstallationId string `path:"installationId"`
-}
-
-type UpdateArticleRequest struct {
-	Id         string   `path:"id"`
-	Title      string   `json:"title,optional"`
-	Content    string   `json:"content,optional"`
-	Summary    string   `json:"summary,optional"`
-	AuthorId   string   `json:"authorId,optional"`
-	CoverImage string   `json:"coverImage,optional"`
-	Tags       []string `json:"tags,optional"`
-	ReadTime   int      `json:"readTime,optional"`
-	CategoryId string   `json:"categoryId,optional"`
 }
 
 type UpdateCoachingProfilePreferencesRequest struct {

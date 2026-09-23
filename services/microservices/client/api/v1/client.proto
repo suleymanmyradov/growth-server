@@ -542,6 +542,10 @@ message GetArticleResponse {
 message LikeArticleRequest {
   string articleId = 1;
   string userId = 2;
+  // liked is the desired state: when set, the call is idempotent
+  // (liked=true means "ensure liked", false means "ensure not liked").
+  // When absent the legacy toggle semantics apply.
+  optional bool liked = 3;
 }
 
 message LikeArticleResponse {
@@ -1521,6 +1525,18 @@ message HandleRevenueCatWebhookResponse {
   bool processed = 1;
 }
 
+// Paddle webhook (web subscriptions via Paddle Billing checkout).
+// The gateway forwards the raw body + Paddle-Signature header; the client
+// service verifies the signature and processes the events. See pkg/paddle.
+message HandlePaddleWebhookRequest {
+  bytes rawBody = 1;
+  string signature = 2;
+}
+
+message HandlePaddleWebhookResponse {
+  bool processed = 1;
+}
+
 // PlanLimitDetail is attached to gRPC status details when a plan limit is reached.
 // It is used by the gateway to render structured 402 / payment_required responses.
 message PlanLimitDetail {
@@ -1535,6 +1551,7 @@ service BillingService {
   rpc CreateCustomerPortalSession(CreateCustomerPortalSessionRequest) returns (CreateCustomerPortalSessionResponse);
   rpc HandleStripeWebhook(HandleStripeWebhookRequest) returns (HandleStripeWebhookResponse);
   rpc HandleRevenueCatWebhook(HandleRevenueCatWebhookRequest) returns (HandleRevenueCatWebhookResponse);
+  rpc HandlePaddleWebhook(HandlePaddleWebhookRequest) returns (HandlePaddleWebhookResponse);
   // Admin: list every user's subscription plan code + status. Used by adminway
   // to segment broadcast notifications into premium / free audiences.
   rpc ListSubscriptionStatuses(ListSubscriptionStatusesRequest) returns (ListSubscriptionStatusesResponse);

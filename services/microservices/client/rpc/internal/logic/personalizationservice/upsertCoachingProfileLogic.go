@@ -38,19 +38,21 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	// Convert common blockers to JSON
-	commonBlockersJSON, err := json.Marshal(in.CommonBlockers)
-	if err != nil {
-		l.Errorf("failed to marshal common blockers: %v", err)
-		return nil, status.Error(codes.Internal, "failed to process common blockers")
+	// Convert common blockers to JSON. nil means "not provided" — the upsert
+	// preserves the stored value rather than writing an empty/null column.
+	var commonBlockersJSON []byte
+	if len(in.CommonBlockers) > 0 {
+		commonBlockersJSON, err = json.Marshal(in.CommonBlockers)
+		if err != nil {
+			l.Errorf("failed to marshal common blockers: %v", err)
+			return nil, status.Error(codes.Internal, "failed to process common blockers")
+		}
 	}
 
-	// Convert coaching notes to JSON
+	// Convert coaching notes to JSON (nil → preserve existing).
 	var coachingNotesJSON json.RawMessage
 	if in.CoachingNotesJson != "" {
 		coachingNotesJSON = json.RawMessage(in.CoachingNotesJson)
-	} else {
-		coachingNotesJSON = json.RawMessage("{}")
 	}
 
 	var primaryMotivation *string

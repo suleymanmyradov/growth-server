@@ -126,7 +126,12 @@ type Querier interface {
 	UpsertNotificationHabitState(ctx context.Context, arg UpsertNotificationHabitStateParams) (NotificationHabitState, error)
 	UpsertNotificationPreferences(ctx context.Context, arg UpsertNotificationPreferencesParams) (NotificationPreference, error)
 	UpsertNotificationRecipient(ctx context.Context, userID uuid.UUID, email string, name string, emailVerified bool) (NotificationRecipient, error)
-	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, timezone string, checkInTime pgtype.Time, habitReminders bool) error
+	// SettingsChanged events may carry only the fields that changed. An empty
+	// timezone or a NULL check_in_time means "not provided" and must preserve the
+	// existing value rather than overwriting it (a partial PUT /settings would
+	// otherwise reset timezone to UTC or check_in_time to NULL — which is also
+	// impossible since the column is NOT NULL).
+	UpsertReminderStateSettings(ctx context.Context, userID uuid.UUID, column2 string, column3 pgtype.Time, habitReminders bool) error
 }
 
 var _ Querier = (*Queries)(nil)

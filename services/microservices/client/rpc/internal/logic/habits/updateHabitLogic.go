@@ -65,16 +65,27 @@ func (l *UpdateHabitLogic) UpdateHabit(in *client.UpdateHabitRequest) (*client.U
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	var desc *string
+	// Backfill omitted fields from the existing row — UpdateHabit writes every
+	// column unconditionally, so a partial update would otherwise blank
+	// name/description/category.
+	name := in.Name
+	if name == "" {
+		name = existing.Name
+	}
+	desc := existing.Description
 	if in.Description != "" {
 		desc = &in.Description
+	}
+	slug := in.Category
+	if slug == "" {
+		slug = existing.Category
 	}
 
 	params := db.UpdateHabitParams{
 		ID:          habitID,
-		Name:        in.Name,
+		Name:        name,
 		Description: desc,
-		Slug:        in.Category,
+		Slug:        slug,
 		Timezone:    timezone,
 	}
 	habit, err := l.svcCtx.Repo.Habits.UpdateHabit(ctx, params)

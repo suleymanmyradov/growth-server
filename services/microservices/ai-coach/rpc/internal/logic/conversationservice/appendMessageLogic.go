@@ -2,7 +2,9 @@ package conversationservicelogic
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
@@ -60,31 +62,34 @@ func (l *AppendMessageLogic) AppendMessage(in *aicoach.AppendMessageRequest) (*a
 	// A client-supplied idempotency key routes to the upsert variant so a
 	// retried send returns the stored message instead of duplicating the turn.
 	// Server-authored messages (assistant replies, crisis responses) pass no
-	// key and take the plain insert.
+	// key and take the plain insert. The message insert and the last_message
+	// denormalization run in one transaction so a failure can't leave the
+	// conversation showing a stale last_message while returning success.
 	var msg db.ConversationMessage
-	if in.ClientMessageId != "" {
-		clientID := in.ClientMessageId
-		msg, err = l.svcCtx.Queries.CreateMessageIdempotent(l.ctx, convID, role, in.Content, &clientID)
-	} else {
-		msg, err = l.svcCtx.Queries.CreateMessage(l.ctx, convID, role, in.Content)
-	}
+	var conv db.Conversation
+	err = l.svcCtx.TxRunner.Run(l.ctx, in.UserId, func(tx pgx.Tx) error {
+		qtx := l.svcCtx.Queries.WithTx(tx)
+
+		var mErr error
+		if in.ClientMessageId != "" {
+			clientID := in.ClientMessageId
+			msg, mErr = qtx.CreateMessageIdempotent(l.ctx, convID, role, in.Content, &clientID)
+		} else {
+			msg, mErr = qtx.CreateMessage(l.ctx, convID, role, in.Content)
+		}
+		if mErr != nil {
+			return fmt.Errorf("append message: %w", mErr)
+		}
+
+		conv, mErr = qtx.UpdateConversationLastMessage(l.ctx, convID, in.Content)
+		if mErr != nil {
+			return fmt.Errorf("update conversation last_message: %w", mErr)
+		}
+		return nil
+	})
 	if err != nil {
 		l.Errorf("failed to append message: %v", err)
 		return nil, status.Error(codes.Internal, "failed to append message")
-	}
-
-	// Update the conversation's last_message and updated_at. If this fails we
-	// cannot report a coherent conversation state, so surface the error rather
-	// than returning a zero-valued Conversation that renders as a real one with
-	// an all-zeros id.
-	conv, err := l.svcCtx.Queries.UpdateConversationLastMessage(l.ctx, convID, in.Content)
-	if err != nil {
-		l.Errorf("failed to update conversation last_message: %v", err)
-		conv, err = l.svcCtx.Queries.GetConversation(l.ctx, convID, userID)
-		if err != nil {
-			l.Errorf("failed to re-read conversation after last_message update failed: %v", err)
-			return nil, status.Error(codes.Internal, "failed to append message")
-		}
 	}
 
 	return &aicoach.AppendMessageResponse{
