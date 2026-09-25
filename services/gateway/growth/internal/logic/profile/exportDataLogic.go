@@ -225,6 +225,7 @@ func (l *ExportDataLogic) ExportData() (resp *types.ExportDataResponse, err erro
 		Filename:    filename,
 		ContentType: "application/json",
 		Folder:      "exports",
+		UserId:      p.UserID,
 	})
 	if err != nil {
 		l.Errorf("export: failed to upload to file manager: %v", err)

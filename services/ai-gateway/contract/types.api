@@ -56,8 +56,9 @@ type (
 		email string `json:"email,example=john@example.com"`
 	}
 	GoogleLoginRequest {
-		authorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
+		authorizationCode string `json:"authorizationCode,optional,example=4/0AX4Xf..."`
 		redirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
+		idToken           string `json:"idToken,optional,example=eyJhbGciOi..."`
 	}
 	AppleFullName {
 		givenName  string `json:"givenName,optional,example=John"`
@@ -886,8 +887,7 @@ type (
 		currentPeriodEnd     string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
 		trialEnd             string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
 		cancelAtPeriodEnd    bool   `json:"cancelAtPeriodEnd,example=false"`
-		stripeCustomerId     string `json:"stripeCustomerId,optional"`
-		stripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
+		paddleCustomerId     string `json:"paddleCustomerId,optional,example=ctm_01h..."`
 	}
 	Entitlements {
 		planCode                   string `json:"planCode,example=free"`
@@ -925,23 +925,18 @@ type (
 	TrackUpgradeEventResponse {
 		eventId string `json:"eventId,example=event-123"`
 	}
-	CreateCheckoutSessionRequest {
-		planCode        string `json:"planCode,example=pro"`
-		billingInterval string `json:"billingInterval,example=monthly"`
+	CreatePaddleCheckoutRequest {
+		priceId     string `json:"priceId,example=pri_01m340f2f38cbr9ndj77bmpbzc"`
+		checkoutUrl string `json:"checkoutUrl,optional,example=https://app.example.com/checkout"`
+		successUrl  string `json:"successUrl,optional,example=https://app.example.com/billing/success"`
+		cancelUrl   string `json:"cancelUrl,optional,example=https://app.example.com/billing"`
 	}
-	CreateCheckoutSessionResponse {
-		checkoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
-		sessionId   string `json:"sessionId,optional,example=cs_test_..."`
+	CreatePaddleCheckoutResponse {
+		checkoutUrl   string `json:"checkoutUrl,optional,example=https://checkout.paddle.com/..."`
+		transactionId string `json:"transactionId,example=txn_01..."`
 	}
 	CreateCustomerPortalSessionResponse {
-		portalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
-	}
-	StripeWebhookRequest {
-		rawBody   string `json:"rawBody"`
-		signature string `json:"signature"`
-	}
-	StripeWebhookResponse {
-		processed bool `json:"processed,example=true"`
+		portalUrl string `json:"portalUrl,optional,example=https://customer-portal.paddle.com/..."`
 	}
 	RevenueCatWebhookResponse {
 		processed bool `json:"processed,example=true"`

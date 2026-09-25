@@ -41,38 +41,33 @@ func (l *CreateCustomerPortalSessionLogic) CreateCustomerPortalSession(in *clien
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	billingMode := l.svcCtx.Config.Billing.Mode
-	if billingMode != "stripe_test" && billingMode != "stripe_live" {
-		return &client.CreateCustomerPortalSessionResponse{
-			PortalUrl: "",
-		}, nil
-	}
-
-	if l.svcCtx.StripeClient == nil {
-		l.Errorf("Stripe client not configured")
-		return nil, status.Error(codes.Internal, "stripe not configured")
-	}
-
-	// Get subscription to find Stripe customer ID
+	// Get subscription first — the stored provider customer IDs decide which
+	// portal to open based on the stored provider customer ID.
 	sub, err := l.svcCtx.Repo.Billing.GetUserSubscription(ctx, userID)
 	if err != nil {
 		l.Errorf("Failed to get subscription: %v", err)
 		return nil, status.Error(codes.NotFound, "subscription not found")
 	}
 
-	if sub.StripeCustomerID == nil {
-		return nil, status.Error(codes.FailedPrecondition, "no Stripe customer ID")
+	if !l.svcCtx.Config.Billing.Paddle.Enabled || sub.PaddleCustomerID == nil {
+		// No Paddle billing (or the user has no Paddle customer yet) — the
+		// frontend treats an empty URL as "nothing to manage".
+		return &client.CreateCustomerPortalSessionResponse{}, nil
 	}
-
-	portalURL, err := l.svcCtx.StripeClient.CreateCustomerPortalSession(
-		ctx, *sub.StripeCustomerID, l.svcCtx.Config.Billing.FrontendURL,
-	)
+	if l.svcCtx.PaddleClient == nil {
+		l.Errorf("Paddle client not configured")
+		return nil, status.Error(codes.Internal, "paddle not configured")
+	}
+	var subIDs []string
+	if sub.PaddleSubscriptionID != nil {
+		subIDs = []string{*sub.PaddleSubscriptionID}
+	}
+	sess, err := l.svcCtx.PaddleClient.CreatePortalSession(ctx, *sub.PaddleCustomerID, subIDs)
 	if err != nil {
-		l.Errorf("Failed to create Stripe portal session: %v", err)
+		l.Errorf("Failed to create Paddle portal session: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create portal session")
 	}
-
 	return &client.CreateCustomerPortalSessionResponse{
-		PortalUrl: portalURL,
+		PortalUrl: sess.URLs.General.Overview,
 	}, nil
 }

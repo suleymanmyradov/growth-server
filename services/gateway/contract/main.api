@@ -285,8 +285,8 @@ service growthapi {
 	@handler GetBillingOverview
 	get /billing/overview returns (BillingOverviewResponse)
 
-	@handler CreateCheckoutSession
-	post /billing/checkout (CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse)
+	@handler CreatePaddleCheckout
+	post /billing/paddle-checkout (CreatePaddleCheckoutRequest) returns (CreatePaddleCheckoutResponse)
 
 	@handler CreateCustomerPortalSession
 	post /billing/portal returns (CreateCustomerPortalSessionResponse)
@@ -301,9 +301,6 @@ service growthapi {
 	tags:   "Billing"
 )
 service growthapi {
-	@handler HandleStripeWebhook
-	post /billing/webhook (StripeWebhookRequest) returns (StripeWebhookResponse)
-
 	@handler HandleRevenueCatWebhook
 	post /billing/revenuecat-webhook returns (RevenueCatWebhookResponse)
 

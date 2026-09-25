@@ -105,7 +105,7 @@ run push_tickets "push_tickets >${PUSH_TICKET_DAYS}d" \
   "SELECT count(*) FROM push_tickets WHERE created_at < now() - interval '$PUSH_TICKET_DAYS days'"
 
 # Idempotency tables — retention must exceed any provider retry window
-# (Stripe/Paddle retry for ~3 days; 90d is far past it).
+# (Paddle retries for ~3 days; 90d is far past it).
 for t in processed_events client_processed_events analytics_processed_events billing_webhook_events; do
   run "$t" "$t >${IDEMPOTENCY_DAYS}d" \
     "WITH d AS (DELETE FROM $t WHERE processed_at < now() - interval '$IDEMPOTENCY_DAYS days' RETURNING 1) SELECT count(*) FROM d" \

@@ -777,6 +777,21 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "liked": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "",
@@ -1056,13 +1071,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "authorizationCode"
-                ],
                 "properties": {
                   "authorizationCode": {
                     "type": "string",
                     "example": "4/0AX4Xf..."
+                  },
+                  "idToken": {
+                    "type": "string",
+                    "example": "eyJhbGciOi..."
                   },
                   "redirectUri": {
                     "type": "string",
@@ -1770,66 +1786,6 @@
         ]
       }
     },
-    "/api/v1/billing/checkout": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "CreateCheckoutSession",
-        "operationId": "billingCreateCheckoutSession",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "planCode",
-                  "billingInterval"
-                ],
-                "properties": {
-                  "billingInterval": {
-                    "type": "string",
-                    "example": "monthly"
-                  },
-                  "planCode": {
-                    "type": "string",
-                    "example": "pro"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "checkoutUrl": {
-                      "type": "string",
-                      "example": "https://checkout.stripe.com/..."
-                    },
-                    "sessionId": {
-                      "type": "string",
-                      "example": "cs_test_..."
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
     "/api/v1/billing/overview": {
       "get": {
         "tags": [
@@ -2024,6 +1980,10 @@
                           "type": "string",
                           "example": "sub-123"
                         },
+                        "paddleCustomerId": {
+                          "type": "string",
+                          "example": "ctm_01h..."
+                        },
                         "planCode": {
                           "type": "string",
                           "example": "free"
@@ -2040,12 +2000,6 @@
                           "type": "string",
                           "example": "free"
                         },
-                        "stripeCustomerId": {
-                          "type": "string"
-                        },
-                        "stripeSubscriptionId": {
-                          "type": "string"
-                        },
                         "trialEnd": {
                           "type": "string",
                           "example": "2024-01-15T00:00:00Z"
@@ -2055,6 +2009,105 @@
                           "example": "user-123"
                         }
                       }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/billing/paddle-checkout": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "CreatePaddleCheckout",
+        "operationId": "billingCreatePaddleCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "priceId"
+                ],
+                "properties": {
+                  "cancelUrl": {
+                    "type": "string",
+                    "example": "https://app.example.com/billing"
+                  },
+                  "checkoutUrl": {
+                    "type": "string",
+                    "example": "https://app.example.com/checkout"
+                  },
+                  "priceId": {
+                    "type": "string",
+                    "example": "pri_01m340f2f38cbr9ndj77bmpbzc"
+                  },
+                  "successUrl": {
+                    "type": "string",
+                    "example": "https://app.example.com/billing/success"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "checkoutUrl": {
+                      "type": "string",
+                      "example": "https://checkout.paddle.com/..."
+                    },
+                    "transactionId": {
+                      "type": "string",
+                      "example": "txn_01..."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
+    "/api/v1/billing/paddle-webhook": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "HandlePaddleWebhook",
+        "operationId": "billingHandlePaddleWebhook",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "processed": {
+                      "type": "boolean",
+                      "example": true
                     }
                   }
                 }
@@ -2086,7 +2139,7 @@
                   "properties": {
                     "portalUrl": {
                       "type": "string",
-                      "example": "https://billing.stripe.com/..."
+                      "example": "https://customer-portal.paddle.com/..."
                     }
                   }
                 }
@@ -2197,60 +2250,6 @@
                     "eventId": {
                       "type": "string",
                       "example": "event-123"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "servers": [
-          {
-            "url": "https://localhost/api/v1"
-          }
-        ]
-      }
-    },
-    "/api/v1/billing/webhook": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "HandleStripeWebhook",
-        "operationId": "billingHandleStripeWebhook",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "rawBody",
-                  "signature"
-                ],
-                "properties": {
-                  "rawBody": {
-                    "type": "string"
-                  },
-                  "signature": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "processed": {
-                      "type": "boolean",
-                      "example": true
                     }
                   }
                 }
@@ -11177,7 +11176,7 @@
       }
     }
   },
-  "x-date": "2026-09-16 11:17:31",
+  "x-date": "2026-09-24 10:41:14",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

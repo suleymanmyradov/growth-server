@@ -17,7 +17,7 @@ func HandleRevenueCatWebhookHandler(svcCtx *svc.ServiceContext) http.HandlerFunc
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Read raw body — signature verification happens in the client RPC
 		// service, which owns the RevenueCat webhook secret. The gateway is
-		// just a transport layer here (same pattern as the Stripe webhook).
+		// just a transport layer here (same pattern as the Paddle webhook).
 		//
 		// Limit the body to 1 MiB before reading it into memory. RevenueCat
 		// webhook payloads are small JSON envelopes; anything larger is either

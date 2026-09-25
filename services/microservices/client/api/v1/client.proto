@@ -1436,8 +1436,11 @@ message UserSubscription {
   string currentPeriodEnd = 9;
   string trialEnd = 10;
   bool cancelAtPeriodEnd = 11;
-  string stripeCustomerId = 12;
-  string stripeSubscriptionId = 13;
+  // 12-13 were stripeCustomerId / stripeSubscriptionId — Stripe was removed.
+  reserved 12, 13;
+  // Paddle customer ID (ctm_...) — the frontend passes it to Paddle.js as
+  // pwCustomer so Retain/checkout can tie the session to the Paddle record.
+  string paddleCustomerId = 14;
 }
 
 message Entitlements {
@@ -1485,32 +1488,12 @@ message TrackUpgradeEventResponse {
   string eventId = 1;
 }
 
-message CreateCheckoutSessionRequest {
-  string userId = 1;
-  string planCode = 2;
-  string billingInterval = 3;
-}
-
-message CreateCheckoutSessionResponse {
-  string checkoutUrl = 1;
-  string sessionId = 2;
-}
-
 message CreateCustomerPortalSessionRequest {
   string userId = 1;
 }
 
 message CreateCustomerPortalSessionResponse {
   string portalUrl = 1;
-}
-
-message HandleStripeWebhookRequest {
-  bytes rawBody = 1;
-  string signature = 2;
-}
-
-message HandleStripeWebhookResponse {
-  bool processed = 1;
 }
 
 // RevenueCat webhook (mobile subscriptions via App Store / Play Store).
@@ -1537,6 +1520,25 @@ message HandlePaddleWebhookResponse {
   bool processed = 1;
 }
 
+// Paddle checkout (web subscriptions via Paddle Billing). The frontend sends a
+// catalog price ID (pri_...); the service creates a Paddle transaction stamped
+// with custom_data.user_id so webhooks map the payment back to the user.
+// transactionId drives the Paddle.js overlay (Paddle.Checkout.open or ?_ptxn=
+// redirect); checkoutUrl is the hosted payment link when one is configured.
+message CreatePaddleCheckoutRequest {
+  string priceId = 1;
+  // checkoutUrl is the page hosting Paddle.js. When set, Paddle returns it on
+  // the transaction with success/cancel query params appended.
+  string checkoutUrl = 2;
+  string successUrl = 3;
+  string cancelUrl = 4;
+}
+
+message CreatePaddleCheckoutResponse {
+  string checkoutUrl = 1;
+  string transactionId = 2;
+}
+
 // PlanLimitDetail is attached to gRPC status details when a plan limit is reached.
 // It is used by the gateway to render structured 402 / payment_required responses.
 message PlanLimitDetail {
@@ -1547,11 +1549,10 @@ message PlanLimitDetail {
 service BillingService {
   rpc GetBillingOverview(GetBillingOverviewRequest) returns (GetBillingOverviewResponse);
   rpc TrackUpgradeEvent(TrackUpgradeEventRequest) returns (TrackUpgradeEventResponse);
-  rpc CreateCheckoutSession(CreateCheckoutSessionRequest) returns (CreateCheckoutSessionResponse);
   rpc CreateCustomerPortalSession(CreateCustomerPortalSessionRequest) returns (CreateCustomerPortalSessionResponse);
-  rpc HandleStripeWebhook(HandleStripeWebhookRequest) returns (HandleStripeWebhookResponse);
   rpc HandleRevenueCatWebhook(HandleRevenueCatWebhookRequest) returns (HandleRevenueCatWebhookResponse);
   rpc HandlePaddleWebhook(HandlePaddleWebhookRequest) returns (HandlePaddleWebhookResponse);
+  rpc CreatePaddleCheckout(CreatePaddleCheckoutRequest) returns (CreatePaddleCheckoutResponse);
   // Admin: list every user's subscription plan code + status. Used by adminway
   // to segment broadcast notifications into premium / free audiences.
   rpc ListSubscriptionStatuses(ListSubscriptionStatusesRequest) returns (ListSubscriptionStatusesResponse);

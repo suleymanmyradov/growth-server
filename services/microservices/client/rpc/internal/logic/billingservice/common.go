@@ -39,20 +39,26 @@ func subscriptionToProto(sub db.GetUserSubscriptionRow) *client.UserSubscription
 		billingInterval = string(*sub.BillingInterval)
 	}
 	return &client.UserSubscription{
-		Id:                   sub.ID.String(),
-		UserId:               sub.UserID.String(),
-		PlanId:               sub.PlanID.String(),
-		PlanCode:             sub.PlanCode,
-		PlanName:             sub.PlanName,
-		Status:               string(sub.Status),
-		BillingInterval:      billingInterval,
-		CurrentPeriodStart:   pgtypeTimestamptzToString(sub.CurrentPeriodStart),
-		CurrentPeriodEnd:     pgtypeTimestamptzToString(sub.CurrentPeriodEnd),
-		TrialEnd:             pgtypeTimestamptzToString(sub.TrialEnd),
-		CancelAtPeriodEnd:    sub.CancelAtPeriodEnd,
-		StripeCustomerId:     stringPtrToString(sub.StripeCustomerID),
-		StripeSubscriptionId: stringPtrToString(sub.StripeSubscriptionID),
+		Id:                 sub.ID.String(),
+		UserId:             sub.UserID.String(),
+		PlanId:             sub.PlanID.String(),
+		PlanCode:           sub.PlanCode,
+		PlanName:           sub.PlanName,
+		Status:             string(sub.Status),
+		BillingInterval:    billingInterval,
+		CurrentPeriodStart: pgtypeTimestamptzToString(sub.CurrentPeriodStart),
+		CurrentPeriodEnd:   pgtypeTimestamptzToString(sub.CurrentPeriodEnd),
+		TrialEnd:           pgtypeTimestamptzToString(sub.TrialEnd),
+		CancelAtPeriodEnd:  sub.CancelAtPeriodEnd,
+		PaddleCustomerId:   stringPtrToString(sub.PaddleCustomerID),
 	}
+}
+
+func stringPtrToString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func entitlementsToProto(e *EntitlementsResult) *client.Entitlements {
@@ -77,13 +83,6 @@ func entitlementsToProto(e *EntitlementsResult) *client.Entitlements {
 
 func nullInt32Value(v int32) int32 {
 	return v
-}
-
-func stringPtrToString(v *string) string {
-	if v != nil {
-		return *v
-	}
-	return ""
 }
 
 func pgtypeTimestamptzToString(v pgtype.Timestamptz) string {

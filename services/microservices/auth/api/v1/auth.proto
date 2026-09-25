@@ -125,10 +125,18 @@ message ResendVerificationRequest {
 }
 
 message GoogleLoginRequest {
-  // OAuth authorization code exchanged server-side for Google tokens.
+  // OAuth authorization code exchanged server-side for Google tokens
+  // (web flow). Either authorization_code or id_token is required.
   string authorization_code = 1;
   // Redirect URI registered with Google for this client.
   string redirect_uri = 2;
+  // Google ID token obtained and verified client-side via the native PKCE
+  // exchange (iOS/Android). Verified server-side by signature against
+  // Google's JWKS with an audience allowlist (web + iOS + Android client
+  // IDs). When set, authorization_code and redirect_uri are ignored —
+  // native clients are public and cannot exchange codes with the
+  // server-held web client secret.
+  string id_token = 3;
 }
 
 // AppleFullName carries the user's name from the Apple authorization response.

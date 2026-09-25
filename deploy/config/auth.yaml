@@ -51,6 +51,10 @@ Email:
 GoogleOAuth:
   ClientID: ${GOOGLE_CLIENT_ID}
   ClientSecret: ${GOOGLE_CLIENT_SECRET}
+  # Native OAuth client IDs (public) — audience allowlist for id_token
+  # verification in the mobile flow.
+  IOSClientID: ${GOOGLE_IOS_CLIENT_ID}
+  AndroidClientID: ${GOOGLE_ANDROID_CLIENT_ID}
   RedirectURI: ${APP_URL}/auth/callback/google
   AllowedRedirectURIs:
     - ${APP_URL}/auth/callback/google

@@ -5,6 +5,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
+	"github.com/suleymanmyradov/growth-server/pkg/events/userdeletion"
 	"github.com/suleymanmyradov/growth-server/pkg/speech"
 	"github.com/zeromicro/go-zero/zrpc"
 )
@@ -36,6 +37,9 @@ type Config struct {
 	// CoachMemory controls long-term memory retrieval (Workstream 2). It is a
 	// feature flag so retrieval can be A/B'd and disabled without a deploy.
 	CoachMemory CoachMemoryConfig `json:",optional"`
+	// UserDeletion configures the user_deleted consumer that wipes curated
+	// memory facts (user_facts) on account deletion. Disabled when Topic empty.
+	UserDeletion userdeletion.Config `json:",optional"`
 }
 
 // CoachMemoryConfig controls the retrieval enhancement. Retrieval is always

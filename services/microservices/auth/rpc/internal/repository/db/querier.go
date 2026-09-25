@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	ClaimAuthDeletion(ctx context.Context) (ClaimAuthDeletionRow, error)
+	CompleteAuthDeletion(ctx context.Context, eventID uuid.UUID) error
 	CreateOAuthAccount(ctx context.Context, userID uuid.UUID, provider string, providerUid string, email *string) (UserOauthAccount, error)
 	// Column order in all RETURNING/SELECT clauses matches the `users` table
 	// definition so sqlc reuses the db.User model struct (avoids per-query Row

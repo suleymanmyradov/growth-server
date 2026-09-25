@@ -33,44 +33,39 @@ func NewGoogleLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Googl
 	}
 }
 
-// GoogleLogin exchanges the OAuth authorization code for Google user info and
-// either logs in an existing linked user, links a Google identity to an
-// existing user with the same email, or creates a new OAuth-only user.
+// GoogleLogin authenticates via Google and either logs in an existing linked
+// user, links a Google identity to an existing user with the same email, or
+// creates a new OAuth-only user.
+//
+// Two credential paths are accepted:
+//   - id_token (native): the app performed the PKCE exchange client-side with
+//     a public iOS/Android OAuth client; the token is verified by signature
+//     against Google's JWKS with an audience allowlist.
+//   - authorization_code (web): the code is exchanged server-side with the
+//     web client's secret, as before.
 func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "GoogleLoginLogic.GoogleLogin")
 	defer span.End()
 
-	if in == nil || in.AuthorizationCode == "" {
+	if in == nil || (in.AuthorizationCode == "" && in.IdToken == "") {
 		return nil, errInvalidArgument(MsgAuthorizationCodeRequired)
 	}
 
-	cfg := google.Config{
-		ClientID:     l.svcCtx.Config.GoogleOAuth.ClientID,
-		ClientSecret: l.svcCtx.Config.GoogleOAuth.ClientSecret,
-		RedirectURI:  l.svcCtx.Config.GoogleOAuth.RedirectURI,
-	}
-	if cfg.ClientID == "" || cfg.ClientSecret == "" {
-		l.Errorf("GoogleLogin: Google OAuth not configured")
-		return nil, errFailedPrecondition(MsgGoogleNotConfigured)
-	}
-
-	redirectURI := in.RedirectUri
-	if redirectURI == "" {
-		redirectURI = cfg.RedirectURI
-	} else {
-		// Validate client-supplied redirect URI against an explicit allowlist
-		// to prevent authorization code interception. If no allowlist is
-		// configured, only the server's configured RedirectURI is accepted.
-		if !isAllowedRedirectURI(redirectURI, l.svcCtx.Config.GoogleOAuth.AllowedRedirectURIs, cfg.RedirectURI) {
-			l.Errorf("GoogleLogin: redirect URI not allowed: %s", redirectURI)
-			return nil, errInvalidArgument(MsgRedirectURINotAllowed)
+	var googleUser google.UserInfo
+	if in.IdToken != "" {
+		ui, err := l.verifyIDToken(ctx, in.IdToken)
+		if err != nil {
+			l.Errorf("GoogleLogin: id token verification failed: %v", err)
+			return nil, err
 		}
-	}
-
-	googleUser, err := cfg.ExchangeCode(ctx, in.AuthorizationCode, redirectURI)
-	if err != nil {
-		l.Errorf("GoogleLogin: exchange failed: %v", err)
-		return nil, errUnauthenticated(MsgFailedAuthGoogle)
+		googleUser = ui
+	} else {
+		ui, err := l.exchangeAuthCode(ctx, in.AuthorizationCode, in.RedirectUri)
+		if err != nil {
+			l.Errorf("GoogleLogin: exchange failed: %v", err)
+			return nil, err
+		}
+		googleUser = ui
 	}
 	if googleUser.Subject == "" || googleUser.Email == "" {
 		l.Errorf("GoogleLogin: incomplete Google profile (sub/email missing)")
@@ -78,7 +73,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	}
 
 	var user db.User
-	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
+	err := l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
 		q := db.New(tx)
 
 		// 1. Already linked?
@@ -164,6 +159,64 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 		ExpiresIn:    int64(l.svcCtx.Config.JWT.AccessExpiryDuration.Seconds()),
 		User:         toPbUser(user),
 	}, nil
+}
+
+// verifyIDToken handles the native path: the app exchanged its PKCE code
+// client-side and sent the resulting Google ID token. It is verified by
+// signature against Google's JWKS; the audience allowlist is the set of our
+// OAuth client IDs (web + iOS + Android).
+func (l *GoogleLoginLogic) verifyIDToken(ctx context.Context, idToken string) (google.UserInfo, error) {
+	cfg := l.svcCtx.Config.GoogleOAuth
+	audiences := []string{cfg.ClientID, cfg.IOSClientID, cfg.AndroidClientID}
+	hasAudience := false
+	for _, a := range audiences {
+		if a != "" {
+			hasAudience = true
+			break
+		}
+	}
+	if !hasAudience {
+		l.Errorf("GoogleLogin: no Google client IDs configured for ID token audience validation")
+		return google.UserInfo{}, errFailedPrecondition(MsgGoogleNotConfigured)
+	}
+	verifier := google.NewIDTokenVerifier(audiences, nil)
+	ui, err := verifier.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		return google.UserInfo{}, errUnauthenticated(MsgFailedAuthGoogle)
+	}
+	return ui, nil
+}
+
+// exchangeAuthCode handles the web path: the authorization code is redeemed
+// server-side using the web client's secret.
+func (l *GoogleLoginLogic) exchangeAuthCode(ctx context.Context, code, redirectURI string) (google.UserInfo, error) {
+	cfg := google.Config{
+		ClientID:     l.svcCtx.Config.GoogleOAuth.ClientID,
+		ClientSecret: l.svcCtx.Config.GoogleOAuth.ClientSecret,
+		RedirectURI:  l.svcCtx.Config.GoogleOAuth.RedirectURI,
+	}
+	if cfg.ClientID == "" || cfg.ClientSecret == "" {
+		l.Errorf("GoogleLogin: Google OAuth not configured")
+		return google.UserInfo{}, errFailedPrecondition(MsgGoogleNotConfigured)
+	}
+
+	if redirectURI == "" {
+		redirectURI = cfg.RedirectURI
+	} else {
+		// Validate client-supplied redirect URI against an explicit allowlist
+		// to prevent authorization code interception. If no allowlist is
+		// configured, only the server's configured RedirectURI is accepted.
+		if !isAllowedRedirectURI(redirectURI, l.svcCtx.Config.GoogleOAuth.AllowedRedirectURIs, cfg.RedirectURI) {
+			l.Errorf("GoogleLogin: redirect URI not allowed: %s", redirectURI)
+			return google.UserInfo{}, errInvalidArgument(MsgRedirectURINotAllowed)
+		}
+	}
+
+	ui, err := cfg.ExchangeCode(ctx, code, redirectURI)
+	if err != nil {
+		return google.UserInfo{}, errUnauthenticated(MsgFailedAuthGoogle)
+	}
+	return ui, nil
 }
 
 // deriveUsername builds a lowercase username from the email local part, falling

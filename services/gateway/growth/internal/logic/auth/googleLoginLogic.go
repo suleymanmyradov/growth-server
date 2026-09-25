@@ -28,13 +28,14 @@ func NewGoogleLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Googl
 }
 
 func (l *GoogleLoginLogic) GoogleLogin(req *types.GoogleLoginRequest) (*types.AuthResponse, error) {
-	if req == nil || req.AuthorizationCode == "" {
+	if req == nil || (req.AuthorizationCode == "" && req.IdToken == "") {
 		return nil, errInvalidArgument(MsgAuthorizationCodeRequired)
 	}
 
 	rpcResp, err := l.svcCtx.AuthRpc.GoogleLogin(l.ctx, &authservice.GoogleLoginRequest{
 		AuthorizationCode: req.AuthorizationCode,
 		RedirectUri:       req.RedirectUri,
+		IdToken:           req.IdToken,
 	})
 	if err != nil {
 		return nil, err

@@ -21,7 +21,6 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/paddle"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
-	"github.com/suleymanmyradov/growth-server/pkg/stripe"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/analytics"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/consumer"
@@ -34,7 +33,6 @@ type ServiceContext struct {
 	Repo             *repository.Repository
 	EventsPub        *events.Publisher
 	PatternDetection *analytics.PatternDetection
-	StripeClient     *stripe.Client
 	PaddleClient     *paddle.Client
 	TxRunner         *postgres.PgxTxRunner
 	Authz            *authz.Checker
@@ -67,11 +65,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	repo := repository.NewRepository(queries)
 	patternDetection := analytics.NewPatternDetection()
-
-	var stripeClient *stripe.Client
-	if c.Billing.StripeSecretKey != "" {
-		stripeClient = stripe.NewClient(c.Billing.StripeSecretKey)
-	}
 
 	var paddleClient *paddle.Client
 	if c.Billing.Paddle.APIKey != "" {
@@ -173,7 +166,6 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Repo:             repo,
 		EventsPub:        eventsPub,
 		PatternDetection: patternDetection,
-		StripeClient:     stripeClient,
 		PaddleClient:     paddleClient,
 		TxRunner:         txRunner,
 		Authz:            authzChecker,

@@ -160,14 +160,14 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Middleware{serverCtx.Auth},
 			[]rest.Route{
 				{
-					Method:  http.MethodPost,
-					Path:    "/billing/checkout",
-					Handler: billing.CreateCheckoutSessionHandler(serverCtx),
-				},
-				{
 					Method:  http.MethodGet,
 					Path:    "/billing/overview",
 					Handler: billing.GetBillingOverviewHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/billing/paddle-checkout",
+					Handler: billing.CreatePaddleCheckoutHandler(serverCtx),
 				},
 				{
 					Method:  http.MethodPost,
@@ -195,11 +195,6 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Method:  http.MethodPost,
 				Path:    "/billing/revenuecat-webhook",
 				Handler: billing.HandleRevenueCatWebhookHandler(serverCtx),
-			},
-			{
-				Method:  http.MethodPost,
-				Path:    "/billing/webhook",
-				Handler: billing.HandleStripeWebhookHandler(serverCtx),
 			},
 		},
 		rest.WithPrefix("/api/v1"),

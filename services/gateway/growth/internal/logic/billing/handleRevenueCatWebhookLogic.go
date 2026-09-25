@@ -30,7 +30,7 @@ func NewHandleRevenueCatWebhookLogic(ctx context.Context, svcCtx *svc.ServiceCon
 // HandleRevenueCatWebhook forwards the raw body + Authorization header to the
 // client service's HandleRevenueCatWebhook RPC. The client service verifies
 // the webhook signature and processes the events. The gateway is just a
-// transport layer (same pattern as the Stripe webhook).
+// transport layer (same pattern as the Paddle webhook).
 func (l *HandleRevenueCatWebhookLogic) HandleRevenueCatWebhook(rawBody []byte, authorization string) (*types.RevenueCatWebhookResponse, error) {
 	rpcResp, err := l.svcCtx.ClientRpc.BillingService.HandleRevenueCatWebhook(l.ctx, &clientbilling.HandleRevenueCatWebhookRequest{
 		RawBody:       rawBody,

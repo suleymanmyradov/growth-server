@@ -7,13 +7,18 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/minio/minio-go/v7"
+	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/pb/filemanager"
 	"github.com/zeromicro/go-zero/core/logx"
 	"github.com/zeromicro/go-zero/core/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // uploadPolicy allowlists what each upload folder may contain, keyed by the
@@ -25,6 +30,14 @@ var uploadPolicy = map[string]map[string]bool{
 	"avatars":  {"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true},
 	"articles": {"image/jpeg": true, "image/png": true, "image/webp": true, "image/gif": true},
 	"exports":  {"text/plain": true}, // JSON export payloads sniff as text/plain
+}
+
+// folderRetention is the per-folder retention policy: objects uploaded into a
+// listed folder get file_objects.expires_at = now + TTL and are removed by the
+// cleanup sweeper. Folders not listed never expire. Retention is enforced
+// server-side so callers cannot opt out.
+var folderRetention = map[string]time.Duration{
+	"exports": 24 * time.Hour,
 }
 
 // canonicalExt maps each allowed content type to the extension used in the
@@ -89,6 +102,15 @@ func (l *UploadFileLogic) UploadFile(in *filemanager.UploadFileRequest) (*filema
 		return nil, fmt.Errorf("upload rejected: %w", err)
 	}
 
+	var owner uuid.NullUUID
+	if in.UserId != "" {
+		uid, err := uuid.Parse(in.UserId)
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid user_id")
+		}
+		owner = uuid.NullUUID{UUID: uid, Valid: true}
+	}
+
 	ext, ok := canonicalExt[contentType]
 	if !ok {
 		ext = filepath.Ext(in.Filename)
@@ -101,6 +123,35 @@ func (l *UploadFileLogic) UploadFile(in *filemanager.UploadFileRequest) (*filema
 	if err != nil {
 		logx.WithContext(ctx).Errorf("minio put object failed: %v", err)
 		return nil, fmt.Errorf("upload failed: %w", err)
+	}
+
+	// Record the object in the registry so ownership (DeleteFile authz,
+	// account-deletion fan-out) and retention (expires_at sweeps) work. If the
+	// insert fails the stored object is an untracked orphan — remove it rather
+	// than leave a file nobody can account for.
+	if l.svcCtx.Queries != nil {
+		var expiresAt pgtype.Timestamptz
+		if ttl, ok := folderRetention[in.Folder]; ok {
+			expiresAt = pgtype.Timestamptz{Time: time.Now().Add(ttl), Valid: true}
+		}
+		err = l.svcCtx.Queries.CreateFileObject(ctx, db.CreateFileObjectParams{
+			Bucket:      bucket,
+			ObjectKey:   key,
+			OwnerUserID: owner,
+			Folder:      in.Folder,
+			ContentType: contentType,
+			SizeBytes:   int64(len(in.Data)),
+			ExpiresAt:   expiresAt,
+		})
+		if err != nil {
+			logx.WithContext(ctx).Errorf("file_objects insert failed for %s, removing orphaned object: %v", key, err)
+			if rmErr := l.svcCtx.Minio.RemoveObject(context.WithoutCancel(ctx), bucket, key, minio.RemoveObjectOptions{}); rmErr != nil {
+				logx.WithContext(ctx).Errorf("orphan cleanup failed for %s: %v", key, rmErr)
+			}
+			return nil, fmt.Errorf("upload failed: %w", err)
+		}
+	} else {
+		logx.WithContext(ctx).Errorf("file_objects registry unavailable; %s uploaded untracked", key)
 	}
 
 	var url string

@@ -33,19 +33,9 @@ func (s *BillingServiceServer) TrackUpgradeEvent(ctx context.Context, in *client
 	return l.TrackUpgradeEvent(in)
 }
 
-func (s *BillingServiceServer) CreateCheckoutSession(ctx context.Context, in *client.CreateCheckoutSessionRequest) (*client.CreateCheckoutSessionResponse, error) {
-	l := billingservicelogic.NewCreateCheckoutSessionLogic(ctx, s.svcCtx)
-	return l.CreateCheckoutSession(in)
-}
-
 func (s *BillingServiceServer) CreateCustomerPortalSession(ctx context.Context, in *client.CreateCustomerPortalSessionRequest) (*client.CreateCustomerPortalSessionResponse, error) {
 	l := billingservicelogic.NewCreateCustomerPortalSessionLogic(ctx, s.svcCtx)
 	return l.CreateCustomerPortalSession(in)
-}
-
-func (s *BillingServiceServer) HandleStripeWebhook(ctx context.Context, in *client.HandleStripeWebhookRequest) (*client.HandleStripeWebhookResponse, error) {
-	l := billingservicelogic.NewHandleStripeWebhookLogic(ctx, s.svcCtx)
-	return l.HandleStripeWebhook(in)
 }
 
 func (s *BillingServiceServer) HandleRevenueCatWebhook(ctx context.Context, in *client.HandleRevenueCatWebhookRequest) (*client.HandleRevenueCatWebhookResponse, error) {
@@ -56,6 +46,11 @@ func (s *BillingServiceServer) HandleRevenueCatWebhook(ctx context.Context, in *
 func (s *BillingServiceServer) HandlePaddleWebhook(ctx context.Context, in *client.HandlePaddleWebhookRequest) (*client.HandlePaddleWebhookResponse, error) {
 	l := billingservicelogic.NewHandlePaddleWebhookLogic(ctx, s.svcCtx)
 	return l.HandlePaddleWebhook(in)
+}
+
+func (s *BillingServiceServer) CreatePaddleCheckout(ctx context.Context, in *client.CreatePaddleCheckoutRequest) (*client.CreatePaddleCheckoutResponse, error) {
+	l := billingservicelogic.NewCreatePaddleCheckoutLogic(ctx, s.svcCtx)
+	return l.CreatePaddleCheckout(in)
 }
 
 // Admin: list every user's subscription plan code + status. Used by adminway

@@ -1,6 +1,6 @@
 # AGENTS.md — growth-server
 
-Go microservices backend for the Growth self-development platform (habits, goals, AI coaching). Module: `github.com/suleymanmyradov/growth-server`, Go 1.26, built on **go-zero** (`goctl` for codegen), gRPC between services, PostgreSQL via **sqlc**, Redis, Kafka (Redpanda locally), Meilisearch, MinIO, Stripe.
+Go microservices backend for the Growth self-development platform (habits, goals, AI coaching). Module: `github.com/suleymanmyradov/growth-server`, Go 1.26, built on **go-zero** (`goctl` for codegen), gRPC between services, PostgreSQL via **sqlc**, Redis, Kafka (Redpanda locally), Meilisearch, MinIO, Paddle Billing.
 
 ## Architecture
 
@@ -23,13 +23,12 @@ Services live under `services/`:
 | client | `services/microservices/client/rpc` | gRPC (habits, goals, check-ins, billing) | 9082 |
 | search | `services/microservices/search/rpc` | gRPC (Meilisearch-backed) | 9083 |
 | ai-coach | `services/microservices/ai-coach/rpc` | gRPC (conversations, streaming) | 9086 |
-| filemanager | `services/microservices/filemanager/rpc` | gRPC (MinIO) | 9087 |
+| filemanager | `services/microservices/filemanager/rpc` | gRPC (MinIO + `file_objects` registry) | 9087 |
 | notifications | `services/microservices/notifications/rpc` | gRPC | 8080 |
 | ai-coach-consumer | `services/microservices/ai-coach-consumer` | Kafka consumer (AI feedback) | — |
 | search-sync | `services/microservices/search-sync` | Kafka consumer (index sync) | — |
-| billing-reconciler | `services/microservices/billing-reconciler` | one-shot CLI (Stripe sync) | — |
 
-Shared code lives in `pkg/` (ai, analytics, auth, authz, cache, configsafe, email, events, httpx, imageproc, notifications, oauth, postgres, prompts, redisutil, revenuecat, server, stripe, validator). Service discovery locally is direct endpoints in the etc yamls (`XxxRpc.Endpoints`, `NonBlock: true`); no etcd in dev.
+Shared code lives in `pkg/` (ai, analytics, auth, authz, cache, configsafe, email, events, httpx, imageproc, notifications, oauth, paddle, postgres, prompts, redisutil, revenuecat, server, validator). Service discovery locally is direct endpoints in the etc yamls (`XxxRpc.Endpoints`, `NonBlock: true`); no etcd in dev.
 
 ## Everything is generated from contracts — edit the source, not the output
 
@@ -68,7 +67,7 @@ Each RPC service: `rpc/internal/{config,svc,logic,server,repository}` (+ `consum
 ## Database
 
 - Migrations: `sql/migrations_v2/NNN_name.{up,down}.sql`, run with `make migrate-up` (requires `DATABASE_URL`, e.g. `postgres://user:pass@localhost:5434/dbname?sslmode=disable` — note **port 5434** locally). Always write a matching `.down.sql`.
-- **Table ownership is enforced**: each service may only query tables it owns. `make check-ownership` (CI check, `scripts/check-table-ownership.sh`) fails on cross-service table references. Known intentional exceptions are documented in that script (e.g. `subscriptions` co-owned by client + billing-reconciler; `ai_feedback` owned by ai-coach-consumer). Cross-service data access goes through gRPC or Kafka events, not shared SQL.
+- **Table ownership is enforced**: each service may only query tables it owns. `make check-ownership` (CI check, `scripts/check-table-ownership.sh`) fails on cross-service table references. Known intentional exceptions are documented in that script (e.g. `ai_feedback` owned by ai-coach-consumer). Cross-service data access goes through gRPC or Kafka events, not shared SQL.
 
 ### Data ownership — HARD RULE, never break it
 
@@ -93,7 +92,7 @@ client ──▶ search (or any RPC ──▶ RPC)                              
 
 - Need data from two services to serve one endpoint? The gateway/adminway `logic` calls both RPCs and merges the results. Do not add another service's zrpc client to an RPC service's `ServiceContext` or config.
 - Need another service's data *inside* an RPC service's business logic? Consume its Kafka events and keep a local copy (see data-ownership rule above) — don't call it.
-- Async workers (ai-coach-consumer, search-sync, billing-reconciler) react to Kafka events and write to their own data; they are not an excuse to build RPC call chains either.
+- Async workers (ai-coach-consumer, search-sync) react to Kafka events and write to their own data; they are not an excuse to build RPC call chains either.
 - Why: RPC-to-RPC calls create hidden coupling, cascading failures, and circular startup dependencies, and they block extracting services (and their databases) cleanly when this moves to pure microservices. Fan-out belongs at the edge where timeouts, retries, and partial-failure handling are visible in one place.
 
 The codebase currently has **zero** RPC-to-RPC calls — keep it that way. Reference example of the correct pattern: admin article full-text search (`adminway/adminapi/internal/logic/articles/adminlistarticleslogic.go`) calls search RPC for relevance-ordered article IDs, then hydrates them via the client service's `Articles.GetArticlesByIds` RPC — the compose step lives in adminway, and the client service exposes a plain ID-hydration endpoint with no knowledge of search. When you need this shape, add a `GetXByIds` hydration RPC to the owning service rather than letting it call search itself.
@@ -104,7 +103,7 @@ The codebase currently has **zero** RPC-to-RPC calls — keep it that way. Refer
 
 ## Config & secrets
 
-- Runtime configs are `services/**/etc/*.yaml` and are **gitignored** — real values live only on the local machine / deploy environment. Committed files are examples at most. Never commit an etc yaml or embed secrets (JWT keys, Stripe keys, DB passwords) in code, docs, or tests — use placeholders like `<JWT_PRIVATE_KEY>`.
+- Runtime configs are `services/**/etc/*.yaml` and are **gitignored** — real values live only on the local machine / deploy environment. Committed files are examples at most. Never commit an etc yaml or embed secrets (JWT keys, Paddle keys, DB passwords) in code, docs, or tests — use placeholders like `<JWT_PRIVATE_KEY>`.
 - Config structs live in each service's `internal/config`; `pkg/configsafe` is for safe config handling.
 - Telemetry (OTLP tracing) is configured per service in the yaml; empty endpoint disables export.
 

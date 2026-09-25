@@ -32,6 +32,11 @@ func main() {
 	logx.Must(c.ServiceAuth.MustValidate())
 	ctx := svc.NewServiceContext(c)
 
+	// user_deleted consumer + expired-object sweeper. Both no-op when
+	// disabled/unconfigured.
+	ctx.StartBackground()
+	defer ctx.StopBackground()
+
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		filemanager.RegisterFileManagerServer(grpcServer, server.NewFileManagerServer(ctx))
 

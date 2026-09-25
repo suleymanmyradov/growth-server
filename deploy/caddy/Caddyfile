@@ -52,6 +52,11 @@
 		}
 	}
 
+	# Paddle webhook source-IP allowlist (generated file — refresh via
+	# deploy/scripts/fetch-paddle-webhook-ips.sh). Its matcher is more specific
+	# than /api/v1/*, so non-Paddle sources get 403 before reaching the gateway.
+	import paddle-webhook-ips.caddyfile
+
 	# --- Gateway (everything else under /api/v1) ---
 	handle /api/v1/* {
 		reverse_proxy gateway:8888

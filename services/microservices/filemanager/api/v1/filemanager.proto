@@ -9,6 +9,11 @@ message UploadFileRequest {
   string filename = 2;
   string contentType = 3;
   string folder = 4; // e.g. "avatars", "articles", "attachments"
+  // user_id records the uploading user as the object's owner in the
+  // file_objects registry. Empty for service/admin uploads (e.g. article
+  // images from adminway) — those objects have no owner and are invisible to
+  // account-deletion cleanup.
+  string user_id = 5;
 }
 
 message UploadFileResponse {
@@ -29,6 +34,9 @@ message GetPresignedURLResponse {
 message DeleteFileRequest {
   string key = 1;
   string bucket = 2;
+  // user_id is the authenticated requester. The delete only proceeds when
+  // this user owns the object in the file_objects registry.
+  string user_id = 3;
 }
 
 message DeleteFileResponse {

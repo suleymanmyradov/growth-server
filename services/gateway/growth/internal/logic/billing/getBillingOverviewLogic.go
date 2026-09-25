@@ -61,6 +61,7 @@ func (l *GetBillingOverviewLogic) GetBillingOverview() (resp *types.BillingOverv
 		CurrentPeriodEnd:   rpcResp.Subscription.CurrentPeriodEnd,
 		TrialEnd:           rpcResp.Subscription.TrialEnd,
 		CancelAtPeriodEnd:  rpcResp.Subscription.CancelAtPeriodEnd,
+		PaddleCustomerId:   rpcResp.Subscription.PaddleCustomerId,
 	}
 
 	ent := types.Entitlements{

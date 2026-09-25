@@ -57,8 +57,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		zrpc.WithTimeout(time.Second * 3),
 	}
 
-	// Client RPC handles billing (Stripe API calls) which can be slow due to
-	// network latency to Stripe's servers — give it a longer timeout than base.
+	// Client RPC handles billing (Paddle API calls) which can be slow due to
+	// network latency to Paddle's servers — give it a longer timeout than base.
 	clientOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),

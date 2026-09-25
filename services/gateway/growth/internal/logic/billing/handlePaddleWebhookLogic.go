@@ -30,7 +30,7 @@ func NewHandlePaddleWebhookLogic(ctx context.Context, svcCtx *svc.ServiceContext
 // HandlePaddleWebhook forwards the raw body + Paddle-Signature header to the
 // client service's HandlePaddleWebhook RPC. The client service verifies the
 // webhook signature and processes the events. The gateway is just a transport
-// layer (same pattern as the Stripe webhook).
+// layer (same pattern as the RevenueCat webhook).
 func (l *HandlePaddleWebhookLogic) HandlePaddleWebhook(rawBody []byte, signature string) (*types.PaddleWebhookResponse, error) {
 	rpcResp, err := l.svcCtx.ClientRpc.BillingService.HandlePaddleWebhook(l.ctx, &clientbilling.HandlePaddleWebhookRequest{
 		RawBody:   rawBody,

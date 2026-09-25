@@ -338,6 +338,40 @@ func (c *Client) ListSubscriptions(ctx context.Context, customerID string) ([]Su
 	return subs, nil
 }
 
+// PortalSession is a Paddle customer portal session. Sessions are temporary
+// authenticated links — create one per "Manage billing" click, never cache.
+type PortalSession struct {
+	ID   string `json:"id"`
+	URLs struct {
+		General struct {
+			Overview string `json:"overview"`
+		} `json:"general"`
+		Subscriptions []struct {
+			SubscriptionID                  string `json:"subscription_id"`
+			CancelSubscription              string `json:"cancel_subscription"`
+			UpdateSubscriptionPaymentMethod string `json:"update_subscription_payment_method"`
+		} `json:"subscriptions"`
+	} `json:"urls"`
+}
+
+// CreatePortalSession mints a Paddle-hosted customer portal session for the
+// customer. Pass subscriptionIDs to get per-subscription deep links (cancel,
+// update payment method); URLs.General.Overview is the generic landing page.
+func (c *Client) CreatePortalSession(ctx context.Context, customerID string, subscriptionIDs []string) (*PortalSession, error) {
+	if customerID == "" {
+		return nil, errors.New("paddle: customer ID is required")
+	}
+	var body map[string]any
+	if len(subscriptionIDs) > 0 {
+		body = map[string]any{"subscription_ids": subscriptionIDs}
+	}
+	var sess PortalSession
+	if err := c.do(ctx, http.MethodPost, "/customers/"+customerID+"/portal-sessions", nil, body, &sess); err != nil {
+		return nil, err
+	}
+	return &sess, nil
+}
+
 // CancelSubscription schedules cancellation at the end of the current billing
 // period (effective_from=next_billing_period) — the user keeps access until
 // the paid-through date, matching the subscriptions.cancel_at_period_end flag.

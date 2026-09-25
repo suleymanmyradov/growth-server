@@ -63,3 +63,9 @@ SELECT id, report_id, user_id, comment, is_admin, created_at
 FROM report_comments
 WHERE report_id = $1
 ORDER BY created_at ASC;
+
+-- name: DeleteReportCommentsByUser :exec
+DELETE FROM report_comments WHERE user_id = $1;
+
+-- name: DeleteReportsByUser :exec
+DELETE FROM reports WHERE reporter_id = $1;

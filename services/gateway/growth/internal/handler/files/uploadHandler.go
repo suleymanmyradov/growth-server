@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/filemanager/rpc/fileManagerClient"
 	"github.com/zeromicro/go-zero/rest/httpx"
@@ -52,11 +53,20 @@ func UploadFileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			}
 		}
 
+		// The route is behind ctx.Auth, so the principal is always present;
+		// passing its ID records the caller as the object's owner in the
+		// filemanager registry.
+		var userID string
+		if p, ok := principal.PrincipalFrom(r.Context()); ok {
+			userID = p.UserID
+		}
+
 		resp, err := svcCtx.FileManagerRpc.UploadFile(r.Context(), &fileManagerClient.UploadFileRequest{
 			Data:        data,
 			Filename:    header.Filename,
 			ContentType: contentType,
 			Folder:      folder,
+			UserId:      userID,
 		})
 		if err != nil {
 			httpx.Error(w, err)

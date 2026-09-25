@@ -283,6 +283,10 @@ services:
     depends_on:
       minio:
         condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -583,6 +587,10 @@ services:
         NEXT_PUBLIC_ENABLE_ANALYTICS: ${NEXT_PUBLIC_ENABLE_ANALYTICS:-false}
         NEXT_PUBLIC_ENABLE_PWA: ${NEXT_PUBLIC_ENABLE_PWA:-false}
         NEXT_PUBLIC_SENTRY_DSN: ${NEXT_PUBLIC_SENTRY_DSN:-}
+        NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: ${NEXT_PUBLIC_PADDLE_CLIENT_TOKEN:-}
+        NEXT_PUBLIC_PADDLE_ENV: ${NEXT_PUBLIC_PADDLE_ENV:-production}
+        NEXT_PUBLIC_PADDLE_PRICE_PRO_MONTHLY: ${NEXT_PUBLIC_PADDLE_PRICE_PRO_MONTHLY:-}
+        NEXT_PUBLIC_PADDLE_PRICE_PRO_YEARLY: ${NEXT_PUBLIC_PADDLE_PRICE_PRO_YEARLY:-}
     restart: unless-stopped
     environment:
       - NODE_ENV=production
@@ -671,6 +679,9 @@ services:
       - ADMIN_DOMAIN=${ADMIN_DOMAIN}
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Generated Paddle webhook IP allowlist — refresh on the host via
+      # deploy/scripts/fetch-paddle-webhook-ips.sh (cron), then caddy reload.
+      - ./caddy/paddle-webhook-ips.caddyfile:/etc/caddy/paddle-webhook-ips.caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:

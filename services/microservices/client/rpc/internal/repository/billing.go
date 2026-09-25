@@ -79,13 +79,6 @@ func (r *billingRepo) GetOrCreateUserSubscription(ctx context.Context, userID uu
 	return sub, nil
 }
 
-func (r *billingRepo) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetUserSubscriptionByStripeCustomerID")
-	defer span.End()
-
-	return r.db.GetUserSubscriptionByStripeCustomerID(ctx, stripeCustomerID)
-}
-
 func (r *billingRepo) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CreateDefaultFreeSubscription")
 	defer span.End()
@@ -146,7 +139,7 @@ func (r *billingRepo) ComputeEntitlements(ctx context.Context, sub db.GetUserSub
 		return nil, err
 	}
 
-	// past_due retains pro benefits during Stripe's grace period until explicit cancellation.
+	// past_due retains pro benefits during the payment grace period until explicit cancellation.
 	isPro := sub.PlanCode == "pro" && (sub.Status == "active" || sub.Status == "trialing" || sub.Status == "past_due")
 
 	canCreateGoal := isPro || activeGoals < int64(sub.ActiveGoalLimit)
@@ -180,27 +173,6 @@ func NullStringPtr(s *string) sql.NullString {
 		return sql.NullString{}
 	}
 	return sql.NullString{String: *s, Valid: true}
-}
-
-func (r *billingRepo) IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.IsStripeEventProcessed")
-	defer span.End()
-
-	return r.db.IsStripeEventProcessed(ctx, stripeEventID)
-}
-
-func (r *billingRepo) MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.MarkStripeEventProcessed")
-	defer span.End()
-
-	return r.db.MarkStripeEventProcessed(ctx, stripeEventID)
-}
-
-func (r *billingRepo) ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error) {
-	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.ListExpiredActiveSubscriptions")
-	defer span.End()
-
-	return r.db.ListExpiredActiveSubscriptions(ctx, limit)
 }
 
 // ─── RevenueCat ──────────────────────────────────────────────────────────────

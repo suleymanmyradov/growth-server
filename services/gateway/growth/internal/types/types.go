@@ -200,18 +200,8 @@ type CreateCheckInResponse struct {
 	AiFeedback string  `json:"aiFeedback,optional,example=Great job keeping your streak!"`
 }
 
-type CreateCheckoutSessionRequest struct {
-	PlanCode        string `json:"planCode,example=pro"`
-	BillingInterval string `json:"billingInterval,example=monthly"`
-}
-
-type CreateCheckoutSessionResponse struct {
-	CheckoutUrl string `json:"checkoutUrl,optional,example=https://checkout.stripe.com/..."`
-	SessionId   string `json:"sessionId,optional,example=cs_test_..."`
-}
-
 type CreateCustomerPortalSessionResponse struct {
-	PortalUrl string `json:"portalUrl,optional,example=https://billing.stripe.com/..."`
+	PortalUrl string `json:"portalUrl,optional,example=https://customer-portal.paddle.com/..."`
 }
 
 type CreateGoalRequest struct {
@@ -238,6 +228,18 @@ type CreateMilestoneRequest struct {
 	Id        string `path:"id"`
 	Title     string `json:"title"`
 	SortOrder int    `json:"sortOrder,optional"`
+}
+
+type CreatePaddleCheckoutRequest struct {
+	PriceId     string `json:"priceId,example=pri_01m340f2f38cbr9ndj77bmpbzc"`
+	CheckoutUrl string `json:"checkoutUrl,optional,example=https://app.example.com/checkout"`
+	SuccessUrl  string `json:"successUrl,optional,example=https://app.example.com/billing/success"`
+	CancelUrl   string `json:"cancelUrl,optional,example=https://app.example.com/billing"`
+}
+
+type CreatePaddleCheckoutResponse struct {
+	CheckoutUrl   string `json:"checkoutUrl,optional,example=https://checkout.paddle.com/..."`
+	TransactionId string `json:"transactionId,example=txn_01..."`
 }
 
 type CreatePlanAdjustmentSuggestionRequest struct {
@@ -445,8 +447,9 @@ type GoalsResponse struct {
 }
 
 type GoogleLoginRequest struct {
-	AuthorizationCode string `json:"authorizationCode,example=4/0AX4Xf..."`
+	AuthorizationCode string `json:"authorizationCode,optional,example=4/0AX4Xf..."`
 	RedirectUri       string `json:"redirectUri,optional,example=https://app.example.com/auth/callback/google"`
+	IdToken           string `json:"idToken,optional,example=eyJhbGciOi..."`
 }
 
 type Habit struct {
@@ -866,15 +869,6 @@ type StartConversationResponse struct {
 	InitialMessage *ConversationMessage `json:"initialMessage,omitempty"`
 }
 
-type StripeWebhookRequest struct {
-	RawBody   string `json:"rawBody"`
-	Signature string `json:"signature"`
-}
-
-type StripeWebhookResponse struct {
-	Processed bool `json:"processed,example=true"`
-}
-
 type TemplateCategory struct {
 	Id   string `json:"id,optional"`
 	Name string `json:"name,optional"`
@@ -978,19 +972,18 @@ type UpsertCoachingProfileRequest struct {
 }
 
 type UserSubscription struct {
-	Id                   string `json:"id,example=sub-123"`
-	UserId               string `json:"userId,example=user-123"`
-	PlanId               string `json:"planId,example=plan-123"`
-	PlanCode             string `json:"planCode,example=free"`
-	PlanName             string `json:"planName,example=Free"`
-	Status               string `json:"status,example=free"`
-	BillingInterval      string `json:"billingInterval,optional,example=monthly"`
-	CurrentPeriodStart   string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
-	CurrentPeriodEnd     string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
-	TrialEnd             string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
-	CancelAtPeriodEnd    bool   `json:"cancelAtPeriodEnd,example=false"`
-	StripeCustomerId     string `json:"stripeCustomerId,optional"`
-	StripeSubscriptionId string `json:"stripeSubscriptionId,optional"`
+	Id                 string `json:"id,example=sub-123"`
+	UserId             string `json:"userId,example=user-123"`
+	PlanId             string `json:"planId,example=plan-123"`
+	PlanCode           string `json:"planCode,example=free"`
+	PlanName           string `json:"planName,example=Free"`
+	Status             string `json:"status,example=free"`
+	BillingInterval    string `json:"billingInterval,optional,example=monthly"`
+	CurrentPeriodStart string `json:"currentPeriodStart,optional,example=2024-01-01T00:00:00Z"`
+	CurrentPeriodEnd   string `json:"currentPeriodEnd,optional,example=2024-02-01T00:00:00Z"`
+	TrialEnd           string `json:"trialEnd,optional,example=2024-01-15T00:00:00Z"`
+	CancelAtPeriodEnd  bool   `json:"cancelAtPeriodEnd,example=false"`
+	PaddleCustomerId   string `json:"paddleCustomerId,optional,example=ctm_01h..."`
 }
 
 type VerifyEmailRequest struct {

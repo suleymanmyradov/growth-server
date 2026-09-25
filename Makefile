@@ -1,6 +1,6 @@
-.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-ai-api generate-adminway-repo format-api validate-api swagger-api swagger-ai-api swagger-combined open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway build-billing-reconciler clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-ai-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-ai-gateway dev-adminway dev-billing-reconciler dev-all air-install tmux-start tmux-stop tmux-attach check-ownership check-openapi-drift check-types-api-sync
+.PHONY: deps docker-up docker-down migrate-up migrate-down generate generate-api generate-admin-api generate-ai-api generate-adminway-repo format-api validate-api swagger-api swagger-ai-api swagger-combined open-swagger generate-client-proto generate-auth-proto generate-search-proto generate-notification-proto generate-ai-coach-proto generate-filemanager-proto generate-client-repo generate-auth-repo generate-search-repo sqlc lint build build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway clean run-auth run-client run-search run-aicoach run-filemanager run-gateway run-ai-gateway run-adminway run-all dev-auth dev-client dev-search dev-notifications dev-aicoach dev-ai-coach-consumer dev-filemanager dev-search-sync dev-gateway dev-ai-gateway dev-adminway dev-all air-install tmux-start tmux-stop tmux-attach check-ownership check-openapi-drift check-types-api-sync
 SQLC_VERSION ?= v1.27.0
-SQLC_SERVICES := auth client search notifications
+SQLC_SERVICES := auth client search notifications filemanager
 # Default target
 help:
 	@echo "Available commands:"
@@ -46,7 +46,6 @@ help:
 	@echo "  build-search-sync    - Build search-sync service"
 	@echo "  build-gateway        - Build gateway service"
 	@echo "  build-ai-gateway     - Build ai-gateway service"
-	@echo "  build-billing-reconciler - Build billing-reconciler command"
 	@echo "  lint                 - Run golangci-lint"
 	@echo "  clean                - Clean build artifacts"
 	
@@ -202,10 +201,6 @@ dev-ai-gateway: air-install
 	@$(AIR) -c .air/ai-gateway.toml
 dev-adminway: air-install
 	@$(AIR) -c .air/adminway.toml
-# billing-reconciler is a one-shot CLI; air will re-run it on each save.
-dev-billing-reconciler: air-install
-	@$(AIR) -c .air/billing-reconciler.toml
-
 # Start all long-running services in a tmux session, each hot-reloaded by air.
 dev-all:
 	@./scripts/start-services.sh
@@ -336,7 +331,7 @@ lint:
 	golangci-lint run ./...
 
 # Build commands
-build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway build-billing-reconciler
+build: build-auth build-client build-search build-notifications build-ai-coach build-filemanager build-search-sync build-gateway build-ai-gateway build-adminway
 	@echo "All services built successfully!"
 
 build-auth:
@@ -389,11 +384,6 @@ build-adminway:
 	@echo "Building adminway service..."
 	@mkdir -p bin
 	go build -o bin/adminway ./services/adminway/adminapi
-
-build-billing-reconciler:
-	@echo "Building billing-reconciler..."
-	@mkdir -p bin
-	go build -o bin/billing-reconciler ./services/microservices/billing-reconciler
 
 clean:
 	@echo "Cleaning build artifacts..."

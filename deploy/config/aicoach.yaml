@@ -193,3 +193,8 @@ DevServer:
   HealthResponse: ok
   EnableMetrics: false
   EnablePprof: false
+
+UserDeletion:
+  Brokers: [redpanda:9092]
+  Topic: growth.events
+  Group: ai-coach.user-deleted
