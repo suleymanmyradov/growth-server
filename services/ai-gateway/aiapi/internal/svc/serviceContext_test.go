@@ -34,19 +34,16 @@ func (m *mockBilling) GetBillingOverview(_ context.Context, _ *clientbilling.Get
 func (m *mockBilling) TrackUpgradeEvent(_ context.Context, _ *clientbilling.TrackUpgradeEventRequest, _ ...grpc.CallOption) (*clientbilling.TrackUpgradeEventResponse, error) {
 	return nil, nil
 }
-func (m *mockBilling) CreateCheckoutSession(_ context.Context, _ *clientbilling.CreateCheckoutSessionRequest, _ ...grpc.CallOption) (*clientbilling.CreateCheckoutSessionResponse, error) {
-	return nil, nil
-}
 func (m *mockBilling) CreateCustomerPortalSession(_ context.Context, _ *clientbilling.CreateCustomerPortalSessionRequest, _ ...grpc.CallOption) (*clientbilling.CreateCustomerPortalSessionResponse, error) {
-	return nil, nil
-}
-func (m *mockBilling) HandleStripeWebhook(_ context.Context, _ *clientbilling.HandleStripeWebhookRequest, _ ...grpc.CallOption) (*clientbilling.HandleStripeWebhookResponse, error) {
 	return nil, nil
 }
 func (m *mockBilling) HandleRevenueCatWebhook(_ context.Context, _ *clientbilling.HandleRevenueCatWebhookRequest, _ ...grpc.CallOption) (*clientbilling.HandleRevenueCatWebhookResponse, error) {
 	return nil, nil
 }
 func (m *mockBilling) HandlePaddleWebhook(_ context.Context, _ *clientbilling.HandlePaddleWebhookRequest, _ ...grpc.CallOption) (*clientbilling.HandlePaddleWebhookResponse, error) {
+	return nil, nil
+}
+func (m *mockBilling) CreatePaddleCheckout(_ context.Context, _ *clientbilling.CreatePaddleCheckoutRequest, _ ...grpc.CallOption) (*clientbilling.CreatePaddleCheckoutResponse, error) {
 	return nil, nil
 }
 func (m *mockBilling) ListSubscriptionStatuses(_ context.Context, _ *clientbilling.ListSubscriptionStatusesRequest, _ ...grpc.CallOption) (*clientbilling.ListSubscriptionStatusesResponse, error) {

@@ -135,6 +135,13 @@ func (h *AuthEventsHandler) onUserDeleted(ctx context.Context, env events.Envelo
 		return fmt.Errorf("delete coaching_profile: %w", err)
 	}
 
+	if err := h.dbq.DeleteReportCommentsByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete report comments: %w", err)
+	}
+	if err := h.dbq.DeleteReportsByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete reports: %w", err)
+	}
+
 	// Delete the local user_profiles read model row.
 	if err := h.dbq.DeleteUserProfile(ctx, userID); err != nil {
 		return fmt.Errorf("delete user_profile: %w", err)

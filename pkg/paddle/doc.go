@@ -41,11 +41,11 @@
 //
 // # Checkout redirect URLs
 //
-// Unlike Stripe Checkout, Paddle Billing transactions have no success_url or
-// cancel_url fields — post-checkout redirects are configured client-side via
-// Paddle.js (settings.successUrl). CreateTransaction accepts SuccessURL and
-// CancelURL and carries them to the Paddle.js checkout page as query
-// parameters on CheckoutURL, which is the only server-side channel available.
+// Paddle Billing transactions have no success_url or cancel_url fields —
+// post-checkout redirects are configured client-side via Paddle.js
+// (settings.successUrl). CreateTransaction accepts SuccessURL and CancelURL
+// and carries them to the Paddle.js checkout page as query parameters on
+// CheckoutURL, which is the only server-side channel available.
 //
 // This package is a provider library only: nothing here runs until it is
 // wired into a service context and configured with real Paddle credentials.

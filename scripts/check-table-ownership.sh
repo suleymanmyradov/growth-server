@@ -18,12 +18,6 @@ cd "$(dirname "$0")/.."
 # Notes on ownership:
 #   - ai_feedback is owned by ai-coach-consumer (hand-written SQL, no query dir
 #     to scan). It is NOT in client's list — client never touches it.
-#   - subscriptions is co-owned by client and billing-reconciler. Both write
-#     via ON CONFLICT (user_id) DO UPDATE: client creates the default free
-#     subscription on signup and upserts on upgrade; billing-reconciler
-#     backfills/syncs from Stripe webhooks. This is intentional.
-#   - billing-reconciler has no sql/queries/ dir (hand-written SQL in Go), so
-#     it is not scanned by this script.
 #   - ai-coach-consumer likewise has no sql/queries/ dir.
 #   - analytics rollup tables (user_lifecycle_events, daily_metrics,
 #     retention_cohorts, conversion_funnels) are written by analytics-consumer
@@ -32,11 +26,12 @@ cd "$(dirname "$0")/.."
 # ---------------------------------------------------------------------------
 get_allowed_tables() {
     case "$1" in
-        auth)          echo "users user_oauth_accounts" ;;
+        auth)          echo "users user_oauth_accounts auth_deletion_outbox" ;;
         client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits goal_milestones check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events user_profiles reports report_comments site_settings goal_templates habit_templates billing_webhook_events client_processed_events habit_missed_streaks" ;;
         notifications) echo "notifications reminders notification_preferences reminder_state processed_events notification_devices push_tickets notification_deliveries notification_recipients notification_habit_state notification_goal_state" ;;
         adminway)      echo "internal_users user_lifecycle_events daily_metrics retention_cohorts conversion_funnels" ;;
         conversations) echo "conversations conversation_messages user_facts" ;;
+        filemanager)   echo "file_objects" ;;
         analytics-consumer) echo "user_lifecycle_events daily_metrics retention_cohorts conversion_funnels analytics_processed_events" ;;
         *)             echo "" ;;
     esac
@@ -64,7 +59,7 @@ extract_tables() {
 # ---------------------------------------------------------------------------
 violations=0
 
-for service in auth client notifications adminway conversations; do
+for service in auth client notifications adminway conversations filemanager; do
     query_dir="sql/queries/$service"
     [ -d "$query_dir" ] || continue
     allowed=$(get_allowed_tables "$service")

@@ -98,7 +98,7 @@ Authenticated (ai-gateway `:8889`): `GET /conversations`, `GET /memory/facts`,
 
 Deliberately **not** exercised: `POST /auth/register`, `/forgot-password`,
 `/resend-verification` (send real emails), `POST /auth/logout` (kills the
-shared test session), all `/billing/checkout|portal|webhook` (Stripe
+shared test session), all `/billing/paddle-checkout|portal|paddle-webhook` (Paddle
 side effects), `POST /profile/export`, `DELETE /profile`, device
 registration, voice/multipart endpoints.
 

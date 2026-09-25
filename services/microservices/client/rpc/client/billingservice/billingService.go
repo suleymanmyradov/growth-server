@@ -14,18 +14,16 @@ import (
 )
 
 type (
-	CreateCheckoutSessionRequest        = client.CreateCheckoutSessionRequest
-	CreateCheckoutSessionResponse       = client.CreateCheckoutSessionResponse
 	CreateCustomerPortalSessionRequest  = client.CreateCustomerPortalSessionRequest
 	CreateCustomerPortalSessionResponse = client.CreateCustomerPortalSessionResponse
+	CreatePaddleCheckoutRequest         = client.CreatePaddleCheckoutRequest
+	CreatePaddleCheckoutResponse        = client.CreatePaddleCheckoutResponse
 	GetBillingOverviewRequest           = client.GetBillingOverviewRequest
 	GetBillingOverviewResponse          = client.GetBillingOverviewResponse
 	HandlePaddleWebhookRequest          = client.HandlePaddleWebhookRequest
 	HandlePaddleWebhookResponse         = client.HandlePaddleWebhookResponse
 	HandleRevenueCatWebhookRequest      = client.HandleRevenueCatWebhookRequest
 	HandleRevenueCatWebhookResponse     = client.HandleRevenueCatWebhookResponse
-	HandleStripeWebhookRequest          = client.HandleStripeWebhookRequest
-	HandleStripeWebhookResponse         = client.HandleStripeWebhookResponse
 	ListSubscriptionStatusesRequest     = client.ListSubscriptionStatusesRequest
 	ListSubscriptionStatusesResponse    = client.ListSubscriptionStatusesResponse
 	TrackUpgradeEventRequest            = client.TrackUpgradeEventRequest
@@ -34,11 +32,10 @@ type (
 	BillingService interface {
 		GetBillingOverview(ctx context.Context, in *GetBillingOverviewRequest, opts ...grpc.CallOption) (*GetBillingOverviewResponse, error)
 		TrackUpgradeEvent(ctx context.Context, in *TrackUpgradeEventRequest, opts ...grpc.CallOption) (*TrackUpgradeEventResponse, error)
-		CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
 		CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
-		HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
 		HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error)
 		HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error)
+		CreatePaddleCheckout(ctx context.Context, in *CreatePaddleCheckoutRequest, opts ...grpc.CallOption) (*CreatePaddleCheckoutResponse, error)
 		// Admin: list every user's subscription plan code + status. Used by adminway
 		ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
 	}
@@ -64,19 +61,9 @@ func (m *defaultBillingService) TrackUpgradeEvent(ctx context.Context, in *Track
 	return client.TrackUpgradeEvent(ctx, in, opts...)
 }
 
-func (m *defaultBillingService) CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error) {
-	client := client.NewBillingServiceClient(m.cli.Conn())
-	return client.CreateCheckoutSession(ctx, in, opts...)
-}
-
 func (m *defaultBillingService) CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error) {
 	client := client.NewBillingServiceClient(m.cli.Conn())
 	return client.CreateCustomerPortalSession(ctx, in, opts...)
-}
-
-func (m *defaultBillingService) HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error) {
-	client := client.NewBillingServiceClient(m.cli.Conn())
-	return client.HandleStripeWebhook(ctx, in, opts...)
 }
 
 func (m *defaultBillingService) HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error) {
@@ -87,6 +74,11 @@ func (m *defaultBillingService) HandleRevenueCatWebhook(ctx context.Context, in 
 func (m *defaultBillingService) HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error) {
 	client := client.NewBillingServiceClient(m.cli.Conn())
 	return client.HandlePaddleWebhook(ctx, in, opts...)
+}
+
+func (m *defaultBillingService) CreatePaddleCheckout(ctx context.Context, in *CreatePaddleCheckoutRequest, opts ...grpc.CallOption) (*CreatePaddleCheckoutResponse, error) {
+	client := client.NewBillingServiceClient(m.cli.Conn())
+	return client.CreatePaddleCheckout(ctx, in, opts...)
 }
 
 // Admin: list every user's subscription plan code + status. Used by adminway

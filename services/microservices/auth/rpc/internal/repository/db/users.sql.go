@@ -92,7 +92,11 @@ func (q *Queries) CreateUserOAuth(ctx context.Context, username string, email st
 }
 
 const deleteUser = `-- name: DeleteUser :exec
-DELETE FROM users WHERE id = $1
+WITH del AS (
+    DELETE FROM users WHERE id = $1 RETURNING id
+)
+INSERT INTO auth_deletion_outbox (user_id)
+SELECT id FROM del
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {

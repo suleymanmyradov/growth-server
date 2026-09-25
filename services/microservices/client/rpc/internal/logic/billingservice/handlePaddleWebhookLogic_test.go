@@ -32,6 +32,8 @@ const paddleTestSecret = "pdl_ntfset_testsecret"
 type paddleMockBilling struct {
 	getOrCreateSub   db.GetUserSubscriptionRow
 	getOrCreateErr   error
+	getSub           db.GetUserSubscriptionRow
+	getSubErr        error
 	getPlanByCode    map[string]db.Plan
 	byCustomerRow    db.GetUserSubscriptionByPaddleCustomerIDRow
 	byCustomerErr    error
@@ -56,17 +58,17 @@ func (m *paddleMockBilling) GetPlanByCode(_ context.Context, code string) (db.Pl
 	}
 	return db.Plan{}, errors.New("plan not found")
 }
-func (m *paddleMockBilling) GetUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error) {
-	panic("not used")
+func (m *paddleMockBilling) GetUserSubscription(_ context.Context, _ uuid.UUID) (db.GetUserSubscriptionRow, error) {
+	if m.getSubErr != nil {
+		return db.GetUserSubscriptionRow{}, m.getSubErr
+	}
+	return m.getSub, nil
 }
 func (m *paddleMockBilling) GetOrCreateUserSubscription(_ context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error) {
 	if m.getOrCreateErr != nil {
 		return db.GetUserSubscriptionRow{}, m.getOrCreateErr
 	}
 	return m.getOrCreateSub, nil
-}
-func (m *paddleMockBilling) GetUserSubscriptionByStripeCustomerID(ctx context.Context, _ *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error) {
-	panic("not used")
 }
 func (m *paddleMockBilling) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error) {
 	panic("not used")
@@ -84,15 +86,7 @@ func (m *paddleMockBilling) CreateUpgradeEvent(_ context.Context, params db.Crea
 func (m *paddleMockBilling) ComputeEntitlements(ctx context.Context, _ db.GetUserSubscriptionRow, _ uuid.UUID) (*repository.EntitlementsResult, error) {
 	panic("not used")
 }
-func (m *paddleMockBilling) IsStripeEventProcessed(ctx context.Context, _ string) (bool, error) {
-	panic("not used")
-}
-func (m *paddleMockBilling) MarkStripeEventProcessed(ctx context.Context, _ string) error {
-	panic("not used")
-}
-func (m *paddleMockBilling) ListExpiredActiveSubscriptions(ctx context.Context, _ int32) ([]db.ListExpiredActiveSubscriptionsRow, error) {
-	panic("not used")
-}
+
 func (m *paddleMockBilling) ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error) {
 	panic("not used")
 }
@@ -328,6 +322,33 @@ func TestHandlePaddleWebhook_SubscriptionUpdated_ScheduledCancel(t *testing.T) {
 	// the pending cancellation.
 	assert.Equal(t, "active", p.Status)
 	assert.Equal(t, paddleProPlanID, p.PlanID)
+	assert.True(t, p.CancelAtPeriodEnd)
+}
+
+func TestHandlePaddleWebhook_SubscriptionUpdated_ScheduledPause(t *testing.T) {
+	m := &paddleMockBilling{
+		getPlanByCode: paddleTestPlans,
+		byCustomerRow: db.GetUserSubscriptionByPaddleCustomerIDRow{UserID: paddleTestUserID, Status: "active"},
+		getOrCreateSub: db.GetUserSubscriptionRow{
+			UserID: paddleTestUserID, PlanID: paddleProPlanID, Status: "active",
+			PaddleSubscriptionID: &paddleTestSubID,
+		},
+	}
+	l := paddleTestLogic(m)
+
+	effective := time.Now().Add(14 * 24 * time.Hour).UTC().Format(time.RFC3339)
+	body, sig := paddleBody("subscription.updated", "evt_sub_pause", paddleSubData("active", map[string]any{
+		"scheduled_change": map[string]any{"action": "pause", "effective_at": effective, "resume_at": nil},
+	}))
+	resp, err := l.HandlePaddleWebhook(&client.HandlePaddleWebhookRequest{RawBody: body, Signature: sig})
+	require.NoError(t, err)
+	assert.True(t, resp.Processed)
+
+	require.Len(t, m.upsertCalls, 1)
+	p := m.upsertCalls[0]
+	// A scheduled pause ends paid access at effective_at, same as a cancel —
+	// the flag carries the pending change until the 'paused' event lands.
+	assert.Equal(t, "active", p.Status)
 	assert.True(t, p.CancelAtPeriodEnd)
 }
 

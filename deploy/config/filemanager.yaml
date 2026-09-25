@@ -13,6 +13,25 @@ MinIO:
   # Browser-reachable base for public object URLs (proxied by Caddy to minio:9000).
   PublicBaseUrl: ${MINIO_PUBLIC_BASE_URL}
 
+# file_objects registry — object ownership + expiry. Required for delete
+# authorization, account-deletion fan-out and retention sweeps.
+Postgres:
+  Datasource: ${POSTGRES_DATASOURCE}
+  MaxOpenConns: 10
+  MaxIdleConns: 2
+  ConnMaxLifetime: 5m
+
+# user_deleted consumer — removes every object owned by the deleted user.
+UserDeletion:
+  Brokers: [redpanda:9092]
+  Topic: growth.events
+  Group: filemanager.user-deleted
+
+# Expired-object sweeper (exports/ objects carry a 24h expires_at).
+Cleanup:
+  Interval: 5m
+  BatchSize: 100
+
 Telemetry:
   Name: filemanager.rpc
   Endpoint: tempo:4317

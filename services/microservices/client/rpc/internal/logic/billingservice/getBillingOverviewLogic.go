@@ -79,8 +79,8 @@ func (l *GetBillingOverviewLogic) GetBillingOverview(in *client.GetBillingOvervi
 	}
 
 	billingMode := "fake_door"
-	if l.svcCtx.Config.Billing.StripeSecretKey != "" {
-		billingMode = l.svcCtx.Config.Billing.Mode
+	if l.svcCtx.Config.Billing.Paddle.Enabled {
+		billingMode = "paddle"
 	}
 
 	return &client.GetBillingOverviewResponse{

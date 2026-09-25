@@ -22,6 +22,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func strPtr(s string) *string { return &s }
+
 // rcMockBilling is a configurable mock for the RevenueCat webhook tests.
 type rcMockBilling struct {
 	getOrCreateSub     db.GetUserSubscriptionRow
@@ -37,7 +39,9 @@ type rcMockBilling struct {
 	upsertCalls        []db.UpsertUserSubscriptionParams
 }
 
-func (m *rcMockBilling) ListActivePlans(ctx context.Context) ([]db.Plan, error) { panic("not used") }
+func (m *rcMockBilling) ListActivePlans(ctx context.Context) ([]db.Plan, error) {
+	panic("not used")
+}
 func (m *rcMockBilling) GetPlanByCode(_ context.Context, code string) (db.Plan, error) {
 	if p, ok := m.getPlanByCode[code]; ok {
 		return p, nil
@@ -53,9 +57,6 @@ func (m *rcMockBilling) GetOrCreateUserSubscription(ctx context.Context, userID 
 	}
 	return m.getOrCreateSub, nil
 }
-func (m *rcMockBilling) GetUserSubscriptionByStripeCustomerID(ctx context.Context, stripeCustomerID *string) (db.GetUserSubscriptionByStripeCustomerIDRow, error) {
-	panic("not used")
-}
 func (m *rcMockBilling) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error) {
 	panic("not used")
 }
@@ -70,15 +71,6 @@ func (m *rcMockBilling) CreateUpgradeEvent(ctx context.Context, params db.Create
 	panic("not used")
 }
 func (m *rcMockBilling) ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*repository.EntitlementsResult, error) {
-	panic("not used")
-}
-func (m *rcMockBilling) IsStripeEventProcessed(ctx context.Context, stripeEventID string) (bool, error) {
-	panic("not used")
-}
-func (m *rcMockBilling) MarkStripeEventProcessed(ctx context.Context, stripeEventID string) error {
-	panic("not used")
-}
-func (m *rcMockBilling) ListExpiredActiveSubscriptions(ctx context.Context, limit int32) ([]db.ListExpiredActiveSubscriptionsRow, error) {
 	panic("not used")
 }
 func (m *rcMockBilling) ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error) {

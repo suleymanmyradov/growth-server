@@ -150,7 +150,6 @@ func maskMap(v reflect.Value) interface{} {
 var sensitiveNames = []string{
 	"Secret", "secret", "Password", "password", "Pass", "pass", "Key", "key",
 	"Token", "token", "APIKey", "apiKey", "api_key",
-	"StripeSecretKey", "StripeWebhookSecret",
 	"Datasource", "datasource",
 }
 

@@ -2,7 +2,6 @@ package revenuecat
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -130,53 +129,6 @@ func TestVerifyWebhookSignature(t *testing.T) {
 	assert.False(t, VerifyWebhookSignature("", secret))
 	assert.False(t, VerifyWebhookSignature("Bearer "+secret, ""))
 	assert.False(t, VerifyWebhookSignature("Token "+secret, secret))
-}
-
-func TestPostSubscription_HappyPath(t *testing.T) {
-	var sentBody string
-	c, _ := mockRevenueCat(t, func(w http.ResponseWriter, r *http.Request) {
-		buf := make([]byte, r.ContentLength)
-		_, _ = r.Body.Read(buf)
-		sentBody = string(buf)
-		assert.Contains(t, r.URL.Path, "/customers/user-123/purchases")
-		w.WriteHeader(http.StatusCreated)
-	})
-
-	err := c.PostSubscription(context.Background(), "user-123", PostSubscriptionRequest{
-		ProductID:    "com.growth.pro.monthly",
-		Store:        "STRIPE",
-		Price:        999,
-		Currency:     "USD",
-		PurchaseDate: "2025-07-22T00:00:00Z",
-	})
-	require.NoError(t, err)
-
-	var sent PostSubscriptionRequest
-	require.NoError(t, json.Unmarshal([]byte(sentBody), &sent))
-	assert.Equal(t, "com.growth.pro.monthly", sent.ProductID)
-	assert.Equal(t, "STRIPE", sent.Store)
-	assert.Equal(t, int64(999), sent.Price)
-}
-
-func TestPostSubscription_HTTPError(t *testing.T) {
-	c, _ := mockRevenueCat(t, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte(`{"error":"invalid product"}`))
-	})
-
-	err := c.PostSubscription(context.Background(), "user-123", PostSubscriptionRequest{
-		ProductID: "bad",
-		Store:     "STRIPE",
-	})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "400")
-}
-
-func TestPostSubscription_MissingConfig(t *testing.T) {
-	c := NewClient("", "proj", nil)
-	err := c.PostSubscription(context.Background(), "user-1", PostSubscriptionRequest{})
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "API key")
 }
 
 func TestSubtleEqual(t *testing.T) {

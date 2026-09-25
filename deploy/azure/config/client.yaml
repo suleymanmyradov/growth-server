@@ -37,9 +37,6 @@ ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
 Billing:
-  Mode: ${BILLING_MODE}
-  StripeSecretKey: ${STRIPE_SECRET_KEY}
-  StripeWebhookSecret: ${STRIPE_WEBHOOK_SECRET}
   FrontendURL: ${APP_URL}
   Paddle:
     Enabled: ${PADDLE_ENABLED}

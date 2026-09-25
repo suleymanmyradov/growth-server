@@ -51,6 +51,13 @@ type Config struct {
 	GoogleOAuth struct {
 		ClientID     string `json:",optional" secret:"true"`
 		ClientSecret string `json:",optional" secret:"true"`
+		// IOSClientID and AndroidClientID are the native OAuth client IDs
+		// (public, not secrets). Together with ClientID they form the
+		// audience allowlist for ID token verification — the native flow
+		// where the app exchanges its PKCE code client-side and sends the
+		// resulting id_token.
+		IOSClientID     string `json:",optional"`
+		AndroidClientID string `json:",optional"`
 		// RedirectURI registered in Google Cloud Console for this client.
 		RedirectURI string `json:",optional"`
 		// AllowedRedirectURIs is an explicit allowlist of redirect URIs that

@@ -252,6 +252,12 @@ func (s *Subscription) CancelScheduled() bool {
 	return s.ScheduledChange != nil && s.ScheduledChange.Action == "cancel"
 }
 
+// PauseScheduled reports whether a pause change is scheduled to take effect
+// at the end of the current billing period.
+func (s *Subscription) PauseScheduled() bool {
+	return s.ScheduledChange != nil && s.ScheduledChange.Action == "pause"
+}
+
 // PriceID returns the catalog price ID (pri_...) of the first subscription
 // item, or "" when there are none.
 func (s *Subscription) PriceID() string {

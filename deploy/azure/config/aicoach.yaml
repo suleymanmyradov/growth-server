@@ -170,3 +170,10 @@ Telemetry:
   Endpoint:
   Sampler: 1.0
   Batcher: otlpgrpc
+
+UserDeletion:
+  Topic: growth.events
+  Group: ai-coach.user-deleted
+  RedisAddr: redis:6379
+  RedisPassword: ${REDIS_PASSWORD}
+  RedisDB: 0

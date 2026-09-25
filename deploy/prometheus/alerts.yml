@@ -59,6 +59,15 @@ groups:
           summary: "Events routed to DLQ ({{ $labels.event_type }}: {{ $labels.reason }})"
           description: "Poison messages are landing in growth.events.dlq — investigate the consumer logs."
 
+      - alert: BillingWebhookPermanentFailures
+        expr: increase(client_billing_webhook_permanent_failures_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Billing webhook events permanently failed ({{ $labels.provider }}: {{ $labels.event_type }})"
+          description: "Unprocessable billing events were marked processed and will NOT be retried — reconcile the affected subscriptions manually from the provider dashboard."
+
   - name: growth-latency
     rules:
       - alert: HighHttpLatency

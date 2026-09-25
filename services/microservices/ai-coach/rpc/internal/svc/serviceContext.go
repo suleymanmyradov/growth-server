@@ -1,11 +1,15 @@
 package svc
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
+	"github.com/suleymanmyradov/growth-server/pkg/events/userdeletion"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/pkg/speech"
@@ -14,6 +18,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/memory"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
+	"github.com/zeromicro/go-zero/core/queue"
 )
 
 type ServiceContext struct {
@@ -33,6 +38,10 @@ type ServiceContext struct {
 	// Transcribe/Synthesize RPCs then return Unavailable.
 	STT speech.STTClient
 	TTS speech.TTSClient
+	// DeletionQ consumes user_deleted events and wipes curated memory facts
+	// (user_facts). Nil when UserDeletion.Topic is empty.
+	DeletionQ     queue.MessageQueue
+	closeDeletion func()
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -107,6 +116,21 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(fmt.Errorf("failed to create speech clients: %w", err))
 	}
 
+	// user_deleted consumer: curated facts live only in this service, so the
+	// deletion cleanup belongs here (not in ai-coach-consumer, which owns the
+	// transcript tables). Disabled when UserDeletion.Topic is empty.
+	deletionQ, closeDeletion, err := userdeletion.NewQueue(c.UserDeletion, userdeletion.Handler{
+		Delete: func(ctx context.Context, userID uuid.UUID) error {
+			if queries == nil {
+				return errors.New("user deletion cleanup unavailable: postgres not configured")
+			}
+			return queries.ForgetAllUserFacts(ctx, userID)
+		},
+	})
+	if err != nil {
+		logx.Must(fmt.Errorf("failed to create user deletion queue: %w", err))
+	}
+
 	return &ServiceContext{
 		Config:          c,
 		AIClient:        aiClient,
@@ -118,5 +142,26 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		FactExtractor:   factExtractor,
 		STT:             speechClients.STT,
 		TTS:             speechClients.TTS,
+		DeletionQ:       deletionQ,
+		closeDeletion:   closeDeletion,
+	}
+}
+
+// StartDeletionConsumer starts the user_deleted consumer in the background.
+// No-op when the queue is disabled.
+func (s *ServiceContext) StartDeletionConsumer() {
+	if s.DeletionQ != nil {
+		go s.DeletionQ.Start()
+	}
+}
+
+// CloseDeletionConsumer stops the consumer and releases its transport
+// resources. Safe to call when disabled.
+func (s *ServiceContext) CloseDeletionConsumer() {
+	if s.DeletionQ != nil {
+		s.DeletionQ.Stop()
+	}
+	if s.closeDeletion != nil {
+		s.closeDeletion()
 	}
 }

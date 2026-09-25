@@ -8,15 +8,11 @@
 //     RevenueCat dashboard).
 //   - Fetching customer entitlements (GET /v2/projects/{project_id}/customers/{customer_id}/entitlements)
 //     for reconciliation and backfill.
-//   - Backfilling existing Stripe subscribers into RevenueCat (POST
-//     /v2/projects/{project_id}/customers/{customer_id}/subscriptions) so
-//     RevenueCat has a complete picture of the user's purchases.
 //
 // See docs/push-notifications-design.md (billing section) for the full flow.
 package revenuecat
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -214,54 +210,4 @@ func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-}
-
-// PostSubscription is used for Stripe backfill: notifies RevenueCat of an
-// existing Stripe subscription so RevenueCat has a complete purchase history.
-// This is a no-op if the user already has the entitlement in RevenueCat.
-type PostSubscriptionRequest struct {
-	ProductID    string `json:"product_id"`
-	Store        string `json:"store"`
-	Price        int64  `json:"price"`
-	Currency     string `json:"currency"`
-	PurchaseDate string `json:"purchase_date"`
-}
-
-// PostSubscription records a purchase in RevenueCat for backfill purposes.
-// This is used when a user has an existing Stripe subscription and we want
-// RevenueCat to know about it (e.g., for cross-platform entitlement tracking).
-func (c *Client) PostSubscription(ctx context.Context, customerID string, req PostSubscriptionRequest) error {
-	if c.apiKey == "" || c.projectID == "" {
-		return fmt.Errorf("revenuecat: API key and project ID are required")
-	}
-	if customerID == "" {
-		return fmt.Errorf("revenuecat: customer ID is required")
-	}
-
-	body, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("revenuecat: marshal subscription: %w", err)
-	}
-
-	url := fmt.Sprintf("%s/projects/%s/customers/%s/purchases",
-		c.baseURL, c.projectID, customerID)
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	c.setHeaders(httpReq)
-
-	resp, err := c.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("revenuecat: post subscription: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("revenuecat: post subscription status %d: %s",
-			resp.StatusCode, strings.TrimSpace(string(respBody)))
-	}
-	return nil
 }

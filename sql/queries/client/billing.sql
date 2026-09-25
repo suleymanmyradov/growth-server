@@ -1,17 +1,17 @@
 -- name: ListActivePlans :many
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, is_active, created_at, updated_at
 FROM plans
 WHERE is_active = TRUE
 ORDER BY price_monthly_cents ASC;
 
 -- name: GetPlanByCode :one
-SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, stripe_monthly_price_id, stripe_annual_price_id, is_active, created_at, updated_at
+SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, is_active, created_at, updated_at
 FROM plans
 WHERE code = $1 AND is_active = TRUE;
 
 -- name: GetUserSubscription :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -40,11 +40,9 @@ INSERT INTO subscriptions (
     current_period_start,
     current_period_end,
     trial_end,
-    cancel_at_period_end,
-    stripe_customer_id,
-    stripe_subscription_id
+    cancel_at_period_end
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 ON CONFLICT (user_id)
 DO UPDATE SET
     plan_id = EXCLUDED.plan_id,
@@ -53,9 +51,7 @@ DO UPDATE SET
     current_period_start = EXCLUDED.current_period_start,
     current_period_end = EXCLUDED.current_period_end,
     trial_end = EXCLUDED.trial_end,
-    cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-    stripe_customer_id = EXCLUDED.stripe_customer_id,
-    stripe_subscription_id = EXCLUDED.stripe_subscription_id
+    cancel_at_period_end = EXCLUDED.cancel_at_period_end
 RETURNING *;
 
 -- name: CreateUpgradeEvent :one
@@ -70,48 +66,6 @@ WITH ins AS (
 SELECT ins.id, ins.user_id, ins.plan_id, ins.event_type, ins.surface, ins.trigger_source, ins.billing_interval, ins.feedback_reason, ins.feedback_note, ins.metadata, ins.created_at, p.code AS plan_code
 FROM ins
 LEFT JOIN plans p ON p.id = ins.plan_id;
-
--- name: GetUserSubscriptionByStripeCustomerID :one
-SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
-    p.code AS plan_code,
-    p.name AS plan_name,
-    p.active_goal_limit,
-    p.active_habit_limit,
-    p.weekly_review_history_limit,
-    p.plan_adjustment_limit,
-    p.personalized_ai_enabled
-FROM subscriptions s
-JOIN plans p ON p.id = s.plan_id
-WHERE s.stripe_customer_id = $1;
-
--- name: IsStripeEventProcessed :one
-SELECT EXISTS(
-    SELECT 1 FROM billing_webhook_events
-    WHERE consumer = 'stripe_webhooks' AND event_id = $1
-);
-
--- name: MarkStripeEventProcessed :exec
-INSERT INTO billing_webhook_events (consumer, event_id)
-VALUES ('stripe_webhooks', $1)
-ON CONFLICT DO NOTHING;
-
--- name: ListExpiredActiveSubscriptions :many
-SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
-    p.code AS plan_code,
-    p.name AS plan_name,
-    p.active_goal_limit,
-    p.active_habit_limit,
-    p.weekly_review_history_limit,
-    p.plan_adjustment_limit,
-    p.personalized_ai_enabled
-FROM subscriptions s
-JOIN plans p ON p.id = s.plan_id
-WHERE s.status IN ('active', 'trialing')
-  AND s.cancel_at_period_end = true
-  AND s.current_period_end < NOW()
-LIMIT $1;
 
 -- name: ListSubscriptionStatuses :many
 -- Admin broadcast audience segmentation: returns every user's plan code +
@@ -128,7 +82,7 @@ ORDER BY s.user_id;
 
 -- name: GetUserSubscriptionByPaddleCustomerID :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -150,7 +104,7 @@ WHERE user_id = $1 AND paddle_customer_id IS NULL;
 
 -- name: UpsertUserSubscriptionPaddle :one
 -- Paddle counterpart of UpsertUserSubscription: writes the paddle_* columns
--- and never touches the stripe_/revenuecat_ columns.
+-- and never touches the revenuecat_ columns.
 INSERT INTO subscriptions (
     user_id,
     plan_id,
@@ -194,7 +148,7 @@ ON CONFLICT DO NOTHING;
 
 -- name: GetUserSubscriptionByRevenueCatCustomerID :one
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,
@@ -210,7 +164,7 @@ WHERE s.revenuecat_customer_id = $1;
 -- Used by the RevenueCat webhook handler to look up the subscription by user
 -- UUID (RevenueCat's app_user_id after Purchases.logIn).
 SELECT
-    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.stripe_customer_id, s.stripe_subscription_id, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
+    s.id, s.user_id, s.plan_id, s.status, s.billing_interval, s.current_period_start, s.current_period_end, s.trial_end, s.cancel_at_period_end, s.revenuecat_customer_id, s.paddle_customer_id, s.paddle_subscription_id, s.created_at, s.updated_at,
     p.code AS plan_code,
     p.name AS plan_name,
     p.active_goal_limit,

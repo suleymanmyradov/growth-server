@@ -4250,11 +4250,10 @@ var PersonalizationService_ServiceDesc = grpc.ServiceDesc{
 const (
 	BillingService_GetBillingOverview_FullMethodName          = "/client.BillingService/GetBillingOverview"
 	BillingService_TrackUpgradeEvent_FullMethodName           = "/client.BillingService/TrackUpgradeEvent"
-	BillingService_CreateCheckoutSession_FullMethodName       = "/client.BillingService/CreateCheckoutSession"
 	BillingService_CreateCustomerPortalSession_FullMethodName = "/client.BillingService/CreateCustomerPortalSession"
-	BillingService_HandleStripeWebhook_FullMethodName         = "/client.BillingService/HandleStripeWebhook"
 	BillingService_HandleRevenueCatWebhook_FullMethodName     = "/client.BillingService/HandleRevenueCatWebhook"
 	BillingService_HandlePaddleWebhook_FullMethodName         = "/client.BillingService/HandlePaddleWebhook"
+	BillingService_CreatePaddleCheckout_FullMethodName        = "/client.BillingService/CreatePaddleCheckout"
 	BillingService_ListSubscriptionStatuses_FullMethodName    = "/client.BillingService/ListSubscriptionStatuses"
 )
 
@@ -4264,11 +4263,10 @@ const (
 type BillingServiceClient interface {
 	GetBillingOverview(ctx context.Context, in *GetBillingOverviewRequest, opts ...grpc.CallOption) (*GetBillingOverviewResponse, error)
 	TrackUpgradeEvent(ctx context.Context, in *TrackUpgradeEventRequest, opts ...grpc.CallOption) (*TrackUpgradeEventResponse, error)
-	CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error)
-	HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error)
 	HandleRevenueCatWebhook(ctx context.Context, in *HandleRevenueCatWebhookRequest, opts ...grpc.CallOption) (*HandleRevenueCatWebhookResponse, error)
 	HandlePaddleWebhook(ctx context.Context, in *HandlePaddleWebhookRequest, opts ...grpc.CallOption) (*HandlePaddleWebhookResponse, error)
+	CreatePaddleCheckout(ctx context.Context, in *CreatePaddleCheckoutRequest, opts ...grpc.CallOption) (*CreatePaddleCheckoutResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error)
@@ -4302,30 +4300,10 @@ func (c *billingServiceClient) TrackUpgradeEvent(ctx context.Context, in *TrackU
 	return out, nil
 }
 
-func (c *billingServiceClient) CreateCheckoutSession(ctx context.Context, in *CreateCheckoutSessionRequest, opts ...grpc.CallOption) (*CreateCheckoutSessionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateCheckoutSessionResponse)
-	err := c.cc.Invoke(ctx, BillingService_CreateCheckoutSession_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *billingServiceClient) CreateCustomerPortalSession(ctx context.Context, in *CreateCustomerPortalSessionRequest, opts ...grpc.CallOption) (*CreateCustomerPortalSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateCustomerPortalSessionResponse)
 	err := c.cc.Invoke(ctx, BillingService_CreateCustomerPortalSession_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *billingServiceClient) HandleStripeWebhook(ctx context.Context, in *HandleStripeWebhookRequest, opts ...grpc.CallOption) (*HandleStripeWebhookResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(HandleStripeWebhookResponse)
-	err := c.cc.Invoke(ctx, BillingService_HandleStripeWebhook_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -4352,6 +4330,16 @@ func (c *billingServiceClient) HandlePaddleWebhook(ctx context.Context, in *Hand
 	return out, nil
 }
 
+func (c *billingServiceClient) CreatePaddleCheckout(ctx context.Context, in *CreatePaddleCheckoutRequest, opts ...grpc.CallOption) (*CreatePaddleCheckoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreatePaddleCheckoutResponse)
+	err := c.cc.Invoke(ctx, BillingService_CreatePaddleCheckout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *billingServiceClient) ListSubscriptionStatuses(ctx context.Context, in *ListSubscriptionStatusesRequest, opts ...grpc.CallOption) (*ListSubscriptionStatusesResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListSubscriptionStatusesResponse)
@@ -4368,11 +4356,10 @@ func (c *billingServiceClient) ListSubscriptionStatuses(ctx context.Context, in 
 type BillingServiceServer interface {
 	GetBillingOverview(context.Context, *GetBillingOverviewRequest) (*GetBillingOverviewResponse, error)
 	TrackUpgradeEvent(context.Context, *TrackUpgradeEventRequest) (*TrackUpgradeEventResponse, error)
-	CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error)
 	CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error)
-	HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error)
 	HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error)
 	HandlePaddleWebhook(context.Context, *HandlePaddleWebhookRequest) (*HandlePaddleWebhookResponse, error)
+	CreatePaddleCheckout(context.Context, *CreatePaddleCheckoutRequest) (*CreatePaddleCheckoutResponse, error)
 	// Admin: list every user's subscription plan code + status. Used by adminway
 	// to segment broadcast notifications into premium / free audiences.
 	ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error)
@@ -4392,20 +4379,17 @@ func (UnimplementedBillingServiceServer) GetBillingOverview(context.Context, *Ge
 func (UnimplementedBillingServiceServer) TrackUpgradeEvent(context.Context, *TrackUpgradeEventRequest) (*TrackUpgradeEventResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TrackUpgradeEvent not implemented")
 }
-func (UnimplementedBillingServiceServer) CreateCheckoutSession(context.Context, *CreateCheckoutSessionRequest) (*CreateCheckoutSessionResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateCheckoutSession not implemented")
-}
 func (UnimplementedBillingServiceServer) CreateCustomerPortalSession(context.Context, *CreateCustomerPortalSessionRequest) (*CreateCustomerPortalSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateCustomerPortalSession not implemented")
-}
-func (UnimplementedBillingServiceServer) HandleStripeWebhook(context.Context, *HandleStripeWebhookRequest) (*HandleStripeWebhookResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method HandleStripeWebhook not implemented")
 }
 func (UnimplementedBillingServiceServer) HandleRevenueCatWebhook(context.Context, *HandleRevenueCatWebhookRequest) (*HandleRevenueCatWebhookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HandleRevenueCatWebhook not implemented")
 }
 func (UnimplementedBillingServiceServer) HandlePaddleWebhook(context.Context, *HandlePaddleWebhookRequest) (*HandlePaddleWebhookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method HandlePaddleWebhook not implemented")
+}
+func (UnimplementedBillingServiceServer) CreatePaddleCheckout(context.Context, *CreatePaddleCheckoutRequest) (*CreatePaddleCheckoutResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreatePaddleCheckout not implemented")
 }
 func (UnimplementedBillingServiceServer) ListSubscriptionStatuses(context.Context, *ListSubscriptionStatusesRequest) (*ListSubscriptionStatusesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListSubscriptionStatuses not implemented")
@@ -4467,24 +4451,6 @@ func _BillingService_TrackUpgradeEvent_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _BillingService_CreateCheckoutSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateCheckoutSessionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingServiceServer).CreateCheckoutSession(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingService_CreateCheckoutSession_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingServiceServer).CreateCheckoutSession(ctx, req.(*CreateCheckoutSessionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _BillingService_CreateCustomerPortalSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateCustomerPortalSessionRequest)
 	if err := dec(in); err != nil {
@@ -4499,24 +4465,6 @@ func _BillingService_CreateCustomerPortalSession_Handler(srv interface{}, ctx co
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(BillingServiceServer).CreateCustomerPortalSession(ctx, req.(*CreateCustomerPortalSessionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _BillingService_HandleStripeWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(HandleStripeWebhookRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(BillingServiceServer).HandleStripeWebhook(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: BillingService_HandleStripeWebhook_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BillingServiceServer).HandleStripeWebhook(ctx, req.(*HandleStripeWebhookRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -4557,6 +4505,24 @@ func _BillingService_HandlePaddleWebhook_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BillingService_CreatePaddleCheckout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreatePaddleCheckoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BillingServiceServer).CreatePaddleCheckout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BillingService_CreatePaddleCheckout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BillingServiceServer).CreatePaddleCheckout(ctx, req.(*CreatePaddleCheckoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _BillingService_ListSubscriptionStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListSubscriptionStatusesRequest)
 	if err := dec(in); err != nil {
@@ -4591,16 +4557,8 @@ var BillingService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _BillingService_TrackUpgradeEvent_Handler,
 		},
 		{
-			MethodName: "CreateCheckoutSession",
-			Handler:    _BillingService_CreateCheckoutSession_Handler,
-		},
-		{
 			MethodName: "CreateCustomerPortalSession",
 			Handler:    _BillingService_CreateCustomerPortalSession_Handler,
-		},
-		{
-			MethodName: "HandleStripeWebhook",
-			Handler:    _BillingService_HandleStripeWebhook_Handler,
 		},
 		{
 			MethodName: "HandleRevenueCatWebhook",
@@ -4609,6 +4567,10 @@ var BillingService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "HandlePaddleWebhook",
 			Handler:    _BillingService_HandlePaddleWebhook_Handler,
+		},
+		{
+			MethodName: "CreatePaddleCheckout",
+			Handler:    _BillingService_CreatePaddleCheckout_Handler,
 		},
 		{
 			MethodName: "ListSubscriptionStatuses",

@@ -87,7 +87,7 @@ func setupIntegrationTestEnv(t *testing.T) *integrationTestEnv {
 	repo := repository.NewRepository(queries)
 	txRunner := postgres.NewPgxTxRunner(pool)
 
-	// Build a minimal ServiceContext — no Kafka, no Stripe, no Redis.
+	// Build a minimal ServiceContext — no Kafka, no Paddle, no Redis.
 	// The cache works with a nil Redis client (no-op).
 	svcCtx := &svc.ServiceContext{
 		Repo:             repo,

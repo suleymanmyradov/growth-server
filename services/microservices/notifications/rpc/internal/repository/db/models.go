@@ -70,6 +70,14 @@ type ArticleTag struct {
 	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
 }
 
+type AuthDeletionOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	UserID        uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
+}
+
 type BillingWebhookEvent struct {
 	Consumer    string             `db:"consumer" json:"consumer"`
 	EventID     string             `db:"event_id" json:"event_id"`
@@ -152,6 +160,17 @@ type DailyMetric struct {
 	MetricValue int32              `db:"metric_value" json:"metric_value"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type FileObject struct {
+	Bucket      string             `db:"bucket" json:"bucket"`
+	ObjectKey   string             `db:"object_key" json:"object_key"`
+	OwnerUserID uuid.NullUUID      `db:"owner_user_id" json:"owner_user_id"`
+	Folder      string             `db:"folder" json:"folder"`
+	ContentType string             `db:"content_type" json:"content_type"`
+	SizeBytes   int64              `db:"size_bytes" json:"size_bytes"`
+	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expires_at"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Goal struct {
@@ -343,8 +362,6 @@ type Plan struct {
 	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
 	PlanAdjustmentLimit      int32              `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
 	PersonalizedAiEnabled    bool               `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
-	StripeMonthlyPriceID     *string            `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
-	StripeAnnualPriceID      *string            `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
 	IsActive                 bool               `db:"is_active" json:"is_active"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
@@ -481,11 +498,11 @@ type Subscription struct {
 	CurrentPeriodEnd     pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
 	TrialEnd             pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
 	CancelAtPeriodEnd    bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID     *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
+	PaddleCustomerID     *string            `db:"paddle_customer_id" json:"paddle_customer_id"`
+	PaddleSubscriptionID *string            `db:"paddle_subscription_id" json:"paddle_subscription_id"`
 }
 
 type Tag struct {

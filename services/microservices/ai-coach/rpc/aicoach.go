@@ -32,6 +32,8 @@ func main() {
 	defer sentryx.Flush()
 	logx.Must(c.ServiceAuth.MustValidate())
 	ctx := svc.NewServiceContext(c)
+	ctx.StartDeletionConsumer()
+	defer ctx.CloseDeletionConsumer()
 
 	s := zrpc.MustNewServer(c.RpcServerConf, func(grpcServer *grpc.Server) {
 		aicoach.RegisterAICoachServiceServer(grpcServer, aicoachserver.NewAICoachServiceServer(ctx))

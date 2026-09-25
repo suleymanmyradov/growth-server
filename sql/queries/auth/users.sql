@@ -62,7 +62,11 @@ WHERE id = sqlc.arg(id)
 RETURNING id, username, email, password_hash, full_name, bio, location, website, interests, avatar_url, created_at, updated_at, email_verified;
 
 -- name: DeleteUser :exec
-DELETE FROM users WHERE id = $1;
+WITH del AS (
+    DELETE FROM users WHERE id = $1 RETURNING id
+)
+INSERT INTO auth_deletion_outbox (user_id)
+SELECT id FROM del;
 
 -- name: ListUserIds :many
 -- Cursor-paginated enumeration of all user ids (admin broadcast audience

@@ -234,3 +234,49 @@ func TestGoogleLoginLogic_DefaultRedirectURIWhenNotProvided(t *testing.T) {
 	// Should fail at ExchangeCode, not at redirect URI validation
 	assertGrpcError(t, err, codes.Unauthenticated, MsgFailedAuthGoogle)
 }
+
+// -------------------------------------------
+// GoogleLoginLogic — id_token (native) path
+// -------------------------------------------
+
+func TestGoogleLoginLogic_IDToken_NoAudiencesConfigured(t *testing.T) {
+	// id_token present but no client IDs configured at all — the audience
+	// allowlist would be empty, so this is a server misconfiguration.
+	svcCtx := &svc.ServiceContext{
+		Config: googleOAuthConfig("", "", ""),
+	}
+	_, err := NewGoogleLoginLogic(context.Background(), svcCtx).GoogleLogin(&auth.GoogleLoginRequest{
+		IdToken: "some.jwt.token",
+	})
+	assertGrpcError(t, err, codes.FailedPrecondition, MsgGoogleNotConfigured)
+}
+
+func TestGoogleLoginLogic_IDToken_SkipsRedirectURIValidation(t *testing.T) {
+	// The id_token path must not apply the authorization-code redirect URI
+	// allowlist — native clients never send a redirect URI worth checking.
+	cfg := googleOAuthConfig("test-client-id", "test-client-secret", "http://localhost:3000/auth/callback/google")
+	cfg.GoogleOAuth.IOSClientID = "ios-client-id"
+	svcCtx := &svc.ServiceContext{Config: cfg}
+	// A garbage token fails verification (Unauthenticated), NOT redirect URI
+	// validation — proving we took the id_token branch.
+	_, err := NewGoogleLoginLogic(context.Background(), svcCtx).GoogleLogin(&auth.GoogleLoginRequest{
+		IdToken:     "not-a-real-token",
+		RedirectUri: "http://evil.com/callback",
+	})
+	assertGrpcError(t, err, codes.Unauthenticated, MsgFailedAuthGoogle)
+}
+
+func TestGoogleLoginLogic_IDToken_PreferredOverAuthCode(t *testing.T) {
+	// When both are present, id_token wins — a bogus token must fail with
+	// Unauthenticated (verification), never reach the exchange path's
+	// redirect URI check (which would reject "http://evil.com").
+	cfg := googleOAuthConfig("test-client-id", "test-client-secret", "http://localhost:3000/auth/callback/google")
+	cfg.GoogleOAuth.AndroidClientID = "android-client-id"
+	svcCtx := &svc.ServiceContext{Config: cfg}
+	_, err := NewGoogleLoginLogic(context.Background(), svcCtx).GoogleLogin(&auth.GoogleLoginRequest{
+		IdToken:           "not-a-real-token",
+		AuthorizationCode: "valid-code",
+		RedirectUri:       "http://evil.com/callback",
+	})
+	assertGrpcError(t, err, codes.Unauthenticated, MsgFailedAuthGoogle)
+}

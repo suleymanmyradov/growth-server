@@ -190,7 +190,7 @@ scp deploy/aws/bootstrap.sh ubuntu@<IP>:bootstrap.sh
 
 `.env.prod` is built from `.env.prod.test` with fresh generated secrets
 (`secrets.token_hex(32)`) plus the real external keys (Gemini, Resend, Google,
-Stripe). It is never committed.
+Paddle). It is never committed.
 
 ### 3. Bootstrap the VM
 
@@ -279,7 +279,33 @@ go-zero expands them at startup via `conf.UseEnv()` (opt-in — every service's
 `docker compose ... up -d` recreates the affected containers.
 
 Still to fill in: `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` (done 2026-09-09),
-`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (see beforeprod.md #2/#3/#6).
+`PADDLE_API_KEY`/`PADDLE_WEBHOOK_SECRET` (see beforeprod.md).
+
+Billing env vars: the old `BILLING_MODE`/`STRIPE_*` lines in `.env.prod` are
+dead — Stripe was removed from the codebase (see beforeprod.md §3). Delete
+them and set the Paddle vars from `.env.prod.example` instead:
+`PADDLE_ENABLED`, `PADDLE_ENVIRONMENT` (`sandbox` until cutover, then
+`production`), `PADDLE_API_KEY` (`pdl_sdbx_`/`pdl_live_`), and
+`PADDLE_WEBHOOK_SECRET` (`pdl_ntfset_`). Empty `PADDLE_*` values leave the
+webhook handler disabled, which silently rejects Paddle deliveries. The
+frontend also needs `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` (`live_...`),
+`NEXT_PUBLIC_PADDLE_ENV`, and the live price IDs
+(`NEXT_PUBLIC_PADDLE_PRICE_PRO_MONTHLY`/`_YEARLY`) — they are frontend build
+args, so changing them requires an image rebuild.
+
+### Paddle webhook IP allowlist
+
+Caddy rejects non-Paddle sources for `POST /api/v1/billing/paddle-webhook`
+before the request reaches the gateway (`deploy/caddy/paddle-webhook-ips.caddyfile`,
+generated). Paddle's published CIDRs can change — refresh on a schedule:
+
+```cron
+*/30 * * * * /home/ubuntu/growth-server/deploy/scripts/fetch-paddle-webhook-ips.sh
+```
+
+The script fetches live + sandbox CIDRs, writes the file atomically, and
+reloads Caddy when the list changed. If the file is ever missing the caddy
+container will not start — regenerate it by running the script once.
 
 ### Billing guardrails
 - Free plan: $100 credits, expires 2027-03-08 or when credits run out — no

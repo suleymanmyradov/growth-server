@@ -22,10 +22,7 @@ type Config struct {
 		ConsumerGroup string `json:",optional"`
 	}
 	Billing struct {
-		Mode                string `json:",optional"`
-		StripeSecretKey     string `json:",optional" secret:"true"`
-		StripeWebhookSecret string `json:",optional" secret:"true"`
-		FrontendURL         string `json:",optional"`
+		FrontendURL string `json:",optional"`
 		// Paddle configuration for web checkout subscriptions (Paddle Billing).
 		// See pkg/paddle and migration 058.
 		Paddle struct {

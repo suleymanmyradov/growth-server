@@ -343,8 +343,6 @@ type Plan struct {
 	WeeklyReviewHistoryLimit int32              `db:"weekly_review_history_limit" json:"weekly_review_history_limit"`
 	PlanAdjustmentLimit      int32              `db:"plan_adjustment_limit" json:"plan_adjustment_limit"`
 	PersonalizedAiEnabled    bool               `db:"personalized_ai_enabled" json:"personalized_ai_enabled"`
-	StripeMonthlyPriceID     *string            `db:"stripe_monthly_price_id" json:"stripe_monthly_price_id"`
-	StripeAnnualPriceID      *string            `db:"stripe_annual_price_id" json:"stripe_annual_price_id"`
 	IsActive                 bool               `db:"is_active" json:"is_active"`
 	CreatedAt                pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
@@ -481,11 +479,11 @@ type Subscription struct {
 	CurrentPeriodEnd     pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
 	TrialEnd             pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
 	CancelAtPeriodEnd    bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	StripeCustomerID     *string            `db:"stripe_customer_id" json:"stripe_customer_id"`
-	StripeSubscriptionID *string            `db:"stripe_subscription_id" json:"stripe_subscription_id"`
 	CreatedAt            pgtype.Timestamptz `db:"created_at" json:"created_at"`
 	UpdatedAt            pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
+	PaddleCustomerID     *string            `db:"paddle_customer_id" json:"paddle_customer_id"`
+	PaddleSubscriptionID *string            `db:"paddle_subscription_id" json:"paddle_subscription_id"`
 }
 
 type Tag struct {

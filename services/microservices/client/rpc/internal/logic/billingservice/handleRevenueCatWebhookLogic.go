@@ -152,6 +152,7 @@ func (l *HandleRevenueCatWebhookLogic) HandleRevenueCatWebhook(in *client.Handle
 				if isPermanentEventError(err) {
 					l.Errorf("RevenueCat event %s (type=%s user=%s) permanently failed, marking as processed: %v",
 						eventID, evt.Type, evt.AppUserID, err)
+					billingWebhookPermanentFailuresTotal.WithLabelValues("revenuecat", evt.Type).Inc()
 					// Mark as processed so RevenueCat doesn't retry a bad event.
 					if markErr := txRepo.Billing.MarkRevenueCatEventProcessed(ctx, eventID); markErr != nil {
 						return fmt.Errorf("mark processed (permanent failure): %w", markErr)

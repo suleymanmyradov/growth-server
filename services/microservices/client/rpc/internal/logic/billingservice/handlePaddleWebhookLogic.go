@@ -65,10 +65,10 @@ func (l *HandlePaddleWebhookLogic) getTxRepo(tx pgx.Tx) *repository.Repository {
 //
 // Events handled:
 //   - subscription.*: convergent upsert of status, period, interval, and
-//     cancel_at_period_end (mapped from scheduled_change.action == 'cancel').
+//     cancel_at_period_end (mapped from scheduled_change.action 'cancel' or
+//     'pause' — both end paid access at effective_at).
 //   - transaction.completed: links paddle IDs + records a checkout_completed
-//     upgrade event (the audit-trail counterpart of Stripe's
-//     checkout.session.completed).
+//     upgrade event for the audit trail.
 //
 // User linkage: checkout stamps custom_data.user_id on the transaction, which
 // transaction.completed carries. Paddle does NOT copy it onto the created
@@ -128,6 +128,7 @@ func (l *HandlePaddleWebhookLogic) HandlePaddleWebhook(in *client.HandlePaddleWe
 				// the loud log line for ops.
 				l.Errorf("Paddle event %s (type=%s) unprocessable, marking processed: %v",
 					event.EventID, event.EventType, handleErr)
+				billingWebhookPermanentFailuresTotal.WithLabelValues("paddle", event.EventType).Inc()
 				if event.EventID != "" {
 					if markErr := txRepo.Billing.MarkPaddleEventProcessed(ctx, event.EventID); markErr != nil {
 						return fmt.Errorf("mark paddle event processed (permanent failure): %w", markErr)
@@ -219,7 +220,10 @@ func (l *HandlePaddleWebhookLogic) handleSubscriptionEvent(ctx context.Context, 
 	// A non-null scheduled_change with action 'cancel' means the user pressed
 	// cancel but keeps access until effective_at — the status stays 'active'
 	// until then, so the flag (not the status) carries the pending cancel.
-	cancelAtPeriodEnd := sub.CancelScheduled()
+	// A scheduled 'pause' ends paid access at effective_at the same way (the
+	// subscription stops billing and 'paused' carries no entitlement), so it
+	// maps onto the same flag — a pause stays resumable from the Paddle portal.
+	cancelAtPeriodEnd := sub.CancelScheduled() || sub.PauseScheduled()
 
 	_, err = repo.Billing.UpsertUserSubscriptionPaddle(ctx, db.UpsertUserSubscriptionPaddleParams{
 		UserID:               existingSub.UserID,

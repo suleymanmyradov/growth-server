@@ -3,6 +3,7 @@ package svc
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/deletion"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -49,6 +51,7 @@ type ServiceContext struct {
 	EmailSender email.Sender
 	EventsPub   *events.Publisher
 	cancel      context.CancelFunc
+	deletionWg  sync.WaitGroup
 	pool        *pgxpool.Pool
 }
 
@@ -81,7 +84,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(fmt.Errorf("JWT.PrivateKey is required"))
 	}
 
-	cancel := func() {}
+	ctx, cancel := context.WithCancel(context.Background())
 	tokenConfig := jwt.Config{
 		PrivateKey:            c.JWT.PrivateKey,
 		PublicKey:             c.JWT.PublicKey,
@@ -112,7 +115,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
 	}
 
-	return &ServiceContext{
+	svcCtx := &ServiceContext{
 		Config:      c,
 		Repo:        repo,
 		TokenMaker:  tokenMaker,
@@ -123,6 +126,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		cancel:      cancel,
 		pool:        pool,
 	}
+
+	// Durable user_deleted delivery: DeleteUser queues an outbox row atomically
+	// with the user delete; the worker retries publication until it succeeds.
+	// Without a publisher the queue stays pending — deletion events are not
+	// lost, they are just not delivered until a publisher is configured.
+	if eventsPub != nil {
+		svcCtx.deletionWg.Add(1)
+		go func() {
+			defer svcCtx.deletionWg.Done()
+			deletion.NewWorker(queries, eventsPub).Run(ctx)
+		}()
+	} else {
+		logx.WithContext(ctx).Infof("no event publisher configured; queued user deletion delivery remains pending in auth_deletion_outbox")
+	}
+
+	return svcCtx
 }
 
 func (s *ServiceContext) Pool() *pgxpool.Pool {
@@ -133,6 +152,7 @@ func (s *ServiceContext) Close() {
 	if s.cancel != nil {
 		s.cancel()
 	}
+	s.deletionWg.Wait()
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
 	}
