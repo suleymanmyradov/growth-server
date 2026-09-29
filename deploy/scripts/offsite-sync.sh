@@ -49,7 +49,7 @@ set -euo pipefail
 
 BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups}"
 OFFSITE_ENV_FILE="${OFFSITE_ENV_FILE:-$BACKUP_DIR/.offsite.env}"
-AWS_IMAGE="${AWS_IMAGE:-amazon/aws-cli:2}"
+AWS_IMAGE="${AWS_IMAGE:-amazon/aws-cli:2.36.50}"
 DRYRUN="${DRYRUN:-false}"
 # node-exporter textfile dir — BackupStale alert fires if this file's
 # timestamp ages past 36h (only written when a real sync succeeds).
