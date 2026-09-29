@@ -12,6 +12,12 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
 scrape_configs:
   - job_name: growth
     static_configs:
@@ -36,3 +42,27 @@ scrape_configs:
     static_configs:
       - targets:
           - cadvisor:8080
+
+  # Host-level disk/memory/load + backup-staleness textfile metrics.
+  - job_name: node
+    static_configs:
+      - targets:
+          - node-exporter:9100
+
+  # External-view probes of the public endpoints (through real DNS/TLS).
+  - job_name: blackbox
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://api.evolella.com/health
+          - https://app.evolella.com
+          - https://admin.evolella.com
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115

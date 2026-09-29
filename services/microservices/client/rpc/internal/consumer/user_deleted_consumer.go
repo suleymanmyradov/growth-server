@@ -3,10 +3,13 @@ package consumer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/paddle"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -16,13 +19,15 @@ import (
 // from the growth.events topic and maintains the local user_profiles read model
 // + cleans up client-owned tables on account deletion.
 type AuthEventsHandler struct {
-	repo *repository.Repository
-	dbq  *db.Queries
+	repo   *repository.Repository
+	dbq    *db.Queries
+	paddle *paddle.Client // nil when Paddle isn't configured
 }
 
 // NewAuthEventsHandler creates a handler with the given dependencies.
-func NewAuthEventsHandler(repo *repository.Repository, dbq *db.Queries) *AuthEventsHandler {
-	return &AuthEventsHandler{repo: repo, dbq: dbq}
+// paddle may be nil — subscription cancellation is skipped in that case.
+func NewAuthEventsHandler(repo *repository.Repository, dbq *db.Queries, paddleClient *paddle.Client) *AuthEventsHandler {
+	return &AuthEventsHandler{repo: repo, dbq: dbq, paddle: paddleClient}
 }
 
 // Consume is the kq.ConsumeHandler callback.
@@ -120,6 +125,13 @@ func (h *AuthEventsHandler) onUserDeleted(ctx context.Context, env events.Envelo
 	if err := h.dbq.DeleteActivitiesByUser(ctx, userID); err != nil {
 		return fmt.Errorf("delete activities: %w", err)
 	}
+	// Stop Paddle billing BEFORE deleting the subscription row — otherwise a
+	// deleted account keeps being charged indefinitely. Returning the error
+	// lets the retry/DLQ wrapper redeliver instead of silently leaving a
+	// billing relationship behind.
+	if err := h.cancelPaddleSubscription(ctx, userID); err != nil {
+		return err
+	}
 	if err := h.dbq.DeleteSubscriptionsByUser(ctx, userID); err != nil {
 		return fmt.Errorf("delete subscriptions: %w", err)
 	}
@@ -148,6 +160,37 @@ func (h *AuthEventsHandler) onUserDeleted(ctx context.Context, env events.Envelo
 	}
 
 	logx.WithContext(ctx).Infof("cleanup complete for user %s", userID)
+	return nil
+}
+
+// cancelPaddleSubscription cancels the user's Paddle subscription at the end
+// of billing — i.e. before the subscriptions row is deleted. RevenueCat
+// subscriptions can't be cancelled server-side (only the user can cancel in
+// App Store / Play Store settings), so only Paddle is handled here.
+func (h *AuthEventsHandler) cancelPaddleSubscription(ctx context.Context, userID uuid.UUID) error {
+	if h.paddle == nil {
+		return nil
+	}
+
+	sub, err := h.dbq.GetUserSubscription(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // no subscription row — nothing to cancel
+		}
+		return fmt.Errorf("get subscription for paddle cancel: %w", err)
+	}
+	if sub.PaddleSubscriptionID == nil || *sub.PaddleSubscriptionID == "" {
+		return nil // web checkout never used
+	}
+	// Already ending on its own (cancelled or expired) — nothing to do.
+	if sub.CancelAtPeriodEnd || sub.Status == "expired" || sub.Status == "canceled" {
+		return nil
+	}
+
+	if _, err := h.paddle.CancelSubscriptionImmediately(ctx, *sub.PaddleSubscriptionID); err != nil {
+		return fmt.Errorf("cancel paddle subscription %s: %w", *sub.PaddleSubscriptionID, err)
+	}
+	logx.WithContext(ctx).Infof("cancelled Paddle subscription %s for deleted user %s", *sub.PaddleSubscriptionID, userID)
 	return nil
 }
 

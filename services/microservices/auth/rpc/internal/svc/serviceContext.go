@@ -34,6 +34,12 @@ type TokenMakerInterface interface {
 	RevokeSession(ctx context.Context, sessionID uuid.UUID, ttl time.Duration) error
 	IsSessionRevoked(ctx context.Context, sessionID uuid.UUID) (bool, error)
 	RotateRefreshToken(ctx context.Context, oldToken string) (*jwt.TokenResponse, error)
+	// RefreshSession performs the atomic rotation used by refresh handlers —
+	// consume-or-replay semantics plus reuse detection (see jwt.TokenMaker).
+	RefreshSession(ctx context.Context, oldToken string) (*jwt.RefreshSessionResult, error)
+	// RevokeAllUserSessions kills every token the user holds (password
+	// reset/change) via an issued-at cutoff marker.
+	RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error
 }
 
 // TxRunnerInterface defines the transaction runner used by the auth logic.

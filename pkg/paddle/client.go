@@ -376,11 +376,23 @@ func (c *Client) CreatePortalSession(ctx context.Context, customerID string, sub
 // period (effective_from=next_billing_period) — the user keeps access until
 // the paid-through date, matching the subscriptions.cancel_at_period_end flag.
 func (c *Client) CancelSubscription(ctx context.Context, subscriptionID string) (*Subscription, error) {
+	return c.cancelSubscription(ctx, subscriptionID, "next_billing_period")
+}
+
+// CancelSubscriptionImmediately ends the subscription now
+// (effective_from=immediately). Used on account deletion, where the billing
+// relationship must stop with the account — anything softer keeps charging a
+// deleted user.
+func (c *Client) CancelSubscriptionImmediately(ctx context.Context, subscriptionID string) (*Subscription, error) {
+	return c.cancelSubscription(ctx, subscriptionID, "immediately")
+}
+
+func (c *Client) cancelSubscription(ctx context.Context, subscriptionID, effectiveFrom string) (*Subscription, error) {
 	if subscriptionID == "" {
 		return nil, errors.New("paddle: subscription ID is required")
 	}
 	var sub Subscription
-	body := map[string]any{"effective_from": "next_billing_period"}
+	body := map[string]any{"effective_from": effectiveFrom}
 	if err := c.do(ctx, http.MethodPost, "/subscriptions/"+subscriptionID+"/cancel", nil, body, &sub); err != nil {
 		return nil, err
 	}

@@ -141,18 +141,25 @@ func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.Gener
 	// --- Safety classification ---
 	if deps.Classifier != nil {
 		classifyCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		verdict, err := deps.Classifier.Classify(classifyCtx, req.UserMessage)
+		verdict, err := safety.ClassifyWithRetry(classifyCtx, deps.Classifier, req.UserMessage)
 		cancel()
 
 		switch {
 		case err != nil:
-			logx.WithContext(ctx).Errorf("agentic coaching: safety classify failed, proceeding: user=%s err=%v", p.UserID, err)
+			// Fail closed: the model never sees unscreened input. A user in
+			// crisis still gets crisis resources; everyone else gets an
+			// honest "try again" instead of a model answer.
+			logx.WithContext(ctx).Errorf("agentic coaching: safety classify failed, failing closed: user=%s err=%v", p.UserID, err)
+			streamDeterministicResponse(ctx, sseWriter, req, p, deps.Conversations, safety.UnavailableResponse)
+			return safety.UnavailableResponse
 		case (verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm) && verdict.Confidence >= safetyCrisisThreshold:
+			// Reason deliberately not logged at Info — classifier reasons
+			// can quote self-harm content verbatim (Loki is not access-gated).
 			logx.WithContext(ctx).Infof("agentic coaching: safety block: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
-			streamCrisisResponse(ctx, sseWriter, req, p, deps.Conversations)
+			streamDeterministicResponse(ctx, sseWriter, req, p, deps.Conversations, safety.CrisisResponse)
 			return safety.CrisisResponse
 		case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
-			logx.WithContext(ctx).Infof("agentic coaching: safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f reason=%q", p.UserID, verdict.Category, verdict.Confidence, verdict.Reason)
+			logx.WithContext(ctx).Infof("agentic coaching: safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
 		}
 	}
 
@@ -379,11 +386,12 @@ func trimHistory(history []historyEntry, maxChars int) []historyEntry {
 	return history[cut:]
 }
 
-// streamCrisisResponse persists the user message, persists the deterministic
-// crisis response, and then sends them as SSE events.
-func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore) {
-	// The crisis response is deterministic, so it is always delivered to the
-	// user even if persistence fails — withholding a crisis message because a
+// streamDeterministicResponse persists the user message, persists the given
+// deterministic response (crisis or classifier-unavailable), and then sends
+// them as SSE events.
+func streamDeterministicResponse(ctx context.Context, sseWriter *sse.Writer, req *types.GeneratePersonalizedCoachingRequest, p principal.Principal, conversations ConversationStore, response string) {
+	// The response is deterministic, so it is always delivered to the user
+	// even if persistence fails — withholding a safety message because a
 	// database write failed would be the wrong trade. But the conversation
 	// record must not silently lose the exchange either, so a failed write is
 	// reported alongside the response rather than only logged.
@@ -405,14 +413,14 @@ func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types
 			ConversationId: req.ConversationId,
 			UserId:         p.UserID,
 			Role:           "assistant",
-			Content:        safety.CrisisResponse,
+			Content:        response,
 		}); err != nil {
 			logx.WithContext(ctx).Errorf("agentic coaching: failed to persist crisis response: %v", err)
 			persisted = false
 		}
 	}
 
-	sseWriter.WriteEvent("delta", map[string]string{"text": safety.CrisisResponse})
+	sseWriter.WriteEvent("delta", map[string]string{"text": response})
 	if !persisted {
 		// Non-fatal: the response above stands. This tells the client the turn
 		// will not survive a reload, so it does not present stale history as
@@ -421,7 +429,7 @@ func streamCrisisResponse(ctx context.Context, sseWriter *sse.Writer, req *types
 			"message": "This response could not be saved to your conversation history.",
 		})
 	}
-	sseWriter.WriteEvent("complete", map[string]string{"fullResponse": safety.CrisisResponse})
+	sseWriter.WriteEvent("complete", map[string]string{"fullResponse": response})
 }
 
 // fetchAndPersistHistory fetches prior conversation history and then persists

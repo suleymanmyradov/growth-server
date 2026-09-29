@@ -725,6 +725,78 @@ services:
     networks:
       - growth
 
+  # Routes the alerts in prometheus/alerts.yml to email via Resend SMTP.
+  # resend_api_key is a gitignored file under deploy/alertmanager/secrets/ —
+  # see its README. From/to addresses come from ALERT_EMAIL_* in .env.prod
+  # (defaults below work out of the box if the from-domain is Resend-verified).
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    environment:
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@evolella.com}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-support@evolella.com}
+    entrypoint: ["/bin/sh", "-c"]
+    command: >-
+      sed -e "s|__ALERT_EMAIL_FROM__|$${ALERT_EMAIL_FROM}|g"
+          -e "s|__ALERT_EMAIL_TO__|$${ALERT_EMAIL_TO}|g"
+          /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.yml
+      && exec /bin/alertmanager --config.file=/tmp/alertmanager.yml
+        --storage.path=/alertmanager
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - ./alertmanager/secrets:/etc/alertmanager/secrets:ro
+      - alertmanager_data:/alertmanager
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  # Host-level metrics (disk, memory, load) — cadvisor only sees containers.
+  # Also collects backup-staleness metrics from /home/ubuntu/backups/textfile
+  # (written by deploy/scripts/backup-*.sh).
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.textfile.directory=/textfile
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|host/etc|var/lib/docker/.+)($|/)
+    volumes:
+      - /:/host:ro,rslave
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /home/ubuntu/backups/textfile:/textfile:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
+  # External-view probes of the public endpoints (TLS, DNS, Caddy, handler).
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command: ['--config.file=/etc/blackbox/blackbox.yml']
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+    profiles:
+      - monitoring
+    networks:
+      - growth
+
   grafana:
     image: grafana/grafana:12.0.2
     restart: unless-stopped
@@ -836,6 +908,7 @@ volumes:
   caddy_data:
   caddy_config:
   prometheus_data:
+  alertmanager_data:
   grafana_data:
   loki_data:
   tempo_data:

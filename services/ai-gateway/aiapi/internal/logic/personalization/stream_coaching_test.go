@@ -331,7 +331,44 @@ func TestStreamCoaching_SafetyFlagBelowThresholdProceeds(t *testing.T) {
 	assert.NotContains(t, rec.Body.String(), safety.CrisisResponse)
 }
 
-func TestStreamCoaching_ClassifierErrorProceeds(t *testing.T) {
+func TestStreamCoaching_ClassifierErrorFailsClosed(t *testing.T) {
+	aiClient := aitest.NewMockClient()
+	// No agent stream is recorded: if the model were called, the mock would
+	// fail the test. That asserts unscreened input never reaches the model.
+	conv := &mockConversationStore{}
+
+	classifier := &mockClassifier{
+		err: io.ErrUnexpectedEOF,
+	}
+
+	rec := runStreamCoaching(t, &types.GeneratePersonalizedCoachingRequest{
+		UserMessage:    "Hello",
+		ConversationId: "conv-1",
+	}, StreamCoachingDeps{
+		AIClient:       aiClient,
+		Classifier:     classifier,
+		Conversations:  conv,
+		ProfileFetcher: &mockProfileFetcher{},
+	})
+
+	assert.Equal(t, 200, rec.Code)
+
+	// User message + deterministic unavailable response persisted.
+	require.Len(t, conv.appendCalls, 2)
+	assert.Equal(t, "user", conv.appendCalls[0].Role)
+	assert.Equal(t, "assistant", conv.appendCalls[1].Role)
+	assert.Equal(t, safety.UnavailableResponse, conv.appendCalls[1].Content)
+
+	events := parseSSEEvents(rec.Body.String())
+	require.GreaterOrEqual(t, len(events), 2)
+	assert.Contains(t, events[0], "event: delta")
+	assert.Contains(t, events[len(events)-1], "event: complete")
+	// The unavailable response still carries crisis resources.
+	assert.Contains(t, rec.Body.String(), "988")
+	assert.NotContains(t, rec.Body.String(), "accountability coach, not a crisis counselor")
+}
+
+func TestStreamCoaching_ClassifierErrorRetriedOnce(t *testing.T) {
 	aiClient := aitest.NewMockClient()
 	aiClient.RecordAgentStream(ai.ModelChat,
 		ai.AgentStreamChunk{Complete: true, FullResponse: "OK", FinishReason: "stop"},
@@ -341,7 +378,7 @@ func TestStreamCoaching_ClassifierErrorProceeds(t *testing.T) {
 		err: io.ErrUnexpectedEOF,
 	}
 
-	rec := runStreamCoaching(t, &types.GeneratePersonalizedCoachingRequest{
+	runStreamCoaching(t, &types.GeneratePersonalizedCoachingRequest{
 		UserMessage: "Hello",
 	}, StreamCoachingDeps{
 		AIClient:       aiClient,
@@ -350,10 +387,7 @@ func TestStreamCoaching_ClassifierErrorProceeds(t *testing.T) {
 		ProfileFetcher: &mockProfileFetcher{},
 	})
 
-	assert.Equal(t, 200, rec.Code)
-	events := parseSSEEvents(rec.Body.String())
-	require.GreaterOrEqual(t, len(events), 1)
-	assert.Contains(t, events[len(events)-1], "event: complete")
+	assert.Equal(t, 2, len(classifier.calls))
 }
 
 func TestStreamCoaching_ToolCallEmitsThinkingEvent(t *testing.T) {

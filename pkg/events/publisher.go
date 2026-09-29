@@ -21,9 +21,13 @@ type Publisher struct {
 }
 
 // NewPublisher creates a Publisher that writes to the given Kafka topic on
-// the specified broker list.
+// the specified broker list. WithSyncPush makes every Push a synchronous
+// broker write: without it kq batches asynchronously through a chunk
+// executor and reports write failures only via the error log, so Publish
+// could return nil for an event that never reached the broker — silent
+// loss for lifecycle-critical events like user_deleted.
 func NewPublisher(brokers []string, topic string) *Publisher {
-	p := kq.NewPusher(brokers, topic)
+	p := kq.NewPusher(brokers, topic, kq.WithSyncPush())
 	return &Publisher{pusher: p, topic: topic}
 }
 

@@ -59,10 +59,10 @@ func TestLLMClassifier_UnparseableOutput(t *testing.T) {
 	}, ai.Usage{}, 0)
 
 	classifier := NewLLMClassifier(mc)
-	verdict, err := classifier.Classify(context.Background(), "test")
-	require.NoError(t, err)
-	assert.Equal(t, CategorySafe, verdict.Category) // defaults to safe
-	assert.Equal(t, 0.0, verdict.Confidence)
+	_, err := classifier.Classify(context.Background(), "test")
+	// Unparseable output must be an error so callers fail closed rather than
+	// silently treating unscreened input as safe.
+	assert.Error(t, err)
 }
 
 func TestLLMClassifier_Error(t *testing.T) {

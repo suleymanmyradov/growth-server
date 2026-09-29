@@ -85,3 +85,59 @@ groups:
           severity: warning
         annotations:
           summary: "p95 gRPC latency >1s on {{ $labels.instance }}"
+
+  - name: growth-host
+    rules:
+      - alert: HostDiskAlmostFull
+        expr: node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes < 0.15
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} <15% free"
+          description: "Only {{ $value | humanizePercentage }} free on {{ $labels.mountpoint }} — Postgres/MinIO/Loki will fail when it hits 0."
+
+      - alert: HostMemoryAlmostFull
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host memory <10% available"
+          description: "Container limits total ~10GB on an 8GB VM — OOM kills are imminent."
+
+      - alert: BackupStale
+        expr: time() - backup_last_success_timestamp_seconds > 129600
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "No successful {{ $labels.job }} backup in 36h"
+          description: "Backups live only on this VM — a stale backup means a VM loss is unrecoverable. Check the growth-backup timers."
+
+      - alert: BackupNeverRan
+        expr: absent(backup_last_success_timestamp_seconds)
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup metrics missing entirely"
+          description: "node-exporter sees no backup_last_success_timestamp_seconds — the backup timers may never have run or textfile dir isn't mounted."
+
+      - alert: PublicEndpointDown
+        expr: probe_success == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Public endpoint down: {{ $labels.instance }}"
+          description: "blackbox probe to {{ $labels.instance }} failing for >3m (DNS/TLS/Caddy/handler level)."
+
+      - alert: CertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 604800
+        for: 1h
+        labels:
+          severity: warning
+        annotations:
+          summary: "TLS cert for {{ $labels.instance }} expires <7d"
+          description: "Caddy auto-renews, so a warning means renewal is failing (port 80/443 reachability or rate limits)."

@@ -62,7 +62,10 @@
 		reverse_proxy gateway:8888
 	}
 
-	# --- Public object storage (MinIO, path-style /bucket/key) ---
+	# --- Object storage (MinIO, path-style /bucket/key) ---
+	# Serves ONLY SigV4-presigned URLs minted by the filemanager — the bucket
+	# policy is private, so unsigned/anonymous requests get 403 from MinIO.
+	# Do not add `mc anonymous` grants for this bucket.
 	handle /files/* {
 		uri strip_prefix /files
 		reverse_proxy minio:9000

@@ -21,8 +21,11 @@ RETENTION_DAYS="${RETENTION_DAYS:-7}"
 CONTAINER="${CONTAINER:-deploy-postgres-1}"
 DB_USER="${POSTGRES_USER:-growthmind}"
 DB_NAME="${POSTGRES_DB:-growthmind}"
+# node-exporter textfile dir — BackupStale alert fires if this file's
+# timestamp ages past 36h.
+TEXTFILE_DIR="${TEXTFILE_DIR:-$BACKUP_DIR/textfile}"
 
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR" "$TEXTFILE_DIR"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 OUT="$BACKUP_DIR/$DB_USER-$STAMP.dump"
 
@@ -30,6 +33,11 @@ docker exec "$CONTAINER" pg_dump -U "$DB_USER" -d "$DB_NAME" -Fc > "$OUT"
 
 # Prune dumps older than the retention window.
 find "$BACKUP_DIR" -name "$DB_USER-*.dump" -type f -mtime "+$RETENTION_DAYS" -delete
+
+# Publish a success timestamp for node-exporter (atomic write).
+printf 'backup_last_success_timestamp_seconds{job="postgres"} %s\n' \
+  "$(date +%s)" > "$TEXTFILE_DIR/backup-postgres.prom.$$"
+mv "$TEXTFILE_DIR/backup-postgres.prom.$$" "$TEXTFILE_DIR/backup-postgres.prom"
 
 SIZE="$(du -h "$OUT" | cut -f1)"
 echo "$(date -Is) backup ok: $OUT ($SIZE)"

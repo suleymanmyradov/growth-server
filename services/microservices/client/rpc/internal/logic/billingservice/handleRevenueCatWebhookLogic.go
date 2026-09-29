@@ -112,14 +112,15 @@ func (l *HandleRevenueCatWebhookLogic) HandleRevenueCatWebhook(in *client.Handle
 		return nil, status.Error(codes.InvalidArgument, "invalid webhook payload")
 	}
 
-	if len(payload.Events) == 0 {
+	events := payload.AllEvents()
+	if len(events) == 0 {
 		l.Infof("RevenueCat webhook: no events in payload")
 		return &client.HandleRevenueCatWebhookResponse{Processed: true}, nil
 	}
 
 	processed := 0
 	failed := 0
-	for _, evt := range payload.Events {
+	for _, evt := range events {
 		// Derive a stable event ID for idempotency.
 		eventID := evt.EventID
 		if eventID == "" {
@@ -177,7 +178,7 @@ func (l *HandleRevenueCatWebhookLogic) HandleRevenueCatWebhook(in *client.Handle
 		processed++
 	}
 
-	l.Infof("RevenueCat webhook: %d/%d events processed, %d failed", processed, len(payload.Events), failed)
+	l.Infof("RevenueCat webhook: %d/%d events processed, %d failed", processed, len(events), failed)
 
 	// If any event had a retryable failure, return a non-2xx response so
 	// RevenueCat retries the entire webhook. Events that were already marked
@@ -186,7 +187,7 @@ func (l *HandleRevenueCatWebhookLogic) HandleRevenueCatWebhook(in *client.Handle
 	// Do NOT return success (HTTP 200) when there are retryable failures —
 	// RevenueCat only retries on non-2xx responses.
 	if failed > 0 {
-		return nil, status.Error(codes.Internal, fmt.Sprintf("revenuecat webhook: %d/%d events failed", failed, len(payload.Events)))
+		return nil, status.Error(codes.Internal, fmt.Sprintf("revenuecat webhook: %d/%d events failed", failed, len(events)))
 	}
 
 	return &client.HandleRevenueCatWebhookResponse{Processed: true}, nil

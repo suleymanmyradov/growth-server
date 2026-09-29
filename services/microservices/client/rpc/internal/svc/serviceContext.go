@@ -35,6 +35,7 @@ type ServiceContext struct {
 	PatternDetection *analytics.PatternDetection
 	PaddleClient     *paddle.Client
 	TxRunner         *postgres.PgxTxRunner
+	dlqPub           *events.DLQPublisher
 	Authz            *authz.Checker
 	// Cache is a Redis-backed read-through cache (with singleflight dedup)
 	// used for the assembled personalization context and other hot paths.
@@ -110,13 +111,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		eventsPub = events.NewRedisStreamPublisher(redisClient, c.Kafka.EventsTopic)
 	}
 
+	// DLQ publisher for poison consumer messages (kq auto-commits fetched
+	// offsets, so handler errors need the retry+DLQ wrapper to survive).
+	var dlqPub *events.DLQPublisher
+	if len(c.Kafka.Brokers) > 0 {
+		dlqPub = events.NewDLQPublisher(c.Kafka.Brokers, events.DLQTopic)
+	} else if redisClient != nil {
+		dlqPub = events.NewRedisStreamDLQPublisher(redisClient, events.DLQTopic)
+	}
+
 	// Set up the user_deleted and check-in consumer queues.
 	// Uses Kafka when brokers are configured, Redis Streams as a fallback
 	// when Redis is available, or nil (no-op) when neither is configured.
 	var authEventsQ queue.MessageQueue
 	var checkInEventsQ queue.MessageQueue
 	if c.Kafka.EventsTopic != "" {
-		handler := consumer.NewAuthEventsHandler(repo, queries)
+		handler := consumer.NewAuthEventsHandler(repo, queries, paddleClient)
 		checkInHandler := consumer.NewCheckInEventsHandler(repo, queries)
 		group := c.Kafka.ConsumerGroup
 		if group == "" {
@@ -133,7 +143,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 					Consumers:  8,
 					Processors: 8,
 				},
-				kq.WithHandle(handler.Consume),
+				kq.WithHandle(events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+					ServiceName: group + ".user-deleted",
+				}, handler.Consume).Handle()),
 			)
 			checkInEventsQ = kq.MustNewQueue(
 				kq.KqConf{
@@ -144,7 +156,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 					Consumers:  4,
 					Processors: 4,
 				},
-				kq.WithHandle(checkInHandler.Consume),
+				kq.WithHandle(events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+					ServiceName: group + ".checkin-events",
+				}, checkInHandler.Consume).Handle()),
 			)
 		} else if redisClient != nil {
 			// Redis Streams backend.
@@ -152,12 +166,16 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				Stream:    c.Kafka.EventsTopic,
 				Group:     group + ".user-deleted",
 				Consumers: 8,
-			}, handler)
+			}, events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".user-deleted",
+			}, handler.Consume))
 			checkInEventsQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
 				Stream:    c.Kafka.EventsTopic,
 				Group:     group + ".checkin-events",
 				Consumers: 4,
-			}, checkInHandler)
+			}, events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".checkin-events",
+			}, checkInHandler.Consume))
 		}
 	}
 
@@ -200,6 +218,9 @@ func (s *ServiceContext) Pool() *pgxpool.Pool {
 func (s *ServiceContext) Close() {
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
+	}
+	if s.dlqPub != nil {
+		_ = s.dlqPub.Close()
 	}
 	if s.pool != nil {
 		s.pool.Close()

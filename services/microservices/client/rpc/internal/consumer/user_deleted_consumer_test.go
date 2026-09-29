@@ -98,7 +98,7 @@ func userDeletedEnvelope(t *testing.T, userID uuid.UUID) string {
 
 func newHandler(f *fakeDBTX) *AuthEventsHandler {
 	queries := db.New(f)
-	return NewAuthEventsHandler(repository.NewRepository(queries), queries)
+	return NewAuthEventsHandler(repository.NewRepository(queries), queries, nil)
 }
 
 func TestConsumeUserDeleted_DeletesReports(t *testing.T) {

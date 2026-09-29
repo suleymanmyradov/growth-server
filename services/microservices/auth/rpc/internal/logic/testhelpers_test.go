@@ -80,6 +80,18 @@ func (m *MockTokenMaker) RotateRefreshToken(ctx context.Context, oldToken string
 	return args.Get(0).(*jwt.TokenResponse), args.Error(1)
 }
 
+func (m *MockTokenMaker) RefreshSession(ctx context.Context, oldToken string) (*jwt.RefreshSessionResult, error) {
+	args := m.Called(ctx, oldToken)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*jwt.RefreshSessionResult), args.Error(1)
+}
+
+func (m *MockTokenMaker) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	return m.Called(ctx, userID).Error(0)
+}
+
 // ============================================
 // MockTxRunner
 // ============================================

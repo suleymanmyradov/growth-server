@@ -158,10 +158,28 @@ type WebhookEvent struct {
 	EventID string `json:"event_id"`
 }
 
-// WebhookPayload is the top-level webhook body. RevenueCat sends:
-// {"events": [...]}
+// WebhookPayload is the top-level webhook body. RevenueCat sends ONE event
+// per POST: {"api_version": "1.0", "event": {...}}. A previous version of
+// this type expected {"events": [...]}, which unmarshalled cleanly but
+// produced zero events — every real webhook silently no-opped and mobile
+// purchases never unlocked Pro. The events field is kept for tolerance of
+// batched/replayed payloads.
 type WebhookPayload struct {
+	// Event is the canonical RevenueCat shape (singular object).
+	Event *WebhookEvent `json:"event"`
+	// Events tolerates an array shape (e.g. test harnesses, replay tools).
 	Events []WebhookEvent `json:"events"`
+}
+
+// AllEvents returns every event in the payload regardless of which envelope
+// shape the sender used.
+func (p WebhookPayload) AllEvents() []WebhookEvent {
+	out := make([]WebhookEvent, 0, len(p.Events)+1)
+	if p.Event != nil {
+		out = append(out, *p.Event)
+	}
+	out = append(out, p.Events...)
+	return out
 }
 
 // ParseWebhookPayload parses the webhook body. It does NOT verify the

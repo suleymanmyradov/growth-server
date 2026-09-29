@@ -28,8 +28,11 @@ BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-7}"
 VOLUME="${VOLUME:-deploy_minio_data}"
 IMAGE="${IMAGE:-alpine:3.20}"
+# node-exporter textfile dir — BackupStale alert fires if this file's
+# timestamp ages past 36h.
+TEXTFILE_DIR="${TEXTFILE_DIR:-$BACKUP_DIR/textfile}"
 
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_DIR" "$TEXTFILE_DIR"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
 OUT="$BACKUP_DIR/minio-$STAMP.tar.gz"
 
@@ -40,6 +43,11 @@ docker run --rm \
 
 # Prune archives older than the retention window.
 find "$BACKUP_DIR" -name "minio-*.tar.gz" -type f -mtime "+$RETENTION_DAYS" -delete
+
+# Publish a success timestamp for node-exporter (atomic write).
+printf 'backup_last_success_timestamp_seconds{job="minio"} %s\n' \
+  "$(date +%s)" > "$TEXTFILE_DIR/backup-minio.prom.$$"
+mv "$TEXTFILE_DIR/backup-minio.prom.$$" "$TEXTFILE_DIR/backup-minio.prom"
 
 SIZE="$(du -h "$OUT" | cut -f1)"
 echo "$(date -Is) backup ok: $OUT ($SIZE)"

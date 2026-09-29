@@ -38,17 +38,25 @@ func (l *GeneratePersonalizedCoachingLogic) GeneratePersonalizedCoaching(in *aic
 	// the model. Crisis / self-harm never reach the model.
 	if l.svcCtx.Classifier != nil {
 		classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
-		verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, in.UserMessage)
+		verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, in.UserMessage)
 		cancel()
 
 		switch {
 		case err != nil:
-			l.Errorf("coaching safety classify failed, proceeding: user=%s err=%v", in.UserId, err)
+			// Fail closed: unscreened input never reaches the model. The
+			// deterministic degraded-mode response still carries crisis
+			// resources for the user who may need them.
+			l.Errorf("coaching safety classify failed, failing closed: user=%s err=%v", in.UserId, err)
 			coachingSafetyClassifyErrors.Inc()
+			return &aicoach.PersonalizedCoachingResponse{
+				CoachingResponse: safety.UnavailableResponse,
+			}, nil
 
 		case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
-			l.Infof("coaching safety block: user=%s category=%s confidence=%.2f reason=%s",
-				in.UserId, verdict.Category, verdict.Confidence, verdict.Reason)
+			// Reason deliberately not logged — classifier reasons can quote
+			// self-harm content verbatim.
+			l.Infof("coaching safety block: user=%s category=%s confidence=%.2f",
+				in.UserId, verdict.Category, verdict.Confidence)
 			coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
 			return &aicoach.PersonalizedCoachingResponse{
 				CoachingResponse: prompts.CrisisResponse,

@@ -78,8 +78,13 @@ func (h Handler) Consume(ctx context.Context, _ string, raw string) error {
 // NewQueue builds the consumer queue for the configured transport. It returns
 // (nil, close, nil) when disabled, an error when the config is incomplete, and
 // a close func that releases resources owned by the queue (the Redis client
-// on the fallback transport). The caller must Stop the queue before invoking
-// the returned close func.
+// and DLQ pusher on their respective transports). The caller must Stop the
+// queue before invoking the returned close func.
+//
+// The handler is wrapped with in-handler retry + DLQ fallback: kq auto-commits
+// fetched offsets regardless of handler errors, so a transient failure would
+// otherwise silently drop the event — and a lost user_deleted means orphaned
+// rows plus a GDPR failure.
 func NewQueue(c Config, handler Handler) (queue.MessageQueue, func(), error) {
 	noop := func() {}
 	if c.Topic == "" {
@@ -89,6 +94,10 @@ func NewQueue(c Config, handler Handler) (queue.MessageQueue, func(), error) {
 		return nil, noop, errors.New("userdeletion: Group is required when Topic is set")
 	}
 	if len(c.Brokers) > 0 {
+		dlqPub := events.NewDLQPublisher(c.Brokers, events.DLQTopic)
+		consume := events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+			ServiceName: c.Group,
+		}, handler.Consume)
 		q, err := kq.NewQueue(
 			kq.KqConf{
 				Brokers:    c.Brokers,
@@ -98,23 +107,28 @@ func NewQueue(c Config, handler Handler) (queue.MessageQueue, func(), error) {
 				Consumers:  1,
 				Processors: 1,
 			},
-			kq.WithHandle(handler.Consume),
+			kq.WithHandle(consume.Handle()),
 		)
 		if err != nil {
+			_ = dlqPub.Close()
 			return nil, noop, fmt.Errorf("userdeletion: kafka queue: %w", err)
 		}
-		return q, noop, nil
+		return q, func() { _ = dlqPub.Close() }, nil
 	}
 	if c.RedisAddr != "" {
 		client, err := redisutil.NewClient(c.RedisAddr, c.RedisPassword, c.RedisDB)
 		if err != nil {
 			return nil, noop, fmt.Errorf("userdeletion: redis client: %w", err)
 		}
+		dlqPub := events.NewRedisStreamDLQPublisher(client, events.DLQTopic)
+		consume := events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+			ServiceName: c.Group,
+		}, handler.Consume)
 		q := redisstream.NewQueue(client, redisstream.Config{
 			Stream:    c.Topic,
 			Group:     c.Group,
 			Consumers: 1,
-		}, handler)
+		}, consume)
 		return q, func() { _ = client.Close() }, nil
 	}
 	return nil, noop, errors.New("userdeletion: Topic set but no transport configured (Brokers or RedisAddr)")

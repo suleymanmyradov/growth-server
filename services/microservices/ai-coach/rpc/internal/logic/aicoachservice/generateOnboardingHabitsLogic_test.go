@@ -182,30 +182,15 @@ func TestGenerateOnboardingHabits_SelfHarmBlockedUsesFallback(t *testing.T) {
 	assert.Contains(t, resp.Habits[0].Name, "Get fit")
 }
 
-func TestGenerateOnboardingHabits_ClassifierErrorProceedsToGeneration(t *testing.T) {
+func TestGenerateOnboardingHabits_ClassifierErrorFailsClosed(t *testing.T) {
 	mc := aitest.NewMockClient()
-	// Force the classifier call to fail by setting a global error, then clear it
-	// before the chat call. We use two separate mock clients to isolate failures:
-	// classifier client errors, chat client succeeds.
-	classifierClient := aitest.NewMockClient()
-	classifierClient.SetError(errors.New("classifier down"))
-
-	chatClient := aitest.NewMockClient()
-	chatClient.RecordResponse(ai.ModelChat, ai.Message{
-		Role:    ai.RoleAssistant,
-		Content: `[{"name":"Walk","description":"daily"},{"name":"Read","description":"nightly"},{"name":"Log","description":"journal"}]`,
-	}, ai.Usage{}, 0)
-
-	// Use the erroring client only for the classifier; the logic uses the same
-	// svcCtx.AIClient for both, so we need a single client that errors on
-	// classifier then succeeds on chat. Simplest: a client that has no recorded
-	// classifier response (returns error) but has a recorded chat response.
+	// No ModelClassifier response recorded → classifier call errors even after
+	// the retry. A ModelChat response IS recorded: if the logic proceeded to
+	// generation the test would get model-named habits instead of fallbacks.
 	mc.RecordResponse(ai.ModelChat, ai.Message{
 		Role:    ai.RoleAssistant,
 		Content: `[{"name":"Walk","description":"daily"},{"name":"Read","description":"nightly"},{"name":"Log","description":"journal"}]`,
 	}, ai.Usage{}, 0)
-	// No ModelClassifier response recorded → classifier call errors.
-	// The logic logs the error and proceeds to generation.
 
 	svcCtx := &svc.ServiceContext{AIClient: mc, Classifier: safety.NewLLMClassifier(mc)}
 	logic := NewGenerateOnboardingHabitsLogic(context.Background(), svcCtx)
@@ -216,10 +201,11 @@ func TestGenerateOnboardingHabits_ClassifierErrorProceedsToGeneration(t *testing
 		DailyMinutes: 30,
 		Motivation:   "Grow",
 	})
-	// Classifier error is logged, not returned — generation proceeds.
+	// Fails closed: unscreened free-text never reaches the model; the
+	// deterministic fallback habits keep onboarding working.
 	require.NoError(t, err)
-	require.Len(t, resp.Habits, 3)
-	assert.Equal(t, "Walk", resp.Habits[0].Name)
+	require.NotEmpty(t, resp.Habits)
+	assert.Contains(t, resp.Habits[0].Name, "Read more")
 }
 
 func TestGenerateOnboardingHabits_EmptyFreeTextStillGeneratesHabits(t *testing.T) {

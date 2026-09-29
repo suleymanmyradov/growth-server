@@ -136,13 +136,17 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		if kqConf.Consumers == 0 {
 			kqConf.Consumers = 8
 		}
-		eventsQ = kq.MustNewQueue(kqConf, kq.WithHandle(handler.Consume))
+		eventsQ = kq.MustNewQueue(kqConf, kq.WithHandle(events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+			ServiceName: c.Kafka.ConsumerGroup + ".events",
+		}, handler.Consume).Handle()))
 	} else if streamRedisClient != nil {
 		eventsQ = redisstream.MustNewQueue(streamRedisClient, redisstream.Config{
 			Stream:    c.Kafka.EventsTopic,
 			Group:     c.Kafka.ConsumerGroup + ".events",
 			Consumers: consumers,
-		}, handler)
+		}, events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+			ServiceName: c.Kafka.ConsumerGroup + ".events",
+		}, handler.Consume))
 	}
 
 	return &ServiceContext{

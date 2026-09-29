@@ -27,11 +27,16 @@ func (l *AuthRefreshLogic) AuthRefresh(req *types.RefreshTokenRequest) (*types.A
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "AuthRefreshLogic.AuthRefresh")
 	defer span.End()
 
-	claims, err := l.svcCtx.TokenMaker.VerifyRefreshToken(ctx, req.RefreshToken)
+	// Atomic rotation: consumes the presented token. Previously the old token
+	// was never revoked — a stolen admin refresh token stayed valid for its
+	// full TTL. With consume-or-replay semantics, concurrent admin refreshes
+	// get the same pair and a replayed rotated token revokes the session.
+	sess, err := l.svcCtx.TokenMaker.RefreshSession(ctx, req.RefreshToken)
 	if err != nil {
-		l.Errorf("refresh failed to verify refresh token: %v", err)
+		l.Errorf("refresh failed to rotate refresh token: %v", err)
 		return nil, ErrInvalidExpiredRefresh
 	}
+	claims := sess.Claims
 
 	user, err := l.svcCtx.Repo.InternalUsers.GetByID(ctx, claims.Subject)
 	if err != nil {
@@ -48,11 +53,7 @@ func (l *AuthRefreshLogic) AuthRefresh(req *types.RefreshTokenRequest) (*types.A
 		return nil, ErrFailedGenAccessToken
 	}
 
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, roles, sessionID)
-	if err != nil {
-		l.Errorf("refresh failed to create refresh token: %v", err)
-		return nil, ErrFailedGenRefreshToken
-	}
+	refreshToken := sess.RefreshToken
 
 	return &types.AuthResponse{
 		AccessToken:  accessToken.Token,

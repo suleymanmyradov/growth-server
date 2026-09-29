@@ -70,6 +70,12 @@ func (l *ResetPasswordLogic) ResetPassword(in *auth.ResetPasswordRequest) (*auth
 		l.Errorf("ResetPassword failed to delete reset token: %v", err)
 	}
 
+	// Kill every existing session — a reset implies the account may be
+	// compromised; all pre-reset tokens (access + refresh) must die.
+	if err := l.svcCtx.TokenMaker.RevokeAllUserSessions(ctx, user.ID); err != nil {
+		l.Errorf("ResetPassword failed to revoke sessions for user %s: %v", user.ID, err)
+	}
+
 	l.Infof("ResetPassword successful for user %s", user.ID)
 
 	return &auth.EmptyResponse{}, nil

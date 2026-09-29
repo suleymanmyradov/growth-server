@@ -51,6 +51,9 @@ BACKUP_DIR="${BACKUP_DIR:-/home/ubuntu/backups}"
 OFFSITE_ENV_FILE="${OFFSITE_ENV_FILE:-$BACKUP_DIR/.offsite.env}"
 AWS_IMAGE="${AWS_IMAGE:-amazon/aws-cli:2}"
 DRYRUN="${DRYRUN:-false}"
+# node-exporter textfile dir — BackupStale alert fires if this file's
+# timestamp ages past 36h (only written when a real sync succeeds).
+TEXTFILE_DIR="${TEXTFILE_DIR:-$BACKUP_DIR/textfile}"
 
 # Source credentials/config if the env file exists (enabling can live there).
 # shellcheck disable=SC1090
@@ -98,5 +101,15 @@ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY \
   -e AWS_DEFAULT_REGION \
   "$AWS_IMAGE" "${args[@]}"
+
+# Publish a success timestamp for node-exporter (atomic write) — a stale
+# offsite sync is the alert that actually catches "backups stopped leaving
+# the VM". Skipped on --dryrun so tests don't mask a broken real sync.
+if [[ "$DRYRUN" != "true" ]]; then
+  mkdir -p "$TEXTFILE_DIR"
+  printf 'backup_last_success_timestamp_seconds{job="offsite"} %s\n' \
+    "$(date +%s)" > "$TEXTFILE_DIR/backup-offsite.prom.$$"
+  mv "$TEXTFILE_DIR/backup-offsite.prom.$$" "$TEXTFILE_DIR/backup-offsite.prom"
+fi
 
 echo "$(date -Is) offsite sync ok: $BACKUP_DIR -> $DEST (dryrun=$DRYRUN)"

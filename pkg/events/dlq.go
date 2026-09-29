@@ -32,8 +32,10 @@ type DLQPublisher struct {
 }
 
 // NewDLQPublisher creates a DLQ publisher that writes to the given Kafka topic.
+// WithSyncPush makes pushes synchronous so a poison message cannot vanish
+// between a "returned nil" and a broker write that failed asynchronously.
 func NewDLQPublisher(brokers []string, topic string) *DLQPublisher {
-	p := kq.NewPusher(brokers, topic)
+	p := kq.NewPusher(brokers, topic, kq.WithSyncPush())
 	return &DLQPublisher{pusher: p, topic: topic}
 }
 

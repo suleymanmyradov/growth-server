@@ -70,12 +70,10 @@ func (c *LLMClassifier) Classify(ctx context.Context, text string) (Verdict, err
 
 	var result classifyResult
 	if err := json.Unmarshal([]byte(content), &result); err != nil {
-		// If we can't parse, default to safe with low confidence.
-		return Verdict{
-			Category:   CategorySafe,
-			Confidence: 0.0,
-			Reason:     "classifier output unparseable",
-		}, nil
+		// Unparseable output means the classifier cannot be trusted — return
+		// an error so callers fail closed instead of silently treating
+		// potentially-flagged input as safe.
+		return Verdict{}, fmt.Errorf("safety.Classify: unparseable classifier output %q: %w", content, err)
 	}
 
 	return Verdict{

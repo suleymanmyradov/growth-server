@@ -33,10 +33,10 @@ func UploadFileHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		}
 		defer func() { _ = file.Close() }()
 
-		folder := r.FormValue("folder")
-		if folder == "" {
-			folder = "uploads"
-		}
+		// Uploads are pinned to avatars: taking the folder from form data let
+		// any authenticated user write into the exports/ prefix alongside GDPR
+		// exports, bypassing its owner-scoped presigned-URL flow.
+		folder := "avatars"
 
 		data, err := io.ReadAll(file)
 		if err != nil {

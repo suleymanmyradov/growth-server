@@ -52,6 +52,13 @@ func (l *DeleteUserLogic) DeleteUser(in *auth.DeleteUserRequest) (*auth.EmptyRes
 		return nil, errInternal(MsgFailedDeleteUser)
 	}
 
+	// Kill every session — a deleted account must not keep working tokens.
+	if l.svcCtx.TokenMaker != nil {
+		if err := l.svcCtx.TokenMaker.RevokeAllUserSessions(ctx, userID); err != nil {
+			l.Errorf("DeleteUser failed to revoke sessions for user %s: %v", userID, err)
+		}
+	}
+
 	l.Infof("DeleteUser successful for user %s", userID)
 
 	// Publish synchronously so broker issues are visible immediately in dev.

@@ -17,6 +17,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 )
 
@@ -179,12 +180,15 @@ func TestResetPasswordLogic_Success(t *testing.T) {
 
 	user := makeTestUser(func(u *db.User) { u.ID = userID })
 	mockUsers := &MockUsersRepo{}
+	mockTokenMaker := &MockTokenMaker{}
 	mockUsers.On("GetUserByEmail", mock.Anything, "jane@example.com").Return(user, nil)
 	mockUsers.On("UpdateUserPassword", mock.Anything, userID, mock.Anything).Return(user, nil)
+	mockTokenMaker.On("RevokeAllUserSessions", mock.Anything, userID).Return(nil)
 
 	svcCtx := &svc.ServiceContext{
 		Repo:        &repository.Repository{Users: mockUsers},
 		RedisClient: redisClient,
+		TokenMaker:  mockTokenMaker,
 		Config:      testConfig(15*time.Minute, 7*24*time.Hour),
 	}
 
@@ -195,6 +199,7 @@ func TestResetPasswordLogic_Success(t *testing.T) {
 	})
 
 	require.NoError(t, err)
+	mockTokenMaker.AssertCalled(t, "RevokeAllUserSessions", mock.Anything, userID)
 }
 
 func TestResetPasswordLogic_InvalidToken(t *testing.T) {
@@ -241,6 +246,45 @@ func TestResetPasswordLogic_UserNotFound(t *testing.T) {
 	})
 
 	assertGrpcError(t, err, codes.NotFound, MsgUserNotFound)
+}
+
+// ============================================
+// ChangePasswordLogic tests
+// ============================================
+
+func TestChangePasswordLogic_Success_RevokesSessions(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+
+	oldHash, err := bcrypt.GenerateFromPassword([]byte("OldPass1!"), bcrypt.DefaultCost)
+	require.NoError(t, err)
+	hashStr := string(oldHash)
+
+	user := makeTestUser(func(u *db.User) {
+		u.ID = userID
+		u.PasswordHash = &hashStr
+	})
+	mockUsers := &MockUsersRepo{}
+	mockTokenMaker := &MockTokenMaker{}
+	mockUsers.On("GetUserByID", mock.Anything, userID).Return(user, nil)
+	mockUsers.On("UpdateUserPassword", mock.Anything, userID, mock.Anything).Return(user, nil)
+	mockTokenMaker.On("RevokeAllUserSessions", mock.Anything, userID).Return(nil)
+
+	svcCtx := &svc.ServiceContext{
+		Repo:       &repository.Repository{Users: mockUsers},
+		TokenMaker: mockTokenMaker,
+		Config:     testConfig(15*time.Minute, 7*24*time.Hour),
+	}
+
+	l := NewChangePasswordLogic(ctx, svcCtx)
+	_, err = l.ChangePassword(&auth.ChangePasswordRequest{
+		UserId:      userID.String(),
+		OldPassword: "OldPass1!",
+		NewPassword: "NewPass1!",
+	})
+
+	require.NoError(t, err)
+	mockTokenMaker.AssertCalled(t, "RevokeAllUserSessions", mock.Anything, userID)
 }
 
 // ============================================
@@ -506,14 +550,14 @@ func TestRefreshTokenLogic_Success(t *testing.T) {
 	mockUsers := &MockUsersRepo{}
 	mockTokenMaker := &MockTokenMaker{}
 
-	mockTokenMaker.On("VerifyRefreshToken", mock.Anything, "valid-refresh-token").
-		Return(&jwt.TokenClaims{Subject: userID, SessionID: sessionID}, nil)
-	mockTokenMaker.On("IsSessionRevoked", mock.Anything, sessionID).Return(false, nil)
+	mockTokenMaker.On("RefreshSession", mock.Anything, "valid-refresh-token").
+		Return(&jwt.RefreshSessionResult{
+			Claims:       &jwt.TokenClaims{Subject: userID, SessionID: sessionID},
+			RefreshToken: &jwt.TokenResponse{Token: "new-refresh-token"},
+		}, nil)
 	mockUsers.On("GetUserByID", mock.Anything, userID).Return(user, nil)
 	mockTokenMaker.On("CreateAccessToken", mock.Anything, userID, "janedoe", []string{"user"}, sessionID).
 		Return(&jwt.TokenResponse{Token: "new-access-token"}, nil)
-	mockTokenMaker.On("RotateRefreshToken", mock.Anything, "valid-refresh-token").
-		Return(&jwt.TokenResponse{Token: "new-refresh-token"}, nil)
 
 	svcCtx := &svc.ServiceContext{
 		Repo:       &repository.Repository{Users: mockUsers},
@@ -533,7 +577,7 @@ func TestRefreshTokenLogic_Success(t *testing.T) {
 func TestRefreshTokenLogic_InvalidRefreshToken(t *testing.T) {
 	ctx := context.Background()
 	mockTokenMaker := &MockTokenMaker{}
-	mockTokenMaker.On("VerifyRefreshToken", mock.Anything, "bad-token").
+	mockTokenMaker.On("RefreshSession", mock.Anything, "bad-token").
 		Return(nil, errors.New("invalid"))
 
 	svcCtx := &svc.ServiceContext{
@@ -549,13 +593,10 @@ func TestRefreshTokenLogic_InvalidRefreshToken(t *testing.T) {
 
 func TestRefreshTokenLogic_SessionRevoked(t *testing.T) {
 	ctx := context.Background()
-	userID := uuid.New()
-	sessionID := uuid.New()
 
 	mockTokenMaker := &MockTokenMaker{}
-	mockTokenMaker.On("VerifyRefreshToken", mock.Anything, "valid-refresh-token").
-		Return(&jwt.TokenClaims{Subject: userID, SessionID: sessionID}, nil)
-	mockTokenMaker.On("IsSessionRevoked", mock.Anything, sessionID).Return(true, nil)
+	mockTokenMaker.On("RefreshSession", mock.Anything, "valid-refresh-token").
+		Return(nil, jwt.ErrSessionRevoked)
 
 	svcCtx := &svc.ServiceContext{
 		TokenMaker: mockTokenMaker,
@@ -576,9 +617,11 @@ func TestRefreshTokenLogic_UserNotFound(t *testing.T) {
 	mockTokenMaker := &MockTokenMaker{}
 	mockUsers := &MockUsersRepo{}
 
-	mockTokenMaker.On("VerifyRefreshToken", mock.Anything, "valid-refresh-token").
-		Return(&jwt.TokenClaims{Subject: userID, SessionID: sessionID}, nil)
-	mockTokenMaker.On("IsSessionRevoked", mock.Anything, sessionID).Return(false, nil)
+	mockTokenMaker.On("RefreshSession", mock.Anything, "valid-refresh-token").
+		Return(&jwt.RefreshSessionResult{
+			Claims:       &jwt.TokenClaims{Subject: userID, SessionID: sessionID},
+			RefreshToken: &jwt.TokenResponse{Token: "new-refresh-token"},
+		}, nil)
 	mockUsers.On("GetUserByID", mock.Anything, userID).Return(db.User{}, errors.New("no rows"))
 
 	svcCtx := &svc.ServiceContext{

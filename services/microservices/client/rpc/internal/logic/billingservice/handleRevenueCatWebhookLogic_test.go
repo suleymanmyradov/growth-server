@@ -130,6 +130,14 @@ func rcTestLogic(m *rcMockBilling) *HandleRevenueCatWebhookLogic {
 }
 
 func rcWebhookBody(events ...map[string]any) []byte {
+	// Emit RevenueCat's real envelope — {"api_version":"1.0","event":{...}} —
+	// for the common single-event case; multiple events use the tolerated
+	// array shape so batch behavior stays covered.
+	if len(events) == 1 {
+		payload := map[string]any{"api_version": "1.0", "event": events[0]}
+		b, _ := json.Marshal(payload)
+		return b
+	}
 	payload := map[string]any{"events": events}
 	b, _ := json.Marshal(payload)
 	return b

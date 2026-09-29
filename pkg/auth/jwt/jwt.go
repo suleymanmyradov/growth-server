@@ -5,6 +5,8 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -73,6 +75,23 @@ type RevocationRepository interface {
 	IsTokenRevoked(ctx context.Context, tokenType TokenType, token string) (bool, error)
 	MarkSessionRevoked(ctx context.Context, sessionID string, ttl time.Duration) error
 	IsSessionRevoked(ctx context.Context, sessionID string) (bool, error)
+	// ConsumeRefreshToken atomically claims a refresh token (SET NX semantics
+	// on the revoked key). Returns true only for the winning caller.
+	ConsumeRefreshToken(ctx context.Context, token string, marker string, ttl time.Duration) (bool, error)
+	// UnconsumeRefreshToken rolls back a consume iff the marker still matches.
+	UnconsumeRefreshToken(ctx context.Context, token string, marker string) error
+	// StoreRotatedRefresh caches the replacement for a consumed token for the
+	// grace window; RotatedRefreshFor reads it back.
+	StoreRotatedRefresh(ctx context.Context, token string, newToken string, ttl time.Duration) error
+	RotatedRefreshFor(ctx context.Context, token string) (string, bool, error)
+	// RefreshMarkerFor returns the consumed-marker stored on the revoked key
+	// ("<unixTs>|<sessionID>" for rotation consumes, "1" for plain revokes).
+	RefreshMarkerFor(ctx context.Context, token string) (string, bool, error)
+	// MarkUserRevoked stores a cutoff instant for a user — tokens issued at
+	// or before it are dead. Used by password reset/change to kill every
+	// session without enumerating session IDs.
+	MarkUserRevoked(ctx context.Context, userID string, revokedAt time.Time, ttl time.Duration) error
+	IsUserRevoked(ctx context.Context, userID string, issuedAt time.Time) (bool, error)
 }
 
 // keyResolver maps a token's signing method to the credential that verifies
@@ -256,6 +275,9 @@ func (tm *TokenMaker) VerifyAccessToken(ctx context.Context, tokenString string)
 		if revoked {
 			return nil, fmt.Errorf("token revoked")
 		}
+		if err := tm.checkUserRevoked(ctx, claims); err != nil {
+			return nil, err
+		}
 	}
 
 	return claims, nil
@@ -288,9 +310,38 @@ func (tm *TokenMaker) VerifyRefreshToken(ctx context.Context, tokenString string
 		if revoked {
 			return nil, fmt.Errorf("token revoked")
 		}
+		if err := tm.checkUserRevoked(ctx, claims); err != nil {
+			return nil, err
+		}
 	}
 
 	return claims, nil
+}
+
+// checkUserRevoked rejects tokens issued at/before the user's revocation
+// cutoff (password reset/change kills every session this way).
+func (tm *TokenMaker) checkUserRevoked(ctx context.Context, claims *TokenClaims) error {
+	if claims.IssuedAt == nil || claims.Subject == uuid.Nil {
+		return nil
+	}
+	revoked, err := tm.repo.IsUserRevoked(ctx, claims.Subject.String(), claims.IssuedAt.Time)
+	if err != nil {
+		return fmt.Errorf("check user revocation: %w", err)
+	}
+	if revoked {
+		return fmt.Errorf("user sessions revoked")
+	}
+	return nil
+}
+
+// RevokeAllUserSessions invalidates every token (access + refresh) the user
+// currently holds, without needing to enumerate session IDs. New logins
+// still work — tokens minted after this instant pass the cutoff check.
+func (tm *TokenMaker) RevokeAllUserSessions(ctx context.Context, userID uuid.UUID) error {
+	if tm.repo == nil {
+		return fmt.Errorf("revocation not enabled")
+	}
+	return tm.repo.MarkUserRevoked(ctx, userID.String(), time.Now(), tm.refreshExpiry)
 }
 
 func (tm *TokenMaker) verifyToken(tokenString string, expectedType TokenType) (*TokenClaims, error) {
@@ -437,21 +488,191 @@ func (tm *TokenMaker) IsSessionRevoked(ctx context.Context, sessionID uuid.UUID)
 }
 
 func (tm *TokenMaker) RotateRefreshToken(ctx context.Context, oldToken string) (*TokenResponse, error) {
-	oldClaims, err := tm.VerifyRefreshToken(ctx, oldToken)
+	result, err := tm.RefreshSession(ctx, oldToken)
+	if err != nil {
+		return nil, err
+	}
+	return result.RefreshToken, nil
+}
+
+// ErrRotationInFlight is returned when a refresh token was just consumed by
+// a concurrent request whose rotated pair hasn't been stored yet — the
+// caller should retry shortly rather than treating the session as dead.
+var ErrRotationInFlight = fmt.Errorf("refresh token rotation in flight")
+
+// ErrSessionRevoked is returned when the session the token belongs to was
+// revoked (logout, password change, reuse detection).
+var ErrSessionRevoked = fmt.Errorf("session revoked")
+
+// rotationGraceTTL is how long a just-rotated token replays to its successor
+// pair. It absorbs legitimate client-side races (parallel requests that all
+// snapshotted the pre-rotation token) without weakening reuse detection.
+const rotationGraceTTL = 60 * time.Second
+
+// rotationPollInterval/Attempts cover the gap between a winner's consume
+// marker landing and its rotated pair being stored (~one Redis RTT).
+const (
+	rotationPollInterval = 100 * time.Millisecond
+	rotationPollAttempts = 15
+)
+
+// RefreshSessionResult carries everything the refresh RPC needs: the claims
+// of the presented token (for user lookup) and the refresh token to return
+// (new, or the replayed successor for stragglers inside the grace window).
+type RefreshSessionResult struct {
+	Claims       *TokenClaims
+	RefreshToken *TokenResponse
+	// Replayed is true when the presented token had already been consumed and
+	// the stored successor was returned — i.e. a concurrent rotation won.
+	Replayed bool
+}
+
+// RefreshSession performs an atomic refresh-token rotation.
+//
+// The old flow was check-then-set (EXISTS then SET): two concurrent refreshes
+// of the same token both passed the revoked check and both minted pairs, and
+// a replayed stolen token was indistinguishable from a legit retry. This
+// version consumes the token with SET NX, caches the successor pair for a
+// 60s grace window so stragglers get the same pair, and treats a consumed
+// token with no cached successor past the grace window as REUSE — which
+// revokes the whole session.
+func (tm *TokenMaker) RefreshSession(ctx context.Context, oldToken string) (*RefreshSessionResult, error) {
+	// Verify signature + claims only — the revocation check happens atomically
+	// below (a consumed token must still parse so grace replay can find its
+	// successor).
+	oldClaims, err := tm.verifyToken(oldToken, RefreshToken)
 	if err != nil {
 		return nil, fmt.Errorf("verify old token: %w", err)
 	}
 
-	if tm.repo != nil && oldClaims.ExpiresAt != nil {
-		ttl := time.Until(oldClaims.ExpiresAt.Time)
-		if ttl > 0 {
-			if err := tm.repo.MarkTokenRevoke(ctx, RefreshToken, oldToken, ttl); err != nil {
-				return nil, fmt.Errorf("revoke old token: %w", err)
-			}
+	if tm.repo == nil {
+		// No revocation store — rotate without tracking (dev/test fallback).
+		pair, err := tm.CreateRefreshToken(ctx, oldClaims.Subject, oldClaims.Username, oldClaims.Roles, oldClaims.SessionID)
+		if err != nil {
+			return nil, err
+		}
+		return &RefreshSessionResult{Claims: oldClaims, RefreshToken: pair}, nil
+	}
+
+	if oldClaims.SessionID != uuid.Nil {
+		revoked, err := tm.repo.IsSessionRevoked(ctx, oldClaims.SessionID.String())
+		if err != nil {
+			return nil, fmt.Errorf("check session revocation: %w", err)
+		}
+		if revoked {
+			return nil, ErrSessionRevoked
 		}
 	}
 
-	return tm.CreateRefreshToken(ctx, oldClaims.Subject, oldClaims.Username, oldClaims.Roles, oldClaims.SessionID)
+	// User-level cutoff (password reset/change): tokens issued before the
+	// cutoff must not rotate into fresh sessions.
+	if err := tm.checkUserRevoked(ctx, oldClaims); err != nil {
+		return nil, ErrSessionRevoked
+	}
+
+	ttl := time.Minute
+	if oldClaims.ExpiresAt != nil {
+		if remaining := time.Until(oldClaims.ExpiresAt.Time); remaining > ttl {
+			ttl = remaining
+		}
+	}
+
+	marker := fmt.Sprintf("%d|%s", time.Now().Unix(), oldClaims.SessionID)
+	consumed, err := tm.repo.ConsumeRefreshToken(ctx, oldToken, marker, ttl)
+	if err != nil {
+		return nil, fmt.Errorf("consume old token: %w", err)
+	}
+
+	if consumed {
+		pair, err := tm.CreateRefreshToken(ctx, oldClaims.Subject, oldClaims.Username, oldClaims.Roles, oldClaims.SessionID)
+		if err != nil {
+			return nil, err
+		}
+		if err := tm.repo.StoreRotatedRefresh(ctx, oldToken, pair.Token, rotationGraceTTL); err != nil {
+			// Roll back the consume so a straggler (or the client's retry)
+			// re-attempts the rotation rather than hitting reuse detection.
+			_ = tm.repo.UnconsumeRefreshToken(ctx, oldToken, marker)
+			return nil, fmt.Errorf("store rotated pair: %w", err)
+		}
+		return &RefreshSessionResult{Claims: oldClaims, RefreshToken: pair}, nil
+	}
+
+	// The token was already consumed — either a concurrent rotation is in
+	// flight (pair not yet stored) or this is a replay.
+	for i := 0; i < rotationPollAttempts; i++ {
+		successor, ok, err := tm.repo.RotatedRefreshFor(ctx, oldToken)
+		if err != nil {
+			return nil, fmt.Errorf("check rotated pair: %w", err)
+		}
+		if ok {
+			return &RefreshSessionResult{
+				Claims:       oldClaims,
+				RefreshToken: &TokenResponse{Token: successor, ExpiresAt: claimsExpiry(successor, oldClaims.ExpiresAt)},
+				Replayed:     true,
+			}, nil
+		}
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(rotationPollInterval):
+		}
+	}
+
+	// No successor appeared. A young rotation marker means the winner is
+	// still mid-flight (or crashed) — tell the caller to retry rather than
+	// punish the session. An old marker (or a plain "1" from logout) means
+	// the token is being replayed past its grace window: revoke the session.
+	markerVal, markerOK, err := tm.repo.RefreshMarkerFor(ctx, oldToken)
+	if err != nil {
+		return nil, fmt.Errorf("check consume marker: %w", err)
+	}
+	if !markerOK {
+		// Marker already gone (token TTL expired mid-poll, etc.) — can't
+		// confirm reuse, so reject without punishing the session.
+		return nil, fmt.Errorf("token revoked")
+	}
+	if consumedAt, ok := parseRotationMarker(markerVal); ok {
+		if time.Since(consumedAt) < rotationGraceTTL {
+			return nil, ErrRotationInFlight
+		}
+	} else {
+		// Plain revocation marker (logout / password reset) — not reuse.
+		return nil, fmt.Errorf("token revoked")
+	}
+
+	// Reuse detected: a rotated token presented after its grace window.
+	if oldClaims.SessionID != uuid.Nil {
+		_ = tm.repo.MarkSessionRevoked(ctx, oldClaims.SessionID.String(), ttl)
+	}
+	return nil, ErrSessionRevoked
+}
+
+// parseRotationMarker extracts the consume timestamp from a
+// "<unixTs>|<sessionID>" marker. Returns false for non-rotation markers
+// (e.g. "1" written by plain revocation).
+func parseRotationMarker(marker string) (time.Time, bool) {
+	pipe := strings.IndexByte(marker, '|')
+	if pipe <= 0 {
+		return time.Time{}, false
+	}
+	ts, err := strconv.ParseInt(marker[:pipe], 10, 64)
+	if err != nil {
+		return time.Time{}, false
+	}
+	return time.Unix(ts, 0), true
+}
+
+// claimsExpiry decodes the exp claim of a token we minted ourselves (signature
+// already trusted), falling back to the old token's expiry when parsing fails.
+func claimsExpiry(token string, fallback *jwt.NumericDate) time.Time {
+	claims := &TokenClaims{}
+	if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err == nil && claims.ExpiresAt != nil {
+		return claims.ExpiresAt.Time
+	}
+	if fallback != nil {
+		return fallback.Time
+	}
+	return time.Now().Add(rotationGraceTTL)
 }
 
 // Note: This JWT package does not spawn any background goroutines.

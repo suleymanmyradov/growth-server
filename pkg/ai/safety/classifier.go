@@ -1,6 +1,9 @@
 package safety
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // Category classifies the safety verdict of user input.
 type Category string
@@ -45,3 +48,39 @@ If you're in immediate danger, please call your local emergency number now.
 • Elsewhere: https://findahelpline.com
 
 You deserve support from someone trained to help. Would you like to keep talking about your goals when you're ready?`
+
+// UnavailableResponse is the deterministic, never-model-generated response
+// sent when the safety classifier cannot produce a verdict (provider error,
+// timeout, or unparseable output). Callers must fail closed — the model never
+// sees unscreened input — and this message both acknowledges the degraded
+// state and surfaces crisis resources in case the user needs them.
+const UnavailableResponse = `I'm having trouble reading your message right now, so I'd rather pause than guess. Please try again in a moment.
+
+If you're in crisis or thinking about harming yourself, please reach out now:
+• US: call or text 988 (Suicide & Crisis Lifeline)
+• UK & ROI: call 116 123 (Samaritans)
+• Elsewhere: https://findahelpline.com`
+
+// classifyRetryDelay is the pause before the single classifier retry. Short
+// enough to stay inside the classify timeout, long enough to ride out a
+// provider blip.
+const classifyRetryDelay = 300 * time.Millisecond
+
+// ClassifyWithRetry calls c.Classify and retries once on error. A persistent
+// failure is returned as an error — callers must treat that as "unknown",
+// never as "safe" (fail closed).
+func ClassifyWithRetry(ctx context.Context, c Classifier, text string) (Verdict, error) {
+	verdict, err := c.Classify(ctx, text)
+	if err == nil {
+		return verdict, nil
+	}
+	if ctx.Err() != nil {
+		return Verdict{}, err
+	}
+	select {
+	case <-ctx.Done():
+		return Verdict{}, err
+	case <-time.After(classifyRetryDelay):
+	}
+	return c.Classify(ctx, text)
+}

@@ -44,20 +44,31 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 	// defense-in-depth, but the classifier is the primary control.
 	if l.svcCtx.Classifier != nil {
 		classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
-		verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, in.UserMessage)
+		verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, in.UserMessage)
 		cancel()
 
 		switch {
 		case err != nil:
-			// Fail-open for availability (matches the classifier's own
-			// "unparseable -> safe" default), but log + metric so outages
-			// are visible.
-			l.Errorf("coaching safety classify failed, proceeding: user=%s err=%v", in.UserId, err)
+			// Fail closed: unscreened input never reaches the model. The
+			// deterministic degraded-mode response still carries crisis
+			// resources for the user who may need them.
+			l.Errorf("coaching safety classify failed, failing closed: user=%s err=%v", in.UserId, err)
 			coachingSafetyClassifyErrors.Inc()
+			if err := stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
+				Delta: safety.UnavailableResponse,
+			}); err != nil {
+				return err
+			}
+			return stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
+				Complete:     true,
+				FullResponse: safety.UnavailableResponse,
+			})
 
 		case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
-			l.Infof("coaching safety block: user=%s category=%s confidence=%.2f reason=%s",
-				in.UserId, verdict.Category, verdict.Confidence, verdict.Reason)
+			// Reason deliberately not logged — classifier reasons can quote
+			// self-harm content verbatim.
+			l.Infof("coaching safety block: user=%s category=%s confidence=%.2f",
+				in.UserId, verdict.Category, verdict.Confidence)
 			coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
 			// Stream the deterministic response over the same SSE channel so
 			// the frontend renders it like a normal assistant message. The

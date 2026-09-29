@@ -1,0 +1,58 @@
+# Alertmanager routing for the growth stack.
+#
+# Alert delivery is by email through Resend SMTP (smtp.resend.com). The API
+# key is a secret, so it lives in ./secrets/ (gitignored — create it on the
+# VM, not here):
+#
+#   deploy/alertmanager/secrets/resend_api_key   → one line, a Resend API key
+#       (https://resend.com/api-keys — a scoped "Sending access" key is enough)
+#
+# Sender/recipient addresses come from environment variables interpolated by
+# the compose service (see docker-compose.prod.yml):
+#
+#   ALERT_EMAIL_FROM  — must be on a domain verified in Resend
+#                       (default: alerts@evolella.com)
+#   ALERT_EMAIL_TO    — where alerts land (default: support@evolella.com)
+#
+# A missing resend_api_key file does not stop Alertmanager — file secrets are
+# read at send time, so alerts evaluate normally and the first send fails
+# loudly in the logs until the key exists.
+
+global:
+  smtp_smarthost: smtp.resend.com:587
+  smtp_auth_username: resend
+  smtp_auth_password_file: /etc/alertmanager/secrets/resend_api_key
+  smtp_require_tls: true
+  # smtp_from / email "to" are templated in by the compose entrypoint.
+  smtp_from: __ALERT_EMAIL_FROM__
+
+route:
+  receiver: email
+  group_by: [alertname, severity]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  routes:
+    # Critical alerts re-notify faster and bypass grouping delays.
+    - matchers: [severity="critical"]
+      group_wait: 10s
+      repeat_interval: 1h
+
+receivers:
+  - name: email
+    email_configs:
+      - to: __ALERT_EMAIL_TO__
+        send_resolved: true
+        headers:
+          subject: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} — Evolella'
+        html: >-
+          {{ range .Alerts }}
+          <h3>{{ .Annotations.summary }}</h3>
+          <p>{{ .Annotations.description }}</p>
+          <p><small>{{ .StartsAt.Format "2006-01-02 15:04 UTC" }} — labels:
+          {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}</small></p>
+          {{ end }}
+
+# Silence nothing by default; use `amtool` or the Grafana UI for ad-hoc
+# silences.
+inhibit_rules: []

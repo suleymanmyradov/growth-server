@@ -62,15 +62,20 @@ func (l *GenerateOnboardingHabitsLogic) GenerateOnboardingHabits(in *aicoach.Gen
 		combined := strings.Join([]string{in.GoalTitle, in.Motivation, in.Blocker}, "\n")
 		if combined != "" {
 			classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
-			verdict, err := l.svcCtx.Classifier.Classify(classifyCtx, combined)
+			verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, combined)
 			cancel()
 			switch {
 			case err != nil:
-				l.Errorf("onboarding safety classify failed, proceeding: user=%s err=%v", in.UserId, err)
+				// Fail closed: unscreened free-text never reaches the model.
+				// The deterministic fallback habits keep onboarding working.
+				l.Errorf("onboarding safety classify failed, failing closed: user=%s err=%v", in.UserId, err)
 				coachingSafetyClassifyErrors.Inc()
+				return &aicoach.GenerateOnboardingHabitsResponse{
+					Habits: onboardingFallbackHabits(in.GoalTitle, in.DailyMinutes),
+				}, nil
 			case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
-				l.Infof("onboarding safety block: user=%s category=%s confidence=%.2f reason=%s",
-					in.UserId, verdict.Category, verdict.Confidence, verdict.Reason)
+				l.Infof("onboarding safety block: user=%s category=%s confidence=%.2f",
+					in.UserId, verdict.Category, verdict.Confidence)
 				coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
 				// Don't generate habits from crisis input; return the fallback
 				// so onboarding can continue without surfacing the raw input.

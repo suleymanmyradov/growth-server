@@ -72,6 +72,15 @@ func (l *ChangePasswordLogic) ChangePassword(in *auth.ChangePasswordRequest) (*a
 		return nil, errInternal(MsgFailedUpdatePassword)
 	}
 
+	// Kill every session — including this one. A password change is a
+	// credential-security event: any stolen token must die with the old
+	// password. The client re-logs-in with the new password.
+	if err := l.svcCtx.TokenMaker.RevokeAllUserSessions(ctx, userID); err != nil {
+		// Non-fatal: the password is already changed. Log loudly; the
+		// revocation marker only exists while Redis is up anyway.
+		l.Errorf("ChangePassword failed to revoke sessions for user %s: %v", userID, err)
+	}
+
 	l.Infof("ChangePassword successful for user %s", userID)
 
 	return &auth.EmptyResponse{}, nil

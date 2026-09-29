@@ -2,6 +2,9 @@ package jwt
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -11,15 +14,16 @@ import (
 
 // mockRevocationRepo is a simple in-memory RevocationRepository for testing.
 type mockRevocationRepo struct {
-	revoked map[string]struct{}
+	revoked map[string]string
+	rotated map[string]string
 }
 
 func newMockRevocationRepo() *mockRevocationRepo {
-	return &mockRevocationRepo{revoked: make(map[string]struct{})}
+	return &mockRevocationRepo{revoked: make(map[string]string), rotated: make(map[string]string)}
 }
 
 func (r *mockRevocationRepo) MarkTokenRevoke(_ context.Context, _ TokenType, token string, _ time.Duration) error {
-	r.revoked[token] = struct{}{}
+	r.revoked[token] = "1"
 	return nil
 }
 
@@ -29,13 +33,60 @@ func (r *mockRevocationRepo) IsTokenRevoked(_ context.Context, _ TokenType, toke
 }
 
 func (r *mockRevocationRepo) MarkSessionRevoked(_ context.Context, sessionID string, _ time.Duration) error {
-	r.revoked["session:"+sessionID] = struct{}{}
+	r.revoked["session:"+sessionID] = "1"
 	return nil
 }
 
 func (r *mockRevocationRepo) IsSessionRevoked(_ context.Context, sessionID string) (bool, error) {
 	_, ok := r.revoked["session:"+sessionID]
 	return ok, nil
+}
+
+func (r *mockRevocationRepo) ConsumeRefreshToken(_ context.Context, token string, marker string, _ time.Duration) (bool, error) {
+	if _, ok := r.revoked[token]; ok {
+		return false, nil
+	}
+	r.revoked[token] = marker
+	return true, nil
+}
+
+func (r *mockRevocationRepo) UnconsumeRefreshToken(_ context.Context, token string, marker string) error {
+	if r.revoked[token] == marker {
+		delete(r.revoked, token)
+	}
+	return nil
+}
+
+func (r *mockRevocationRepo) StoreRotatedRefresh(_ context.Context, token string, newToken string, _ time.Duration) error {
+	r.rotated[token] = newToken
+	return nil
+}
+
+func (r *mockRevocationRepo) RotatedRefreshFor(_ context.Context, token string) (string, bool, error) {
+	v, ok := r.rotated[token]
+	return v, ok, nil
+}
+
+func (r *mockRevocationRepo) RefreshMarkerFor(_ context.Context, token string) (string, bool, error) {
+	v, ok := r.revoked[token]
+	return v, ok, nil
+}
+
+func (r *mockRevocationRepo) MarkUserRevoked(_ context.Context, userID string, revokedAt time.Time, _ time.Duration) error {
+	r.revoked["user:"+userID] = fmt.Sprintf("%d", revokedAt.Unix())
+	return nil
+}
+
+func (r *mockRevocationRepo) IsUserRevoked(_ context.Context, userID string, issuedAt time.Time) (bool, error) {
+	v, ok := r.revoked["user:"+userID]
+	if !ok {
+		return false, nil
+	}
+	cutoff, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return false, err
+	}
+	return issuedAt.Unix() <= cutoff, nil
 }
 
 // Test that validateClaims handles nil time fields without panicking.
@@ -205,5 +256,193 @@ func TestRefreshAfterLogout_RejectedByTokenRevocation(t *testing.T) {
 	_, err = maker.VerifyRefreshToken(context.Background(), refreshResp.Token)
 	if err == nil {
 		t.Fatal("expected refresh token to be rejected after token-value revocation, but VerifyRefreshToken succeeded")
+	}
+}
+
+// TestRefreshSession_AtomicConsume — the core race fix: only ONE caller may
+// consume a refresh token; the loser gets the winner's pair via the grace
+// replay rather than minting a divergent one.
+func TestRefreshSession_AtomicConsume(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	ctx := context.Background()
+	sessionID := uuid.New()
+	refreshResp, err := maker.CreateRefreshToken(ctx, uuid.New(), "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+
+	first, err := maker.RefreshSession(ctx, refreshResp.Token)
+	if err != nil {
+		t.Fatalf("first refresh: %v", err)
+	}
+	if first.Replayed {
+		t.Fatal("first refresh should not be a replay")
+	}
+
+	// Second call with the SAME old token replays the winner's pair.
+	second, err := maker.RefreshSession(ctx, refreshResp.Token)
+	if err != nil {
+		t.Fatalf("grace replay failed: %v", err)
+	}
+	if !second.Replayed {
+		t.Fatal("expected second call to replay the successor")
+	}
+	if second.RefreshToken.Token != first.RefreshToken.Token {
+		t.Fatal("replay returned a different pair — divergent rotation")
+	}
+}
+
+// TestRefreshSession_ReuseRevokesSession — a rotated token replayed after
+// the grace window is theft: the whole session dies.
+func TestRefreshSession_ReuseRevokesSession(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	ctx := context.Background()
+	sessionID := uuid.New()
+	refreshResp, err := maker.CreateRefreshToken(ctx, uuid.New(), "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+	if _, err := maker.RefreshSession(ctx, refreshResp.Token); err != nil {
+		t.Fatalf("first refresh: %v", err)
+	}
+
+	// Simulate the grace window having passed: drop the rotated-pair entry and
+	// backdate the consume marker beyond the 60s grace.
+	delete(repo.rotated, refreshResp.Token)
+	repo.revoked[refreshResp.Token] = fmt.Sprintf("%d|%s", time.Now().Add(-61*time.Second).Unix(), sessionID)
+
+	_, err = maker.RefreshSession(ctx, refreshResp.Token)
+	if err == nil {
+		t.Fatal("replayed past-grace token must be rejected")
+	}
+	if !errors.Is(err, ErrSessionRevoked) {
+		t.Fatalf("expected ErrSessionRevoked, got %v", err)
+	}
+	revoked, _ := repo.IsSessionRevoked(ctx, sessionID.String())
+	if !revoked {
+		t.Fatal("session should be revoked after reuse detection")
+	}
+}
+
+// TestRefreshSession_PlainRevokedNotReuse — a token revoked by logout
+// (marker "1", not a rotation marker) fails closed but does NOT escalate
+// to session revocation (the session is already handled by logout).
+func TestRefreshSession_PlainRevokedNotReuse(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	ctx := context.Background()
+	sessionID := uuid.New()
+	refreshResp, err := maker.CreateRefreshToken(ctx, uuid.New(), "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+	if err := maker.RevokeRefreshToken(ctx, refreshResp.Token); err != nil {
+		t.Fatalf("revoke refresh token: %v", err)
+	}
+
+	_, err = maker.RefreshSession(ctx, refreshResp.Token)
+	if err == nil {
+		t.Fatal("revoked token must be rejected")
+	}
+	revoked, _ := repo.IsSessionRevoked(ctx, sessionID.String())
+	if revoked {
+		t.Fatal("plain token revocation must not escalate to session revocation")
+	}
+}
+
+// TestRefreshSession_InFlightMarker — a consume marker with no stored pair
+// inside the grace window returns ErrRotationInFlight (retryable), not a
+// session-killing error.
+func TestRefreshSession_InFlightMarker(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	ctx := context.Background()
+	sessionID := uuid.New()
+	refreshResp, err := maker.CreateRefreshToken(ctx, uuid.New(), "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+
+	// Winner consumed but hasn't stored the pair yet.
+	repo.revoked[refreshResp.Token] = fmt.Sprintf("%d|%s", time.Now().Unix(), sessionID)
+
+	// Shrink the poll loop for the test by pre-expiring context quickly is
+	// fragile — instead just let it poll (1.5s) once. Acceptable in CI.
+	_, err = maker.RefreshSession(ctx, refreshResp.Token)
+	if !errors.Is(err, ErrRotationInFlight) {
+		t.Fatalf("expected ErrRotationInFlight, got %v", err)
+	}
+}
+
+// Password reset/change kills every session via an issued-at cutoff:
+// tokens minted before the marker are dead, tokens minted after live.
+func TestRevokeAllUserSessions_Cutoff(t *testing.T) {
+	privPEM, _ := testKeyPair(t)
+	repo := newMockRevocationRepo()
+	maker, err := NewTokenMaker(testECConfig(privPEM), repo)
+	if err != nil {
+		t.Fatalf("create token maker: %v", err)
+	}
+
+	ctx := context.Background()
+	userID := uuid.New()
+	sessionID := uuid.New()
+
+	accessResp, err := maker.CreateAccessToken(ctx, userID, "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create access token: %v", err)
+	}
+	refreshResp, err := maker.CreateRefreshToken(ctx, userID, "u", []string{"user"}, sessionID)
+	if err != nil {
+		t.Fatalf("create refresh token: %v", err)
+	}
+
+	// Password reset happens now: same-second iat is <= cutoff, so the
+	// pre-existing tokens die.
+	if err := maker.RevokeAllUserSessions(ctx, userID); err != nil {
+		t.Fatalf("revoke all user sessions: %v", err)
+	}
+
+	if _, err := maker.VerifyAccessToken(ctx, accessResp.Token); err == nil {
+		t.Fatal("expected pre-cutoff access token to be rejected")
+	}
+	if _, err := maker.RefreshSession(ctx, refreshResp.Token); !errors.Is(err, ErrSessionRevoked) {
+		t.Fatalf("expected ErrSessionRevoked for pre-cutoff refresh token, got %v", err)
+	}
+
+	// Simulate the reset having happened a second ago: a fresh login then
+	// mints a token with iat > cutoff, which must verify.
+	if err := maker.repo.MarkUserRevoked(ctx, userID.String(), time.Now().Add(-time.Second), time.Hour); err != nil {
+		t.Fatalf("backdate cutoff: %v", err)
+	}
+	// A login after the cutoff still works.
+	newAccess, err := maker.CreateAccessToken(ctx, userID, "u", []string{"user"}, uuid.New())
+	if err != nil {
+		t.Fatalf("create post-cutoff access token: %v", err)
+	}
+	if _, err := maker.VerifyAccessToken(ctx, newAccess.Token); err != nil {
+		t.Fatalf("post-cutoff access token should verify, got %v", err)
 	}
 }

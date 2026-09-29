@@ -83,6 +83,36 @@ func TestGetCustomerEntitlements_EmptyCustomerID(t *testing.T) {
 	assert.Contains(t, err.Error(), "customer ID is required")
 }
 
+func TestParseWebhookPayload_RealShape(t *testing.T) {
+	// The actual RevenueCat webhook sends a SINGLE "event" object with an
+	// api_version field — not an "events" array. Regression test for the
+	// silent-parse bug that dropped every real webhook.
+	body := []byte(`{
+		"api_version": "1.0",
+		"event": {
+			"type": "INITIAL_PURCHASE",
+			"store": "APP_STORE",
+			"app_user_id": "0191fa87-6ed1-7022-9999-0123456789ae",
+			"product_id": "com.growth.pro.monthly",
+			"entitlement_id": "pro",
+			"period_start_at": "2025-07-22T00:00:00Z",
+			"expiration_at": "2025-08-22T00:00:00Z",
+			"event_id": "evt-abc"
+		}
+	}`)
+
+	payload, err := ParseWebhookPayload(body)
+	require.NoError(t, err)
+	require.NotNil(t, payload.Event)
+	assert.Equal(t, "INITIAL_PURCHASE", payload.Event.Type)
+	assert.Equal(t, "0191fa87-6ed1-7022-9999-0123456789ae", payload.Event.AppUserID)
+
+	events := payload.AllEvents()
+	require.Len(t, events, 1)
+	assert.Equal(t, "INITIAL_PURCHASE", events[0].Type)
+	assert.Equal(t, "evt-abc", events[0].EventID)
+}
+
 func TestParseWebhookPayload(t *testing.T) {
 	body := []byte(`{
 		"events": [

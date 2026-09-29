@@ -158,7 +158,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				Consumers:  8,
 				Processors: 8,
 			},
-			kq.WithHandle(eventsHandler.Consume),
+			kq.WithHandle(events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".events",
+			}, eventsHandler.Consume).Handle()),
 		)
 		reminderDueQ = kq.MustNewQueue(
 			kq.KqConf{
@@ -169,7 +171,9 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				Consumers:  8,
 				Processors: 8,
 			},
-			kq.WithHandle(reminderDueHandler.Consume),
+			kq.WithHandle(events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".reminders",
+			}, reminderDueHandler.Consume).Handle()),
 		)
 	} else if redisClient != nil {
 		if c.Kafka.EventsTopic != "" {
@@ -177,14 +181,18 @@ func NewServiceContext(c config.Config) *ServiceContext {
 				Stream:    c.Kafka.EventsTopic,
 				Group:     group + ".events",
 				Consumers: 8,
-			}, eventsHandler)
+			}, events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".events",
+			}, eventsHandler.Consume))
 		}
 		if c.Kafka.ReminderDueTopic != "" {
 			reminderDueQ = redisstream.MustNewQueue(redisClient, redisstream.Config{
 				Stream:    c.Kafka.ReminderDueTopic,
 				Group:     group + ".reminders",
 				Consumers: 8,
-			}, reminderDueHandler)
+			}, events.WithRetryConsume(dlqPub, events.RetryConsumeConfig{
+				ServiceName: group + ".reminders",
+			}, reminderDueHandler.Consume))
 		}
 	}
 
