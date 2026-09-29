@@ -50,7 +50,7 @@ if ! grep -q '^DATABASE_URL=' deploy/.env.prod; then
 fi
 
 BACKEND_SERVICES=(auth client search ai-coach filemanager notifications ai-coach-consumer search-sync analytics-consumer gateway ai-gateway adminway)
-MONITORING_SERVICES=(prometheus grafana loki promtail tempo cadvisor)
+MONITORING_SERVICES=(prometheus grafana loki promtail tempo cadvisor alertmanager node-exporter blackbox)
 
 echo "==> Pulling images"
 "${COMPOSE[@]}" pull "${BACKEND_SERVICES[@]}" migrate "${MONITORING_SERVICES[@]}"

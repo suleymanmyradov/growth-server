@@ -736,12 +736,10 @@ services:
       ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@evolella.com}
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-support@evolella.com}
     entrypoint: ["/bin/sh", "-c"]
-    command: >-
-      sed -e "s|__ALERT_EMAIL_FROM__|$${ALERT_EMAIL_FROM}|g"
-          -e "s|__ALERT_EMAIL_TO__|$${ALERT_EMAIL_TO}|g"
-          /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.yml
-      && exec /bin/alertmanager --config.file=/tmp/alertmanager.yml
-        --storage.path=/alertmanager
+    # command must be a single-element list: a multi-line string gets
+    # word-split by compose into argv, leaving sh -c with only "sed".
+    command:
+      - 'sed -e "s|__ALERT_EMAIL_FROM__|$${ALERT_EMAIL_FROM}|g" -e "s|__ALERT_EMAIL_TO__|$${ALERT_EMAIL_TO}|g" /etc/alertmanager/alertmanager.yml > /tmp/alertmanager.yml && exec /bin/alertmanager --config.file=/tmp/alertmanager.yml --storage.path=/alertmanager'
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./alertmanager/secrets:/etc/alertmanager/secrets:ro
