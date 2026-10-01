@@ -33,8 +33,10 @@ func NewCreatePaddleCheckoutLogic(ctx context.Context, svcCtx *svc.ServiceContex
 }
 
 // CreatePaddleCheckout creates a Paddle transaction for the authenticated user
-// and returns the hosted checkout URL + transaction ID. The transaction's
-// custom_data.user_id lets Paddle webhooks map the payment back to the user.
+// and returns the hosted checkout URL + transaction ID. The transaction ID →
+// user mapping is recorded server-side in paddle_checkouts so the webhook can
+// bind the payment to the checkout creator without trusting client-side
+// custom_data (billing correctness B4).
 func (l *CreatePaddleCheckoutLogic) CreatePaddleCheckout(in *client.CreatePaddleCheckoutRequest) (*client.CreatePaddleCheckoutResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "CreatePaddleCheckoutLogic.CreatePaddleCheckout")
 	defer span.End()
@@ -83,6 +85,15 @@ func (l *CreatePaddleCheckoutLogic) CreatePaddleCheckout(in *client.CreatePaddle
 	})
 	if err != nil {
 		l.Errorf("Paddle CreateTransaction failed for user %s: %v", userID, err)
+		return nil, status.Error(codes.Internal, "failed to create paddle checkout")
+	}
+
+	// Record the checkout creator server-side — the webhook treats this
+	// mapping as authoritative and ignores conflicting custom_data (B4). If
+	// this fails the payment could never be bound back to a user, so failing
+	// the request is better than letting the user pay an unmappable txn.
+	if err := l.svcCtx.Repo.Billing.RecordPaddleCheckout(ctx, txn.ID, userID); err != nil {
+		l.Errorf("Failed to record paddle checkout txn=%s user=%s: %v", txn.ID, userID, err)
 		return nil, status.Error(codes.Internal, "failed to create paddle checkout")
 	}
 

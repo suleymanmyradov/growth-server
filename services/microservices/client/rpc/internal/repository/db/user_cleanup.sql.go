@@ -59,12 +59,30 @@ func (q *Queries) DeleteHabitsByUser(ctx context.Context, userID uuid.UUID) erro
 	return err
 }
 
+const deletePaddleCheckoutsByUser = `-- name: DeletePaddleCheckoutsByUser :exec
+DELETE FROM paddle_checkouts WHERE user_id = $1
+`
+
+func (q *Queries) DeletePaddleCheckoutsByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deletePaddleCheckoutsByUser, userID)
+	return err
+}
+
 const deletePlanAdjustmentsByUser = `-- name: DeletePlanAdjustmentsByUser :exec
 DELETE FROM plan_adjustments WHERE user_id = $1
 `
 
 func (q *Queries) DeletePlanAdjustmentsByUser(ctx context.Context, userID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, deletePlanAdjustmentsByUser, userID)
+	return err
+}
+
+const deleteProviderStatesByUser = `-- name: DeleteProviderStatesByUser :exec
+DELETE FROM subscription_provider_states WHERE user_id = $1
+`
+
+func (q *Queries) DeleteProviderStatesByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteProviderStatesByUser, userID)
 	return err
 }
 

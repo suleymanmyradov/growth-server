@@ -31,6 +31,12 @@ DELETE FROM article_likes WHERE user_id = $1;
 -- name: DeleteArticleSharesByUser :exec
 DELETE FROM article_shares WHERE user_id = $1;
 
+-- name: DeleteProviderStatesByUser :exec
+DELETE FROM subscription_provider_states WHERE user_id = $1;
+
+-- name: DeletePaddleCheckoutsByUser :exec
+DELETE FROM paddle_checkouts WHERE user_id = $1;
+
 -- name: DeleteSubscriptionsByUser :exec
 DELETE FROM subscriptions WHERE user_id = $1;
 

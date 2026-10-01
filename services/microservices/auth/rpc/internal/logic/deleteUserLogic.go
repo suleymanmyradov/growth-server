@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -61,17 +60,10 @@ func (l *DeleteUserLogic) DeleteUser(in *auth.DeleteUserRequest) (*auth.EmptyRes
 
 	l.Infof("DeleteUser successful for user %s", userID)
 
-	// Publish synchronously so broker issues are visible immediately in dev.
-	if l.svcCtx.EventsPub != nil {
-		env, err := events.NewEnvelope(events.TypeUserDeleted, events.UserDeleted{
-			UserID: userID.String(),
-		})
-		if err != nil {
-			logx.WithContext(ctx).Errorf("failed to build user_deleted envelope: %v", err)
-		} else if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-			logx.WithContext(ctx).Errorf("failed to publish user_deleted event for user %s: %v", userID, err)
-		}
-	}
+	// user_deleted delivery is owned by the auth_deletion_outbox row written
+	// atomically inside DeleteUser; the deletion worker republishes it under a
+	// stable event ID. No direct publish here — that would emit a second,
+	// differently-ID'd user_deleted event.
 
 	return &auth.EmptyResponse{}, nil
 }

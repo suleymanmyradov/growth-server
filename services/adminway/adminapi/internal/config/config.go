@@ -41,6 +41,20 @@ type Config struct {
 		AccessExpiryDuration  time.Duration `json:",optional"`
 		RefreshExpiryDuration time.Duration `json:",optional"`
 	}
+	// Mfa configures TOTP multi-factor auth for admin accounts.
+	Mfa struct {
+		// Issuer is the TOTP issuer label shown in authenticator apps;
+		// "Growth Admin" when unset.
+		Issuer string `json:",optional"`
+		// EncryptionKey is a base64-encoded 32-byte AES-256 key protecting TOTP
+		// secrets at rest. Generate with `openssl rand -base64 32`.
+		EncryptionKey string `json:",optional" secret:"true"`
+		// Required forces every admin through enrollment at login (an
+		// enroll-purpose ticket replaces the token pair until TOTP is set up).
+		Required bool `json:",optional"`
+		// TicketTTL bounds how long a pre-auth mfa ticket stays valid.
+		TicketTTL time.Duration `json:",default=5m"`
+	} `json:",optional"`
 	// RateLimit holds the Redis-backed per-IP quotas for the unauthenticated
 	// auth routes (login/refresh brute-force protection).
 	RateLimit   middleware.RateLimitConfig

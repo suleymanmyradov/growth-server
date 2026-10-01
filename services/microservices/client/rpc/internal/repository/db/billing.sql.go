@@ -12,6 +12,87 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const applyMergedSubscription = `-- name: ApplyMergedSubscription :one
+INSERT INTO subscriptions (
+    user_id,
+    plan_id,
+    status,
+    billing_interval,
+    current_period_start,
+    current_period_end,
+    trial_end,
+    cancel_at_period_end,
+    paddle_customer_id,
+    paddle_subscription_id,
+    revenuecat_customer_id
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+ON CONFLICT (user_id)
+DO UPDATE SET
+    plan_id = EXCLUDED.plan_id,
+    status = EXCLUDED.status,
+    billing_interval = EXCLUDED.billing_interval,
+    current_period_start = EXCLUDED.current_period_start,
+    current_period_end = EXCLUDED.current_period_end,
+    trial_end = EXCLUDED.trial_end,
+    cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+    paddle_customer_id = COALESCE(EXCLUDED.paddle_customer_id, subscriptions.paddle_customer_id),
+    paddle_subscription_id = COALESCE(EXCLUDED.paddle_subscription_id, subscriptions.paddle_subscription_id),
+    revenuecat_customer_id = COALESCE(EXCLUDED.revenuecat_customer_id, subscriptions.revenuecat_customer_id)
+RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, created_at, updated_at, revenuecat_customer_id, paddle_customer_id, paddle_subscription_id
+`
+
+type ApplyMergedSubscriptionParams struct {
+	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
+	PlanID               uuid.UUID          `db:"plan_id" json:"plan_id"`
+	Status               string             `db:"status" json:"status"`
+	BillingInterval      *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart   pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd     pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd             pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd    bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	PaddleCustomerID     *string            `db:"paddle_customer_id" json:"paddle_customer_id"`
+	PaddleSubscriptionID *string            `db:"paddle_subscription_id" json:"paddle_subscription_id"`
+	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
+}
+
+// Single writer for the shared subscriptions row. The row is a merged
+// projection of subscription_provider_states: the caller picks the winning
+// provider state and passes the merged fields + provider link columns.
+func (q *Queries) ApplyMergedSubscription(ctx context.Context, arg ApplyMergedSubscriptionParams) (Subscription, error) {
+	row := q.db.QueryRow(ctx, applyMergedSubscription,
+		arg.UserID,
+		arg.PlanID,
+		arg.Status,
+		arg.BillingInterval,
+		arg.CurrentPeriodStart,
+		arg.CurrentPeriodEnd,
+		arg.TrialEnd,
+		arg.CancelAtPeriodEnd,
+		arg.PaddleCustomerID,
+		arg.PaddleSubscriptionID,
+		arg.RevenuecatCustomerID,
+	)
+	var i Subscription
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.PlanID,
+		&i.Status,
+		&i.BillingInterval,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelAtPeriodEnd,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.RevenuecatCustomerID,
+		&i.PaddleCustomerID,
+		&i.PaddleSubscriptionID,
+	)
+	return i, err
+}
+
 const createDefaultFreeSubscription = `-- name: CreateDefaultFreeSubscription :one
 INSERT INTO subscriptions (user_id, plan_id, status)
 SELECT $1, p.id, 'free'
@@ -114,6 +195,17 @@ func (q *Queries) CreateUpgradeEvent(ctx context.Context, arg CreateUpgradeEvent
 	return i, err
 }
 
+const getPaddleCheckoutUserID = `-- name: GetPaddleCheckoutUserID :one
+SELECT user_id FROM paddle_checkouts WHERE transaction_id = $1
+`
+
+func (q *Queries) GetPaddleCheckoutUserID(ctx context.Context, transactionID string) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, getPaddleCheckoutUserID, transactionID)
+	var user_id uuid.UUID
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const getPlanByCode = `-- name: GetPlanByCode :one
 SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, is_active, created_at, updated_at
 FROM plans
@@ -137,6 +229,40 @@ func (q *Queries) GetPlanByCode(ctx context.Context, code string) (Plan, error) 
 		&i.PlanAdjustmentLimit,
 		&i.PersonalizedAiEnabled,
 		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getSubscriptionProviderState = `-- name: GetSubscriptionProviderState :one
+
+SELECT user_id, provider, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, provider_customer_id, provider_subscription_id, last_event_at, last_event_id, created_at, updated_at
+FROM subscription_provider_states
+WHERE user_id = $1 AND provider = $2
+`
+
+// ─── Provider states ──────────────────────────────────────────────────────
+// One row per (user, provider): the last state each billing provider applied
+// plus the provider-side event watermark used to drop out-of-order webhooks.
+// The merged subscriptions row is recomputed from these rows — never let a
+// provider's webhook write the shared row directly.
+func (q *Queries) GetSubscriptionProviderState(ctx context.Context, userID uuid.UUID, provider string) (SubscriptionProviderState, error) {
+	row := q.db.QueryRow(ctx, getSubscriptionProviderState, userID, provider)
+	var i SubscriptionProviderState
+	err := row.Scan(
+		&i.UserID,
+		&i.Provider,
+		&i.Status,
+		&i.BillingInterval,
+		&i.CurrentPeriodStart,
+		&i.CurrentPeriodEnd,
+		&i.TrialEnd,
+		&i.CancelAtPeriodEnd,
+		&i.ProviderCustomerID,
+		&i.ProviderSubscriptionID,
+		&i.LastEventAt,
+		&i.LastEventID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -453,6 +579,30 @@ func (q *Queries) IsRevenueCatEventProcessed(ctx context.Context, eventID string
 	return exists, err
 }
 
+const linkPaddleProviderIDs = `-- name: LinkPaddleProviderIDs :exec
+INSERT INTO subscription_provider_states (
+    user_id, provider, status, provider_customer_id, provider_subscription_id, last_event_at
+)
+VALUES ($1, 'paddle', 'free', $2, $3, $4)
+ON CONFLICT (user_id, provider)
+DO UPDATE SET
+    provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, subscription_provider_states.provider_customer_id),
+    provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, subscription_provider_states.provider_subscription_id),
+    last_event_at = GREATEST(subscription_provider_states.last_event_at, EXCLUDED.last_event_at)
+`
+
+// Attaches Paddle customer/subscription IDs without touching provider state —
+// used by transaction.completed, which carries IDs but no subscription entity.
+func (q *Queries) LinkPaddleProviderIDs(ctx context.Context, userID uuid.UUID, providerCustomerID *string, providerSubscriptionID *string, lastEventAt pgtype.Timestamptz) error {
+	_, err := q.db.Exec(ctx, linkPaddleProviderIDs,
+		userID,
+		providerCustomerID,
+		providerSubscriptionID,
+		lastEventAt,
+	)
+	return err
+}
+
 const listActivePlans = `-- name: ListActivePlans :many
 SELECT id, code, name, description, price_monthly_cents, price_annual_cents, currency, active_goal_limit, active_habit_limit, weekly_review_history_limit, plan_adjustment_limit, personalized_ai_enabled, is_active, created_at, updated_at
 FROM plans
@@ -483,6 +633,47 @@ func (q *Queries) ListActivePlans(ctx context.Context) ([]Plan, error) {
 			&i.PlanAdjustmentLimit,
 			&i.PersonalizedAiEnabled,
 			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSubscriptionProviderStates = `-- name: ListSubscriptionProviderStates :many
+SELECT user_id, provider, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, provider_customer_id, provider_subscription_id, last_event_at, last_event_id, created_at, updated_at
+FROM subscription_provider_states
+WHERE user_id = $1
+`
+
+func (q *Queries) ListSubscriptionProviderStates(ctx context.Context, userID uuid.UUID) ([]SubscriptionProviderState, error) {
+	rows, err := q.db.Query(ctx, listSubscriptionProviderStates, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SubscriptionProviderState{}
+	for rows.Next() {
+		var i SubscriptionProviderState
+		if err := rows.Scan(
+			&i.UserID,
+			&i.Provider,
+			&i.Status,
+			&i.BillingInterval,
+			&i.CurrentPeriodStart,
+			&i.CurrentPeriodEnd,
+			&i.TrialEnd,
+			&i.CancelAtPeriodEnd,
+			&i.ProviderCustomerID,
+			&i.ProviderSubscriptionID,
+			&i.LastEventAt,
+			&i.LastEventID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -554,172 +745,101 @@ func (q *Queries) MarkRevenueCatEventProcessed(ctx context.Context, eventID stri
 	return err
 }
 
-const setPaddleCustomerID = `-- name: SetPaddleCustomerID :exec
-UPDATE subscriptions
-SET paddle_customer_id = $2, updated_at = now()
-WHERE user_id = $1 AND paddle_customer_id IS NULL
+const recordPaddleCheckout = `-- name: RecordPaddleCheckout :exec
+
+INSERT INTO paddle_checkouts (transaction_id, user_id)
+VALUES ($1, $2)
+ON CONFLICT (transaction_id) DO NOTHING
 `
 
-// Links a Paddle customer ID to an existing subscription. Called when a
-// webhook resolves a user before checkout linkage (e.g. transaction.completed
-// arrives without custom_data but the customer is already known).
-func (q *Queries) SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error {
-	_, err := q.db.Exec(ctx, setPaddleCustomerID, userID, paddleCustomerID)
+// ─── Recorded checkouts ───────────────────────────────────────────────────
+// CreatePaddleCheckout records transaction_id -> user_id here. The webhook
+// trusts custom_data.user_id only for transactions we created server-side —
+// client-side Paddle.js checkouts leave custom_data attacker-controlled.
+func (q *Queries) RecordPaddleCheckout(ctx context.Context, transactionID string, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, recordPaddleCheckout, transactionID, userID)
 	return err
 }
 
-const setRevenueCatCustomerID = `-- name: SetRevenueCatCustomerID :exec
-UPDATE subscriptions
-SET revenuecat_customer_id = $2, updated_at = now()
-WHERE user_id = $1 AND revenuecat_customer_id IS NULL
-`
-
-// Links a RevenueCat customer ID to an existing subscription. Called when the
-// first RevenueCat webhook arrives for a user (the mobile app has already
-// called Purchases.logIn(userId) on the client side).
-func (q *Queries) SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error {
-	_, err := q.db.Exec(ctx, setRevenueCatCustomerID, userID, revenuecatCustomerID)
-	return err
-}
-
-const upsertUserSubscription = `-- name: UpsertUserSubscription :one
-INSERT INTO subscriptions (
+const upsertSubscriptionProviderState = `-- name: UpsertSubscriptionProviderState :one
+INSERT INTO subscription_provider_states (
     user_id,
-    plan_id,
-    status,
-    billing_interval,
-    current_period_start,
-    current_period_end,
-    trial_end,
-    cancel_at_period_end
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-ON CONFLICT (user_id)
-DO UPDATE SET
-    plan_id = EXCLUDED.plan_id,
-    status = EXCLUDED.status,
-    billing_interval = EXCLUDED.billing_interval,
-    current_period_start = EXCLUDED.current_period_start,
-    current_period_end = EXCLUDED.current_period_end,
-    trial_end = EXCLUDED.trial_end,
-    cancel_at_period_end = EXCLUDED.cancel_at_period_end
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, created_at, updated_at, revenuecat_customer_id, paddle_customer_id, paddle_subscription_id
-`
-
-type UpsertUserSubscriptionParams struct {
-	UserID             uuid.UUID          `db:"user_id" json:"user_id"`
-	PlanID             uuid.UUID          `db:"plan_id" json:"plan_id"`
-	Status             string             `db:"status" json:"status"`
-	BillingInterval    *string            `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd   pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
-	TrialEnd           pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd  bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-}
-
-func (q *Queries) UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (Subscription, error) {
-	row := q.db.QueryRow(ctx, upsertUserSubscription,
-		arg.UserID,
-		arg.PlanID,
-		arg.Status,
-		arg.BillingInterval,
-		arg.CurrentPeriodStart,
-		arg.CurrentPeriodEnd,
-		arg.TrialEnd,
-		arg.CancelAtPeriodEnd,
-	)
-	var i Subscription
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.PlanID,
-		&i.Status,
-		&i.BillingInterval,
-		&i.CurrentPeriodStart,
-		&i.CurrentPeriodEnd,
-		&i.TrialEnd,
-		&i.CancelAtPeriodEnd,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.RevenuecatCustomerID,
-		&i.PaddleCustomerID,
-		&i.PaddleSubscriptionID,
-	)
-	return i, err
-}
-
-const upsertUserSubscriptionPaddle = `-- name: UpsertUserSubscriptionPaddle :one
-INSERT INTO subscriptions (
-    user_id,
-    plan_id,
+    provider,
     status,
     billing_interval,
     current_period_start,
     current_period_end,
     trial_end,
     cancel_at_period_end,
-    paddle_customer_id,
-    paddle_subscription_id
+    provider_customer_id,
+    provider_subscription_id,
+    last_event_at,
+    last_event_id
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-ON CONFLICT (user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+ON CONFLICT (user_id, provider)
 DO UPDATE SET
-    plan_id = EXCLUDED.plan_id,
     status = EXCLUDED.status,
     billing_interval = EXCLUDED.billing_interval,
     current_period_start = EXCLUDED.current_period_start,
     current_period_end = EXCLUDED.current_period_end,
     trial_end = EXCLUDED.trial_end,
     cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-    paddle_customer_id = EXCLUDED.paddle_customer_id,
-    paddle_subscription_id = EXCLUDED.paddle_subscription_id
-RETURNING id, user_id, plan_id, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, created_at, updated_at, revenuecat_customer_id, paddle_customer_id, paddle_subscription_id
+    provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, subscription_provider_states.provider_customer_id),
+    provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, subscription_provider_states.provider_subscription_id),
+    last_event_at = GREATEST(subscription_provider_states.last_event_at, EXCLUDED.last_event_at),
+    last_event_id = COALESCE(EXCLUDED.last_event_id, subscription_provider_states.last_event_id)
+RETURNING user_id, provider, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, provider_customer_id, provider_subscription_id, last_event_at, last_event_id, created_at, updated_at
 `
 
-type UpsertUserSubscriptionPaddleParams struct {
-	UserID               uuid.UUID          `db:"user_id" json:"user_id"`
-	PlanID               uuid.UUID          `db:"plan_id" json:"plan_id"`
-	Status               string             `db:"status" json:"status"`
-	BillingInterval      *string            `db:"billing_interval" json:"billing_interval"`
-	CurrentPeriodStart   pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
-	CurrentPeriodEnd     pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
-	TrialEnd             pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
-	CancelAtPeriodEnd    bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
-	PaddleCustomerID     *string            `db:"paddle_customer_id" json:"paddle_customer_id"`
-	PaddleSubscriptionID *string            `db:"paddle_subscription_id" json:"paddle_subscription_id"`
+type UpsertSubscriptionProviderStateParams struct {
+	UserID                 uuid.UUID          `db:"user_id" json:"user_id"`
+	Provider               string             `db:"provider" json:"provider"`
+	Status                 string             `db:"status" json:"status"`
+	BillingInterval        *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart     pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd       pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd               pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd      bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	ProviderCustomerID     *string            `db:"provider_customer_id" json:"provider_customer_id"`
+	ProviderSubscriptionID *string            `db:"provider_subscription_id" json:"provider_subscription_id"`
+	LastEventAt            pgtype.Timestamptz `db:"last_event_at" json:"last_event_at"`
+	LastEventID            *string            `db:"last_event_id" json:"last_event_id"`
 }
 
-// Paddle counterpart of UpsertUserSubscription: writes the paddle_* columns
-// and never touches the revenuecat_ columns.
-func (q *Queries) UpsertUserSubscriptionPaddle(ctx context.Context, arg UpsertUserSubscriptionPaddleParams) (Subscription, error) {
-	row := q.db.QueryRow(ctx, upsertUserSubscriptionPaddle,
+// last_event_at only ever moves forward (GREATEST ignores NULLs): an event
+// without a timestamp applies but doesn't lower the watermark.
+func (q *Queries) UpsertSubscriptionProviderState(ctx context.Context, arg UpsertSubscriptionProviderStateParams) (SubscriptionProviderState, error) {
+	row := q.db.QueryRow(ctx, upsertSubscriptionProviderState,
 		arg.UserID,
-		arg.PlanID,
+		arg.Provider,
 		arg.Status,
 		arg.BillingInterval,
 		arg.CurrentPeriodStart,
 		arg.CurrentPeriodEnd,
 		arg.TrialEnd,
 		arg.CancelAtPeriodEnd,
-		arg.PaddleCustomerID,
-		arg.PaddleSubscriptionID,
+		arg.ProviderCustomerID,
+		arg.ProviderSubscriptionID,
+		arg.LastEventAt,
+		arg.LastEventID,
 	)
-	var i Subscription
+	var i SubscriptionProviderState
 	err := row.Scan(
-		&i.ID,
 		&i.UserID,
-		&i.PlanID,
+		&i.Provider,
 		&i.Status,
 		&i.BillingInterval,
 		&i.CurrentPeriodStart,
 		&i.CurrentPeriodEnd,
 		&i.TrialEnd,
 		&i.CancelAtPeriodEnd,
+		&i.ProviderCustomerID,
+		&i.ProviderSubscriptionID,
+		&i.LastEventAt,
+		&i.LastEventID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.RevenuecatCustomerID,
-		&i.PaddleCustomerID,
-		&i.PaddleSubscriptionID,
 	)
 	return i, err
 }

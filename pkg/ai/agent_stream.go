@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
@@ -81,6 +82,24 @@ type agentStreamParams struct {
 
 const agentContinuationPrompt = "The previous assistant response was interrupted. Continue exactly where it stopped. Do not repeat any text, do not mention the interruption, and finish within 80 words."
 
+// agentUsageTracker accumulates provider-reported usage and raw output size
+// across an agent stream loop. settle() returns the billable usage: real
+// totals when the provider reported any, else a conservative estimate so a
+// loop that dies mid-stream still spends the caller's quota. recorded guards
+// double accounting across the loop's many exit paths.
+type agentUsageTracker struct {
+	total    Usage
+	outRunes int64
+	recorded bool
+}
+
+func (t *agentUsageTracker) settle(msgs []*schema.Message) Usage {
+	if t.total.TotalTokens > 0 {
+		return t.total
+	}
+	return estimateStreamUsage(estimatePromptTokens(msgs), t.outRunes)
+}
+
 // runAgentStreamLoop is the goroutine that drives the model<->tool loop and
 // sends chunks to the channel. It closes the channel on exit.
 //
@@ -95,7 +114,20 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 	defer close(ch)
 
 	start := time.Now()
-	var totalUsage Usage
+	tracker := &agentUsageTracker{}
+	// Record usage on every exit path not already handled by
+	// finishAgentStreamOK/Error — early Close, ctx cancellation mid-send,
+	// and any future early return. Once-only via tracker.recorded.
+	defer func() {
+		if tracker.recorded {
+			return
+		}
+		tracker.recorded = true
+		usage := tracker.settle(p.msgs)
+		costUSD := c.cfg.ComputeCost(p.modelID, usage.PromptTokens, usage.CompletionTokens)
+		c.recordUsage(ctx, p.meta, usage, costUSD)
+	}()
+
 	var continuationPrefix strings.Builder
 	continuationAttempts := 0
 
@@ -122,7 +154,7 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 		// primary model kills the whole agentic turn.
 		einoStream, err := c.openAgentStream(stepCtx, &p, step)
 		if err != nil {
-			c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent step %d: stream open: %w", step, err))
+			c.finishAgentStreamError(ctx, ch, p, start, tracker, fmt.Errorf("ai.StreamAgent step %d: stream open: %w", step, err))
 			return
 		}
 
@@ -146,8 +178,13 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 					break
 				}
 				einoStream.Close()
-				c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent step %d: recv: %w", step, recvErr))
+				c.finishAgentStreamError(ctx, ch, p, start, tracker, fmt.Errorf("ai.StreamAgent step %d: recv: %w", step, recvErr))
 				return
+			}
+
+			tracker.outRunes += int64(utf8.RuneCountInString(msg.Content) + utf8.RuneCountInString(msg.ReasoningContent))
+			for _, tc := range msg.ToolCalls {
+				tracker.outRunes += int64(utf8.RuneCountInString(tc.Function.Arguments))
 			}
 
 			if msg.ReasoningContent != "" {
@@ -234,12 +271,12 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 			}
 		}
 
-		accumulateUsage(&totalUsage, stepUsage)
+		accumulateUsage(&tracker.total, stepUsage)
 
 		// Enforce cumulative token budget.
-		if p.maxTokens > 0 && totalUsage.TotalTokens > p.maxTokens {
-			c.finishAgentStreamError(ctx, ch, p, start, totalUsage,
-				fmt.Errorf("ai.StreamAgent: max total tokens exceeded (%d > %d): %w", totalUsage.TotalTokens, p.maxTokens, ErrMaxTokens))
+		if p.maxTokens > 0 && tracker.total.TotalTokens > p.maxTokens {
+			c.finishAgentStreamError(ctx, ch, p, start, tracker,
+				fmt.Errorf("ai.StreamAgent: max total tokens exceeded (%d > %d): %w", tracker.total.TotalTokens, p.maxTokens, ErrMaxTokens))
 			return
 		}
 
@@ -289,11 +326,11 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 					logx.WithContext(ctx).Infof("ai.StreamAgent step %d: incomplete stream with finish_reason %q; attempting continuation", step, finishReason)
 					continue
 				}
-				c.finishAgentStreamError(ctx, ch, p, start, totalUsage,
+				c.finishAgentStreamError(ctx, ch, p, start, tracker,
 					fmt.Errorf("ai.StreamAgent step %d: stream ended with finish_reason %q: %w", step, finishReason, ErrStreamIncomplete))
 				return
 			}
-			c.finishAgentStreamOK(ctx, ch, p, start, totalUsage, continuationPrefix.String()+contentBuf.String(), finishReason)
+			c.finishAgentStreamOK(ctx, ch, p, start, tracker, continuationPrefix.String()+contentBuf.String(), finishReason)
 			return
 		}
 
@@ -339,7 +376,7 @@ func (c *client) runAgentStreamLoop(ctx context.Context, ch chan<- AgentStreamCh
 
 	// Hit max steps without a final answer.
 	logx.WithContext(ctx).Infof("ai.StreamAgent: hit max steps %d", p.maxSteps)
-	c.finishAgentStreamError(ctx, ch, p, start, totalUsage, fmt.Errorf("ai.StreamAgent: %w (max %d steps)", ErrMaxSteps, p.maxSteps))
+	c.finishAgentStreamError(ctx, ch, p, start, tracker, fmt.Errorf("ai.StreamAgent: %w (max %d steps)", ErrMaxSteps, p.maxSteps))
 }
 
 func isRecoverableIncompleteFinish(finishReason string) bool {
@@ -408,15 +445,16 @@ func (c *client) openAgentStream(ctx context.Context, p *agentStreamParams, step
 }
 
 // finishAgentStreamOK sends the Complete event and records metrics/usage.
-func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, totalUsage Usage, fullResponse string, finishReason string) {
-	costUSD := c.cfg.ComputeCost(p.modelID, totalUsage.PromptTokens, totalUsage.CompletionTokens)
+func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, tracker *agentUsageTracker, fullResponse string, finishReason string) {
+	usage := tracker.settle(p.msgs)
+	tracker.recorded = true
+	costUSD := c.cfg.ComputeCost(p.modelID, usage.PromptTokens, usage.CompletionTokens)
 	latencyMS := time.Since(start).Milliseconds()
 
-	c.recordUsage(ctx, p.meta, totalUsage, costUSD)
-	c.logCall(ctx, p.profile, p.modelID, p.meta, totalUsage, latencyMS, costUSD, nil)
-	recordMetrics(p.profile, p.modelID, "ok", p.meta.Feature, totalUsage, costUSD, latencyMS)
+	c.recordUsage(ctx, p.meta, usage, costUSD)
+	c.logCall(ctx, p.profile, p.modelID, p.meta, usage, latencyMS, costUSD, nil)
+	recordMetrics(p.profile, p.modelID, "ok", p.meta.Feature, usage, costUSD, latencyMS)
 
-	usage := totalUsage
 	select {
 	case ch <- AgentStreamChunk{
 		Complete:     true,
@@ -429,13 +467,18 @@ func (c *client) finishAgentStreamOK(ctx context.Context, ch chan<- AgentStreamC
 }
 
 // finishAgentStreamError sends an Error event, records metrics/usage, and
-// returns. The caller (goroutine) will close the channel.
-func (c *client) finishAgentStreamError(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, totalUsage Usage, err error) {
+// returns. The caller (goroutine) will close the channel. Partial usage is
+// still recorded — the provider billed the tokens even though the turn
+// failed, so the caller's quota must reflect them.
+func (c *client) finishAgentStreamError(ctx context.Context, ch chan<- AgentStreamChunk, p agentStreamParams, start time.Time, tracker *agentUsageTracker, err error) {
 	latencyMS := time.Since(start).Milliseconds()
-	costUSD := c.cfg.ComputeCost(p.modelID, totalUsage.PromptTokens, totalUsage.CompletionTokens)
+	usage := tracker.settle(p.msgs)
+	tracker.recorded = true
+	costUSD := c.cfg.ComputeCost(p.modelID, usage.PromptTokens, usage.CompletionTokens)
 
-	c.logCall(ctx, p.profile, p.modelID, p.meta, totalUsage, latencyMS, costUSD, err)
-	recordMetrics(p.profile, p.modelID, "error", p.meta.Feature, totalUsage, costUSD, latencyMS)
+	c.recordUsage(ctx, p.meta, usage, costUSD)
+	c.logCall(ctx, p.profile, p.modelID, p.meta, usage, latencyMS, costUSD, err)
+	recordMetrics(p.profile, p.modelID, "error", p.meta.Feature, usage, costUSD, latencyMS)
 
 	select {
 	case ch <- AgentStreamChunk{Error: err}:

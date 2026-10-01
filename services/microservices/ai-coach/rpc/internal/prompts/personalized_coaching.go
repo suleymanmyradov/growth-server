@@ -3,6 +3,7 @@ package prompts
 import (
 	"time"
 
+	aiprompts "github.com/suleymanmyradov/growth-server/pkg/ai/prompts"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 )
 
@@ -121,7 +122,6 @@ Rules:
 - When the user does ask for coaching, be specific to their goals, habits, and current situation; reference their actual habits and goals; acknowledge their patterns and common blockers; and suggest concrete, actionable next steps.
 - Keep responses concise (3-5 sentences for most interactions, shorter for simple greetings or acknowledgements).
 - Celebrate progress and acknowledge effort; address setbacks constructively without judgment.
-- Never diagnose medical or mental health conditions.
 - If the user expresses crisis or self-harm thoughts, provide supportive resources.
-- Maintain consistency with the established coaching tone.`
+- Maintain consistency with the established coaching tone.` + aiprompts.CoachScopeRules
 }

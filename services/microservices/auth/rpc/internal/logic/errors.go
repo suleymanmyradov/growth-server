@@ -50,6 +50,7 @@ const (
 	// Credentials / auth state
 	MsgInvalidCredentials           = "Invalid credentials"
 	MsgEmailNotVerified             = "Email not verified"
+	MsgOAuthEmailNotVerified        = "Email not verified by the identity provider"
 	MsgInvalidOrExpiredAccessToken  = "Invalid or expired access token"
 	MsgInvalidOrExpiredVerifToken   = "Invalid or expired verification token"
 	MsgInvalidOrExpiredResetToken   = "Invalid or expired reset token"
@@ -99,12 +100,13 @@ const (
 // Sentinel gRPC errors for the most reused (code, message) pairings.
 // Return these directly at call sites.
 var (
-	ErrInvalidCredentials   = status.Error(codes.Unauthenticated, MsgInvalidCredentials)
-	ErrEmailNotVerified     = status.Error(codes.PermissionDenied, MsgEmailNotVerified)
-	ErrUserNotFound         = status.Error(codes.NotFound, MsgUserNotFound)
-	ErrUserAlreadyExists    = status.Error(codes.AlreadyExists, MsgUserAlreadyExists)
-	ErrFailedGenAccessToken = status.Error(codes.Internal, MsgFailedGenerateAccessToken)
-	ErrFailedGenRefreshTok  = status.Error(codes.Internal, MsgFailedGenerateRefreshToken)
+	ErrInvalidCredentials    = status.Error(codes.Unauthenticated, MsgInvalidCredentials)
+	ErrEmailNotVerified      = status.Error(codes.PermissionDenied, MsgEmailNotVerified)
+	ErrOAuthEmailNotVerified = status.Error(codes.PermissionDenied, MsgOAuthEmailNotVerified)
+	ErrUserNotFound          = status.Error(codes.NotFound, MsgUserNotFound)
+	ErrUserAlreadyExists     = status.Error(codes.AlreadyExists, MsgUserAlreadyExists)
+	ErrFailedGenAccessToken  = status.Error(codes.Internal, MsgFailedGenerateAccessToken)
+	ErrFailedGenRefreshTok   = status.Error(codes.Internal, MsgFailedGenerateRefreshToken)
 )
 
 // err* helpers pair a gRPC code with a message constant. Use these for one-off

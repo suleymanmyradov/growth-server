@@ -48,7 +48,7 @@ func newPaddlePortalServer(t *testing.T) *paddlePortalServer {
 	return s
 }
 
-func portalLogic(t *testing.T, m *paddleMockBilling, apiURL string, paddleEnabled bool) *CreateCustomerPortalSessionLogic {
+func portalLogic(t *testing.T, m *mockBilling, apiURL string, paddleEnabled bool) *CreateCustomerPortalSessionLogic {
 	t.Helper()
 	cfg := config.Config{}
 	cfg.Billing.Paddle.Enabled = paddleEnabled
@@ -74,11 +74,12 @@ func TestCreateCustomerPortalSession_PaddleHappyPath(t *testing.T) {
 	ts := newPaddlePortalServer(t)
 	ctm := "ctm_01h_test"
 	subID := "sub_01h_test"
-	m := &paddleMockBilling{getSub: db.GetUserSubscriptionRow{
+	m := newMockBilling()
+	m.getSub = db.GetUserSubscriptionRow{
 		UserID:               paddleTestUserID,
 		PaddleCustomerID:     &ctm,
 		PaddleSubscriptionID: &subID,
-	}}
+	}
 	l := portalLogic(t, m, ts.URL, true)
 
 	resp, err := l.CreateCustomerPortalSession(&client.CreateCustomerPortalSessionRequest{})
@@ -91,10 +92,11 @@ func TestCreateCustomerPortalSession_PaddleHappyPath(t *testing.T) {
 func TestCreateCustomerPortalSession_PaddleDisabledFallsBack(t *testing.T) {
 	// Paddle disabled → empty portal URL.
 	ctm := "ctm_01h_test"
-	m := &paddleMockBilling{getSub: db.GetUserSubscriptionRow{
+	m := newMockBilling()
+	m.getSub = db.GetUserSubscriptionRow{
 		UserID:           paddleTestUserID,
 		PaddleCustomerID: &ctm,
-	}}
+	}
 	l := portalLogic(t, m, "http://unused", false)
 
 	resp, err := l.CreateCustomerPortalSession(&client.CreateCustomerPortalSessionRequest{})
@@ -104,7 +106,8 @@ func TestCreateCustomerPortalSession_PaddleDisabledFallsBack(t *testing.T) {
 
 func TestCreateCustomerPortalSession_NoPaddleCustomerFallsBack(t *testing.T) {
 	// Paddle enabled but the user has no Paddle customer ID → empty portal URL.
-	m := &paddleMockBilling{getSub: db.GetUserSubscriptionRow{UserID: paddleTestUserID}}
+	m := newMockBilling()
+	m.getSub = db.GetUserSubscriptionRow{UserID: paddleTestUserID}
 	l := portalLogic(t, m, "http://unused", true)
 
 	resp, err := l.CreateCustomerPortalSession(&client.CreateCustomerPortalSessionRequest{})
@@ -113,7 +116,8 @@ func TestCreateCustomerPortalSession_NoPaddleCustomerFallsBack(t *testing.T) {
 }
 
 func TestCreateCustomerPortalSession_NoSubscription(t *testing.T) {
-	m := &paddleMockBilling{getSubErr: pgx.ErrNoRows}
+	m := newMockBilling()
+	m.getSubErr = pgx.ErrNoRows
 	l := portalLogic(t, m, "http://unused", true)
 
 	_, err := l.CreateCustomerPortalSession(&client.CreateCustomerPortalSessionRequest{})

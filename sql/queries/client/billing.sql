@@ -31,7 +31,10 @@ WHERE p.code = 'free'
 ON CONFLICT (user_id) DO UPDATE SET updated_at = now()
 RETURNING *;
 
--- name: UpsertUserSubscription :one
+-- name: ApplyMergedSubscription :one
+-- Single writer for the shared subscriptions row. The row is a merged
+-- projection of subscription_provider_states: the caller picks the winning
+-- provider state and passes the merged fields + provider link columns.
 INSERT INTO subscriptions (
     user_id,
     plan_id,
@@ -40,9 +43,12 @@ INSERT INTO subscriptions (
     current_period_start,
     current_period_end,
     trial_end,
-    cancel_at_period_end
+    cancel_at_period_end,
+    paddle_customer_id,
+    paddle_subscription_id,
+    revenuecat_customer_id
 )
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 ON CONFLICT (user_id)
 DO UPDATE SET
     plan_id = EXCLUDED.plan_id,
@@ -51,8 +57,85 @@ DO UPDATE SET
     current_period_start = EXCLUDED.current_period_start,
     current_period_end = EXCLUDED.current_period_end,
     trial_end = EXCLUDED.trial_end,
-    cancel_at_period_end = EXCLUDED.cancel_at_period_end
+    cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+    paddle_customer_id = COALESCE(EXCLUDED.paddle_customer_id, subscriptions.paddle_customer_id),
+    paddle_subscription_id = COALESCE(EXCLUDED.paddle_subscription_id, subscriptions.paddle_subscription_id),
+    revenuecat_customer_id = COALESCE(EXCLUDED.revenuecat_customer_id, subscriptions.revenuecat_customer_id)
 RETURNING *;
+
+-- ─── Provider states ──────────────────────────────────────────────────────
+-- One row per (user, provider): the last state each billing provider applied
+-- plus the provider-side event watermark used to drop out-of-order webhooks.
+-- The merged subscriptions row is recomputed from these rows — never let a
+-- provider's webhook write the shared row directly.
+
+-- name: GetSubscriptionProviderState :one
+SELECT user_id, provider, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, provider_customer_id, provider_subscription_id, last_event_at, last_event_id, created_at, updated_at
+FROM subscription_provider_states
+WHERE user_id = $1 AND provider = $2;
+
+-- name: ListSubscriptionProviderStates :many
+SELECT user_id, provider, status, billing_interval, current_period_start, current_period_end, trial_end, cancel_at_period_end, provider_customer_id, provider_subscription_id, last_event_at, last_event_id, created_at, updated_at
+FROM subscription_provider_states
+WHERE user_id = $1;
+
+-- name: UpsertSubscriptionProviderState :one
+-- last_event_at only ever moves forward (GREATEST ignores NULLs): an event
+-- without a timestamp applies but doesn't lower the watermark.
+INSERT INTO subscription_provider_states (
+    user_id,
+    provider,
+    status,
+    billing_interval,
+    current_period_start,
+    current_period_end,
+    trial_end,
+    cancel_at_period_end,
+    provider_customer_id,
+    provider_subscription_id,
+    last_event_at,
+    last_event_id
+)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+ON CONFLICT (user_id, provider)
+DO UPDATE SET
+    status = EXCLUDED.status,
+    billing_interval = EXCLUDED.billing_interval,
+    current_period_start = EXCLUDED.current_period_start,
+    current_period_end = EXCLUDED.current_period_end,
+    trial_end = EXCLUDED.trial_end,
+    cancel_at_period_end = EXCLUDED.cancel_at_period_end,
+    provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, subscription_provider_states.provider_customer_id),
+    provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, subscription_provider_states.provider_subscription_id),
+    last_event_at = GREATEST(subscription_provider_states.last_event_at, EXCLUDED.last_event_at),
+    last_event_id = COALESCE(EXCLUDED.last_event_id, subscription_provider_states.last_event_id)
+RETURNING *;
+
+-- name: LinkPaddleProviderIDs :exec
+-- Attaches Paddle customer/subscription IDs without touching provider state —
+-- used by transaction.completed, which carries IDs but no subscription entity.
+INSERT INTO subscription_provider_states (
+    user_id, provider, status, provider_customer_id, provider_subscription_id, last_event_at
+)
+VALUES ($1, 'paddle', 'free', $2, $3, $4)
+ON CONFLICT (user_id, provider)
+DO UPDATE SET
+    provider_customer_id = COALESCE(EXCLUDED.provider_customer_id, subscription_provider_states.provider_customer_id),
+    provider_subscription_id = COALESCE(EXCLUDED.provider_subscription_id, subscription_provider_states.provider_subscription_id),
+    last_event_at = GREATEST(subscription_provider_states.last_event_at, EXCLUDED.last_event_at);
+
+-- ─── Recorded checkouts ───────────────────────────────────────────────────
+-- CreatePaddleCheckout records transaction_id -> user_id here. The webhook
+-- trusts custom_data.user_id only for transactions we created server-side —
+-- client-side Paddle.js checkouts leave custom_data attacker-controlled.
+
+-- name: RecordPaddleCheckout :exec
+INSERT INTO paddle_checkouts (transaction_id, user_id)
+VALUES ($1, $2)
+ON CONFLICT (transaction_id) DO NOTHING;
+
+-- name: GetPaddleCheckoutUserID :one
+SELECT user_id FROM paddle_checkouts WHERE transaction_id = $1;
 
 -- name: CreateUpgradeEvent :one
 WITH ins AS (
@@ -94,42 +177,7 @@ FROM subscriptions s
 JOIN plans p ON p.id = s.plan_id
 WHERE s.paddle_customer_id = $1;
 
--- name: SetPaddleCustomerID :exec
--- Links a Paddle customer ID to an existing subscription. Called when a
--- webhook resolves a user before checkout linkage (e.g. transaction.completed
--- arrives without custom_data but the customer is already known).
-UPDATE subscriptions
-SET paddle_customer_id = $2, updated_at = now()
-WHERE user_id = $1 AND paddle_customer_id IS NULL;
 
--- name: UpsertUserSubscriptionPaddle :one
--- Paddle counterpart of UpsertUserSubscription: writes the paddle_* columns
--- and never touches the revenuecat_ columns.
-INSERT INTO subscriptions (
-    user_id,
-    plan_id,
-    status,
-    billing_interval,
-    current_period_start,
-    current_period_end,
-    trial_end,
-    cancel_at_period_end,
-    paddle_customer_id,
-    paddle_subscription_id
-)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-ON CONFLICT (user_id)
-DO UPDATE SET
-    plan_id = EXCLUDED.plan_id,
-    status = EXCLUDED.status,
-    billing_interval = EXCLUDED.billing_interval,
-    current_period_start = EXCLUDED.current_period_start,
-    current_period_end = EXCLUDED.current_period_end,
-    trial_end = EXCLUDED.trial_end,
-    cancel_at_period_end = EXCLUDED.cancel_at_period_end,
-    paddle_customer_id = EXCLUDED.paddle_customer_id,
-    paddle_subscription_id = EXCLUDED.paddle_subscription_id
-RETURNING *;
 
 -- name: IsPaddleEventProcessed :one
 SELECT EXISTS(
@@ -175,14 +223,6 @@ SELECT
 FROM subscriptions s
 JOIN plans p ON p.id = s.plan_id
 WHERE s.user_id = $1;
-
--- name: SetRevenueCatCustomerID :exec
--- Links a RevenueCat customer ID to an existing subscription. Called when the
--- first RevenueCat webhook arrives for a user (the mobile app has already
--- called Purchases.logIn(userId) on the client side).
-UPDATE subscriptions
-SET revenuecat_customer_id = $2, updated_at = now()
-WHERE user_id = $1 AND revenuecat_customer_id IS NULL;
 
 -- name: IsRevenueCatEventProcessed :one
 SELECT EXISTS(

@@ -6,7 +6,7 @@ Timeout: 30000
 
 Postgres:
   Datasource: ${POSTGRES_DATASOURCE}
-  MaxOpenConns: 25
+  MaxOpenConns: 20
   MaxIdleConns: 5
   ConnMaxLifetime: 5m
 

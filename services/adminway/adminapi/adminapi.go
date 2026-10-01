@@ -45,11 +45,15 @@ func main() {
 	defer server.Stop()
 
 	ctx := svc.NewServiceContext(c)
+	defer ctx.Close() // drains the audit-log queue, closes pool and publisher
 
 	// Rate limit first so abusive requests to the unauthenticated auth routes
 	// are rejected before any handler or auth overhead.
 	server.Use(rest.ToMiddleware(sentryx.Middleware()))
 	server.Use(ctx.RateLimit)
+	// Audit every request that survives the rate limiter — including failed
+	// logins and bad tokens (identity is null for those rows).
+	server.Use(ctx.AuditLog)
 
 	handler.RegisterHandlers(server, ctx)
 

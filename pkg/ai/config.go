@@ -134,6 +134,10 @@ type QuotaConfig struct {
 	// GlobalDailyCostCapUSD is the max total spend across all users per day.
 	// 0 means unlimited.
 	GlobalDailyCostCapUSD float64 `json:"global_daily_cost_cap_usd,optional"`
+	// UserDailyVoiceSecondsCap is the max speech-to-text audio seconds a
+	// single user can transcribe per day. 0 means unlimited (voice quota
+	// disabled). Enforced by ai-coach Transcribe and at the ai-gateway edge.
+	UserDailyVoiceSecondsCap int64 `json:"user_daily_voice_seconds_cap,optional"`
 }
 
 // Validate checks required fields and applies defaults.

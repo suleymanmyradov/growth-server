@@ -35,6 +35,7 @@ type (
 	NotificationPreferences               = notifications.NotificationPreferences
 	RegisterDeviceRequest                 = notifications.RegisterDeviceRequest
 	UnregisterDeviceRequest               = notifications.UnregisterDeviceRequest
+	UnsubscribeEmailRequest               = notifications.UnsubscribeEmailRequest
 	UpdateNotificationPreferencesRequest  = notifications.UpdateNotificationPreferencesRequest
 	UpdateNotificationPreferencesResponse = notifications.UpdateNotificationPreferencesResponse
 
@@ -48,6 +49,8 @@ type (
 		GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 		GetNotificationPreferences(ctx context.Context, in *GetNotificationPreferencesRequest, opts ...grpc.CallOption) (*GetNotificationPreferencesResponse, error)
 		UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error)
+		// RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+		UnsubscribeEmail(ctx context.Context, in *UnsubscribeEmailRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		// Push device registration (see docs/push-notifications-design.md).
 		RegisterDevice(ctx context.Context, in *RegisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 		UnregisterDevice(ctx context.Context, in *UnregisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
@@ -107,6 +110,12 @@ func (m *defaultNotifications) GetNotificationPreferences(ctx context.Context, i
 func (m *defaultNotifications) UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error) {
 	client := notifications.NewNotificationsClient(m.cli.Conn())
 	return client.UpdateNotificationPreferences(ctx, in, opts...)
+}
+
+// RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+func (m *defaultNotifications) UnsubscribeEmail(ctx context.Context, in *UnsubscribeEmailRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	client := notifications.NewNotificationsClient(m.cli.Conn())
+	return client.UnsubscribeEmail(ctx, in, opts...)
 }
 
 // Push device registration (see docs/push-notifications-design.md).

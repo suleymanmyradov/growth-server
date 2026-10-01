@@ -13,6 +13,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/outbox"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
@@ -143,15 +144,51 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			defer svcCtx.deletionWg.Done()
 			deletion.NewWorker(queries, eventsPub).Run(ctx)
 		}()
+
+		// Generic auth outbox relay: drains auth_event_outbox (profile sync
+		// events etc.) written inside domain transactions (P1).
+		svcCtx.deletionWg.Add(1)
+		go func() {
+			defer svcCtx.deletionWg.Done()
+			outbox.NewRelay("auth", authOutboxStore{q: queries}, eventsPub).Run(ctx)
+		}()
 	} else {
-		logx.WithContext(ctx).Infof("no event publisher configured; queued user deletion delivery remains pending in auth_deletion_outbox")
+		logx.WithContext(ctx).Infof("no event publisher configured; queued user deletion + event outbox delivery remains pending")
 	}
 
 	return svcCtx
 }
 
+// authOutboxStore adapts the sqlc auth_event_outbox queries to outbox.Store.
+type authOutboxStore struct {
+	q *db.Queries
+}
+
+func (s authOutboxStore) Claim(ctx context.Context) (outbox.Row, error) {
+	row, err := s.q.ClaimAuthEvent(ctx)
+	if err != nil {
+		return outbox.Row{}, err
+	}
+	return outbox.Row{
+		EventID:    row.EventID,
+		EventType:  row.EventType,
+		Payload:    row.Payload,
+		OccurredAt: row.OccurredAt.Time,
+	}, nil
+}
+
+func (s authOutboxStore) Complete(ctx context.Context, eventID uuid.UUID) error {
+	return s.q.CompleteAuthEvent(ctx, eventID)
+}
+
 func (s *ServiceContext) Pool() *pgxpool.Pool {
 	return s.pool
+}
+
+// WithTx returns a new Repository backed by the given transaction.
+// Use this inside TxRunner.Run to perform multiple repo operations atomically.
+func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
+	return repository.NewRepository(db.New(tx))
 }
 
 func (s *ServiceContext) Close() {

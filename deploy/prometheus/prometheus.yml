@@ -68,3 +68,23 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox:9115
+
+  # External-view probes of endpoints that must REJECT unauthenticated
+  # requests. probe_success=1 means the endpoint refused correctly; 0 means
+  # either the endpoint is down or — critically — it answered 200.
+  - job_name: blackbox-private
+    metrics_path: /probe
+    params:
+      module: [http_4xx]
+    static_configs:
+      - targets:
+          # Unsigned bucket-root request — presigned-only access enforced by
+          # Caddy's X-Amz-Signature matcher + the private bucket policy.
+          - https://api.evolella.com/files/growthmind/
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115

@@ -54,6 +54,13 @@ func (r *ActivitiesRepo) CreateActivity(ctx context.Context, params db.CreateAct
 	return r.db.CreateActivity(ctx, params)
 }
 
+func (r *ActivitiesRepo) CreateActivityDeduped(ctx context.Context, params db.CreateActivityDedupedParams) error {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.CreateActivityDeduped")
+	defer span.End()
+
+	return r.db.CreateActivityDeduped(ctx, params)
+}
+
 func (r *ActivitiesRepo) LogActivity(ctx context.Context, params db.LogActivityParams) (db.Activity, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "ActivitiesRepo.LogActivity")
 	defer span.End()

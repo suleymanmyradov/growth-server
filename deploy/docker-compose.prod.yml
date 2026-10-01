@@ -19,7 +19,25 @@
 #   3. docker compose -f deploy/docker-compose.prod.yml --env-file deploy/.env.prod up -d
 #   4. Migrations run automatically in CI deploys (deploy/deploy.sh);
 #      manually: docker compose ... run --rm migrate up
+#
+# Secrets are split per-service: `.env.prod` is used ONLY for compose-time
+# interpolation (image tags, domains, postgres bootstrap, build args) and is
+# NOT attached to app containers. Each service reads `.env.shared` (non-secret
+# shared config) + `.env.<svc>` (only the secrets that service needs — incl.
+# its own Postgres role credentials created by deploy/scripts/setup-db-roles.sh).
+#
+# Memory budget (m7i-flex.large, 8 GB): core services cap at ~6.5 GB;
+# +admin/monitoring profiles ≈ 8.2 GB worst-case at the caps. Limits are
+# ceilings, not reservations — check cAdvisor for actual usage.
 # =============================================================================
+
+# Default container log policy: json-file with rotation so a chatty service
+# can't fill the disk. Promtail scrapes via the Docker API (json-file driver).
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   # ===================== Stateful dependencies =====================
@@ -27,6 +45,8 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Sum of per-service MaxOpenConns (~110) + migrate/psql headroom.
+    command: ["postgres", "-c", "max_connections=160"]
     ports:
       # Localhost-only on the VM — reached via SSH tunnel, never exposed publicly.
       - "127.0.0.1:5433:5432"
@@ -41,17 +61,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 1536M
     networks:
       - growth
 
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # noeviction: revoked:* session markers and rotated-token records must never
+    # be evicted under memory pressure — evicting them resurrects logged-out
+    # sessions. Cache writes start failing loudly instead of silently dropping
+    # security state (monitor Redis OOM errors / INFO evicted_keys stays 0).
+    command: redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 256mb --maxmemory-policy noeviction
     volumes:
       - redis_data:/data
     healthcheck:
@@ -59,10 +84,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 320M
     networks:
       - growth
 
@@ -86,10 +112,11 @@ services:
       interval: 15s
       timeout: 10s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 1536M
+          memory: 1280M
     networks:
       - growth
 
@@ -107,10 +134,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 768M
+          memory: 512M
     networks:
       - growth
 
@@ -128,10 +156,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 256M
     networks:
       - growth
 
@@ -150,7 +179,7 @@ services:
     # .env.auth carries JWT_PRIVATE_KEY — it must ONLY be attached to this
     # container. Every other service verifies with the public key.
     env_file:
-      - .env.prod
+      - .env.shared
       - .env.auth
     volumes:
       - ./config/auth.yaml:/config/auth.yaml:ro
@@ -161,6 +190,7 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -184,7 +214,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/client.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.client
     volumes:
       - ./config/client.yaml:/config/client.yaml:ro
     depends_on:
@@ -194,6 +225,7 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -217,12 +249,14 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/search.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.search
     volumes:
       - ./config/search.yaml:/config/search.yaml:ro
     depends_on:
       meilisearch:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -246,7 +280,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/aicoach.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.ai-coach
     volumes:
       - ./config/aicoach.yaml:/config/aicoach.yaml:ro
     depends_on:
@@ -254,10 +289,11 @@ services:
         condition: service_healthy
       meilisearch:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 224M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9207/healthz"]
       interval: 15s
@@ -277,7 +313,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/filemanager.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.filemanager
     volumes:
       - ./config/filemanager.yaml:/config/filemanager.yaml:ro
     depends_on:
@@ -287,10 +324,11 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9208/healthz"]
       interval: 15s
@@ -310,7 +348,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/notifications.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.notifications
     volumes:
       - ./config/notifications.yaml:/config/notifications.yaml:ro
     depends_on:
@@ -318,10 +357,11 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9209/healthz"]
       interval: 15s
@@ -343,7 +383,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/ai-coach-consumer.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.ai-coach-consumer
     volumes:
       - ./config/ai-coach-consumer.yaml:/config/ai-coach-consumer.yaml:ro
     depends_on:
@@ -351,10 +392,11 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 224M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9110/metrics"]
       interval: 15s
@@ -374,7 +416,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/search-sync.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.search-sync
     volumes:
       - ./config/search-sync.yaml:/config/search-sync.yaml:ro
     depends_on:
@@ -384,10 +427,11 @@ services:
         condition: service_healthy
       redpanda:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9111/metrics"]
       interval: 15s
@@ -407,7 +451,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/analytics.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.analytics-consumer
     volumes:
       - ./config/analytics.yaml:/config/analytics.yaml:ro
     depends_on:
@@ -417,10 +462,11 @@ services:
         condition: service_healthy
     profiles:
       - analytics
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9112/metrics"]
       interval: 15s
@@ -445,6 +491,7 @@ services:
         condition: service_healthy
     profiles:
       - tools
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -464,7 +511,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/growthapi.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.gateway
     volumes:
       - ./config/growthapi.yaml:/config/growthapi.yaml:ro
     depends_on:
@@ -480,10 +528,11 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9201/healthz"]
       interval: 15s
@@ -503,7 +552,8 @@ services:
     restart: unless-stopped
     command: ["-f", "/config/aiapi.yaml"]
     env_file:
-      - .env.prod
+      - .env.shared
+      - .env.ai-gateway
     volumes:
       - ./config/aiapi.yaml:/config/aiapi.yaml:ro
     depends_on:
@@ -517,10 +567,11 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9202/healthz"]
       interval: 15s
@@ -542,7 +593,7 @@ services:
     # .env.adminway carries ADMIN_JWT_PRIVATE_KEY — adminway is the only
     # issuer of admin tokens (audience growth-admin).
     env_file:
-      - .env.prod
+      - .env.shared
       - .env.adminway
     volumes:
       - ./config/adminapi.yaml:/config/adminapi.yaml:ro
@@ -561,10 +612,11 @@ services:
         condition: service_healthy
     profiles:
       - admin
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 112M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9203/healthz"]
       interval: 15s
@@ -609,10 +661,11 @@ services:
     depends_on:
       gateway:
         condition: service_started
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 448M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/"]
       interval: 15s
@@ -651,10 +704,11 @@ services:
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
     profiles:
       - admin
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 320M
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3001/login"]
       interval: 15s
@@ -682,6 +736,9 @@ services:
       # Generated Paddle webhook IP allowlist — refresh on the host via
       # deploy/scripts/fetch-paddle-webhook-ips.sh (cron), then caddy reload.
       - ./caddy/paddle-webhook-ips.caddyfile:/etc/caddy/paddle-webhook-ips.caddyfile:ro
+      # Generated admin-panel IP allowlist — written by deploy.sh from
+      # ADMIN_ALLOWED_IPS before compose runs.
+      - ./caddy/admin-allowlist.caddyfile:/etc/caddy/admin-allowlist.caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -691,10 +748,11 @@ services:
         condition: service_started
       frontend:
         condition: service_started
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 96M
     networks:
       - growth
 
@@ -716,10 +774,11 @@ services:
     volumes:
       - ./prometheus:/etc/prometheus:ro
       - prometheus_data:/prometheus
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
     profiles:
       - monitoring
     networks:
@@ -744,6 +803,7 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - ./alertmanager/secrets:/etc/alertmanager/secrets:ro
       - alertmanager_data:/alertmanager
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -770,6 +830,7 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /home/ubuntu/backups/textfile:/textfile:ro
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -786,6 +847,7 @@ services:
     command: ['--config.file=/etc/blackbox/blackbox.yml']
     volumes:
       - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    logging: *default-logging
     deploy:
       resources:
         limits:
@@ -815,10 +877,11 @@ services:
       - prometheus
       - loki
       - tempo
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 224M
     profiles:
       - monitoring
     networks:
@@ -831,10 +894,11 @@ services:
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki_data:/loki
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 320M
     profiles:
       - monitoring
     networks:
@@ -850,10 +914,11 @@ services:
       - promtail_positions:/positions
     depends_on:
       - loki
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 128M
+          memory: 96M
     profiles:
       - monitoring
     networks:
@@ -866,10 +931,11 @@ services:
     volumes:
       - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
       - tempo_data:/var/tempo
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 384M
+          memory: 256M
     profiles:
       - monitoring
     networks:
@@ -886,10 +952,11 @@ services:
       - /dev/disk/:/dev/disk:ro
     devices:
       - /dev/kmsg
+    logging: *default-logging
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 128M
     profiles:
       - monitoring
     networks:

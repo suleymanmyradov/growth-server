@@ -56,7 +56,11 @@ func main() {
 
 	s.AddUnaryInterceptors(
 		recovery.UnaryServerInterceptor(),
-		mdpropagate.UnaryServerInterceptor(tokenVerifier),
+		// UnsubscribeEmail is token-authenticated (RFC 8058 one-click links in
+		// emails) — callers carry the HMAC token, not a user JWT. s2s still
+		// guards the method, so only internal services can invoke it.
+		mdpropagate.UnaryServerInterceptorSkipping(tokenVerifier,
+			notifications.Notifications_UnsubscribeEmail_FullMethodName),
 		s2s.UnaryServerInterceptor(c.ServiceAuth),
 	)
 

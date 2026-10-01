@@ -68,6 +68,10 @@ RateLimit:
   AuthQuota: "60,10"
   AIQuota: "60,10"
   SearchQuota: "60,30"
+  # Only forwarded headers from these ranges are trusted (docker bridge +
+  # loopback); anything else can send X-Forwarded-For without spoofing the
+  # client IP used for rate limiting.
+  TrustedProxies: ["172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16", "fd00::/8", "127.0.0.0/8", "::1/128"]
 
 Telemetry:
   Name: growth-gateway

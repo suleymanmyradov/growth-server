@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 
@@ -16,6 +17,8 @@ type VerifyEmailLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner svc.TxRunnerInterface
 }
 
 func NewVerifyEmailLogic(ctx context.Context, svcCtx *svc.ServiceContext) *VerifyEmailLogic {
@@ -54,7 +57,17 @@ func (l *VerifyEmailLogic) VerifyEmail(in *auth.VerifyEmailRequest) (*auth.AuthR
 		return nil, errInternal(MsgInvalidVerificationToken)
 	}
 
-	user, err := l.svcCtx.Repo.Users.SetEmailVerified(ctx, userID)
+	// Mark verified and enqueue the profile-sync event atomically (P1): the
+	// outbox row commits with email_verified so the relay can always deliver it.
+	var user db.User
+	err = runInTx(l.svcCtx, l.testTxRunner, ctx, userID.String(), func(repo *repository.Repository) error {
+		row, err := repo.Users.SetEmailVerified(ctx, userID)
+		if err != nil {
+			return err
+		}
+		user = row
+		return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
+	})
 	if err != nil {
 		l.Errorf("VerifyEmail failed to mark user %s verified: %v", userID, err)
 		return nil, errInternal(MsgFailedVerifyEmail)
@@ -78,7 +91,6 @@ func (l *VerifyEmailLogic) VerifyEmail(in *auth.VerifyEmailRequest) (*auth.AuthR
 	}
 
 	l.Infof("VerifyEmail successful for user %s", user.ID)
-	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
 
 	return &auth.AuthResponse{
 		AccessToken:  accessToken.Token,

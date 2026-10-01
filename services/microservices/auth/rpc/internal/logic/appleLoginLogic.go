@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/pkg/oauth/apple"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
@@ -22,6 +22,8 @@ type AppleLoginLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner svc.TxRunnerInterface
 }
 
 func NewAppleLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AppleLoginLogic {
@@ -94,35 +96,40 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 	displayName := apple.FullName(givenName, familyName)
 
 	var user db.User
-	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
-		q := db.New(tx)
-
+	err = runInTx(l.svcCtx, l.testTxRunner, ctx, "", func(repo *repository.Repository) error {
 		// 1. Already linked?
-		acc, err := q.GetOAuthAccount(ctx, appleProvider, appleUser.Subject)
+		acc, err := repo.Oauth.GetOAuthAccount(ctx, appleProvider, appleUser.Subject)
 		if err == nil {
-			row, gerr := q.GetUserByID(ctx, acc.UserID)
+			row, gerr := repo.Users.GetUserByID(ctx, acc.UserID)
 			if gerr != nil {
 				return errInternal(MsgFailedLoadLinkedUser)
 			}
 			user = db.User(row)
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 
 		// 2. Existing user with the same email? Link the Apple identity to it.
-		row, err := q.GetUserByEmail(ctx, appleUser.Email)
+		// Only when Apple verified the email — private relay addresses count as
+		// verified because Apple generates them per (Apple account, Services ID)
+		// pair, so they can never collide with another user's address.
+		row, err := repo.Users.GetUserByEmail(ctx, appleUser.Email)
 		if err == nil {
+			if !appleUser.EmailVerified && !appleUser.IsPrivateRelayEmail {
+				l.Infof("AppleLogin: refusing email link to existing user, email_verified=false (email=%s)", appleUser.Email)
+				return ErrOAuthEmailNotVerified
+			}
 			user = db.User(row)
 			emailPtr := &appleUser.Email
-			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, appleProvider, appleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := repo.Oauth.CreateOAuthAccount(ctx, user.ID, appleProvider, appleUser.Subject, emailPtr); lerr != nil {
 				var pgErr *pgconn.PgError
 				if errors.As(lerr, &pgErr) && pgErr.Code == "23505" {
 					// Race: another request linked it. Treat as already linked.
-					return nil
+					return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 				}
 				l.Errorf("AppleLogin: link to existing user failed: %v", lerr)
 				return errInternal(MsgFailedLinkAppleAccount)
 			}
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 
 		// 3. No existing user — create a new OAuth-only user.
@@ -133,7 +140,7 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 			if i > 0 {
 				candidate = trimUsername(username) + itoa(i)
 			}
-			oauthRow, cerr := q.CreateUserOAuth(ctx, candidate, appleUser.Email, displayName, appleUser.EmailVerified)
+			oauthRow, cerr := repo.Users.CreateUserOAuth(ctx, candidate, appleUser.Email, displayName, appleUser.EmailVerified)
 			if cerr != nil {
 				var pgErr *pgconn.PgError
 				if errors.As(cerr, &pgErr) && pgErr.Code == "23505" {
@@ -145,19 +152,16 @@ func (l *AppleLoginLogic) AppleLogin(in *auth.AppleLoginRequest) (*auth.AuthResp
 			}
 			user = db.User(oauthRow)
 			emailPtr := &appleUser.Email
-			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, appleProvider, appleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := repo.Oauth.CreateOAuthAccount(ctx, user.ID, appleProvider, appleUser.Subject, emailPtr); lerr != nil {
 				l.Errorf("AppleLogin: create oauth account failed: %v", lerr)
 				return errInternal(MsgFailedLinkAppleAccount)
 			}
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	// Publish on every login so downstream recipient projections stay current.
-	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
 
 	// Best-effort authorization code exchange for a refresh token. Failure is
 	// non-fatal: the ID token is sufficient to identify the user. Code exchange

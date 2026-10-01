@@ -8,7 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
-	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/zeromicro/go-zero/core/trace"
 )
 
@@ -173,13 +172,6 @@ func calendarDays(from, to time.Time) int64 {
 	}
 	// 24h per day in UTC (no DST), +1 to include both endpoints.
 	return int64(to.Sub(from).Hours()/24) + 1
-}
-
-// recomputeAndPersist loads the inputs for a goal's measurement type, computes
-// progress, and writes it to goals.progress. Idempotent by construction:
-// it recomputes from source rows, so a retried call converges to the same value.
-func recomputeAndPersist(ctx context.Context, svcCtx *svc.ServiceContext, goalID uuid.UUID) (db.GetGoalRow, error) {
-	return RecomputeGoalProgressWithRepo(ctx, svcCtx.Repo.Goals, svcCtx.Repo.CheckIns, goalID)
 }
 
 // RecomputeGoalProgressWithRepo is the transaction-aware variant: pass the

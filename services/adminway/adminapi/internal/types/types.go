@@ -242,9 +242,45 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type LoginResponse struct {
+	MfaRequired      bool          `json:"mfaRequired"`
+	MfaSetupRequired bool          `json:"mfaSetupRequired"`
+	MfaTicket        string        `json:"mfaTicket,optional"`
+	Auth             *AuthResponse `json:"auth,optional"`
+}
+
 type MetricsRequest struct {
 	FromDate string `json:"fromDate,optional"`
 	ToDate   string `json:"toDate,optional"`
+}
+
+type MfaConfirmRequest struct {
+	Code string `json:"code"`
+}
+
+type MfaConfirmResponse struct {
+	BackupCodes []string      `json:"backupCodes"`
+	Auth        *AuthResponse `json:"auth,optional"`
+}
+
+type MfaDisableRequest struct {
+	Password string `json:"password"`
+	Code     string `json:"code"`
+}
+
+type MfaSetupResponse struct {
+	Secret        string `json:"secret"`
+	OtpauthUrl    string `json:"otpauthUrl"`
+	QrCodeDataUrl string `json:"qrCodeDataUrl"`
+}
+
+type MfaStatusResponse struct {
+	Enabled bool `json:"enabled"`
+}
+
+type MfaVerifyRequest struct {
+	Ticket string `json:"ticket"`
+	Code   string `json:"code"`
 }
 
 type MonetizationMetricsResponse struct {

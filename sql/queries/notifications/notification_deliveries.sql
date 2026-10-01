@@ -51,3 +51,23 @@ UPDATE notification_deliveries
 SET status = 'pending', claimed_at = NULL, next_attempt_at = $2,
     last_error_code = $3, last_error_message = $4
 WHERE id = $1;
+
+-- name: DeferNotificationDelivery :exec
+-- Reschedule a delivery without consuming a send attempt (claim bumped
+-- attempt_count, so the GREATEST(...-1) hands it back). Used for quiet-hours
+-- deferral: the push is delayed until 08:00 local, not retried as a failure.
+UPDATE notification_deliveries
+SET status = 'pending', claimed_at = NULL, next_attempt_at = $2,
+    attempt_count = GREATEST(attempt_count - 1, 0),
+    last_error_code = $3, last_error_message = $4
+WHERE id = $1;
+
+-- name: CountPushDeliveriesSentOnDate :one
+-- Pushes sent on the user's local calendar date ($3 is the IANA timezone,
+-- $2 the YYYY-MM-DD date). Backs the 5-pushes-per-day cap — counts only
+-- 'sent' rows so retries and suppressed deliveries don't consume the budget.
+SELECT count(*) FROM notification_deliveries
+WHERE user_id = $1
+  AND channel = 'push'
+  AND status = 'sent'
+  AND (sent_at AT TIME ZONE $3::text)::date = $2::date;

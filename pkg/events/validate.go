@@ -24,7 +24,8 @@ func ValidEventType(t EventType) bool {
 		TypeGoalCompleted,
 		TypeGoalDeleted,
 		TypeSubscriptionChanged,
-		TypePlanAdjustmentCreated:
+		TypePlanAdjustmentCreated,
+		TypeCoachingProfileChanged:
 		return true
 	}
 	return false

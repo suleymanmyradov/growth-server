@@ -8,11 +8,14 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
 	ClaimAuthDeletion(ctx context.Context) (ClaimAuthDeletionRow, error)
+	ClaimAuthEvent(ctx context.Context) (ClaimAuthEventRow, error)
 	CompleteAuthDeletion(ctx context.Context, eventID uuid.UUID) error
+	CompleteAuthEvent(ctx context.Context, eventID uuid.UUID) error
 	CreateOAuthAccount(ctx context.Context, userID uuid.UUID, provider string, providerUid string, email *string) (UserOauthAccount, error)
 	// Column order in all RETURNING/SELECT clauses matches the `users` table
 	// definition so sqlc reuses the db.User model struct (avoids per-query Row
@@ -23,6 +26,9 @@ type Querier interface {
 	// from the provider's verified claim.
 	CreateUserOAuth(ctx context.Context, username string, email string, fullName string, emailVerified bool) (User, error)
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	// Transactional event outbox for auth (P1). Distinct from
+	// auth_deletion_outbox, which carries only user_deleted rows.
+	EnqueueAuthEvent(ctx context.Context, eventID uuid.UUID, eventType string, payload []byte, occurredAt pgtype.Timestamptz) error
 	GetOAuthAccount(ctx context.Context, provider string, providerUid string) (UserOauthAccount, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)

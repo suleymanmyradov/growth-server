@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
@@ -15,6 +16,8 @@ type UpdateProfileLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner svc.TxRunnerInterface
 }
 
 func NewUpdateProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UpdateProfileLogic {
@@ -48,21 +51,27 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 		return nil, ErrUserNotFound
 	}
 
-	if in.FullName != "" {
-		user, err = l.svcCtx.Repo.Users.UpdateUserFullName(ctx, user.ID, in.FullName)
-		if err != nil {
-			l.Errorf("UpdateProfile failed to update user full name for user %s: %v", userID, err)
-			return nil, errInternal(MsgFailedUpdateUser)
+	// Apply the updates and enqueue the profile-sync event atomically (P1):
+	// the outbox row commits with the user row, the relay republishes it.
+	err = runInTx(l.svcCtx, l.testTxRunner, ctx, userID.String(), func(repo *repository.Repository) error {
+		if in.FullName != "" {
+			user, err = repo.Users.UpdateUserFullName(ctx, user.ID, in.FullName)
+			if err != nil {
+				return err
+			}
 		}
-	}
-
-	user, err = l.svcCtx.Repo.Users.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
-		ID:        userID,
-		Bio:       toNullString(in.Bio),
-		Location:  toNullString(in.Location),
-		Website:   toNullString(in.Website),
-		Interests: in.Interests,
-		AvatarUrl: toNullString(in.AvatarUrl),
+		user, err = repo.Users.UpdateUserProfile(ctx, db.UpdateUserProfileParams{
+			ID:        userID,
+			Bio:       toNullString(in.Bio),
+			Location:  toNullString(in.Location),
+			Website:   toNullString(in.Website),
+			Interests: in.Interests,
+			AvatarUrl: toNullString(in.AvatarUrl),
+		})
+		if err != nil {
+			return err
+		}
+		return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 	})
 	if err != nil {
 		l.Errorf("UpdateProfile failed to update profile for user %s: %v", userID, err)
@@ -70,9 +79,6 @@ func (l *UpdateProfileLogic) UpdateProfile(in *auth.UpdateProfileRequest) (*auth
 	}
 
 	l.Infof("UpdateProfile successful for user %s", userID)
-
-	// Publish synchronously so broker issues are visible immediately in dev.
-	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
 
 	return &auth.UpdateProfileResponse{
 		User: toPbUser(user),

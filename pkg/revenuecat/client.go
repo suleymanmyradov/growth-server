@@ -131,31 +131,96 @@ func HasProEntitlement(entitlements []Entitlement) bool {
 }
 
 // WebhookEvent is a single event in a RevenueCat webhook payload. RevenueCat
-// sends an array of events in the webhook body. See:
-// https://docs.revenuecat.com/integrations/webhooks/event-types-and-fields
+// sends one event per POST under the "event" key. Field names follow the
+// documented payload schema — timestamps are Unix milliseconds:
+// https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields
 type WebhookEvent struct {
-	// Type is the event type: NON_RENEWING_PURCHASE, INITIAL_PURCHASE,
-	// RENEWAL, CANCELLATION, UNCANCELLATION, EXPIRATION, PRODUCT_CHANGE,
-	// ENTITLEMENT_CHANGE, TRANSFER.
+	// Type is the event type: INITIAL_PURCHASE, RENEWAL, CANCELLATION,
+	// UNCANCELLATION, NON_RENEWING_PURCHASE, SUBSCRIPTION_PAUSED, EXPIRATION,
+	// BILLING_ISSUE, PRODUCT_CHANGE, SUBSCRIPTION_EXTENDED, REFUND_REVERSED,
+	// INVOICE_ISSUANCE, TRANSFER, TEST, ...
 	Type string `json:"type"`
-	// Store is the store: APP_STORE, PLAY_STORE, AMAZON, STRIPE, PROMO.
+	// EventID is the unique event identifier. Retries reuse the same id and
+	// event_timestamp_ms — safe for idempotency.
+	EventID string `json:"id"`
+	// EventTimestampMs is when RevenueCat generated the event (Unix ms).
+	EventTimestampMs int64 `json:"event_timestamp_ms"`
+	// Store is the store: APP_STORE, PLAY_STORE, AMAZON, STRIPE, PROMO, ...
 	Store string `json:"store"`
 	// AppUserID is the user ID passed to Purchases.logIn() (our user UUID).
 	AppUserID string `json:"app_user_id"`
 	// OriginalAppUserID is the original anonymous user ID (before logIn).
 	OriginalAppUserID string `json:"original_app_user_id"`
+	// Aliases lists every App User ID ever used by the subscriber.
+	Aliases []string `json:"aliases"`
 	// ProductID is the store product ID.
 	ProductID string `json:"product_id"`
-	// EntitlementID is the entitlement ID affected (e.g., "pro"). May be empty.
-	EntitlementID string `json:"entitlement_id"`
-	// PeriodStartAt is the start of the subscription period (ISO 8601).
-	PeriodStartAt string `json:"period_start_at"`
-	// ExpirationAt is the end of the subscription period (ISO 8601). May be
-	// empty for non-renewing purchases.
-	ExpirationAt string `json:"expiration_at"`
-	// EventID is a unique identifier for the event (used for idempotency).
-	// RevenueCat does not always send this; we derive one if absent.
-	EventID string `json:"event_id"`
+	// NewProductID is set on PRODUCT_CHANGE for deferred switches.
+	NewProductID string `json:"new_product_id"`
+	// EntitlementIDs are the entitlement IDs affected (e.g. ["pro"]).
+	EntitlementIDs []string `json:"entitlement_ids"`
+	// PeriodType is TRIAL | INTRO | NORMAL | PROMOTIONAL | PREPAID.
+	PeriodType string `json:"period_type"`
+	// PurchasedAtMs is when the transaction was purchased (Unix ms) — the
+	// start of the current subscription period.
+	PurchasedAtMs int64 `json:"purchased_at_ms"`
+	// ExpirationAtMs is the transaction expiry (Unix ms); nil for
+	// non-subscription or lifetime purchases.
+	ExpirationAtMs *int64 `json:"expiration_at_ms"`
+	// GracePeriodExpirationAtMs is set on BILLING_ISSUE — end of the store
+	// billing grace period during which the user keeps access.
+	GracePeriodExpirationAtMs *int64 `json:"grace_period_expiration_at_ms"`
+	// AutoResumeAtMs is when a paused Play Store subscription resumes.
+	AutoResumeAtMs *int64 `json:"auto_resume_at_ms"`
+	// IsTrialConversion is set on RENEWAL when the previous period was a trial.
+	IsTrialConversion bool `json:"is_trial_conversion"`
+	// CancelReason is set on CANCELLATION: UNSUBSCRIBE, BILLING_ERROR,
+	// DEVELOPER_INITIATED, PRICE_INCREASE, CUSTOMER_SUPPORT (refund), UNKNOWN.
+	CancelReason string `json:"cancel_reason"`
+	// ExpirationReason is set on EXPIRATION: same value set as cancel_reason
+	// plus SUBSCRIPTION_PAUSED.
+	ExpirationReason string `json:"expiration_reason"`
+	// TransactionID / OriginalTransactionID are store transaction identifiers.
+	TransactionID         string `json:"transaction_id"`
+	OriginalTransactionID string `json:"original_transaction_id"`
+}
+
+// OccurredAt converts event_timestamp_ms to a time.Time; zero when absent.
+func (e WebhookEvent) OccurredAt() time.Time {
+	if e.EventTimestampMs <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(e.EventTimestampMs)
+}
+
+// PurchasedTime converts purchased_at_ms; invalid when absent.
+func (e WebhookEvent) PurchasedTime() time.Time {
+	if e.PurchasedAtMs <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(e.PurchasedAtMs)
+}
+
+// ExpirationTime converts expiration_at_ms; invalid when absent.
+func (e WebhookEvent) ExpirationTime() time.Time {
+	if e.ExpirationAtMs == nil || *e.ExpirationAtMs <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(*e.ExpirationAtMs)
+}
+
+// GracePeriodExpiration converts grace_period_expiration_at_ms (BILLING_ISSUE
+// only); invalid when absent.
+func (e WebhookEvent) GracePeriodExpiration() time.Time {
+	if e.GracePeriodExpirationAtMs == nil || *e.GracePeriodExpirationAtMs <= 0 {
+		return time.Time{}
+	}
+	return time.UnixMilli(*e.GracePeriodExpirationAtMs)
+}
+
+// IsTrial reports whether the event's period_type marks a trial period.
+func (e WebhookEvent) IsTrial() bool {
+	return strings.EqualFold(e.PeriodType, "TRIAL")
 }
 
 // WebhookPayload is the top-level webhook body. RevenueCat sends ONE event

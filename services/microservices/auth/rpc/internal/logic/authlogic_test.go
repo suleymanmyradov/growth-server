@@ -123,22 +123,25 @@ func TestVerifyEmailLogic_Success(t *testing.T) {
 
 	mockUsers := &MockUsersRepo{}
 	mockTokenMaker := &MockTokenMaker{}
+	mockOutbox := &MockEventOutbox{}
 
 	verifiedUser := makeTestUser(func(u *db.User) { u.ID = userID; u.EmailVerified = true })
 	mockUsers.On("SetEmailVerified", mock.Anything, userID).Return(verifiedUser, nil)
+	mockOutbox.On("Enqueue", mock.Anything, mock.Anything).Return(nil)
 	mockTokenMaker.On("CreateAccessToken", mock.Anything, userID, "janedoe", []string{"user"}, mock.AnythingOfType("uuid.UUID")).
 		Return(&jwt.TokenResponse{Token: "access-token"}, nil)
 	mockTokenMaker.On("CreateRefreshToken", mock.Anything, userID, "janedoe", []string{"user"}, mock.AnythingOfType("uuid.UUID")).
 		Return(&jwt.TokenResponse{Token: "refresh-token"}, nil)
 
 	svcCtx := &svc.ServiceContext{
-		Repo:        &repository.Repository{Users: mockUsers},
+		Repo:        &repository.Repository{Users: mockUsers, EventOutbox: mockOutbox},
 		TokenMaker:  mockTokenMaker,
 		RedisClient: redisClient,
 		Config:      testConfig(15*time.Minute, 7*24*time.Hour),
 	}
 
 	l := NewVerifyEmailLogic(ctx, svcCtx)
+	l.testTxRunner = noopTxRunner{}
 	resp, err := l.VerifyEmail(&auth.VerifyEmailRequest{Token: "valid-token"})
 
 	require.NoError(t, err)

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/mdpropagate"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/sentryx"
 	"github.com/suleymanmyradov/growth-server/pkg/server/recovery"
@@ -45,9 +47,24 @@ func main() {
 	})
 	defer s.Stop()
 
+	// Verify propagated user JWTs so every RPC resolves identity from the
+	// verified token, not from a request field. Verify-only: this service holds
+	// the public key and cannot mint tokens.
+	tokenVerifier, err := jwt.NewVerifier(c.JWT)
+	if err != nil {
+		logx.Must(err)
+	}
+
 	s.AddUnaryInterceptors(
 		recovery.UnaryServerInterceptor(),
 		s2s.UnaryServerInterceptor(c.ServiceAuth),
+		mdpropagate.UnaryServerInterceptor(tokenVerifier),
+		mdpropagate.UnaryUserIDGuardInterceptor(),
+	)
+	s.AddStreamInterceptors(
+		s2s.StreamServerInterceptor(c.ServiceAuth),
+		mdpropagate.StreamServerInterceptor(tokenVerifier),
+		mdpropagate.StreamUserIDGuardInterceptor(),
 	)
 
 	fmt.Printf("Starting rpc server at %s...\n", c.ListenOn)

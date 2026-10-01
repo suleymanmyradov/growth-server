@@ -28,11 +28,17 @@ type Querier interface {
 	AdminListHabitTemplates(ctx context.Context) ([]AdminListHabitTemplatesRow, error)
 	AdminUpdateGoalTemplate(ctx context.Context, arg AdminUpdateGoalTemplateParams) (GoalTemplate, error)
 	AdminUpdateHabitTemplate(ctx context.Context, arg AdminUpdateHabitTemplateParams) (HabitTemplate, error)
+	// Single writer for the shared subscriptions row. The row is a merged
+	// projection of subscription_provider_states: the caller picks the winning
+	// provider state and passes the merged fields + provider link columns.
+	ApplyMergedSubscription(ctx context.Context, arg ApplyMergedSubscriptionParams) (Subscription, error)
 	ApplyPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error)
 	BatchCreateSavedArticles(ctx context.Context, arg []BatchCreateSavedArticlesParams) (int64, error)
 	BatchCreateSavedGoals(ctx context.Context, arg []BatchCreateSavedGoalsParams) (int64, error)
 	BatchCreateSavedHabits(ctx context.Context, arg []BatchCreateSavedHabitsParams) (int64, error)
+	ClaimClientEvent(ctx context.Context) (ClaimClientEventRow, error)
 	CloseReport(ctx context.Context, iD uuid.UUID, closeReason *string, adminNotes *string) (Report, error)
+	CompleteClientEvent(ctx context.Context, eventID uuid.UUID) error
 	CountActiveGoalsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountActivitiesByUserAndType(ctx context.Context, userID uuid.UUID, type_ string) (int64, error)
@@ -62,6 +68,10 @@ type Querier interface {
 	CountTagUsage(ctx context.Context, tagID uuid.UUID) (int64, error)
 	CountWeeklyReviews(ctx context.Context, userID uuid.UUID) (int64, error)
 	CreateActivity(ctx context.Context, arg CreateActivityParams) (Activity, error)
+	// Idempotent insert: the partial unique index on dedupe_key makes a second
+	// insert with the same key a no-op, so retried writes can't create duplicate
+	// activity rows even when requests race (P3).
+	CreateActivityDeduped(ctx context.Context, arg CreateActivityDedupedParams) error
 	CreateArticle(ctx context.Context, arg CreateArticleParams) (CreateArticleRow, error)
 	CreateArticleLike(ctx context.Context, articleID uuid.UUID, userID uuid.UUID) (ArticleLike, error)
 	CreateArticleShare(ctx context.Context, articleID uuid.UUID, userID uuid.UUID, platform string) (ArticleShare, error)
@@ -105,8 +115,10 @@ type Querier interface {
 	// Bulk cleanup queries for user_deleted event consumers.
 	// Each deletes all rows owned by the given user from a client-owned table.
 	DeleteHabitsByUser(ctx context.Context, userID uuid.UUID) error
+	DeletePaddleCheckoutsByUser(ctx context.Context, userID uuid.UUID) error
 	DeletePlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error
 	DeletePlanAdjustmentsByUser(ctx context.Context, userID uuid.UUID) error
+	DeleteProviderStatesByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteReportCommentsByUser(ctx context.Context, userID uuid.UUID) error
 	DeleteReportsByUser(ctx context.Context, reporterID uuid.UUID) error
 	DeleteSavedArticle(ctx context.Context, userID uuid.UUID, articleID uuid.UUID) error
@@ -127,6 +139,12 @@ type Querier interface {
 	DeleteUserProfile(ctx context.Context, id uuid.UUID) error
 	DeleteWeeklyReviewsByUser(ctx context.Context, userID uuid.UUID) error
 	DismissOldPendingSuggestions(ctx context.Context, userID uuid.UUID) error
+	// Transactional event outbox (P1). Rows are written inside the domain
+	// transaction and drained by the outbox relay (pkg/events/outbox), which
+	// republishes the stored payload with the stored event ID until the broker
+	// accepts it. Claims are leased via next_attempt_at so a crashed relay's
+	// rows become claimable again.
+	EnqueueClientEvent(ctx context.Context, eventID uuid.UUID, eventType string, payload []byte, occurredAt pgtype.Timestamptz) error
 	// Single aggregate pass over activities instead of repeated subqueries.
 	GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetAchievementsRow, error)
 	GetActivity(ctx context.Context, id uuid.UUID) (Activity, error)
@@ -176,6 +194,7 @@ type Querier interface {
 	GetHabitStreaks(ctx context.Context, userID uuid.UUID, timezone string) ([]GetHabitStreaksRow, error)
 	GetHabitsByIDs(ctx context.Context, column1 []uuid.UUID, timezone string) ([]GetHabitsByIDsRow, error)
 	GetMoodStatsForWeek(ctx context.Context, userID uuid.UUID, localDate pgtype.Date, localDate_2 pgtype.Date) ([]GetMoodStatsForWeekRow, error)
+	GetPaddleCheckoutUserID(ctx context.Context, transactionID string) (uuid.UUID, error)
 	GetPlanAdjustmentSuggestion(ctx context.Context, iD uuid.UUID, userID uuid.UUID) (PlanAdjustment, error)
 	GetPlanByCode(ctx context.Context, code string) (Plan, error)
 	GetReportByID(ctx context.Context, id uuid.UUID) (Report, error)
@@ -184,9 +203,20 @@ type Querier interface {
 	// Optimized: uses check_ins.local_date (indexed) instead of DATE(created_at) on activities.
 	// Simplified CTEs: removed string concatenation + interval cast; uses date - integer arithmetic.
 	GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksRow, error)
+	// ─── Provider states ──────────────────────────────────────────────────────
+	// One row per (user, provider): the last state each billing provider applied
+	// plus the provider-side event watermark used to drop out-of-order webhooks.
+	// The merged subscriptions row is recomputed from these rows — never let a
+	// provider's webhook write the shared row directly.
+	GetSubscriptionProviderState(ctx context.Context, userID uuid.UUID, provider string) (SubscriptionProviderState, error)
 	GetTag(ctx context.Context, id uuid.UUID) (Tag, error)
 	GetTagBySlug(ctx context.Context, slug string) (Tag, error)
 	GetTagsByArticleIDs(ctx context.Context, dollar_1 []uuid.UUID) ([]GetTagsByArticleIDsRow, error)
+	// Fetch the check-in for a habit on "today" in the caller's timezone, using
+	// the same date math as UpsertCheckIn. Used for idempotency: comparing the
+	// incoming request against the stored row lets the logic skip side effects
+	// (activity rows, events) when nothing changed.
+	GetTodayCheckInByHabit(ctx context.Context, habitID uuid.UUID, timezone string) (CheckIn, error)
 	// Timezone is passed by the caller.
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]CheckIn, error)
 	GetUserPreferences(ctx context.Context, userID uuid.UUID) (UserPreference, error)
@@ -223,6 +253,9 @@ type Querier interface {
 	// Link multiple habits to a goal at once.
 	// $1 = goal_id, $2 = array of habit_ids to link.
 	LinkGoalHabitsBatch(ctx context.Context, goalID uuid.UUID, column2 []uuid.UUID) error
+	// Attaches Paddle customer/subscription IDs without touching provider state —
+	// used by transaction.completed, which carries IDs but no subscription entity.
+	LinkPaddleProviderIDs(ctx context.Context, userID uuid.UUID, providerCustomerID *string, providerSubscriptionID *string, lastEventAt pgtype.Timestamptz) error
 	ListActivePlans(ctx context.Context) ([]Plan, error)
 	// NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
 	ListActivities(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]Activity, error)
@@ -299,6 +332,7 @@ type Querier interface {
 	ListSavedHabitsByUser(ctx context.Context, userID uuid.UUID, limit int32, offset int32) ([]ListSavedHabitsByUserRow, error)
 	ListSavedHabitsByUserKeyset(ctx context.Context, userID uuid.UUID, column2 pgtype.Timestamptz, limit int32) ([]ListSavedHabitsByUserKeysetRow, error)
 	ListSiteSettings(ctx context.Context, dollar_1 []string) ([]SiteSetting, error)
+	ListSubscriptionProviderStates(ctx context.Context, userID uuid.UUID) ([]SubscriptionProviderState, error)
 	// Admin broadcast audience segmentation: returns every user's plan code +
 	// subscription status. adminway classifies users as premium (status in
 	// active/trialing AND plan_code != 'free') vs free (everyone else).
@@ -317,6 +351,11 @@ type Querier interface {
 	// the progress engine after any write that can move the needle (milestone
 	// toggle, habit link change, check-in create/delete).
 	RecomputeGoalProgress(ctx context.Context, iD uuid.UUID, progress int32) (RecomputeGoalProgressRow, error)
+	// ─── Recorded checkouts ───────────────────────────────────────────────────
+	// CreatePaddleCheckout records transaction_id -> user_id here. The webhook
+	// trusts custom_data.user_id only for transactions we created server-side —
+	// client-side Paddle.js checkouts leave custom_data attacker-controlled.
+	RecordPaddleCheckout(ctx context.Context, transactionID string, userID uuid.UUID) error
 	ReorderCategories(ctx context.Context, column1 []uuid.UUID, column2 []int32) error
 	// Resets the missed counter to 0 and sets last_completed_date.
 	// Used when a 'completed' check-in arrives.
@@ -326,14 +365,6 @@ type Querier interface {
 	// once today's completed check-in is gone; no streak mutation is needed here.
 	// Returns the number of completed check-ins removed.
 	ResetTodayHabits(ctx context.Context, userID uuid.UUID, timezone string) (int64, error)
-	// Links a Paddle customer ID to an existing subscription. Called when a
-	// webhook resolves a user before checkout linkage (e.g. transaction.completed
-	// arrives without custom_data but the customer is already known).
-	SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error
-	// Links a RevenueCat customer ID to an existing subscription. Called when the
-	// first RevenueCat webhook arrives for a user (the mobile app has already
-	// called Purchases.logIn(userId) on the client side).
-	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
 	// Atomic flip for the legacy toggle path: a single statement so concurrent
 	// toggles can't both read "not liked" and race the insert. Returns the new
 	// state (true when the row was inserted by this statement, false when deleted).
@@ -404,6 +435,9 @@ type Querier interface {
 	// (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
 	// change status (missed → completed) or add/update mood/energy/blocker/note.
 	// created_at is preserved on update (the original check-in timestamp).
+	// version increments on every update so the caller can derive a deterministic
+	// per-transition event ID for the outbox (idempotent retry = same version =
+	// skipped side effects).
 	// Timezone is passed by the caller.
 	UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (CheckIn, error)
 	// Partial upsert: every contract field is optional, so an empty string / NULL
@@ -415,13 +449,12 @@ type Querier interface {
 	// and last_completed_date=today to reset the streak.
 	UpsertHabitMissedStreak(ctx context.Context, arg UpsertHabitMissedStreakParams) (HabitMissedStreak, error)
 	UpsertSiteSetting(ctx context.Context, key string, value []byte) (SiteSetting, error)
+	// last_event_at only ever moves forward (GREATEST ignores NULLs): an event
+	// without a timestamp applies but doesn't lower the watermark.
+	UpsertSubscriptionProviderState(ctx context.Context, arg UpsertSubscriptionProviderStateParams) (SubscriptionProviderState, error)
 	UpsertTags(ctx context.Context, column1 []string, column2 []string) ([]UpsertTagsRow, error)
 	// Event-fed read model for user profiles (V3).
 	UpsertUserProfile(ctx context.Context, arg UpsertUserProfileParams) error
-	UpsertUserSubscription(ctx context.Context, arg UpsertUserSubscriptionParams) (Subscription, error)
-	// Paddle counterpart of UpsertUserSubscription: writes the paddle_* columns
-	// and never touches the revenuecat_ columns.
-	UpsertUserSubscriptionPaddle(ctx context.Context, arg UpsertUserSubscriptionPaddleParams) (Subscription, error)
 }
 
 var _ Querier = (*Queries)(nil)

@@ -1,13 +1,17 @@
 package goalslogic
 
 import (
+	"context"
 	"strconv"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // goalToProto builds the proto Goal from a DB row. relatedHabitIds is the list
@@ -121,6 +125,31 @@ func parseHabitIDs(ids []string) []uuid.UUID {
 		}
 	}
 	return out
+}
+
+// validateHabitOwnership verifies that every habit ID exists and is owned by
+// userID. RelatedHabitIds comes from the client unchecked — without this a
+// user could link their goal to another user's habit and observe its check-in
+// pattern through the goal's computed progress.
+func validateHabitOwnership(ctx context.Context, habits repository.IHabits, userID uuid.UUID, habitIDs []uuid.UUID) error {
+	rows, err := habits.GetHabitsByIDs(ctx, habitIDs, "UTC")
+	if err != nil {
+		return status.Error(codes.Internal, "failed to load habits")
+	}
+	byID := make(map[uuid.UUID]db.GetHabitsByIDsRow, len(rows))
+	for _, h := range rows {
+		byID[h.ID] = h
+	}
+	for _, id := range habitIDs {
+		h, ok := byID[id]
+		if !ok {
+			return status.Error(codes.NotFound, "habit not found")
+		}
+		if h.UserID != userID {
+			return status.Error(codes.PermissionDenied, "habit does not belong to user")
+		}
+	}
+	return nil
 }
 
 // habitUUIDsToStrings converts a slice of uuid.UUIDs to strings.

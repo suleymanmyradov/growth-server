@@ -33,6 +33,10 @@ type Querier interface {
 	// treats it as a no-op rather than an error.
 	CreateUserFact(ctx context.Context, arg CreateUserFactParams) (UserFact, error)
 	DeleteConversation(ctx context.Context, iD uuid.UUID, userID uuid.UUID) error
+	// Wipes all of a user's conversations on user_deleted. conversation_messages
+	// cascade via the FK, and user_facts.source_message_id is SET NULL — facts are
+	// deleted separately by ForgetAllUserFacts.
+	DeleteConversationsByUser(ctx context.Context, userID uuid.UUID) error
 	// Backs "disable long-term memory" and account deletion.
 	ForgetAllUserFacts(ctx context.Context, userID uuid.UUID) error
 	// Hard delete, for "forget this about me". Deliberately not a supersession:

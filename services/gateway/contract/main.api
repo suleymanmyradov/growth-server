@@ -239,6 +239,21 @@ service growthapi {
 	delete /devices/:installationId (UnregisterDeviceRequest) returns (EmptyResponse)
 }
 
+// Public, token-authenticated endpoint used by mail clients for RFC 8058
+// one-click unsubscribe (List-Unsubscribe / List-Unsubscribe-Post headers on
+// notification emails). Callers POST "List-Unsubscribe=One-Click"; the HMAC
+// token in the query string replaces session auth. GET is intentionally not
+// registered so link scanners prefetching the URL cannot unsubscribe anyone.
+@server (
+	prefix: /api/v1
+	group:  notifications
+	tags:   "Notifications"
+)
+service growthapi {
+	@handler UnsubscribeEmail
+	post /notifications/email-unsubscribe (UnsubscribeEmailRequest) returns (EmptyResponse)
+}
+
 @server (
 	prefix:     /api/v1
 	group:      activity

@@ -2,6 +2,7 @@ package validator
 
 import (
 	"regexp"
+	"time"
 	"unicode"
 
 	"github.com/google/uuid"
@@ -58,6 +59,20 @@ func IsStrongPassword(password string) bool {
 // IsNotEmpty returns true if the string is non-empty after trimming whitespace.
 func IsNotEmpty(s string) bool {
 	return len(s) > 0 && len(regexp.MustCompile(`^\s*$`).ReplaceAllString(s, "")) > 0
+}
+
+// IsValidTimezone returns true if the string is a valid IANA timezone name
+// (e.g. "Europe/Berlin", "UTC"). Invalid values must be rejected on write —
+// they would otherwise poison every `AT TIME ZONE` query downstream and turn
+// habit endpoints into 500s. Deploy images ship tzdata, so LoadLocation is
+// the authority. The 50-char bound matches the varchar(50) columns that
+// store timezone (user_preferences, reminder_state, notification_devices).
+func IsValidTimezone(tz string) bool {
+	if len(tz) == 0 || len(tz) > 50 {
+		return false
+	}
+	_, err := time.LoadLocation(tz)
+	return err == nil
 }
 
 // IsValidUUID returns true if the string is a valid UUID.

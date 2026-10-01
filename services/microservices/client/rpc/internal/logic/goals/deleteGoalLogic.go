@@ -2,7 +2,7 @@ package goalslogic
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -56,7 +57,20 @@ func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.Dele
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	err = l.svcCtx.Repo.Goals.DeleteGoal(ctx, goalID)
+	// Delete + goal_deleted event commit together via the outbox.
+	err = l.svcCtx.RunInTx(ctx, p.UserID, func(txRepo *repository.Repository) error {
+		if txErr := txRepo.Goals.DeleteGoal(ctx, goalID); txErr != nil {
+			return txErr
+		}
+		env, envErr := events.NewEnvelope(events.TypeGoalDeleted, events.GoalDeleted{
+			UserID: p.UserID,
+			GoalID: goalID.String(),
+		})
+		if envErr != nil {
+			return fmt.Errorf("build goal_deleted envelope: %w", envErr)
+		}
+		return txRepo.EventOutbox.Enqueue(ctx, env)
+	})
 	if err != nil {
 		l.Errorf("Failed to delete goal: %v", err)
 		return nil, status.Error(codes.Internal, "failed to delete goal")
@@ -65,25 +79,6 @@ func (l *DeleteGoalLogic) DeleteGoal(in *client.DeleteGoalRequest) (*client.Dele
 	// Invalidate the cached personalization context for the owning user.
 	if uid, pErr := uuid.Parse(p.UserID); pErr == nil {
 		l.svcCtx.InvalidatePersonalizationContext(ctx, uid)
-	}
-
-	// Fire-and-forget publish goal_deleted event for analytics/metrics.
-	if l.svcCtx.EventsPub != nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypeGoalDeleted, events.GoalDeleted{
-				UserID: p.UserID,
-				GoalID: goalID.String(),
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish goal_deleted event: %v", err)
-			}
-		}()
 	}
 
 	return &client.DeleteGoalResponse{

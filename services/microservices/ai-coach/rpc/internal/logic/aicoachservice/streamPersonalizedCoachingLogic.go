@@ -64,9 +64,15 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 				FullResponse: safety.UnavailableResponse,
 			})
 
-		case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
+		case verdict.Category != safety.CategorySafe:
+			resp, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold)
+			if !blocked {
+				l.Infof("coaching safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f",
+					in.UserId, verdict.Category, verdict.Confidence)
+				break
+			}
 			// Reason deliberately not logged — classifier reasons can quote
-			// self-harm content verbatim.
+			// sensitive content verbatim.
 			l.Infof("coaching safety block: user=%s category=%s confidence=%.2f",
 				in.UserId, verdict.Category, verdict.Confidence)
 			coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
@@ -75,13 +81,13 @@ func (l *StreamPersonalizedCoachingLogic) StreamPersonalizedCoaching(in *aicoach
 			// gateway persists FullResponse on the complete event, so history
 			// stays consistent without a separate persistence call here.
 			if err := stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
-				Delta: prompts.CrisisResponse,
+				Delta: resp,
 			}); err != nil {
 				return err
 			}
 			return stream.Send(&aicoach.PersonalizedCoachingStreamChunk{
 				Complete:     true,
-				FullResponse: prompts.CrisisResponse,
+				FullResponse: resp,
 			})
 		}
 	}

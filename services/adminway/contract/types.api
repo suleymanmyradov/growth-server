@@ -171,6 +171,49 @@ type (
 		user         UserInfo `json:"user"`
 	}
 
+	// Login returns either a full auth pair (auth set, mfaRequired false) or an
+	// MFA challenge (mfaRequired true + mfaTicket). mfaSetupRequired separates
+	// "enter your authenticator code" from "enroll first" — an enroll ticket
+	// only authorizes the mfa setup endpoints via the X-Mfa-Ticket header.
+	LoginResponse {
+		mfaRequired      bool          `json:"mfaRequired"`
+		mfaSetupRequired bool          `json:"mfaSetupRequired"`
+		mfaTicket        string        `json:"mfaTicket,optional"`
+		auth             *AuthResponse `json:"auth,optional"`
+	}
+
+	MfaVerifyRequest {
+		ticket string `json:"ticket"`
+		code   string `json:"code"`
+	}
+
+	MfaSetupResponse {
+		secret        string `json:"secret"`
+		otpauthUrl    string `json:"otpauthUrl"`
+		qrCodeDataUrl string `json:"qrCodeDataUrl"`
+	}
+
+	MfaConfirmRequest {
+		code string `json:"code"`
+	}
+
+	// auth is set only when confirming through an enroll ticket — that path
+	// completes a forced-enrollment login (password + fresh TOTP proof), so
+	// the token pair comes back alongside the backup codes.
+	MfaConfirmResponse {
+		backupCodes []string      `json:"backupCodes"`
+		auth        *AuthResponse `json:"auth,optional"`
+	}
+
+	MfaStatusResponse {
+		enabled bool `json:"enabled"`
+	}
+
+	MfaDisableRequest {
+		password string `json:"password"`
+		code     string `json:"code"`
+	}
+
 	UploadImageRequest  {}
 
 	UploadImageResponse {

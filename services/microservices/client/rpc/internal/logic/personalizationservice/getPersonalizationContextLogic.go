@@ -45,62 +45,65 @@ func (l *GetPersonalizationContextLogic) GetPersonalizationContext(in *client.Ge
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	// Check personalized AI entitlement
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
-	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
-		if computeErr == nil && !entitlements.CanUsePersonalizedAi {
-			// Return reduced/basic context for Free users
-			var profileData coachingProfileData
-			profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
-			if err != nil {
-				if errors.Is(err, pgx.ErrNoRows) {
-					up, _ := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
-						UserID:              userID,
-						AccountabilityStyle: "balanced",
-						CoachTone:           "supportive",
-						Difficulty:          "adaptive",
-						CommonBlockers:      []byte("[]"),
-						CoachingNotes:       []byte("{}"),
-					})
-					profileData = coachingProfileData{
-						UserID: up.UserID, AccountabilityStyle: up.AccountabilityStyle,
-						PreferredTone: up.PreferredTone, DifficultyPreference: up.DifficultyPreference,
-						PrimaryMotivation: up.PrimaryMotivation, CommonBlockers: up.CommonBlockers,
-						CoachingNotes: up.CoachingNotes, LastContextRefreshAt: up.LastContextRefreshAt,
-						CreatedAt: up.CreatedAt, UpdatedAt: up.UpdatedAt,
-					}
-				}
-			} else {
+	// Check personalized AI entitlement. EntitlementsOrFreeFallback applies
+	// Free-plan limits when the subscription row can't be loaded; when even
+	// that fails we still serve the reduced Free context — this read path
+	// must degrade safely, never leak the Pro payload unverified.
+	entitlements, entErr := l.svcCtx.Repo.Billing.EntitlementsOrFreeFallback(ctx, userID)
+	if entErr != nil {
+		l.Errorf("GetPersonalizationContext: entitlement check failed, serving reduced context for user %s: %v", userID, entErr)
+	}
+	if entErr != nil || !entitlements.CanUsePersonalizedAi {
+		// Return reduced/basic context for Free users
+		var profileData coachingProfileData
+		profile, err := l.svcCtx.Repo.CoachingProfiles.GetCoachingProfile(ctx, userID)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				up, _ := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
+					UserID:              userID,
+					AccountabilityStyle: "balanced",
+					CoachTone:           "supportive",
+					Difficulty:          "adaptive",
+					CommonBlockers:      []byte("[]"),
+					CoachingNotes:       []byte("{}"),
+				})
 				profileData = coachingProfileData{
-					UserID: profile.UserID, AccountabilityStyle: profile.AccountabilityStyle,
-					PreferredTone: profile.PreferredTone, DifficultyPreference: profile.DifficultyPreference,
-					PrimaryMotivation: profile.PrimaryMotivation, CommonBlockers: profile.CommonBlockers,
-					CoachingNotes: profile.CoachingNotes, LastContextRefreshAt: profile.LastContextRefreshAt,
-					CreatedAt: profile.CreatedAt, UpdatedAt: profile.UpdatedAt,
+					UserID: up.UserID, AccountabilityStyle: up.AccountabilityStyle,
+					PreferredTone: up.PreferredTone, DifficultyPreference: up.DifficultyPreference,
+					PrimaryMotivation: up.PrimaryMotivation, CommonBlockers: up.CommonBlockers,
+					CoachingNotes: up.CoachingNotes, LastContextRefreshAt: up.LastContextRefreshAt,
+					CreatedAt: up.CreatedAt, UpdatedAt: up.UpdatedAt,
 				}
 			}
-			// Even on Free, include the user's name/bio so the coach can
-			// address them personally. Non-fatal if unavailable.
-			var freeUserProfile db.GetUserProfileByIDRow
-			if up, upErr := l.svcCtx.Repo.Users.GetUserProfileByID(ctx, userID); upErr == nil {
-				freeUserProfile = up
+		} else {
+			profileData = coachingProfileData{
+				UserID: profile.UserID, AccountabilityStyle: profile.AccountabilityStyle,
+				PreferredTone: profile.PreferredTone, DifficultyPreference: profile.DifficultyPreference,
+				PrimaryMotivation: profile.PrimaryMotivation, CommonBlockers: profile.CommonBlockers,
+				CoachingNotes: profile.CoachingNotes, LastContextRefreshAt: profile.LastContextRefreshAt,
+				CreatedAt: profile.CreatedAt, UpdatedAt: profile.UpdatedAt,
 			}
-			return &client.GetPersonalizationContextResponse{
-				Context: &client.PersonalizationContext{
-					Profile:            dbCoachingProfileToProto(profileData),
-					User:               dbUserProfileToProto(freeUserProfile),
-					ActiveGoals:        []*client.Goal{},
-					ActiveHabits:       []*client.Habit{},
-					RecentCheckIns:     []*client.CheckIn{},
-					PendingSuggestions: []*client.PlanAdjustmentSuggestion{},
-					PatternInsights: map[string]string{
-						"personalized_ai": "unavailable",
-						"reason":          "Upgrade to Pro for personalized coaching context",
-					},
-				},
-			}, nil
 		}
+		// Even on Free, include the user's name/bio so the coach can
+		// address them personally. Non-fatal if unavailable.
+		var freeUserProfile db.GetUserProfileByIDRow
+		if up, upErr := l.svcCtx.Repo.Users.GetUserProfileByID(ctx, userID); upErr == nil {
+			freeUserProfile = up
+		}
+		return &client.GetPersonalizationContextResponse{
+			Context: &client.PersonalizationContext{
+				Profile:            dbCoachingProfileToProto(profileData),
+				User:               dbUserProfileToProto(freeUserProfile),
+				ActiveGoals:        []*client.Goal{},
+				ActiveHabits:       []*client.Habit{},
+				RecentCheckIns:     []*client.CheckIn{},
+				PendingSuggestions: []*client.PlanAdjustmentSuggestion{},
+				PatternInsights: map[string]string{
+					"personalized_ai": "unavailable",
+					"reason":          "Upgrade to Pro for personalized coaching context",
+				},
+			},
+		}, nil
 	}
 
 	// Pro path: serve the assembled personalization context from the Redis

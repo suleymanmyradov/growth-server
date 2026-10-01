@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -60,11 +61,13 @@ func (r *ReminderStateRepo) DecrementHabitCount(ctx context.Context, userID uuid
 	return r.db.DecrementHabitCount(ctx, userID)
 }
 
-// BumpCheckInCountToday increments today's check-in count (resets on new day).
-func (r *ReminderStateRepo) BumpCheckInCountToday(ctx context.Context, userID uuid.UUID) error {
+// BumpCheckInCountToday increments today's check-in count (resets on new
+// user-local day). localDate is the check-in's user-local date — not the UTC
+// date.
+func (r *ReminderStateRepo) BumpCheckInCountToday(ctx context.Context, userID uuid.UUID, localDate time.Time) error {
 	ctx, span := otel.Tracer("notifications").Start(ctx, "ReminderStateRepo.BumpCheckInCountToday")
 	defer span.End()
-	return r.db.BumpCheckInCountToday(ctx, userID)
+	return r.db.BumpCheckInCountToday(ctx, userID, pgtype.Date{Time: localDate, Valid: true})
 }
 
 // Delete removes the reminder state for a user (used on account deletion).

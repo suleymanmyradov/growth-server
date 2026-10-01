@@ -22,11 +22,12 @@ sql/conf/*.yaml
 # Environment files
 .env
 .env.*
-# Allow .env.prod.example (template, no secrets) to be committed
+# Allow env-file templates (no secrets) to be committed
 !.env.prod.example
 !.env.azure.example
 !.env.auth.example
 !.env.adminway.example
+!.env.shared.example
 services/microservices/client/rpc/etc/client.yaml
 services/gateway/growth/etc/growthapi.yaml
 

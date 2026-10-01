@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -210,6 +211,59 @@ func TestClient_StreamAgent_NoTools(t *testing.T) {
 		MaxSteps:     5,
 	})
 	assert.ErrorIs(t, err, ErrNoTools)
+}
+
+// TestClient_StreamAgent_RecordsPartialUsageOnEarlyClose covers the A3 gap:
+// aborting an agent stream mid-generation must still charge the user's daily
+// token quota for what the provider already generated.
+func TestClient_StreamAgent_RecordsPartialUsageOnEarlyClose(t *testing.T) {
+	release := make(chan struct{})
+	server := mockOpenRouterServer(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/event-stream")
+		chunk := map[string]any{
+			"id":     "chatcmpl-1",
+			"object": "chat.completion.chunk",
+			"model":  "openai/gpt-4o-mini",
+			"choices": []any{map[string]any{
+				"index":         0,
+				"delta":         map[string]any{"content": "partial"},
+				"finish_reason": nil,
+			}},
+		}
+		data, _ := json.Marshal(chunk)
+		_, _ = w.Write([]byte("data: " + string(data) + "\n\n"))
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+		select {
+		case <-r.Context().Done():
+		case <-release:
+		}
+	})
+	defer server.Close()
+	defer close(release)
+
+	cfg, store := quotaTestConfig(server.URL)
+	c, err := New(cfg, WithHTTPClient(server.Client()), WithQuotaStore(store))
+	require.NoError(t, err)
+
+	sr, err := c.StreamAgent(context.Background(), AgentRequest{
+		ModelProfile: ModelChat,
+		Messages:     []Message{{Role: RoleUser, Content: "Hello"}},
+		Tools:        []Tool{EchoTool},
+		Metadata:     Metadata{UserID: "user-1"},
+	})
+	require.NoError(t, err)
+
+	// Read the first delta, then abort before the provider finishes.
+	chunk, err := sr.Recv()
+	require.NoError(t, err)
+	sr.Close()
+	_ = chunk
+
+	require.Eventually(t, func() bool {
+		return store.userTokens.Load() > 0
+	}, 2*time.Second, 10*time.Millisecond, "early-closed agent stream must record partial usage")
 }
 
 // TestClient_StreamAgent_Close verifies that Close cancels the loop and

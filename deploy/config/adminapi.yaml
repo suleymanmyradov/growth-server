@@ -22,7 +22,9 @@ Middlewares:
   Gunzip: true
 
 Postgres:
-  Datasource: ${ADMIN_POSTGRES_DATASOURCE}
+  # Same var name as other services — the per-service env file
+  # (deploy/.env.adminway) points it at the svc_adminway role.
+  Datasource: ${POSTGRES_DATASOURCE}
   MaxOpenConns: 10
   MaxIdleConns: 5
   ConnMaxLifetime: 5m
@@ -71,6 +73,15 @@ Auth:
 ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
+# TOTP MFA for admin accounts. EncryptionKey is a base64 32-byte AES-256 key
+# protecting TOTP secrets at rest (generate: openssl rand -base64 32).
+# Required forces every admin through enrollment at login — no MFA, no token.
+Mfa:
+  Issuer: Growth Admin
+  EncryptionKey: ${ADMIN_MFA_ENCRYPTION_KEY}
+  Required: true
+  TicketTTL: 5m
+
 RateLimit:
   Namespace: adminway
   Redis:
@@ -80,6 +91,10 @@ RateLimit:
   AuthQuota: "60,10"
   AIQuota: "60,10"
   SearchQuota: "60,30"
+  # Only forwarded headers from these ranges are trusted (docker bridge +
+  # loopback); anything else can send X-Forwarded-For without spoofing the
+  # client IP used for rate limiting.
+  TrustedProxies: ["172.16.0.0/12", "10.0.0.0/8", "192.168.0.0/16", "fd00::/8", "127.0.0.0/8", "::1/128"]
 
 Telemetry:
   Name: admin-api

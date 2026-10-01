@@ -2,10 +2,13 @@ package logic
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/pb/notifications"
@@ -64,6 +67,10 @@ func (l *RegisterDeviceLogic) RegisterDevice(in *notifications.RegisterDeviceReq
 	if environment != "development" && environment != "preview" && environment != "production" {
 		return nil, status.Error(codes.InvalidArgument, "environment must be development, preview, or production")
 	}
+	timezone := strings.TrimSpace(in.Timezone)
+	if timezone != "" && !validator.IsValidTimezone(timezone) {
+		return nil, status.Error(codes.InvalidArgument, "timezone must be a valid IANA timezone")
+	}
 
 	p, ok := principal.PrincipalFrom(ctx)
 	if !ok {
@@ -75,6 +82,10 @@ func (l *RegisterDeviceLogic) RegisterDevice(in *notifications.RegisterDeviceReq
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
+	// UpsertDevice refuses to update a row owned by a different user_id: the
+	// conflict-target WHERE clause skips the update, so zero rows come back as
+	// pgx.ErrNoRows. Knowing an installation_id is not enough to hijack its
+	// registration.
 	_, err = l.svcCtx.Repo.Devices.UpsertDevice(ctx, db.UpsertDeviceParams{
 		UserID:         userID,
 		InstallationID: in.InstallationId,
@@ -86,9 +97,15 @@ func (l *RegisterDeviceLogic) RegisterDevice(in *notifications.RegisterDeviceReq
 		AppVersion:     nullableString(in.AppVersion),
 		OsVersion:      nullableString(in.OsVersion),
 		Locale:         nullableString(in.Locale),
-		Timezone:       nullableString(in.Timezone),
+		Timezone:       nullableString(timezone),
 	})
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			// The installation_id is already registered to a different account.
+			// Refuse rather than reassign it — the client can regenerate its
+			// installation ID and retry.
+			return nil, status.Error(codes.AlreadyExists, "installation ID is already registered to a different account")
+		}
 		logx.WithContext(ctx).Errorf("RegisterDevice: upsert failed: %v", err)
 		return nil, status.Error(codes.Internal, "failed to register device")
 	}

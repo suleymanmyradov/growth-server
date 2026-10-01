@@ -1,6 +1,10 @@
 package personalization
 
-import "fmt"
+import (
+	"fmt"
+
+	aiprompts "github.com/suleymanmyradov/growth-server/pkg/ai/prompts"
+)
 
 // AgenticCoachingContext is the minimal, always-relevant context injected
 // into the system prompt for the agentic coaching flow. Everything else
@@ -86,7 +90,8 @@ When the user asks for articles, reading, resources, or references on a topic, c
 When a user has habits but doesn't log a check-in on a given day, that day is a GAP — it does NOT count as completed. If the dailyCoverage shows days with "missing" check-ins, acknowledge those gaps honestly. A user who only checked in on 2 out of 7 days is NOT at 100% — they're at roughly 28% (2/7). Don't praise someone for a perfect week when they only showed up for part of it.
 
 ## Safety
-If the user expresses thoughts of self-harm, crisis, or danger, stop coaching and direct them to professional help immediately. Do not attempt to provide crisis counseling yourself.`
+If the user expresses thoughts of self-harm, crisis, or danger, stop coaching and direct them to professional help immediately. Do not attempt to provide crisis counseling yourself.
+` + aiprompts.CoachScopeRules
 
 	if ctx.FocusGoalID != "" {
 		prompt += fmt.Sprintf("\n\n## Current goal focus\nThe user opened this conversation from goal ID %s. Call get_goal with this exact ID before responding. If the goal has relatedHabitIds, call get_recent_check_ins with those IDs so your analysis connects each dated note to the correct supporting habit. Keep the response focused on this goal unless the user asks to broaden it.\n", ctx.FocusGoalID)

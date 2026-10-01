@@ -1,9 +1,11 @@
 package svc
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -14,6 +16,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/outbox"
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
@@ -24,13 +27,16 @@ import (
 )
 
 type ServiceContext struct {
-	Config     config.Config
-	Repo       *repository.Repository
-	AI         ai.Client
-	TxRunner   *postgres.PgxTxRunner
-	EventsQ    queue.MessageQueue
-	EventsPub  *events.Publisher
-	DLQPub     *events.DLQPublisher
+	Config    config.Config
+	Repo      *repository.Repository
+	AI        ai.Client
+	TxRunner  *postgres.PgxTxRunner
+	EventsQ   queue.MessageQueue
+	EventsPub *events.Publisher
+	DLQPub    *events.DLQPublisher
+	// EventRelay drains ai_coach_event_outbox into the events broker (P1).
+	// Nil when no publisher backend (Kafka or Redis) is configured.
+	EventRelay *outbox.Relay
 	pool       *pgxpool.Pool
 	consumerWg sync.WaitGroup
 }
@@ -47,13 +53,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	if c.AI.APIKey != "" {
 		opts := []ai.Option{}
 		if c.AI.Quota.RedisAddr != "" {
-			redisClient, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
-			if err == nil {
-				quotaRedisClient = redisClient
-				opts = append(opts, ai.WithQuotaStore(ai.NewRedisQuotaStore(redisClient)))
-			} else {
-				logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
-			}
+			// No startup ping: the client connects lazily. The quota store is
+			// always wired when configured — if Redis is down, enforcement
+			// fails closed at request time instead of silently disabling
+			// quotas for the process lifetime.
+			quotaRedisClient = redis.NewClient(redisutil.DefaultOpts(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB))
+			opts = append(opts, ai.WithQuotaStore(ai.NewRedisQuotaStore(quotaRedisClient)))
+		} else if c.AI.Quota.UserDailyTokenCap > 0 || c.AI.Quota.GlobalDailyCostCapUSD > 0 || c.AI.Quota.UserDailyVoiceSecondsCap > 0 {
+			logx.Error("AI quota caps configured but AI.Quota.RedisAddr is empty; quota checks fail closed")
 		}
 		client, err := ai.New(c.AI, opts...)
 		if err != nil {
@@ -113,7 +120,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	}
 
 	// Create consumer handler.
-	handler := consumer.NewEventsHandler(repo, aiClient, eventsPub, classifier, handlerOpts)
+	handler := consumer.NewEventsHandler(repo, aiClient, classifier, handlerOpts)
 
 	// Create consumer queue: Kafka or Redis Streams.
 	var eventsQ queue.MessageQueue
@@ -149,16 +156,48 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}, handler.Consume))
 	}
 
-	return &ServiceContext{
-		Config:    c,
-		Repo:      repo,
-		AI:        aiClient,
-		TxRunner:  txRunner,
-		EventsQ:   eventsQ,
-		EventsPub: eventsPub,
-		DLQPub:    dlqPub,
-		pool:      pool,
+	// Transactional outbox relay: drains ai_coach_event_outbox — the digest
+	// handler writes its check_in_feedback_generated rows inside the digest
+	// transaction, this relay republishes them under stable event IDs (P1).
+	var eventRelay *outbox.Relay
+	if eventsPub != nil {
+		eventRelay = outbox.NewRelay("ai-coach-consumer", consumerOutboxStore{q: queries}, eventsPub)
 	}
+
+	return &ServiceContext{
+		Config:     c,
+		Repo:       repo,
+		AI:         aiClient,
+		TxRunner:   txRunner,
+		EventsQ:    eventsQ,
+		EventsPub:  eventsPub,
+		DLQPub:     dlqPub,
+		EventRelay: eventRelay,
+		pool:       pool,
+	}
+}
+
+// consumerOutboxStore adapts the ai_coach_event_outbox queries to
+// outbox.Store.
+type consumerOutboxStore struct {
+	q *db.Queries
+}
+
+func (s consumerOutboxStore) Claim(ctx context.Context) (outbox.Row, error) {
+	row, err := s.q.ClaimEvent(ctx)
+	if err != nil {
+		return outbox.Row{}, err
+	}
+	return outbox.Row{
+		EventID:    row.EventID,
+		EventType:  row.EventType,
+		Payload:    row.Payload,
+		OccurredAt: row.OccurredAt.Time,
+	}, nil
+}
+
+func (s consumerOutboxStore) Complete(ctx context.Context, eventID uuid.UUID) error {
+	return s.q.CompleteEvent(ctx, eventID)
 }
 
 // WithTx returns a new Repository backed by the given transaction.
@@ -166,8 +205,15 @@ func (s *ServiceContext) WithTx(tx pgx.Tx) *repository.Repository {
 	return repository.NewRepository(db.NewWithTx(tx))
 }
 
-// StartConsumers launches the event consumer queue.
+// StartConsumers launches the event consumer queue and the outbox relay.
 func (s *ServiceContext) StartConsumers() {
+	if s.EventRelay != nil {
+		s.consumerWg.Add(1)
+		go func() {
+			defer s.consumerWg.Done()
+			s.EventRelay.Run(context.Background())
+		}()
+	}
 	if s.EventsQ == nil {
 		logx.Info("no event consumer configured; ai-coach-consumer idle")
 		return

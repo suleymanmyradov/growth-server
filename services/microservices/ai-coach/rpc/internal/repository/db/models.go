@@ -17,6 +17,57 @@ type Activity struct {
 	Description *string            `db:"description" json:"description"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	DedupeKey   *string            `db:"dedupe_key" json:"dedupe_key"`
+}
+
+type AdminAuditLog struct {
+	ID         uuid.UUID          `db:"id" json:"id"`
+	AdminID    uuid.NullUUID      `db:"admin_id" json:"admin_id"`
+	AdminName  *string            `db:"admin_name" json:"admin_name"`
+	Method     string             `db:"method" json:"method"`
+	Path       string             `db:"path" json:"path"`
+	StatusCode int32              `db:"status_code" json:"status_code"`
+	Ip         *string            `db:"ip" json:"ip"`
+	UserAgent  *string            `db:"user_agent" json:"user_agent"`
+	LatencyMs  int32              `db:"latency_ms" json:"latency_ms"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type AiCoachCheckIn struct {
+	CheckInID  uuid.UUID          `db:"check_in_id" json:"check_in_id"`
+	UserID     uuid.UUID          `db:"user_id" json:"user_id"`
+	HabitID    uuid.UUID          `db:"habit_id" json:"habit_id"`
+	HabitName  string             `db:"habit_name" json:"habit_name"`
+	Status     string             `db:"status" json:"status"`
+	Mood       *string            `db:"mood" json:"mood"`
+	Energy     *string            `db:"energy" json:"energy"`
+	Blocker    *string            `db:"blocker" json:"blocker"`
+	Note       *string            `db:"note" json:"note"`
+	LocalDate  pgtype.Date        `db:"local_date" json:"local_date"`
+	OccurredAt pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type AiCoachEventOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	EventType     string             `db:"event_type" json:"event_type"`
+	Payload       []byte             `db:"payload" json:"payload"`
+	OccurredAt    pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
+}
+
+type AiCoachProcessedEvent struct {
+	Consumer    string             `db:"consumer" json:"consumer"`
+	EventID     string             `db:"event_id" json:"event_id"`
+	ProcessedAt pgtype.Timestamptz `db:"processed_at" json:"processed_at"`
+}
+
+type AiCoachProfile struct {
+	UserID              uuid.UUID          `db:"user_id" json:"user_id"`
+	AccountabilityStyle string             `db:"accountability_style" json:"accountability_style"`
+	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type AiFeedback struct {
@@ -70,6 +121,24 @@ type ArticleTag struct {
 	TagID     uuid.UUID `db:"tag_id" json:"tag_id"`
 }
 
+type AuthDeletionOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	UserID        uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
+}
+
+type AuthEventOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	EventType     string             `db:"event_type" json:"event_type"`
+	Payload       []byte             `db:"payload" json:"payload"`
+	OccurredAt    pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
+}
+
 type BillingWebhookEvent struct {
 	Consumer    string             `db:"consumer" json:"consumer"`
 	EventID     string             `db:"event_id" json:"event_id"`
@@ -96,6 +165,17 @@ type CheckIn struct {
 	Blocker   *string            `db:"blocker" json:"blocker"`
 	Note      *string            `db:"note" json:"note"`
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	Version   int32              `db:"version" json:"version"`
+}
+
+type ClientEventOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	EventType     string             `db:"event_type" json:"event_type"`
+	Payload       []byte             `db:"payload" json:"payload"`
+	OccurredAt    pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
 }
 
 type ClientProcessedEvent struct {
@@ -152,6 +232,17 @@ type DailyMetric struct {
 	MetricValue int32              `db:"metric_value" json:"metric_value"`
 	Metadata    []byte             `db:"metadata" json:"metadata"`
 	UpdatedAt   pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type FileObject struct {
+	Bucket      string             `db:"bucket" json:"bucket"`
+	ObjectKey   string             `db:"object_key" json:"object_key"`
+	OwnerUserID uuid.NullUUID      `db:"owner_user_id" json:"owner_user_id"`
+	Folder      string             `db:"folder" json:"folder"`
+	ContentType string             `db:"content_type" json:"content_type"`
+	SizeBytes   int64              `db:"size_bytes" json:"size_bytes"`
+	ExpiresAt   pgtype.Timestamptz `db:"expires_at" json:"expires_at"`
+	CreatedAt   pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Goal struct {
@@ -290,6 +381,16 @@ type NotificationDevice struct {
 	UpdatedAt      pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
+type NotificationEventOutbox struct {
+	EventID       uuid.UUID          `db:"event_id" json:"event_id"`
+	EventType     string             `db:"event_type" json:"event_type"`
+	Payload       []byte             `db:"payload" json:"payload"`
+	OccurredAt    pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	NextAttemptAt pgtype.Timestamptz `db:"next_attempt_at" json:"next_attempt_at"`
+	Attempts      int32              `db:"attempts" json:"attempts"`
+}
+
 type NotificationGoalState struct {
 	GoalID    uuid.UUID          `db:"goal_id" json:"goal_id"`
 	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
@@ -328,6 +429,12 @@ type NotificationRecipient struct {
 	Name          string             `db:"name" json:"name"`
 	EmailVerified bool               `db:"email_verified" json:"email_verified"`
 	UpdatedAt     pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+}
+
+type PaddleCheckout struct {
+	TransactionID string             `db:"transaction_id" json:"transaction_id"`
+	UserID        uuid.UUID          `db:"user_id" json:"user_id"`
+	CreatedAt     pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 type Plan struct {
@@ -484,6 +591,23 @@ type Subscription struct {
 	RevenuecatCustomerID *string            `db:"revenuecat_customer_id" json:"revenuecat_customer_id"`
 	PaddleCustomerID     *string            `db:"paddle_customer_id" json:"paddle_customer_id"`
 	PaddleSubscriptionID *string            `db:"paddle_subscription_id" json:"paddle_subscription_id"`
+}
+
+type SubscriptionProviderState struct {
+	UserID                 uuid.UUID          `db:"user_id" json:"user_id"`
+	Provider               string             `db:"provider" json:"provider"`
+	Status                 string             `db:"status" json:"status"`
+	BillingInterval        *string            `db:"billing_interval" json:"billing_interval"`
+	CurrentPeriodStart     pgtype.Timestamptz `db:"current_period_start" json:"current_period_start"`
+	CurrentPeriodEnd       pgtype.Timestamptz `db:"current_period_end" json:"current_period_end"`
+	TrialEnd               pgtype.Timestamptz `db:"trial_end" json:"trial_end"`
+	CancelAtPeriodEnd      bool               `db:"cancel_at_period_end" json:"cancel_at_period_end"`
+	ProviderCustomerID     *string            `db:"provider_customer_id" json:"provider_customer_id"`
+	ProviderSubscriptionID *string            `db:"provider_subscription_id" json:"provider_subscription_id"`
+	LastEventAt            pgtype.Timestamptz `db:"last_event_at" json:"last_event_at"`
+	LastEventID            *string            `db:"last_event_id" json:"last_event_id"`
+	CreatedAt              pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt              pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
 }
 
 type Tag struct {

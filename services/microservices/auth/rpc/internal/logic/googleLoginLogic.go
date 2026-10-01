@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/pkg/oauth/google"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
@@ -23,6 +23,8 @@ type GoogleLoginLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner svc.TxRunnerInterface
 }
 
 func NewGoogleLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GoogleLoginLogic {
@@ -73,35 +75,40 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 	}
 
 	var user db.User
-	err := l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
-		q := db.New(tx)
-
+	err := runInTx(l.svcCtx, l.testTxRunner, ctx, "", func(repo *repository.Repository) error {
 		// 1. Already linked?
-		acc, err := q.GetOAuthAccount(ctx, googleProvider, googleUser.Subject)
+		acc, err := repo.Oauth.GetOAuthAccount(ctx, googleProvider, googleUser.Subject)
 		if err == nil {
-			row, gerr := q.GetUserByID(ctx, acc.UserID)
+			row, gerr := repo.Users.GetUserByID(ctx, acc.UserID)
 			if gerr != nil {
 				return errInternal(MsgFailedLoadLinkedUser)
 			}
 			user = db.User(row)
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 
 		// 2. Existing user with the same email? Link the Google identity to it.
-		row, err := q.GetUserByEmail(ctx, googleUser.Email)
+		// Only when Google verified the email — otherwise anyone could take over
+		// an account by signing in with an unverified Gmail address that matches
+		// the victim's email.
+		row, err := repo.Users.GetUserByEmail(ctx, googleUser.Email)
 		if err == nil {
+			if !googleUser.EmailVerified {
+				l.Infof("GoogleLogin: refusing email link to existing user, email_verified=false (email=%s)", googleUser.Email)
+				return ErrOAuthEmailNotVerified
+			}
 			user = db.User(row)
 			emailPtr := &googleUser.Email
-			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := repo.Oauth.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
 				var pgErr *pgconn.PgError
 				if errors.As(lerr, &pgErr) && pgErr.Code == "23505" {
 					// Race: another request linked it. Treat as already linked.
-					return nil
+					return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 				}
 				l.Errorf("GoogleLogin: link to existing user failed: %v", lerr)
 				return errInternal(MsgFailedLinkGoogleAccount)
 			}
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 
 		// 3. No existing user — create a new OAuth-only user.
@@ -112,7 +119,7 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 			if i > 0 {
 				candidate = trimUsername(username) + itoa(i)
 			}
-			oauthRow, cerr := q.CreateUserOAuth(ctx, candidate, googleUser.Email, googleUser.Name, googleUser.EmailVerified)
+			oauthRow, cerr := repo.Users.CreateUserOAuth(ctx, candidate, googleUser.Email, googleUser.Name, googleUser.EmailVerified)
 			if cerr != nil {
 				var pgErr *pgconn.PgError
 				if errors.As(cerr, &pgErr) && pgErr.Code == "23505" {
@@ -124,19 +131,16 @@ func (l *GoogleLoginLogic) GoogleLogin(in *auth.GoogleLoginRequest) (*auth.AuthR
 			}
 			user = db.User(oauthRow)
 			emailPtr := &googleUser.Email
-			if _, lerr := q.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
+			if _, lerr := repo.Oauth.CreateOAuthAccount(ctx, user.ID, googleProvider, googleUser.Subject, emailPtr); lerr != nil {
 				l.Errorf("GoogleLogin: create oauth account failed: %v", lerr)
 				return errInternal(MsgFailedLinkGoogleAccount)
 			}
-			return nil
+			return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 		}
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	// Publish on every login so downstream recipient projections stay current.
-	publishUserProfileUpdated(ctx, l.svcCtx.EventsPub, user)
 
 	sessionID := uuid.New()
 	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Username, []string{"user"}, sessionID)

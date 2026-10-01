@@ -51,22 +51,13 @@ echo "==> Starting stack"
 docker compose -f "$REPO_DIR/deploy/docker-compose.prod.yml" \
   --env-file "$REPO_DIR/deploy/.env.prod" --project-directory "$REPO_DIR/deploy" up -d
 
-echo "==> Waiting for MinIO, then making the bucket private"
+echo "==> Making the MinIO bucket private"
 # The bucket must stay PRIVATE: it holds avatars and GDPR data exports, and
 # Caddy proxies /files/* straight to MinIO — anonymous access there would let
-# anyone enumerate/download other users' exports. All access goes through
-# short-lived presigned URLs (SigV4 in the query string) or the authenticated
-# filemanager RPC. "mc anonymous set none" revokes any inherited policy.
-sleep 10
-docker compose -f "$REPO_DIR/deploy/docker-compose.prod.yml" --project-directory "$REPO_DIR/deploy" \
-  exec -T minio sh -c \
-  'mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1 \
-   && mc mb --ignore-existing local/"$MINIO_ROOT_BUCKET" >/dev/null 2>&1 || true; \
-   mc anonymous set none "local/$MINIO_ROOT_BUCKET" >/dev/null 2>&1 || true' || true
-# Fallback: use explicit bucket name if env not visible inside container
-BUCKET=growthmind
-docker compose -f "$REPO_DIR/deploy/docker-compose.prod.yml" --project-directory "$REPO_DIR/deploy" \
-  exec -T minio sh -c 'mc anonymous set none local/'"$BUCKET" || true
+# anyone enumerate/download other users' exports. harden-minio.sh waits for
+# readiness, applies the empty-statement policy, verifies it stuck, and
+# fails hard on error (also re-run by deploy.sh on every deploy).
+"$REPO_DIR/deploy/scripts/harden-minio.sh"
 
 echo "==> Bootstrap complete."
 docker compose -f "$REPO_DIR/deploy/docker-compose.prod.yml" --project-directory "$REPO_DIR/deploy" ps

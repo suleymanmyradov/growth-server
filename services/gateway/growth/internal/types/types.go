@@ -898,6 +898,10 @@ type UnregisterDeviceRequest struct {
 	InstallationId string `path:"installationId"`
 }
 
+type UnsubscribeEmailRequest struct {
+	Token string `form:"token"`
+}
+
 type UpdateCoachingProfilePreferencesRequest struct {
 	AccountabilityStyle  string `json:"accountabilityStyle,example=balanced"`
 	PreferredTone        string `json:"preferredTone,example=supportive"`

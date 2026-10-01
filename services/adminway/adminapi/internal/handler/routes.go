@@ -93,10 +93,53 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			},
 			{
 				Method:  http.MethodPost,
+				Path:    "/auth/mfa/verify",
+				Handler: auth.AuthMfaVerifyHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodPost,
 				Path:    "/auth/refresh",
 				Handler: auth.AuthRefreshHandler(serverCtx),
 			},
 		},
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.MfaAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/auth/mfa/confirm",
+					Handler: auth.AuthMfaConfirmHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
+					Path:    "/auth/mfa/setup",
+					Handler: auth.AuthMfaSetupHandler(serverCtx),
+				},
+			}...,
+		),
+		rest.WithPrefix("/api/v1/admin"),
+	)
+
+	server.AddRoutes(
+		rest.WithMiddlewares(
+			[]rest.Middleware{serverCtx.Auth, serverCtx.AdminAuth},
+			[]rest.Route{
+				{
+					Method:  http.MethodPost,
+					Path:    "/auth/mfa/disable",
+					Handler: auth.AuthMfaDisableHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodGet,
+					Path:    "/auth/mfa/status",
+					Handler: auth.AuthMfaStatusHandler(serverCtx),
+				},
+			}...,
+		),
 		rest.WithPrefix("/api/v1/admin"),
 	)
 

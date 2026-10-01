@@ -18,39 +18,38 @@ type AIFeedback struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-// CheckIn represents a row in the check_ins table (read-only for ai-coach).
-type CheckIn struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
-	Status    string             `db:"status" json:"status"`
-	Mood      *string            `db:"mood" json:"mood"`
-	Energy    *string            `db:"energy" json:"energy"`
-	Blocker   *string            `db:"blocker" json:"blocker"`
-	Note      *string            `db:"note" json:"note"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+// CoachCheckIn represents a row in ai_coach_check_ins — the consumer-owned
+// read model fed by check_in_created events (P2). It mirrors the check-ins
+// fields the digest prompt needs, with habit_name denormalized from the event
+// payload so no cross-service join is required.
+type CoachCheckIn struct {
+	CheckInID  uuid.UUID          `db:"check_in_id" json:"check_in_id"`
+	UserID     uuid.UUID          `db:"user_id" json:"user_id"`
+	HabitID    uuid.UUID          `db:"habit_id" json:"habit_id"`
+	HabitName  string             `db:"habit_name" json:"habit_name"`
+	Status     string             `db:"status" json:"status"`
+	Mood       *string            `db:"mood" json:"mood"`
+	Energy     *string            `db:"energy" json:"energy"`
+	Blocker    *string            `db:"blocker" json:"blocker"`
+	Note       *string            `db:"note" json:"note"`
+	LocalDate  pgtype.Date        `db:"local_date" json:"local_date"`
+	OccurredAt pgtype.Timestamptz `db:"occurred_at" json:"occurred_at"`
+	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
-// CheckInWithHabit is a check-in row joined with its habit name. Used by the
-// daily digest to build a prompt that references all habits checked in today.
-type CheckInWithHabit struct {
-	ID        uuid.UUID          `db:"id" json:"id"`
-	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
-	HabitID   uuid.UUID          `db:"habit_id" json:"habit_id"`
-	HabitName string             `db:"habit_name" json:"habit_name"`
-	Status    string             `db:"status" json:"status"`
-	Mood      *string            `db:"mood" json:"mood"`
-	Energy    *string            `db:"energy" json:"energy"`
-	Blocker   *string            `db:"blocker" json:"blocker"`
-	Note      *string            `db:"note" json:"note"`
-	LocalDate pgtype.Date        `db:"local_date" json:"local_date"`
-	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
-}
-
-// CoachingProfile represents the subset of coaching_profiles needed by ai-coach.
-type CoachingProfile struct {
+// CoachProfile represents a row in ai_coach_profiles — the consumer-owned
+// read model fed by coaching_profile_changed events.
+type CoachProfile struct {
 	UserID              uuid.UUID `db:"user_id" json:"user_id"`
 	AccountabilityStyle string    `db:"accountability_style" json:"accountability_style"`
+}
+
+// EventOutboxRow is a claimed ai_coach_event_outbox row.
+type EventOutboxRow struct {
+	EventID    uuid.UUID          `db:"event_id"`
+	EventType  string             `db:"event_type"`
+	Payload    []byte             `db:"payload"`
+	OccurredAt pgtype.Timestamptz `db:"occurred_at"`
 }
 
 // InsertAIFeedbackParams holds parameters for inserting into ai_feedback.
@@ -67,12 +66,12 @@ type InsertAIFeedbackParams struct {
 
 // GetCheckInsForWeekParams holds parameters for the weekly check-in query.
 type GetCheckInsForWeekParams struct {
-	UserID     uuid.UUID `db:"user_id" json:"user_id"`
-	CreatedAt  time.Time `db:"created_at" json:"created_at"`
-	CreatedAt2 time.Time `db:"created_at_2" json:"created_at_2"`
+	UserID      uuid.UUID `db:"user_id" json:"user_id"`
+	OccurredAt  time.Time `db:"occurred_at" json:"occurred_at"`
+	OccurredAt2 time.Time `db:"occurred_at_2" json:"occurred_at_2"`
 }
 
-// Queries is the set of database queries used by ai-coach.
+// Queries is the set of database queries used by ai-coach-consumer.
 type Queries struct {
 	db DBTX
 }

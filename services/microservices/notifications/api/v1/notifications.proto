@@ -106,6 +106,14 @@ message UpdateNotificationPreferencesResponse {
   NotificationPreferences preferences = 1;
 }
 
+// UnsubscribeEmailRequest carries the opaque token embedded in notification
+// emails' List-Unsubscribe URLs (RFC 8058 one-click unsubscribe). The token is
+// an HMAC-signed user ID minted by this service's delivery worker; the RPC
+// verifies it internally, so callers need no user JWT.
+message UnsubscribeEmailRequest {
+  string token = 1;
+}
+
 // ─── Push device registration ───────────────────────────────────────────────
 // See docs/push-notifications-design.md. The user is derived from the
 // authenticated principal in the RPC context, not from a request field.
@@ -147,6 +155,10 @@ service Notifications {
   rpc GetUnreadCount(GetUnreadCountRequest) returns (GetUnreadCountResponse);
   rpc GetNotificationPreferences(GetNotificationPreferencesRequest) returns (GetNotificationPreferencesResponse);
   rpc UpdateNotificationPreferences(UpdateNotificationPreferencesRequest) returns (UpdateNotificationPreferencesResponse);
+
+  // RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+  // exempt from user-JWT verification (service auth still applies).
+  rpc UnsubscribeEmail(UnsubscribeEmailRequest) returns (EmptyResponse);
 
   // Push device registration (see docs/push-notifications-design.md).
   rpc RegisterDevice(RegisterDeviceRequest) returns (EmptyResponse);

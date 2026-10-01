@@ -125,13 +125,22 @@ groups:
           description: "node-exporter sees no backup_last_success_timestamp_seconds — the backup timers may never have run or textfile dir isn't mounted."
 
       - alert: PublicEndpointDown
-        expr: probe_success == 0
+        expr: probe_success{job="blackbox"} == 0
         for: 3m
         labels:
           severity: critical
         annotations:
           summary: "Public endpoint down: {{ $labels.instance }}"
           description: "blackbox probe to {{ $labels.instance }} failing for >3m (DNS/TLS/Caddy/handler level)."
+
+      - alert: MinioAnonymousAccessOpen
+        expr: probe_success{job="blackbox-private"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MinIO files endpoint not rejecting unsigned requests"
+          description: "Unsigned request to {{ $labels.instance }} did not get 403/404 — anonymous file access may be open (bad bucket policy or broken Caddy matcher), or the endpoint is down entirely."
 
       - alert: CertificateExpiringSoon
         expr: probe_ssl_earliest_cert_expiry - time() < 604800

@@ -100,15 +100,42 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) ApplyPlanAdjustmentSuggestion(in *c
 	}, nil
 }
 
+// getOwnedHabit fetches the habit referenced by a suggestion and verifies it
+// belongs to the suggestion's owner. Suggestion habit/goal IDs can come from
+// model output (weekly review adjustments) as well as user input, so the ID
+// alone proves nothing — ownership must be re-verified at apply time.
+func (l *ApplyPlanAdjustmentSuggestionLogic) getOwnedHabit(ctx context.Context, suggestion db.PlanAdjustment) (db.GetHabitRow, error) {
+	habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, suggestion.HabitID.UUID, "UTC")
+	if err != nil {
+		return db.GetHabitRow{}, status.Error(codes.NotFound, "habit not found")
+	}
+	if habit.UserID != suggestion.UserID {
+		return db.GetHabitRow{}, status.Error(codes.PermissionDenied, "habit does not belong to suggestion owner")
+	}
+	return habit, nil
+}
+
+// getOwnedGoal is the goal counterpart of getOwnedHabit.
+func (l *ApplyPlanAdjustmentSuggestionLogic) getOwnedGoal(ctx context.Context, suggestion db.PlanAdjustment) (db.GetGoalRow, error) {
+	goal, err := l.svcCtx.Repo.Goals.GetGoalByID(ctx, suggestion.GoalID.UUID)
+	if err != nil {
+		return db.GetGoalRow{}, status.Error(codes.NotFound, "goal not found")
+	}
+	if goal.UserID != suggestion.UserID {
+		return db.GetGoalRow{}, status.Error(codes.PermissionDenied, "goal does not belong to suggestion owner")
+	}
+	return goal, nil
+}
+
 // applyDifficultyAdjustment updates the habit's description to the suggestion
 // text (which contains the concrete reduced/increased version, e.g. "Scale
 // down to a 10-minute walk"). The original description is preserved in the
 // suggestion metadata so it can be restored later.
 func (l *ApplyPlanAdjustmentSuggestionLogic) applyDifficultyAdjustment(ctx context.Context, suggestion db.PlanAdjustment) error {
 	habitID := suggestion.HabitID.UUID
-	habit, err := l.svcCtx.Repo.Habits.GetHabitByID(ctx, habitID, "UTC")
+	habit, err := l.getOwnedHabit(ctx, suggestion)
 	if err != nil {
-		return status.Error(codes.NotFound, "habit not found")
+		return err
 	}
 
 	newDesc := suggestion.Suggestion
@@ -127,6 +154,9 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) applyDifficultyAdjustment(ctx conte
 // skipped (the suggestion is still marked as applied).
 func (l *ApplyPlanAdjustmentSuggestionLogic) applyTimeChange(ctx context.Context, suggestion db.PlanAdjustment) error {
 	habitID := suggestion.HabitID.UUID
+	if _, err := l.getOwnedHabit(ctx, suggestion); err != nil {
+		return err
+	}
 	t := parseTimeFromSuggestion(suggestion.Suggestion)
 	if t == nil {
 		l.Infof("change_time: could not parse time from suggestion %q, skipping habit mutation", suggestion.Suggestion)
@@ -143,6 +173,9 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) applyTimeChange(ctx context.Context
 // applyClarifyPlan updates the goal's description to the suggestion text.
 func (l *ApplyPlanAdjustmentSuggestionLogic) applyClarifyPlan(ctx context.Context, suggestion db.PlanAdjustment) error {
 	goalID := suggestion.GoalID.UUID
+	if _, err := l.getOwnedGoal(ctx, suggestion); err != nil {
+		return err
+	}
 	newDesc := suggestion.Suggestion
 	_, err := l.svcCtx.Repo.Goals.UpdateGoalDescription(ctx, goalID, &newDesc)
 	if err != nil {
@@ -155,6 +188,9 @@ func (l *ApplyPlanAdjustmentSuggestionLogic) applyClarifyPlan(ctx context.Contex
 // applyPause sets the habit's status to 'paused'.
 func (l *ApplyPlanAdjustmentSuggestionLogic) applyPause(ctx context.Context, suggestion db.PlanAdjustment) error {
 	habitID := suggestion.HabitID.UUID
+	if _, err := l.getOwnedHabit(ctx, suggestion); err != nil {
+		return err
+	}
 	_, err := l.svcCtx.Repo.Habits.UpdateHabitStatus(ctx, habitID, "paused")
 	if err != nil {
 		return status.Error(codes.Internal, "failed to pause habit")

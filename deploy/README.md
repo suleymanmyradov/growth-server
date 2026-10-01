@@ -20,13 +20,19 @@ clone of this repo (not rsync'd) and only pulls prebuilt images.
   `growth-admin-front`): image build → pull → recreate only that service.
 - The VM at `/home/ubuntu/growth-server` is a **git clone of origin/main**;
   `deploy.sh` does `git fetch && git reset --hard origin/main` each deploy.
-  `deploy/.env.prod`, `deploy/.env.auth`, `deploy/.env.adminway` and `logs/`
-  are gitignored and survive resets.
-- Env files are split so JWT private keys stay off verifier containers:
-  `.env.prod` (shared config + `JWT_PUBLIC_KEY`/`ADMIN_JWT_PUBLIC_KEY`) is
-  attached to every backend container; `.env.auth` (`JWT_PRIVATE_KEY`)
-  attaches only to `auth`; `.env.adminway` (`ADMIN_JWT_PRIVATE_KEY`) only to
-  `adminway`. Generate keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
+  `deploy/.env.*` files and `logs/` are gitignored and survive resets.
+- Secrets are per-service: `.env.prod` is only used for compose-time
+  interpolation (postgres bootstrap, domains, image tags, build args) and is
+  NOT attached to app containers. `deploy/scripts/split-env.sh` derives
+  `.env.shared` (non-secret shared config, attached to all services) and
+  `.env.<svc>` (only the secrets each service needs: `RESEND_API_KEY` →
+  auth+notifications, Paddle/RevenueCat keys → client, `AI_API_KEY` →
+  ai-coach/ai-gateway/ai-coach-consumer, `MINIO_*` → filemanager,
+  `MEILI_MASTER_KEY` → search stack, JWT private keys → issuer only).
+  `deploy/scripts/setup-db-roles.sh` (runs every deploy after migrations)
+  creates per-service Postgres roles (`svc_*`) scoped to owned tables and
+  writes each `POSTGRES_DATASOURCE`; only `migrate` uses the superuser.
+  Generate keypairs with `make jwt-keygen` / `make jwt-keygen-admin`.
 
 Required repo secrets (all three repos): `DEPLOY_SSH_KEY` (dedicated deploy
 key, `~/.ssh/growth-deploy-key` locally, pubkey in the VM's
@@ -35,7 +41,7 @@ key, `~/.ssh/growth-deploy-key` locally, pubkey in the VM's
 **Rollback** — every build is tagged with its commit SHA:
 
 ```bash
-ssh root@194.113.74.65
+ssh <deploy-user>@194.113.74.65
 cd /home/ubuntu/growth-server
 BACKEND_TAG=sha-<old-sha> docker compose -f deploy/docker-compose.prod.yml \
   --env-file deploy/.env.prod --profile admin up -d --no-deps <services>
@@ -125,7 +131,7 @@ Internet → Caddy (:80/:443, auto-TLS via Let's Encrypt)
              │   /weekly-reviews/generate*, /personalization/coaching,
              │   /personalization/onboarding-habits,
              │   /personalization/transcribe, /personalization/voice-turn
-             ├── /files/*                                     → minio (:9000)
+             ├── /files/* (presigned URLs only)                 → minio (:9000)
              └── /api/v1/* (everything else)                  → gateway (:8888)
 
 app.evolella.com   → frontend (:3000, Next.js)
@@ -143,15 +149,23 @@ Consumers: ai-coach-consumer, search-sync, analytics-consumer (optional)
 
 | Service          | Limit  |
 |------------------|--------|
-| PostgreSQL       | 2 GB   |
-| Redpanda         | 1.5 GB |
-| Meilisearch      | 768 MB |
-| Redis            | 384 MB |
-| MinIO            | 384 MB |
-| auth / client / ai-coach / ai-coach-consumer | 256 MB each |
-| gateway / ai-gateway / search / search-sync / filemanager / notifications / adminway / Caddy | 128 MB each |
-| frontend         | 512 MB |
-| admin-frontend   | 384 MB |
+| PostgreSQL       | 1.5 GB |
+| Redpanda         | 1.28 GB |
+| Meilisearch      | 512 MB |
+| Redis            | 320 MB |
+| MinIO            | 256 MB |
+| auth / client    | 256 MB each |
+| ai-coach / ai-coach-consumer | 224 MB each |
+| gateway / ai-gateway / search-sync / filemanager / notifications / adminway / analytics-consumer | 112 MB each |
+| search           | 128 MB |
+| frontend         | 448 MB |
+| admin-frontend   | 320 MB |
+| Caddy            | 96 MB  |
+| monitoring profile (all) | ~1.6 GB total |
+
+Sum of caps ≈ 6.5 GB core / ≈ 8.2 GB with admin+monitoring+analytics — caps are
+ceilings, not reservations; real usage is far lower (check cAdvisor). Postgres
+`max_connections=160` vs. summed service pools of ~110.
 
 Go services typically idle far below their limits. A 4 GB swapfile is configured
 on the VM as headroom.
@@ -201,8 +215,9 @@ sudo bash bootstrap.sh
 
 Installs Docker, tunes the kernel (vm.max_map_count for Redpanda/Meilisearch),
 adds a 4 GB swapfile, builds all images **sequentially** (parallel builds thrash
-2 vCPUs — load 40+), starts the stack, and sets the MinIO bucket to
-anonymous-download so public object URLs work.
+2 vCPUs — load 40+), starts the stack, and locks the MinIO bucket down to
+private (`deploy/scripts/harden-minio.sh` — also re-run on every deploy by
+`deploy.sh`; Caddy additionally refuses unsigned `/files/*` requests).
 
 A full build takes ~40 min on 2 vCPU. Build only what changed afterwards.
 
@@ -233,6 +248,29 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod --profile admin u
 ```
 
 ## Operations
+
+### Hardening checklist (run once)
+
+1. **Non-root deploys** — CI currently SSHes as root. On the VM:
+   `bash deploy/scripts/setup-deploy-user.sh` creates `deploy` (docker group,
+   no sudo), installs the deploy key, and group-shares the repo checkout.
+   Verify `ssh deploy@<vm> 'docker ps'` works, then set `DEPLOY_USER=deploy`
+   in all three repos' secrets. Finally set `PermitRootLogin no` in sshd_config.
+2. **Admin panel IP allowlist** — set `ADMIN_ALLOWED_IPS` in `.env.prod`
+   (CIDRs; e.g. office/VPN egress). deploy.sh regenerates the Caddy matcher.
+3. **Admin MFA (TOTP)** — implemented app-side in adminway
+   (`/api/v1/admin/auth/mfa/*`). Set `ADMIN_MFA_ENCRYPTION_KEY` in
+   `.env.adminway` (`openssl rand -base64 32`); `Mfa.Required: true` in
+   `deploy/config/adminapi.yaml` then forces every admin through authenticator
+   enrollment at next login. The IP allowlist stays as defense in depth;
+   Cloudflare Access in front of `admin.evolella.com` remains an option for
+   SSO/device posture on top.
+4. **Admin audit log** — adminway writes every request to `admin_audit_log`
+   (async, never blocks). Query with `docker exec deploy-postgres-1 psql -U
+   growthmind -d growthmind -c "select * from admin_audit_log order by
+   created_at desc limit 50"`.
+5. **Per-service DB roles** — automatic via `setup-db-roles.sh` on each deploy;
+   app services authenticate as `svc_*` roles with grants on owned tables only.
 
 ### Logs / status / restart
 ```bash
@@ -272,10 +310,16 @@ Backups are local to the VM — copy one off-box periodically (e.g. `scp`) until
 off-site storage (R2/UpCloud object storage) is wired up.
 
 ### Secrets
-All secrets live in `deploy/.env.prod` on the VM (chmod 600, gitignored).
+`.env.prod` on the VM (chmod 600, gitignored) is the operator's master file —
+it feeds compose interpolation only. App containers read
+`deploy/.env.shared` + `deploy/.env.<svc>`; `split-env.sh` keeps them in sync
+from `.env.prod` (runs every deploy, never overwrites). To rotate a secret:
+edit `.env.prod`, delete the stale line from the affected `.env.<svc>` files,
+and re-run `split-env.sh` (or wait for the next deploy — it only fills gaps,
+so deleting the line is what triggers re-copy).
 Deploy config templates in `deploy/config/*.yaml` reference them as `${VAR}`;
 go-zero expands them at startup via `conf.UseEnv()` (opt-in — every service's
-`conf.MustLoad` call must pass it). After editing `.env.prod`:
+`conf.MustLoad` call must pass it). After editing:
 `docker compose ... up -d` recreates the affected containers.
 
 Still to fill in: `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET` (done 2026-09-09),

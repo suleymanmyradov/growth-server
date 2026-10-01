@@ -37,7 +37,7 @@ func (q *Queries) CountActivitiesByUserAndType(ctx context.Context, userID uuid.
 const createActivity = `-- name: CreateActivity :one
 INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, type, title, description, metadata, created_at
+RETURNING id, user_id, type, title, description, metadata, created_at, dedupe_key
 `
 
 type CreateActivityParams struct {
@@ -65,8 +65,39 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 		&i.Description,
 		&i.Metadata,
 		&i.CreatedAt,
+		&i.DedupeKey,
 	)
 	return i, err
+}
+
+const createActivityDeduped = `-- name: CreateActivityDeduped :exec
+INSERT INTO activities (type, title, description, metadata, user_id, dedupe_key)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
+`
+
+type CreateActivityDedupedParams struct {
+	Type        string    `db:"type" json:"type"`
+	Title       string    `db:"title" json:"title"`
+	Description *string   `db:"description" json:"description"`
+	Metadata    []byte    `db:"metadata" json:"metadata"`
+	UserID      uuid.UUID `db:"user_id" json:"user_id"`
+	DedupeKey   *string   `db:"dedupe_key" json:"dedupe_key"`
+}
+
+// Idempotent insert: the partial unique index on dedupe_key makes a second
+// insert with the same key a no-op, so retried writes can't create duplicate
+// activity rows even when requests race (P3).
+func (q *Queries) CreateActivityDeduped(ctx context.Context, arg CreateActivityDedupedParams) error {
+	_, err := q.db.Exec(ctx, createActivityDeduped,
+		arg.Type,
+		arg.Title,
+		arg.Description,
+		arg.Metadata,
+		arg.UserID,
+		arg.DedupeKey,
+	)
+	return err
 }
 
 const deleteActivitiesByUser = `-- name: DeleteActivitiesByUser :exec
@@ -150,7 +181,7 @@ func (q *Queries) GetAchievements(ctx context.Context, userID uuid.UUID) ([]GetA
 }
 
 const getActivity = `-- name: GetActivity :one
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE id = $1
 `
@@ -166,6 +197,7 @@ func (q *Queries) GetActivity(ctx context.Context, id uuid.UUID) (Activity, erro
 		&i.Description,
 		&i.Metadata,
 		&i.CreatedAt,
+		&i.DedupeKey,
 	)
 	return i, err
 }
@@ -207,7 +239,7 @@ func (q *Queries) GetActivityCalendar(ctx context.Context, userID uuid.UUID, cre
 }
 
 const getActivityFeed = `-- name: GetActivityFeed :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -231,6 +263,7 @@ func (q *Queries) GetActivityFeed(ctx context.Context, userID uuid.UUID, limit i
 			&i.Description,
 			&i.Metadata,
 			&i.CreatedAt,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}
@@ -320,7 +353,7 @@ func (q *Queries) GetStreaks(ctx context.Context, userID uuid.UUID) (GetStreaksR
 }
 
 const listActivities = `-- name: ListActivities :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -345,6 +378,7 @@ func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit in
 			&i.Description,
 			&i.Metadata,
 			&i.CreatedAt,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}
@@ -357,7 +391,7 @@ func (q *Queries) ListActivities(ctx context.Context, userID uuid.UUID, limit in
 }
 
 const listActivitiesByType = `-- name: ListActivitiesByType :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
@@ -386,6 +420,7 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, ty
 			&i.Description,
 			&i.Metadata,
 			&i.CreatedAt,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}
@@ -398,7 +433,7 @@ func (q *Queries) ListActivitiesByType(ctx context.Context, userID uuid.UUID, ty
 }
 
 const listActivitiesByTypes = `-- name: ListActivitiesByTypes :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
   AND type = ANY($2::text[])
@@ -429,6 +464,7 @@ func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, c
 			&i.Description,
 			&i.Metadata,
 			&i.CreatedAt,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}
@@ -441,7 +477,7 @@ func (q *Queries) ListActivitiesByTypes(ctx context.Context, userID uuid.UUID, c
 }
 
 const listActivitiesKeyset = `-- name: ListActivitiesKeyset :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)
@@ -468,6 +504,7 @@ func (q *Queries) ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, co
 			&i.Description,
 			&i.Metadata,
 			&i.CreatedAt,
+			&i.DedupeKey,
 		); err != nil {
 			return nil, err
 		}
@@ -482,7 +519,7 @@ func (q *Queries) ListActivitiesKeyset(ctx context.Context, userID uuid.UUID, co
 const logActivity = `-- name: LogActivity :one
 INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, type, title, description, metadata, created_at
+RETURNING id, user_id, type, title, description, metadata, created_at, dedupe_key
 `
 
 type LogActivityParams struct {
@@ -510,6 +547,7 @@ func (q *Queries) LogActivity(ctx context.Context, arg LogActivityParams) (Activ
 		&i.Description,
 		&i.Metadata,
 		&i.CreatedAt,
+		&i.DedupeKey,
 	)
 	return i, err
 }

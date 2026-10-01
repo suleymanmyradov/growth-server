@@ -17,6 +17,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/authz"
 	"github.com/suleymanmyradov/growth-server/pkg/cache"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/outbox"
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	"github.com/suleymanmyradov/growth-server/pkg/paddle"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -49,8 +50,11 @@ type ServiceContext struct {
 	AuthEventsQ queue.MessageQueue
 	// CheckInEventsQ consumes check-in events to drive missed-day recovery.
 	CheckInEventsQ queue.MessageQueue
-	pool           *pgxpool.Pool
-	redis          *redis.Client
+	// EventRelay drains client_event_outbox into the events broker (P1).
+	// Nil when no publisher backend (Kafka or Redis) is configured.
+	EventRelay *outbox.Relay
+	pool       *pgxpool.Pool
+	redis      *redis.Client
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -179,6 +183,14 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 	}
 
+	// Transactional outbox relay: republishes events written inside domain
+	// transactions. Replaces fire-and-forget publish-after-commit, which could
+	// lose events on crash/broker-outage between commit and publish.
+	var eventRelay *outbox.Relay
+	if eventsPub != nil {
+		eventRelay = outbox.NewRelay("client", clientOutboxStore{q: queries}, eventsPub)
+	}
+
 	return &ServiceContext{
 		Config:           c,
 		Repo:             repo,
@@ -190,9 +202,32 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Cache:            appCache,
 		AuthEventsQ:      authEventsQ,
 		CheckInEventsQ:   checkInEventsQ,
+		EventRelay:       eventRelay,
 		pool:             pool,
 		redis:            redisClient,
 	}
+}
+
+// clientOutboxStore adapts the sqlc outbox queries to outbox.Store.
+type clientOutboxStore struct {
+	q *db.Queries
+}
+
+func (s clientOutboxStore) Claim(ctx context.Context) (outbox.Row, error) {
+	row, err := s.q.ClaimClientEvent(ctx)
+	if err != nil {
+		return outbox.Row{}, err
+	}
+	return outbox.Row{
+		EventID:    row.EventID,
+		EventType:  row.EventType,
+		Payload:    row.Payload,
+		OccurredAt: row.OccurredAt.Time,
+	}, nil
+}
+
+func (s clientOutboxStore) Complete(ctx context.Context, eventID uuid.UUID) error {
+	return s.q.CompleteClientEvent(ctx, eventID)
 }
 
 // WithTx returns a new Repository backed by the given transaction.
@@ -240,7 +275,9 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	if s.CheckInEventsQ != nil {
 		go s.CheckInEventsQ.Start()
 	}
-	_ = ctx
+	if s.EventRelay != nil {
+		go s.EventRelay.Run(ctx)
+	}
 	return cancel
 }
 

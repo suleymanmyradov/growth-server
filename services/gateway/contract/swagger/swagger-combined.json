@@ -5643,6 +5643,50 @@
         ]
       }
     },
+    "/api/v1/notifications/email-unsubscribe": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "UnsubscribeEmail",
+        "operationId": "notificationsUnsubscribeEmail",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "token"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "servers": [
+          {
+            "url": "https://localhost/api/v1"
+          }
+        ]
+      }
+    },
     "/api/v1/notifications/read-all": {
       "put": {
         "tags": [
@@ -11176,7 +11220,7 @@
       }
     }
   },
-  "x-date": "2026-09-24 10:41:14",
+  "x-date": "2026-09-30 15:52:42",
   "x-description": "This is a goctl generated swagger file.",
   "x-github": "https://github.com/zeromicro/go-zero",
   "x-go-zero-doc": "https://go-zero.dev/",

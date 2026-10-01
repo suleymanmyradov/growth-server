@@ -65,6 +65,24 @@ func (q *Queries) ClaimNotificationDeliveries(ctx context.Context, limit int32) 
 	return items, nil
 }
 
+const countPushDeliveriesSentOnDate = `-- name: CountPushDeliveriesSentOnDate :one
+SELECT count(*) FROM notification_deliveries
+WHERE user_id = $1
+  AND channel = 'push'
+  AND status = 'sent'
+  AND (sent_at AT TIME ZONE $3::text)::date = $2::date
+`
+
+// Pushes sent on the user's local calendar date ($3 is the IANA timezone,
+// $2 the YYYY-MM-DD date). Backs the 5-pushes-per-day cap — counts only
+// 'sent' rows so retries and suppressed deliveries don't consume the budget.
+func (q *Queries) CountPushDeliveriesSentOnDate(ctx context.Context, userID uuid.UUID, column2 pgtype.Date, column3 string) (int64, error) {
+	row := q.db.QueryRow(ctx, countPushDeliveriesSentOnDate, userID, column2, column3)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createNotificationDelivery = `-- name: CreateNotificationDelivery :one
 INSERT INTO notification_deliveries (notification_id, user_id, channel)
 VALUES ($1, $2, $3)
@@ -93,6 +111,27 @@ func (q *Queries) CreateNotificationDelivery(ctx context.Context, notificationID
 		&i.SentAt,
 	)
 	return i, err
+}
+
+const deferNotificationDelivery = `-- name: DeferNotificationDelivery :exec
+UPDATE notification_deliveries
+SET status = 'pending', claimed_at = NULL, next_attempt_at = $2,
+    attempt_count = GREATEST(attempt_count - 1, 0),
+    last_error_code = $3, last_error_message = $4
+WHERE id = $1
+`
+
+// Reschedule a delivery without consuming a send attempt (claim bumped
+// attempt_count, so the GREATEST(...-1) hands it back). Used for quiet-hours
+// deferral: the push is delayed until 08:00 local, not retried as a failure.
+func (q *Queries) DeferNotificationDelivery(ctx context.Context, iD uuid.UUID, nextAttemptAt pgtype.Timestamptz, lastErrorCode *string, lastErrorMessage *string) error {
+	_, err := q.db.Exec(ctx, deferNotificationDelivery,
+		iD,
+		nextAttemptAt,
+		lastErrorCode,
+		lastErrorMessage,
+	)
+	return err
 }
 
 const markNotificationDeliveryFailed = `-- name: MarkNotificationDeliveryFailed :exec

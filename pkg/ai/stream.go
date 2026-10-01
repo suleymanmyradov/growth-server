@@ -11,6 +11,8 @@ import (
 	"github.com/cloudwego/eino/components/model"
 	"github.com/cloudwego/eino/schema"
 	"github.com/zeromicro/go-zero/core/logx"
+
+	"github.com/suleymanmyradov/growth-server/pkg/ai/tokens"
 )
 
 // Stream performs streaming generation.
@@ -66,6 +68,7 @@ func (c *client) Stream(ctx context.Context, req GenerateRequest) (StreamReader,
 		client:        c,
 		start:         start,
 		thoughtFilter: newThoughtFilter(),
+		promptTokens:  estimatePromptTokens(msgs),
 	}, nil
 }
 
@@ -115,6 +118,7 @@ func (c *client) tryFallbackStream(ctx context.Context, req GenerateRequest, msg
 			client:        c,
 			start:         start,
 			thoughtFilter: newThoughtFilter(),
+			promptTokens:  estimatePromptTokens(msgs),
 		}, nil
 	}
 
@@ -134,6 +138,32 @@ type einoStreamReader struct {
 	done          atomic.Bool
 	thoughtFilter *thoughtFilter
 	pendingFlush  thoughtParts // content from thoughtFilter.flush() to return before EOF
+	// promptTokens estimates the prompt size; used only when the provider
+	// never reported usage before the stream terminated.
+	promptTokens int
+	// outRunes counts raw model output characters (content + reasoning +
+	// tool args) so partial streams without usage metadata still spend quota.
+	outRunes int64
+}
+
+// finalize records usage, the call log, and metrics exactly once, on the
+// first terminal event (EOF, stream error, or Close). If the provider
+// reported no usage, a conservative estimate from the prompt size and the
+// characters already received is recorded instead — an interrupted stream
+// still cost real tokens and must not be free.
+func (r *einoStreamReader) finalize(status string, callErr error) {
+	if !r.done.CompareAndSwap(false, true) {
+		return
+	}
+	usage := r.total
+	if usage.TotalTokens <= 0 {
+		usage = estimateStreamUsage(r.promptTokens, r.outRunes)
+	}
+	latencyMS := time.Since(r.start).Milliseconds()
+	costUSD := r.client.cfg.ComputeCost(r.modelID, usage.PromptTokens, usage.CompletionTokens)
+	r.client.recordUsage(r.ctx, r.meta, usage, costUSD)
+	r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, usage, latencyMS, costUSD, callErr)
+	recordMetrics(r.profile, r.modelID, status, r.meta.Feature, usage, costUSD, latencyMS)
 }
 
 // Recv returns the next Chunk from the stream.
@@ -142,17 +172,12 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 		return Chunk{}, io.EOF
 	}
 
-	// If we have pending flush content (from thoughtFilter), return it first
-	// before delivering the final EOF.
+	// If we have pending flush content (from thoughtFilter), the flush itself
+	// was already delivered on the EOF Recv — finalize and deliver EOF.
 	if r.pendingFlush.Content != "" || r.pendingFlush.Reasoning != "" {
-		flush := r.pendingFlush
 		r.pendingFlush = thoughtParts{}
-		r.done.Store(true)
-		costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
-		r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
-		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, time.Since(r.start).Milliseconds(), costUSD, nil)
-		recordMetrics(r.profile, r.modelID, "ok", r.meta.Feature, r.total, costUSD, time.Since(r.start).Milliseconds())
-		return Chunk{Delta: flush.Content, Reasoning: flush.Reasoning, FinishReason: "stop"}, io.EOF
+		r.finalize("ok", nil)
+		return Chunk{FinishReason: "stop"}, io.EOF
 	}
 
 	msg, err := r.stream.Recv()
@@ -166,20 +191,20 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 				r.pendingFlush = remaining
 				return Chunk{Delta: remaining.Content, Reasoning: remaining.Reasoning}, nil
 			}
-			r.done.Store(true)
-			costUSD := r.client.cfg.ComputeCost(r.modelID, r.total.PromptTokens, r.total.CompletionTokens)
-			r.client.recordUsage(r.ctx, r.meta, r.total, costUSD)
-			r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, costUSD, nil)
-			recordMetrics(r.profile, r.modelID, "ok", r.meta.Feature, r.total, costUSD, latencyMS)
+			r.finalize("ok", nil)
 			return Chunk{FinishReason: "stop"}, io.EOF
 		}
 		// Log detailed error: error type, context state, tokens received so far.
 		ctxErr := r.ctx.Err()
 		logx.WithContext(r.ctx).Errorf("ai.Stream recv error: err=%v (type=%T), model=%s, ctx.Err()=%v, latency=%dms, promptTokens=%d, completionTokens=%d",
 			err, err, r.modelID, ctxErr, latencyMS, r.total.PromptTokens, r.total.CompletionTokens)
-		r.client.logCall(r.ctx, r.profile, r.modelID, r.meta, r.total, latencyMS, 0, err)
-		recordMetrics(r.profile, r.modelID, "error", r.meta.Feature, r.total, 0, latencyMS)
+		r.finalize("error", err)
 		return Chunk{}, err
+	}
+
+	r.outRunes += int64(utf8.RuneCountInString(msg.Content) + utf8.RuneCountInString(msg.ReasoningContent))
+	for _, tc := range msg.ToolCalls {
+		r.outRunes += int64(utf8.RuneCountInString(tc.Function.Arguments))
 	}
 
 	// Sanitize at the source: some LLM streaming APIs (especially free-tier
@@ -222,10 +247,47 @@ func (r *einoStreamReader) Recv() (Chunk, error) {
 	return chunk, nil
 }
 
-// Close releases the underlying stream.
+// Close releases the underlying stream. Partial usage received so far is
+// recorded so an early client disconnect cannot dodge the quota.
 func (r *einoStreamReader) Close() {
+	r.finalize("closed", nil)
 	r.stream.Close()
-	r.done.Store(true)
+}
+
+// estimatePromptTokens approximates the prompt size for usage accounting when
+// the provider never reported usage. Heuristic, not exact — it only needs to
+// be good enough that an interrupted stream still spends a bounded amount of
+// quota.
+func estimatePromptTokens(msgs []*schema.Message) int {
+	total := 0
+	for _, m := range msgs {
+		if m == nil {
+			continue
+		}
+		total += tokens.Count(m.Content)
+		for _, p := range m.UserInputMultiContent {
+			total += tokens.Count(p.Text)
+		}
+		for _, tc := range m.ToolCalls {
+			total += tokens.Count(tc.Function.Name) + tokens.Count(tc.Function.Arguments)
+		}
+	}
+	return total
+}
+
+// estimateStreamUsage builds a conservative Usage for streams that ended
+// before the provider reported token usage (early close, mid-stream error).
+// Provider-reported usage always takes precedence; this is only a fallback.
+func estimateStreamUsage(promptTokens int, outRunes int64) Usage {
+	completion := int(outRunes / 4)
+	if outRunes > 0 && completion == 0 {
+		completion = 1
+	}
+	return Usage{
+		PromptTokens:     promptTokens,
+		CompletionTokens: completion,
+		TotalTokens:      promptTokens + completion,
+	}
 }
 
 // Ensure einoStreamReader implements StreamReader.

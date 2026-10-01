@@ -14,7 +14,7 @@ import (
 const createInternalUser = `-- name: CreateInternalUser :one
 INSERT INTO internal_users (email, password_hash, full_name, role)
 VALUES ($1, $2, $3, $4)
-RETURNING id, email, password_hash, full_name, role, created_at, updated_at
+RETURNING id, email, password_hash, full_name, role, created_at, updated_at, totp_secret_encrypted, totp_enabled_at
 `
 
 func (q *Queries) CreateInternalUser(ctx context.Context, email string, passwordHash string, fullName string, role string) (InternalUser, error) {
@@ -33,12 +33,14 @@ func (q *Queries) CreateInternalUser(ctx context.Context, email string, password
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TotpSecretEncrypted,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
 
 const getInternalUserByEmail = `-- name: GetInternalUserByEmail :one
-SELECT id, email, password_hash, full_name, role, created_at, updated_at
+SELECT id, email, password_hash, full_name, role, created_at, updated_at, totp_secret_encrypted, totp_enabled_at
 FROM internal_users
 WHERE email = $1
 `
@@ -54,12 +56,14 @@ func (q *Queries) GetInternalUserByEmail(ctx context.Context, email string) (Int
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TotpSecretEncrypted,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
 
 const getInternalUserByID = `-- name: GetInternalUserByID :one
-SELECT id, email, password_hash, full_name, role, created_at, updated_at
+SELECT id, email, password_hash, full_name, role, created_at, updated_at, totp_secret_encrypted, totp_enabled_at
 FROM internal_users
 WHERE id = $1
 `
@@ -75,6 +79,8 @@ func (q *Queries) GetInternalUserByID(ctx context.Context, id uuid.UUID) (Intern
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TotpSecretEncrypted,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
@@ -83,7 +89,7 @@ const updateInternalUserPassword = `-- name: UpdateInternalUserPassword :one
 UPDATE internal_users
 SET password_hash = $2
 WHERE id = $1
-RETURNING id, email, password_hash, full_name, role, created_at, updated_at
+RETURNING id, email, password_hash, full_name, role, created_at, updated_at, totp_secret_encrypted, totp_enabled_at
 `
 
 func (q *Queries) UpdateInternalUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (InternalUser, error) {
@@ -97,6 +103,8 @@ func (q *Queries) UpdateInternalUserPassword(ctx context.Context, iD uuid.UUID, 
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TotpSecretEncrypted,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }
@@ -105,7 +113,7 @@ const updateInternalUserProfile = `-- name: UpdateInternalUserProfile :one
 UPDATE internal_users
 SET full_name = $2
 WHERE id = $1
-RETURNING id, email, password_hash, full_name, role, created_at, updated_at
+RETURNING id, email, password_hash, full_name, role, created_at, updated_at, totp_secret_encrypted, totp_enabled_at
 `
 
 func (q *Queries) UpdateInternalUserProfile(ctx context.Context, iD uuid.UUID, fullName string) (InternalUser, error) {
@@ -119,6 +127,8 @@ func (q *Queries) UpdateInternalUserProfile(ctx context.Context, iD uuid.UUID, f
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TotpSecretEncrypted,
+		&i.TotpEnabledAt,
 	)
 	return i, err
 }

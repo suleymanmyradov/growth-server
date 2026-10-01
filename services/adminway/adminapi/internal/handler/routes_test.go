@@ -36,6 +36,8 @@ func newTestServer(t *testing.T) *rest.Serverless {
 	svcCtx := &svc.ServiceContext{
 		Auth:      sharedmw.JWTMiddleware(verifier),
 		AdminAuth: middleware.AdminAuth(),
+		// nil deps are fine: these tests never reach the mfa routes.
+		MfaAuth: middleware.MfaAuth(nil, nil),
 	}
 	RegisterHandlers(server, svcCtx)
 

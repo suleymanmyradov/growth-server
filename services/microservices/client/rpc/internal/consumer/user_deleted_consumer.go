@@ -132,6 +132,12 @@ func (h *AuthEventsHandler) onUserDeleted(ctx context.Context, env events.Envelo
 	if err := h.cancelPaddleSubscription(ctx, userID); err != nil {
 		return err
 	}
+	if err := h.dbq.DeleteProviderStatesByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete subscription_provider_states: %w", err)
+	}
+	if err := h.dbq.DeletePaddleCheckoutsByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete paddle_checkouts: %w", err)
+	}
 	if err := h.dbq.DeleteSubscriptionsByUser(ctx, userID); err != nil {
 		return fmt.Errorf("delete subscriptions: %w", err)
 	}

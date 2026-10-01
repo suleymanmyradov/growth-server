@@ -37,6 +37,16 @@ func TestBuildFiltersSecurityClauseAlwaysFirst(t *testing.T) {
 			},
 			want: `(visibility = "public" OR user_id = "` + testUserID + `")`,
 		},
+		{
+			name: "include_internal admits internal docs anonymously",
+			req:  &search.SearchRequest{IncludeInternal: true},
+			want: `(visibility = "public" OR visibility = "internal")`,
+		},
+		{
+			name: "include_internal with user keeps private clause",
+			req:  &search.SearchRequest{UserId: testUserID, IncludeInternal: true},
+			want: `(visibility = "public" OR visibility = "internal" OR user_id = "` + testUserID + `")`,
+		},
 	}
 
 	for _, tc := range tests {

@@ -12,10 +12,21 @@ import (
 )
 
 type Querier interface {
+	ConsumeAdminMfaBackupCode(ctx context.Context, userID uuid.UUID, codeHash string) (uuid.UUID, error)
+	// Tickets bridge the password step and the TOTP step of login. Only a SHA-256
+	// hash of the client-facing token is stored.
+	CreateAdminMfaTicket(ctx context.Context, userID uuid.UUID, tokenHash string, purpose string, expiresAt pgtype.Timestamptz) (AdminMfaTicket, error)
 	CreateInternalUser(ctx context.Context, email string, passwordHash string, fullName string, role string) (InternalUser, error)
+	DeleteAdminMfaBackupCodesForUser(ctx context.Context, userID uuid.UUID) error
+	DeleteAdminMfaTicket(ctx context.Context, id uuid.UUID) error
+	DeleteAdminMfaTicketsForUser(ctx context.Context, userID uuid.UUID) error
+	DeleteExpiredAdminMfaTickets(ctx context.Context) error
+	DisableInternalUserTotp(ctx context.Context, id uuid.UUID) error
+	EnableInternalUserTotp(ctx context.Context, id uuid.UUID) error
 	// Activation = users who completed onboarding AND created at least one habit
 	// within 24h of onboarding. Returns (activated, total_onboarded) for the period.
 	GetActivationRate(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) (GetActivationRateRow, error)
+	GetAdminMfaTicketByHash(ctx context.Context, tokenHash string) (AdminMfaTicket, error)
 	GetConversionFunnelCounts(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) ([]GetConversionFunnelCountsRow, error)
 	// Read-only analytics queries for the adminway metrics endpoints.
 	// These query the rollup tables owned and written by analytics-consumer.
@@ -25,6 +36,17 @@ type Querier interface {
 	GetLifecycleCounts(ctx context.Context, column1 pgtype.Timestamptz, column2 pgtype.Timestamptz) ([]GetLifecycleCountsRow, error)
 	GetLifecycleCountsByDay(ctx context.Context, column1 pgtype.Date, column2 pgtype.Date) ([]GetLifecycleCountsByDayRow, error)
 	GetRetentionCohorts(ctx context.Context, column1 pgtype.Date, column2 pgtype.Date) ([]GetRetentionCohortsRow, error)
+	IncrementAdminMfaTicketAttempts(ctx context.Context, id uuid.UUID) error
+	InsertAdminAuditLog(ctx context.Context, arg InsertAdminAuditLogParams) error
+	// Backup codes are stored as SHA-256 hashes. Consume returns a row only when
+	// an unused code matches, which is also the validity signal.
+	InsertAdminMfaBackupCode(ctx context.Context, userID uuid.UUID, codeHash string) error
+	// Admin MFA: pending TOTP secrets on internal_users, pre-auth tickets, and
+	// one-time backup codes. Table rationale lives in migration 068.
+	// Pending/active TOTP secret lifecycle. The secret written by
+	// SetInternalUserTotpSecret is inert until EnableInternalUserTotp confirms it
+	// with a valid code — login only requires MFA once totp_enabled_at is set.
+	SetInternalUserTotpSecret(ctx context.Context, iD uuid.UUID, totpSecretEncrypted *string) error
 	UpdateInternalUserPassword(ctx context.Context, iD uuid.UUID, passwordHash string) (InternalUser, error)
 	UpdateInternalUserProfile(ctx context.Context, iD uuid.UUID, fullName string) (InternalUser, error)
 }

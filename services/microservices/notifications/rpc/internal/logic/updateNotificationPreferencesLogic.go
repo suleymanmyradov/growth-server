@@ -2,10 +2,13 @@ package logic
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/svc"
@@ -90,12 +93,13 @@ func (l *UpdateNotificationPreferencesLogic) UpdateNotificationPreferences(in *n
 			logx.WithContext(ctx).Errorf("Failed to sync reminder state habit flag: %v", err)
 		}
 	} else if !habitWasEnabled && habitNowEnabled {
-		// Re-enabled: schedule the next habit_reminder from reminder_state.
-		if err := l.scheduleNextHabitReminder(ctx, userID); err != nil {
-			logx.WithContext(ctx).Errorf("Failed to schedule next habit reminder: %v", err)
-		}
+		// Re-enabled: sync the flag first so a missing reminder_state row gets
+		// created with server defaults, then schedule the next habit_reminder.
 		if err := l.syncReminderStateHabitFlag(ctx, userID, true); err != nil {
 			logx.WithContext(ctx).Errorf("Failed to sync reminder state habit flag: %v", err)
+		}
+		if err := l.scheduleNextHabitReminder(ctx, userID); err != nil {
+			logx.WithContext(ctx).Errorf("Failed to schedule next habit reminder: %v", err)
 		}
 	}
 
@@ -155,16 +159,32 @@ func pickBool(v *bool, fallback bool) bool {
 	return *v
 }
 
-// scheduleNextHabitReminder enqueues the next habit_reminder based on the
-// user's reminder_state (timezone + check-in time). It is a no-op if the user
-// has not completed onboarding or has no reminder state yet.
-func (l *UpdateNotificationPreferencesLogic) scheduleNextHabitReminder(ctx context.Context, userID uuid.UUID) error {
+// getReminderState returns the user's reminder_state, creating the row with
+// server defaults (UTC / 09:00) when none exists yet — e.g. a user who never
+// saved settings toggles a preference before any onboarding/settings event.
+// habitReminders is only consulted on the create path so the flag written
+// matches what the caller just persisted to notification_preferences.
+func (l *UpdateNotificationPreferencesLogic) getReminderState(ctx context.Context, userID uuid.UUID, habitReminders bool) (db.ReminderState, error) {
 	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
+	if err == nil {
+		return rs, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return db.ReminderState{}, err
+	}
+	if err := l.svcCtx.Repo.ReminderState.UpsertSettings(ctx, userID, "", pgtype.Time{}, habitReminders); err != nil {
+		return db.ReminderState{}, err
+	}
+	return l.svcCtx.Repo.ReminderState.Get(ctx, userID)
+}
+
+// scheduleNextHabitReminder enqueues the next habit_reminder based on the
+// user's reminder_state (timezone + check-in time). Onboarding completion is
+// not a gate — users who skipped setup still get reminders (P4/P7).
+func (l *UpdateNotificationPreferencesLogic) scheduleNextHabitReminder(ctx context.Context, userID uuid.UUID) error {
+	rs, err := l.getReminderState(ctx, userID, true)
 	if err != nil {
 		return err
-	}
-	if !rs.OnboardingCompleted {
-		return nil
 	}
 
 	now := time.Now()
@@ -177,8 +197,8 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextHabitReminder(ctx conte
 }
 
 func (l *UpdateNotificationPreferencesLogic) scheduleNextWeeklyReview(ctx context.Context, userID uuid.UUID) error {
-	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
-	if err != nil || !rs.OnboardingCompleted {
+	rs, err := l.getReminderState(ctx, userID, true)
+	if err != nil {
 		return err
 	}
 	next, err := scheduler.NextWeekday(time.Now(), rs.Timezone, time.Sunday, 18, 0)
@@ -190,8 +210,8 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextWeeklyReview(ctx contex
 }
 
 func (l *UpdateNotificationPreferencesLogic) scheduleNextStreakWarning(ctx context.Context, userID uuid.UUID) error {
-	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
-	if err != nil || !rs.OnboardingCompleted {
+	rs, err := l.getReminderState(ctx, userID, true)
+	if err != nil {
 		return err
 	}
 	next, err := scheduler.NextDailyAt(time.Now(), rs.Timezone, 20, 0)
@@ -209,8 +229,8 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextGoalDeadlines(ctx conte
 	if l.svcCtx.Repo.GoalState == nil {
 		return nil
 	}
-	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
-	if err != nil || !rs.OnboardingCompleted {
+	rs, err := l.getReminderState(ctx, userID, true)
+	if err != nil {
 		return err
 	}
 	now := time.Now()
@@ -233,11 +253,16 @@ func (l *UpdateNotificationPreferencesLogic) scheduleNextGoalDeadlines(ctx conte
 
 // syncReminderStateHabitFlag updates the habit_reminders column in
 // reminder_state to match the user's notification preference, preserving the
-// existing timezone and check-in time.
+// existing timezone and check-in time. When no row exists yet, it creates one
+// with server defaults — UpsertSettings treats empty timezone/NULL time as
+// "not provided".
 func (l *UpdateNotificationPreferencesLogic) syncReminderStateHabitFlag(ctx context.Context, userID uuid.UUID, enabled bool) error {
 	rs, err := l.svcCtx.Repo.ReminderState.Get(ctx, userID)
 	if err != nil {
-		return err
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		return l.svcCtx.Repo.ReminderState.UpsertSettings(ctx, userID, "", pgtype.Time{}, enabled)
 	}
 	return l.svcCtx.Repo.ReminderState.UpsertSettings(ctx, userID, rs.Timezone, rs.CheckInTime, enabled)
 }

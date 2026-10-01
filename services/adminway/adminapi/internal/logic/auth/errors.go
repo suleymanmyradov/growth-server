@@ -32,6 +32,14 @@ const (
 	MsgInvalidOrExpiredRefresh  = "Invalid or expired refresh token"
 	MsgAdminNotFound            = "Admin user not found"
 	MsgFailedRevokeSession      = "Failed to log out, please try again"
+	MsgMfaTicketAndCodeRequired = "Ticket and code are required"
+	MsgInvalidMfaTicket         = "Invalid or expired verification ticket"
+	MsgInvalidMfaCode           = "Invalid verification code"
+	MsgMfaAlreadyEnabled        = "Two-factor authentication is already enabled"
+	MsgMfaNotEnabled            = "Two-factor authentication is not enabled"
+	MsgMfaNotConfigured         = "Two-factor authentication is not configured on this server"
+	MsgMfaSetupRequired         = "Two-factor setup required — call mfa/setup first"
+	MsgMfaCodeRequired          = "Verification code is required"
 )
 
 // Sentinel gRPC errors for the most reused (code, message) pairings.
@@ -41,6 +49,12 @@ var (
 	ErrAdminNotFound         = status.Error(codes.NotFound, MsgAdminNotFound)
 	ErrFailedGenAccessToken  = status.Error(codes.Internal, MsgFailedGenAccessToken)
 	ErrFailedGenRefreshToken = status.Error(codes.Internal, MsgFailedGenRefreshToken)
+	ErrInvalidMfaTicket      = status.Error(codes.Unauthenticated, MsgInvalidMfaTicket)
+	ErrInvalidMfaCode        = status.Error(codes.Unauthenticated, MsgInvalidMfaCode)
+	ErrMfaAlreadyEnabled     = status.Error(codes.FailedPrecondition, MsgMfaAlreadyEnabled)
+	ErrMfaNotEnabled         = status.Error(codes.FailedPrecondition, MsgMfaNotEnabled)
+	ErrMfaNotConfigured      = status.Error(codes.FailedPrecondition, MsgMfaNotConfigured)
+	ErrMfaSetupRequired      = status.Error(codes.FailedPrecondition, MsgMfaSetupRequired)
 )
 
 // err* helpers pair a gRPC code with a message constant.

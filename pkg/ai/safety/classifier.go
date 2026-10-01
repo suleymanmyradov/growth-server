@@ -19,6 +19,10 @@ const (
 	CategorySelfHarm Category = "self_harm"
 	// CategoryViolence means the input references violence.
 	CategoryViolence Category = "violence"
+	// CategoryEatingDisorder means the input references disordered-eating
+	// behaviors (restriction, purging, binge/restrict cycles, compensatory
+	// exercise) or asks for help designing or validating them.
+	CategoryEatingDisorder Category = "eating_disorder"
 )
 
 // Verdict is the result of classifying user input for safety.
@@ -60,6 +64,63 @@ If you're in crisis or thinking about harming yourself, please reach out now:
 • US: call or text 988 (Suicide & Crisis Lifeline)
 • UK & ROI: call 116 123 (Samaritans)
 • Elsewhere: https://findahelpline.com`
+
+// MedicalResponse is the deterministic, never-model-generated response sent
+// when the user asks for medical, diagnostic, treatment, or diet-prescription
+// advice the coach must not give.
+const MedicalResponse = `That's an important question, but it's outside what I can safely help with — I'm a habit coach, not a clinician.
+
+For anything involving diagnosis, treatment, medication, injuries, or a specific diet plan, please talk to a doctor or registered dietitian who can look at your full picture.
+
+What I can help with is the habit side: sleep, movement, consistency, and routines. Want to work on one of those together?`
+
+// EatingDisorderResponse is the deterministic, never-model-generated response
+// sent when the user describes disordered-eating behaviors or asks for help
+// designing them (severe restriction, purging, binge/restrict cycles,
+// compensatory exercise). Supportive, non-shaming, routes to real help.
+const EatingDisorderResponse = `I'm really glad you told me this, and I want to be honest with you: what you're describing deserves more support than a habit coach can give.
+
+Please consider talking to a doctor, therapist, or eating-disorder specialist — you don't have to figure this out alone.
+• US: call or text 800-931-2237 (NEDA)
+• Elsewhere: https://findahelpline.com
+
+I'm still here for the everyday stuff — routines, rest, and habits that support you.`
+
+// DeclineResponse is the deterministic, never-model-generated response sent
+// when input is flagged for a non-crisis category without a tailored reply
+// (e.g. violence toward others, or an unrecognized flagged category). It
+// declines without lecturing and redirects to coaching scope.
+const DeclineResponse = `I'm not able to help with that. I'm a habit and accountability coach — if you'd like, we can talk about your goals, routines, or what's getting in the way.`
+
+// BlockConfidenceThreshold is the shared minimum classifier confidence at
+// which a flagged verdict is blocked with a deterministic response. Below it
+// the input still reaches the model, but only under the coaching-scope
+// system-prompt constraints — flag-and-proceed is deliberate, not silent:
+// callers log the flag. Every AI surface uses this same threshold so policy
+// doesn't drift between check-ins, coaching, reviews, and the agent.
+const BlockConfidenceThreshold = 0.75
+
+// BlockedResponse maps a flagged verdict to its deterministic user-facing
+// reply. It returns ("", false) for safe input and for flagged input below
+// minConfidence — callers pass their own threshold (0 means "block on any
+// flagged category"). Unknown non-safe categories fail closed to
+// DeclineResponse so a newer classifier label is never silently passed to
+// the model.
+func BlockedResponse(v Verdict, minConfidence float64) (string, bool) {
+	if v.Category == CategorySafe || v.Confidence < minConfidence {
+		return "", false
+	}
+	switch v.Category {
+	case CategoryCrisis, CategorySelfHarm:
+		return CrisisResponse, true
+	case CategoryEatingDisorder:
+		return EatingDisorderResponse, true
+	case CategoryMedical:
+		return MedicalResponse, true
+	default:
+		return DeclineResponse, true
+	}
+}
 
 // classifyRetryDelay is the pause before the single classifier retry. Short
 // enough to stay inside the classify timeout, long enough to ride out a

@@ -68,6 +68,15 @@ Auth:
 ServiceAuth:
   Secret: ${SERVICE_AUTH_SECRET}
 
+# TOTP MFA for admin accounts. EncryptionKey is a base64 32-byte AES-256 key
+# protecting TOTP secrets at rest (generate: openssl rand -base64 32).
+# Required forces every admin through enrollment at login.
+Mfa:
+  Issuer: Growth Admin
+  EncryptionKey: ${ADMIN_MFA_ENCRYPTION_KEY}
+  Required: true
+  TicketTTL: 5m
+
 Telemetry:
   Name: admin-api
   Endpoint:

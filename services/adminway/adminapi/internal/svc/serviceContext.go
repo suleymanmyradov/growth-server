@@ -14,6 +14,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/pkg/redisutil"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/config"
+	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/mfa"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/middleware"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/repository/db"
@@ -34,11 +35,16 @@ import (
 )
 
 type ServiceContext struct {
-	Config            config.Config
-	Auth              rest.Middleware
-	AdminAuth         rest.Middleware
-	RateLimit         rest.Middleware
-	TokenMaker        *jwt.TokenMaker
+	Config     config.Config
+	Auth       rest.Middleware
+	AdminAuth  rest.Middleware
+	MfaAuth    rest.Middleware
+	RateLimit  rest.Middleware
+	AuditLog   rest.Middleware
+	TokenMaker *jwt.TokenMaker
+	// MfaKey is the decoded 32-byte AES-256 key encrypting TOTP secrets at
+	// rest; nil when Mfa.EncryptionKey is unset (MFA endpoints then refuse).
+	MfaKey            []byte
 	ArticlesRpc       clientarticles.Articles
 	CategoriesRpc     clientcategories.Categories
 	TagsRpc           clienttags.Tags
@@ -55,6 +61,7 @@ type ServiceContext struct {
 	TxRunner          *postgres.PgxTxRunner
 	cancel            context.CancelFunc
 	pool              *pgxpool.Pool
+	auditLogger       *middleware.AuditLogger
 }
 
 func NewServiceContext(c config.Config) *ServiceContext {
@@ -124,6 +131,24 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 	}
 
+	// Admin action audit trail (admin_audit_log). TokenMaker is used as the
+	// identity verifier — it resolves which admin a Bearer token belongs to;
+	// authorization stays with the route-level Auth/AdminAuth middlewares.
+	auditLogger := middleware.NewAuditLogger(queries, tokenMaker)
+
+	// TOTP secret encryption key. Optional so local dev without MFA still
+	// boots — but Mfa.Required with no key would lock every admin out, so
+	// that combination fails fast here.
+	var mfaKey []byte
+	if c.Mfa.EncryptionKey != "" {
+		var err error
+		if mfaKey, err = mfa.ParseKey(c.Mfa.EncryptionKey); err != nil {
+			logx.Must(fmt.Errorf("Mfa.EncryptionKey: %w", err))
+		}
+	} else if c.Mfa.Required {
+		logx.Must(fmt.Errorf("Mfa.EncryptionKey is required when Mfa.Required is on"))
+	}
+
 	return &ServiceContext{
 		Config: c,
 		// The TokenMaker doubles as the verifier — it always knows the public
@@ -131,8 +156,11 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		// only Auth.PrivateKey is configured.
 		Auth:              sharedmw.JWTMiddleware(tokenMaker),
 		AdminAuth:         middleware.AdminAuth(),
+		MfaAuth:           middleware.MfaAuth(tokenMaker, queries),
 		RateLimit:         middleware.RateLimitMiddleware(middleware.BuildRateLimiters(c.RateLimit)),
+		AuditLog:          auditLogger.Middleware(),
 		TokenMaker:        tokenMaker,
+		MfaKey:            mfaKey,
 		ArticlesRpc:       clientarticles.NewArticles(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		CategoriesRpc:     clientcategories.NewCategories(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
 		TagsRpc:           clienttags.NewTags(zrpc.MustNewClient(c.ClientRpc, baseOpts...)),
@@ -149,6 +177,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		TxRunner:          txRunner,
 		cancel:            cancel,
 		pool:              pool,
+		auditLogger:       auditLogger,
 	}
 }
 
@@ -162,6 +191,9 @@ func (s *ServiceContext) Close() {
 	}
 	if s.EventsPub != nil {
 		_ = s.EventsPub.Close()
+	}
+	if s.auditLogger != nil {
+		s.auditLogger.Close()
 	}
 	if s.pool != nil {
 		s.pool.Close()

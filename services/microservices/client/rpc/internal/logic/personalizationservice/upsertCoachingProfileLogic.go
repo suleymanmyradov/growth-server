@@ -3,8 +3,11 @@ package personalizationservicelogic
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -60,14 +63,31 @@ func (l *UpsertCoachingProfileLogic) UpsertCoachingProfile(in *client.UpsertCoac
 		primaryMotivation = &in.PrimaryMotivation
 	}
 
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
-		UserID:              userID,
-		AccountabilityStyle: (in.AccountabilityStyle),
-		CoachTone:           (in.PreferredTone),
-		Difficulty:          (in.DifficultyPreference),
-		PrimaryMotivation:   primaryMotivation,
-		CommonBlockers:      commonBlockersJSON,
-		CoachingNotes:       coachingNotesJSON,
+	var profile db.UpsertCoachingProfileRow
+	err = l.svcCtx.RunInTx(ctx, userID.String(), func(txRepo *repository.Repository) error {
+		var txErr error
+		profile, txErr = txRepo.CoachingProfiles.UpsertCoachingProfile(ctx, db.UpsertCoachingProfileParams{
+			UserID:              userID,
+			AccountabilityStyle: (in.AccountabilityStyle),
+			CoachTone:           (in.PreferredTone),
+			Difficulty:          (in.DifficultyPreference),
+			PrimaryMotivation:   primaryMotivation,
+			CommonBlockers:      commonBlockersJSON,
+			CoachingNotes:       coachingNotesJSON,
+		})
+		if txErr != nil {
+			return txErr
+		}
+		// Publish the persisted style (upsert fills defaults when the request
+		// leaves it empty) so consumer read models see the effective value.
+		env, envErr := events.NewEnvelope(events.TypeCoachingProfileChanged, events.CoachingProfileChanged{
+			UserID:              userID.String(),
+			AccountabilityStyle: profile.AccountabilityStyle,
+		})
+		if envErr != nil {
+			return fmt.Errorf("build coaching_profile_changed envelope: %w", envErr)
+		}
+		return txRepo.EventOutbox.Enqueue(ctx, env)
 	})
 	if err != nil {
 		l.Errorf("failed to upsert coaching profile: %v", err)

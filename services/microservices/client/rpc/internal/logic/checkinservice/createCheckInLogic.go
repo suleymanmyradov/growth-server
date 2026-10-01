@@ -2,9 +2,11 @@ package checkinservicelogic
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +14,7 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	goalslogic "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/logic/goals"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -20,26 +23,19 @@ import (
 	"github.com/zeromicro/go-zero/core/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-) // backgroundSem caps the number of concurrent fire-and-forget goroutines
-// spawned by CreateCheckIn to prevent goroutine exhaustion under load.
-var backgroundSem = make(chan struct{}, 100)
+)
 
-func runBackground(f func()) {
-	select {
-	case backgroundSem <- struct{}{}:
-		go func() {
-			defer func() { <-backgroundSem }()
-			f()
-		}()
-	default:
-		logx.Error("background task dropped: semaphore full")
-	}
+// pgxTxRunner is satisfied by *postgres.PgxTxRunner; tests inject a no-op.
+type pgxTxRunner interface {
+	Run(ctx context.Context, userID string, fn func(pgx.Tx) error) error
 }
 
 type CreateCheckInLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner pgxTxRunner
 }
 
 func NewCreateCheckInLogic(ctx context.Context, svcCtx *svc.ServiceContext) *CreateCheckInLogic {
@@ -48,6 +44,23 @@ func NewCreateCheckInLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Cre
 		svcCtx: svcCtx,
 		Logger: logx.WithContext(ctx),
 	}
+}
+
+func (l *CreateCheckInLogic) getTxRunner() pgxTxRunner {
+	if l.testTxRunner != nil {
+		return l.testTxRunner
+	}
+	return l.svcCtx.TxRunner
+}
+
+// getTxRepo returns the repository to use inside the transaction. In
+// production it binds to tx; when testTxRunner is set the tx is a nil stub and
+// the mock repository from svcCtx.Repo is used instead.
+func (l *CreateCheckInLogic) getTxRepo(tx pgx.Tx) *repository.Repository {
+	if l.testTxRunner != nil {
+		return l.svcCtx.Repo
+	}
+	return l.svcCtx.WithTx(tx)
 }
 
 func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*client.CreateCheckInResponse, error) {
@@ -91,12 +104,14 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		return nil, status.Error(codes.InvalidArgument, "blocker exceeds maximum length of 200 characters")
 	}
 
-	// Wrap all state-mutating operations in a transaction with RLS context.
+	// Wrap all state-mutating operations — including the event outbox write —
+	// in a transaction with RLS context so a check-in and its downstream event
+	// commit or roll back together (no publish-after-commit loss window).
 	var checkIn db.CheckIn
 	var habit db.GetHabitRow
 	var streak int32
-	err = l.svcCtx.TxRunner.Run(ctx, userID.String(), func(tx pgx.Tx) error {
-		txRepo := l.svcCtx.WithTx(tx)
+	err = l.getTxRunner().Run(ctx, userID.String(), func(tx pgx.Tx) error {
+		txRepo := l.getTxRepo(tx)
 
 		timezone := "UTC"
 		if prefs, pErr := txRepo.UserPreferences.GetUserPreferences(ctx, userID); pErr == nil {
@@ -112,6 +127,23 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 		if habit.UserID != userID {
 			return status.Error(codes.PermissionDenied, "access denied")
 		}
+
+		// Idempotency (P3): fetch the current row for this habit/day before
+		// upserting. A retried request that changes nothing produces no new
+		// activity row and no new event — side effects only fire on a real
+		// transition.
+		var existing *db.CheckIn
+		if prev, prevErr := txRepo.CheckIns.GetTodayCheckInByHabit(ctx, habitID, timezone); prevErr == nil {
+			existing = &prev
+		} else if !errors.Is(prevErr, pgx.ErrNoRows) {
+			return fmt.Errorf("get existing check-in: %w", prevErr)
+		}
+		unchanged := existing != nil &&
+			existing.Status == in.Status &&
+			optStringEq(existing.Mood, in.Mood) &&
+			optStringEq(existing.Energy, in.Energy) &&
+			optStringEq(existing.Blocker, in.Blocker) &&
+			optStringEq(existing.Note, in.Note)
 
 		// Upsert check-in record. If a check-in already exists for today
 		// (UNIQUE(habit_id, local_date)), update its status/mood/energy/
@@ -133,24 +165,56 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 			streak = s
 		}
 
-		// Log activity record
-		activityType := "check_in_missed"
-		activityTitle := fmt.Sprintf("Missed %s", habit.Name)
-		if in.Status == "completed" {
-			activityType = "check_in_completed"
-			activityTitle = fmt.Sprintf("Completed %s", habit.Name)
-		}
+		if !unchanged {
+			// Log activity record. dedupe_key makes the insert race-safe: two
+			// identical in-flight requests produce at most one activity row.
+			activityType := "check_in_missed"
+			activityTitle := fmt.Sprintf("Missed %s", habit.Name)
+			if in.Status == "completed" {
+				activityType = "check_in_completed"
+				activityTitle = fmt.Sprintf("Completed %s", habit.Name)
+			}
+			description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
+			if err := txRepo.Activities.CreateActivityDeduped(ctx, db.CreateActivityDedupedParams{
+				Type:        activityType,
+				Title:       activityTitle,
+				Description: &description,
+				Metadata:    json.RawMessage("{}"),
+				UserID:      userID,
+				DedupeKey:   strPtr(checkInActivityDedupeKey(checkIn.ID, in.Status, in.Mood, in.Energy, in.Blocker, in.Note)),
+			}); err != nil {
+				return fmt.Errorf("create activity: %w", err)
+			}
 
-		description := fmt.Sprintf("Check-in %s for habit: %s", in.Status, habit.Name)
-		_, err = txRepo.Activities.CreateActivity(ctx, db.CreateActivityParams{
-			Type:        (activityType),
-			Title:       activityTitle,
-			Description: &description,
-			Metadata:    json.RawMessage("{}"),
-			UserID:      userID,
-		})
-		if err != nil {
-			return fmt.Errorf("create activity: %w", err)
+			// Enqueue check_in_created into the outbox in this transaction.
+			// The event ID is derived from (check_in_id, version): a redelivery
+			// or relay replay is deduped downstream, and every real content
+			// transition (version bump) yields a distinct ID. The payload
+			// carries the user-authored fields so the ai-coach-consumer can
+			// maintain its own read model without touching check_ins (P2).
+			var localDate string
+			if checkIn.LocalDate.Valid {
+				localDate = checkIn.LocalDate.Time.Format("2006-01-02")
+			}
+			env, envErr := events.NewEnvelopeWithID(checkInEventID(checkIn.ID, checkIn.Version), events.TypeCheckInCreated, events.CheckInCreated{
+				UserID:    userID.String(),
+				CheckInID: checkIn.ID.String(),
+				HabitID:   habit.ID.String(),
+				HabitName: habit.Name,
+				Status:    in.Status,
+				Streak:    streak,
+				LocalDate: localDate,
+				Mood:      in.Mood,
+				Energy:    in.Energy,
+				Blocker:   in.Blocker,
+				Note:      in.Note,
+			})
+			if envErr != nil {
+				return fmt.Errorf("build check-in envelope: %w", envErr)
+			}
+			if err := txRepo.EventOutbox.Enqueue(ctx, env); err != nil {
+				return fmt.Errorf("enqueue check-in event: %w", err)
+			}
 		}
 
 		// Recompute progress for any habit-driven goals linked to this habit.
@@ -185,34 +249,38 @@ func (l *CreateCheckInLogic) CreateCheckIn(in *client.CreateCheckInRequest) (*cl
 	// request reflects the new check-in immediately rather than at TTL.
 	l.svcCtx.InvalidatePersonalizationContext(ctx, userID)
 
-	// Fire-and-forget publish check-in event to Kafka. The ai-coach-consumer
-	// generates feedback asynchronously from this event, so there is no need
-	// for a synchronous AI call here.
-	if l.svcCtx.EventsPub != nil {
-		runBackground(func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypeCheckInCreated, events.CheckInCreated{
-				UserID:    userID.String(),
-				CheckInID: checkIn.ID.String(),
-				HabitID:   habit.ID.String(),
-				HabitName: habit.Name,
-				Status:    in.Status,
-				Streak:    streak,
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish check-in event: %v", err)
-			}
-		})
-	}
-
 	return &client.CreateCheckInResponse{
 		CheckIn:    checkInToProto(checkIn),
 		Habit:      habitToProto(habit, streak),
 		AiFeedback: "", // delivered asynchronously via notifications from the ai-coach-consumer
 	}, nil
+}
+
+// optStringEq compares a nullable DB string column with a proto field where
+// "" maps to NULL (protoToUpsertCheckInParams drops empty strings).
+func optStringEq(dbValue *string, inValue string) bool {
+	if dbValue == nil {
+		return inValue == ""
+	}
+	return *dbValue == inValue
+}
+
+// checkInEventID derives the deterministic event ID for a check-in state
+// transition: one unique ID per (check_in, version) so replays dedupe while
+// every real change propagates.
+func checkInEventID(checkInID uuid.UUID, version int32) string {
+	return uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("check_in_created:%s:%d", checkInID, version))).String()
+}
+
+// checkInActivityDedupeKey is the idempotency key for the activity row a
+// check-in writes. Identical requests (double-taps, retries) hash to the
+// same key so only the first insert lands; a genuine content change produces
+// a different key and a new activity entry.
+func checkInActivityDedupeKey(checkInID uuid.UUID, status, mood, energy, blocker, note string) string {
+	h := sha256.Sum256([]byte(status + "\x00" + mood + "\x00" + energy + "\x00" + blocker + "\x00" + note))
+	return fmt.Sprintf("check-in:%s:%s", checkInID, hex.EncodeToString(h[:8]))
+}
+
+func strPtr(s string) *string {
+	return &s
 }

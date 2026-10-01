@@ -63,10 +63,17 @@
 	}
 
 	# --- Object storage (MinIO, path-style /bucket/key) ---
-	# Serves ONLY SigV4-presigned URLs minted by the filemanager — the bucket
-	# policy is private, so unsigned/anonymous requests get 403 from MinIO.
-	# Do not add `mc anonymous` grants for this bucket.
-	handle /files/* {
+	# Serves ONLY SigV4-presigned URLs minted by the filemanager — presigned
+	# requests always carry X-Amz-Signature in the query, so anything without
+	# it falls through to the catch-all 404 and never reaches MinIO. The
+	# bucket policy is also private (deploy/scripts/harden-minio.sh); this
+	# matcher is defense in depth so a bad bucket policy alone cannot reopen
+	# anonymous access. Do not add `mc anonymous` grants for this bucket.
+	@files_presigned {
+		path /files/*
+		vars_regexp {http.request.uri.query} (^|&)X-Amz-Signature=[^&]
+	}
+	handle @files_presigned {
 		uri strip_prefix /files
 		reverse_proxy minio:9000
 	}
@@ -106,6 +113,8 @@
 
 # Admin panel (Next.js admin-frontend → adminway API).
 # Only resolvable when the `admin` compose profile is enabled; Caddy 502s otherwise.
+# Source-IP allowlist generated from ADMIN_ALLOWED_IPS (deploy/.env.prod) by
+# deploy.sh — when unset the generated matcher never matches (panel stays open).
 {$ADMIN_DOMAIN} {
 	encode zstd gzip
 
@@ -116,6 +125,8 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 		-Server
 	}
+
+	import admin-allowlist.caddyfile
 
 	reverse_proxy admin-frontend:3001
 }

@@ -3,8 +3,11 @@ package aicoachservicelogic
 import (
 	"context"
 	"encoding/json"
+	"strings"
+	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
@@ -89,6 +92,35 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *aicoach.WeeklyRevie
 		DetectedPatterns:     in.DetectedPatterns,
 	}
 
+	// Safety screen on all user-authored free text before it reaches the
+	// model. Blockers, goal titles, and habit names are user-authored and
+	// were previously interpolated unscreened. A flagged verdict or a
+	// classifier failure (fail closed) falls back to the deterministic,
+	// no-model review — the user still gets a summary, but unscreened or
+	// unsafe text never reaches the LLM.
+	if l.svcCtx.Classifier != nil {
+		if freeText := weeklyReviewFreeText(in); freeText != "" {
+			classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
+			verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, freeText)
+			cancel()
+			switch {
+			case err != nil:
+				l.Errorf("weekly review safety classify failed, failing closed: user=%s err=%v", in.UserId, err)
+				coachingSafetyClassifyErrors.Inc()
+				return weeklyReviewFallbackResponse(input), nil
+			case verdict.Category != safety.CategorySafe:
+				if _, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold); !blocked {
+					l.Infof("weekly review safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f", in.UserId, verdict.Category, verdict.Confidence)
+					break
+				}
+				// Reason deliberately not logged — may quote sensitive content.
+				l.Infof("weekly review safety block: user=%s category=%s confidence=%.2f", in.UserId, verdict.Category, verdict.Confidence)
+				coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
+				return weeklyReviewFallbackResponse(input), nil
+			}
+		}
+	}
+
 	systemPrompt := prompts.BuildWeeklyReviewSystemPrompt(in.AccountabilityStyle, in.PreferredTone, in.DifficultyPreference)
 	userPrompt := prompts.BuildWeeklyReviewUserPrompt(input)
 
@@ -120,6 +152,51 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *aicoach.WeeklyRevie
 		}, nil
 	}
 
+	return weeklyReviewResponseFromStructured(structured), nil
+}
+
+// weeklyReviewFreeText joins every user-authored string that lands in the
+// weekly review prompt so it can be screened in a single classifier call.
+func weeklyReviewFreeText(in *aicoach.WeeklyReviewRequest) string {
+	var parts []string
+	add := func(s string) {
+		if t := strings.TrimSpace(s); t != "" {
+			parts = append(parts, t)
+		}
+	}
+	add(in.TopBlocker)
+	for _, s := range in.Goals {
+		add(s)
+	}
+	for _, s := range in.CommonBlockers {
+		add(s)
+	}
+	for _, s := range in.DetectedPatterns {
+		add(s)
+	}
+	for _, h := range in.HabitBreakdowns {
+		add(h.HabitName)
+		add(h.Category)
+	}
+	for _, b := range in.BlockerStats {
+		add(b.Blocker)
+	}
+	for _, m := range in.MoodStats {
+		add(m.Mood)
+	}
+	for _, e := range in.EnergyStats {
+		add(e.Energy)
+	}
+	return strings.Join(parts, "\n")
+}
+
+// weeklyReviewFallbackResponse builds a deterministic review without calling
+// the model — used when user text is flagged or unscreenable.
+func weeklyReviewFallbackResponse(input prompts.WeeklyReviewInput) *aicoach.WeeklyReviewResponse {
+	return weeklyReviewResponseFromStructured(prompts.GenerateDeterministicFallback(input))
+}
+
+func weeklyReviewResponseFromStructured(structured prompts.WeeklyReviewStructuredOutput) *aicoach.WeeklyReviewResponse {
 	adjustments := make([]*aicoach.WeeklyReviewAdjustment, len(structured.SuggestedAdjustments))
 	for i, a := range structured.SuggestedAdjustments {
 		adjustments[i] = &aicoach.WeeklyReviewAdjustment{
@@ -140,5 +217,5 @@ func (l *GenerateWeeklyReviewLogic) GenerateWeeklyReview(in *aicoach.WeeklyRevie
 			Risks:           structured.NextWeekPlan.Risks,
 			RecoveryActions: structured.NextWeekPlan.RecoveryActions,
 		},
-	}, nil
+	}
 }

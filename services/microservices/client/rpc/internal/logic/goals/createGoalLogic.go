@@ -52,20 +52,24 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 	// Users who haven't completed onboarding are exempt — they must always be
 	// able to create their initial goal, even if a previous partial onboarding
 	// attempt left leftover goals that would otherwise trip the Free plan limit.
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
-	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
-		if computeErr == nil && !entitlements.CanCreateGoal {
-			if !commonlogic.IsOnboardingComplete(ctx, l.svcCtx, userID) {
-				l.Infof("CreateGoal: bypassing plan limit for user %s (onboarding not complete)", userID)
-			} else {
-				st := status.New(codes.FailedPrecondition, "plan limit reached")
-				st, _ = st.WithDetails(&client.PlanLimitDetail{
-					Limit:          "active_goals",
-					UpgradeTrigger: "goal_limit",
-				})
-				return nil, st.Err()
-			}
+	// EntitlementsOrFreeFallback enforces Free-plan limits when the
+	// subscription row can't be loaded; an error means even the fallback
+	// failed, so the request is rejected rather than skipping enforcement.
+	entitlements, entErr := l.svcCtx.Repo.Billing.EntitlementsOrFreeFallback(ctx, userID)
+	if entErr != nil {
+		l.Errorf("CreateGoal: entitlement check failed closed for user %s: %v", userID, entErr)
+		return nil, status.Error(codes.Internal, "failed to verify plan limits")
+	}
+	if !entitlements.CanCreateGoal {
+		if !commonlogic.IsOnboardingComplete(ctx, l.svcCtx, userID) {
+			l.Infof("CreateGoal: bypassing plan limit for user %s (onboarding not complete)", userID)
+		} else {
+			st := status.New(codes.FailedPrecondition, "plan limit reached")
+			st, _ = st.WithDetails(&client.PlanLimitDetail{
+				Limit:          "active_goals",
+				UpgradeTrigger: "goal_limit",
+			})
+			return nil, st.Err()
 		}
 	}
 
@@ -84,6 +88,13 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		return nil, status.Error(codes.InvalidArgument, "numeric goals require a target value different from start value")
 	}
 
+	habitIDs := parseHabitIDs(in.RelatedHabitIds)
+	if len(habitIDs) > 0 {
+		if err := validateHabitOwnership(ctx, l.svcCtx.Repo.Habits, userID, habitIDs); err != nil {
+			return nil, err
+		}
+	}
+
 	params := protoToGoalParams(in.Title, in.Description, in.Category, in.DueDate, userID,
 		measurement, in.StartValue, in.CurrentValue, in.TargetValue, in.Unit)
 
@@ -100,7 +111,6 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		}
 
 		// Link habits to the new goal if any were provided.
-		habitIDs := parseHabitIDs(in.RelatedHabitIds)
 		if len(habitIDs) > 0 {
 			if lErr := txRepo.Goals.LinkGoalHabitsBatch(ctx, goal.ID, habitIDs); lErr != nil {
 				return fmt.Errorf("link habits to goal: %w", lErr)
@@ -137,6 +147,27 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 				}
 			}
 		}
+
+		// goal_created event goes into the outbox in this transaction.
+		// DeadlineAt is included so the notifications consumer can schedule a
+		// goal_deadline reminder when the goal has a due date.
+		deadlineAt := ""
+		if goal.DueDate.Valid {
+			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
+		}
+		env, envErr := events.NewEnvelope(events.TypeGoalCreated, events.GoalCreated{
+			UserID:     userID.String(),
+			GoalID:     goal.ID.String(),
+			Title:      goal.Title,
+			Category:   goal.Category,
+			DeadlineAt: deadlineAt,
+		})
+		if envErr != nil {
+			return fmt.Errorf("build goal_created envelope: %w", envErr)
+		}
+		if err := txRepo.EventOutbox.Enqueue(ctx, env); err != nil {
+			return fmt.Errorf("enqueue goal_created event: %w", err)
+		}
 		return nil
 	})
 	if err != nil {
@@ -157,34 +188,6 @@ func (l *CreateGoalLogic) CreateGoal(in *client.CreateGoalRequest) (*client.Crea
 		UserID:      userID,
 	}); aErr != nil {
 		l.Errorf("Failed to log goal_created activity: %v", aErr)
-	}
-
-	// Fire-and-forget publish goal_created event for analytics/metrics.
-	// DeadlineAt is included so the notifications consumer can schedule a
-	// goal_deadline reminder when the goal has a due date.
-	if l.svcCtx.EventsPub != nil {
-		deadlineAt := ""
-		if goal.DueDate.Valid {
-			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
-		}
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypeGoalCreated, events.GoalCreated{
-				UserID:     userID.String(),
-				GoalID:     goal.ID.String(),
-				Title:      goal.Title,
-				Category:   goal.Category,
-				DeadlineAt: deadlineAt,
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish goal_created event: %v", err)
-			}
-		}()
 	}
 
 	return &client.CreateGoalResponse{

@@ -459,6 +459,13 @@ type (
 	UpdateNotificationPreferencesRequest {
 		preferences NotificationPreferences `json:"preferences"`
 	}
+
+	// Email unsubscribe token minted into List-Unsubscribe URLs by the
+	// notifications service (RFC 8058). Carried as a query param because mail
+	// clients POST a fixed "List-Unsubscribe=One-Click" body.
+	UnsubscribeEmailRequest {
+		token string `form:"token"`
+	}
 )
 
 // Push device registration types (see docs/push-notifications-design.md).

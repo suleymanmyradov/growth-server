@@ -24,6 +24,11 @@ type QuotaStore interface {
 	CheckGlobalQuota(ctx context.Context, costCap int64) (ok bool, err error)
 	// IncrGlobalCost increments the global daily cost in microdollars.
 	IncrGlobalCost(ctx context.Context, microDollars int64) error
+	// CheckUserVoiceQuota returns false if the user has exceeded their daily
+	// voice (speech-to-text) seconds cap.
+	CheckUserVoiceQuota(ctx context.Context, userID string, capSeconds int64) (ok bool, err error)
+	// IncrUserVoiceSeconds increments the user's daily voice-usage seconds.
+	IncrUserVoiceSeconds(ctx context.Context, userID string, seconds int64) error
 }
 
 // redisQuotaStore implements QuotaStore using Redis.
@@ -103,6 +108,31 @@ func (s *redisQuotaStore) IncrGlobalCost(ctx context.Context, microDollars int64
 	return nil
 }
 
+func (s *redisQuotaStore) CheckUserVoiceQuota(ctx context.Context, userID string, capSeconds int64) (bool, error) {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	key := dailyKey("voice", userID)
+	val, err := s.client.Get(ctx, key).Int64()
+	if err != nil && err != redis.Nil {
+		return false, fmt.Errorf("ai.QuotaStore: get user voice quota: %w", err)
+	}
+	return val < capSeconds, nil
+}
+
+func (s *redisQuotaStore) IncrUserVoiceSeconds(ctx context.Context, userID string, seconds int64) error {
+	ctx, cancel := redisutil.WithTimeout(ctx, 500*time.Millisecond)
+	defer cancel()
+
+	key := dailyKey("voice", userID)
+	if err := s.client.IncrBy(ctx, key, seconds).Err(); err != nil {
+		return fmt.Errorf("ai.QuotaStore: incr user voice seconds: %w", err)
+	}
+	ttl := redisutil.JitteredTTL(48*time.Hour, 2*time.Hour)
+	s.client.Expire(ctx, key, ttl)
+	return nil
+}
+
 // noopQuotaStore is a no-op implementation used when quota is disabled.
 type noopQuotaStore struct{}
 
@@ -115,6 +145,12 @@ func (noopQuotaStore) UserDailyTokens(_ context.Context, _ string) (int64, error
 func (noopQuotaStore) IncrUserTokens(_ context.Context, _ string, _ int64) error { return nil }
 func (noopQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error) { return true, nil }
 func (noopQuotaStore) IncrGlobalCost(_ context.Context, _ int64) error           { return nil }
+func (noopQuotaStore) CheckUserVoiceQuota(_ context.Context, _ string, _ int64) (bool, error) {
+	return true, nil
+}
+func (noopQuotaStore) IncrUserVoiceSeconds(_ context.Context, _ string, _ int64) error {
+	return nil
+}
 
 // Ensure redisQuotaStore implements QuotaStore.
 var _ QuotaStore = (*redisQuotaStore)(nil)

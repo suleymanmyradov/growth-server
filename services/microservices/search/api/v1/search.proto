@@ -12,6 +12,11 @@ message SearchRequest {
   int32 limit = 5;
   int32 offset = 6;
   string status = 7; // optional filter (e.g. "published", "draft")
+  // include_internal widens the visibility clause to docs marked
+  // visibility="internal" (unpublished articles). Only trusted internal
+  // callers (adminway) may set this — user-facing gateways must never
+  // forward it.
+  bool include_internal = 8;
 }
 
 message SearchResponse {

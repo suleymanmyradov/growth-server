@@ -203,8 +203,14 @@ func (c *client) fallbackModelsFor(profile ModelProfile) []openaiModel {
 
 // checkQuota checks per-user and global quotas before making a call.
 // It fails CLOSED: if the quota store is unreachable, the call is blocked.
+// A configured cap with no quota store at all is also blocked — a Redis
+// outage or misconfiguration must never silently disable enforcement.
 func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 	if c.opts.quotaStore == nil {
+		if c.cfg.Quota.UserDailyTokenCap > 0 || c.cfg.Quota.GlobalDailyCostCapUSD > 0 {
+			logx.WithContext(ctx).Errorf("ai: quota caps configured but no quota store; failing closed for user %s", meta.UserID)
+			return &QuotaError{Limit: "quota_store_unavailable", Cap: c.cfg.Quota.UserDailyTokenCap}
+		}
 		return nil
 	}
 	if meta.UserID != "" && c.cfg.Quota.UserDailyTokenCap > 0 {
@@ -230,11 +236,14 @@ func (c *client) checkQuota(ctx context.Context, meta Metadata) error {
 	return nil
 }
 
-// recordUsage records token usage for quota tracking.
+// recordUsage records token usage for quota tracking. The caller's context
+// may already be canceled (early stream close, client disconnect), so quota
+// writes run on a detached context; the store's own timeouts still bound them.
 func (c *client) recordUsage(ctx context.Context, meta Metadata, usage Usage, costUSD float64) {
 	if c.opts.quotaStore == nil {
 		return
 	}
+	ctx = context.WithoutCancel(ctx)
 	if meta.UserID != "" && c.cfg.Quota.UserDailyTokenCap > 0 {
 		if err := c.opts.quotaStore.IncrUserTokens(ctx, meta.UserID, int64(usage.TotalTokens)); err != nil {
 			logx.WithContext(ctx).Errorf("ai: record user tokens error: %v", err)

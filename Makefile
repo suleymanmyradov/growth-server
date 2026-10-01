@@ -302,6 +302,8 @@ sqlc:
 			echo "skip: no queries in sql/queries/$$svc"; \
 		fi; \
 	done
+	@echo "---- conversations (ai-coach)"
+	sqlc generate -f sql/conf/sqlc.conversations.yaml
 	$(MAKE) generate-adminway-repo
 generate-client-proto:
 	@echo "Generating client proto..."

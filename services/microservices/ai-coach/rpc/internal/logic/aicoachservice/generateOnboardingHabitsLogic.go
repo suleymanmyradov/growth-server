@@ -56,11 +56,12 @@ func NewGenerateOnboardingHabitsLogic(ctx context.Context, svcCtx *svc.ServiceCo
 
 func (l *GenerateOnboardingHabitsLogic) GenerateOnboardingHabits(in *aicoach.GenerateOnboardingHabitsRequest) (*aicoach.GenerateOnboardingHabitsResponse, error) {
 	// Safety: classify the user-supplied free-text fields before they reach the
-	// model. Crisis / self-harm short-circuit to the deterministic response so
-	// the model never sees the input.
+	// model. Any flagged category short-circuits to the deterministic response
+	// so the model never sees the input — a flagged goal title or blocker
+	// could otherwise steer generation toward unsafe habits.
 	if l.svcCtx.Classifier != nil {
 		combined := strings.Join([]string{in.GoalTitle, in.Motivation, in.Blocker}, "\n")
-		if combined != "" {
+		if strings.TrimSpace(combined) != "" {
 			classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
 			verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, combined)
 			cancel()
@@ -73,11 +74,16 @@ func (l *GenerateOnboardingHabitsLogic) GenerateOnboardingHabits(in *aicoach.Gen
 				return &aicoach.GenerateOnboardingHabitsResponse{
 					Habits: onboardingFallbackHabits(in.GoalTitle, in.DailyMinutes),
 				}, nil
-			case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
+			case verdict.Category != safety.CategorySafe:
+				if _, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold); !blocked {
+					l.Infof("onboarding safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f",
+						in.UserId, verdict.Category, verdict.Confidence)
+					break
+				}
 				l.Infof("onboarding safety block: user=%s category=%s confidence=%.2f",
 					in.UserId, verdict.Category, verdict.Confidence)
 				coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
-				// Don't generate habits from crisis input; return the fallback
+				// Don't generate habits from unsafe input; return the fallback
 				// so onboarding can continue without surfacing the raw input.
 				return &aicoach.GenerateOnboardingHabitsResponse{
 					Habits: onboardingFallbackHabits(in.GoalTitle, in.DailyMinutes),

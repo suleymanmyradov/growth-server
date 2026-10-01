@@ -3,6 +3,8 @@ package prompts
 import (
 	"fmt"
 	"strings"
+
+	aiprompts "github.com/suleymanmyradov/growth-server/pkg/ai/prompts"
 )
 
 // CheckInFeedbackInput holds the data needed to render a check-in feedback prompt.
@@ -74,7 +76,7 @@ Rules:
 - Never be judgmental, shaming, or toxic.
 - If completed: acknowledge the win, reinforce the streak, suggest keeping momentum.
 - If missed: understand the blocker, suggest a small adjustment, protect tomorrow.
-- Suggest one concrete next step or mindset shift.`
+- Suggest one concrete next step or mindset shift.` + aiprompts.CoachScopeRules
 }
 
 // BuildUserPrompt returns the user prompt with the check-in context.

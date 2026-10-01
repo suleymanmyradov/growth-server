@@ -83,7 +83,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:           c,
 		Auth:             sharedmw.JWTMiddleware(tokenVerifier),
 		TokenVerifier:    tokenVerifier,
-		RateLimit:        middleware.RateLimitMiddleware(limiters),
+		RateLimit:        middleware.RateLimitMiddleware(limiters, tokenVerifier),
 		AuthRpc:          authRpc,
 		NotificationsRpc: notificationsClient.NewNotifications(zrpc.MustNewClient(c.NotificationsRpc, baseOpts...)),
 		ClientRpc:        clientRpc,

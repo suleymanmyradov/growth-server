@@ -30,14 +30,16 @@ type IOauth interface {
 
 // Repository aggregates all auth repositories
 type Repository struct {
-	Users IUsers
-	Oauth IOauth
+	Users       IUsers
+	Oauth       IOauth
+	EventOutbox IEventOutbox
 }
 
 // NewRepository creates a new Repository instance with all implementations
 func NewRepository(dbq *db.Queries) *Repository {
 	return &Repository{
-		Users: NewUsersRepo(dbq),
-		Oauth: NewOauthRepo(dbq),
+		Users:       NewUsersRepo(dbq),
+		Oauth:       NewOauthRepo(dbq),
+		EventOutbox: NewEventOutboxRepo(dbq),
 	}
 }

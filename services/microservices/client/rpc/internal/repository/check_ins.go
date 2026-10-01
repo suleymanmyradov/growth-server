@@ -38,6 +38,13 @@ func (r *checkInsRepo) UpsertCheckIn(ctx context.Context, params db.UpsertCheckI
 	return r.db.UpsertCheckIn(ctx, params)
 }
 
+func (r *checkInsRepo) GetTodayCheckInByHabit(ctx context.Context, habitID uuid.UUID, timezone string) (db.CheckIn, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetTodayCheckInByHabit")
+	defer span.End()
+
+	return r.db.GetTodayCheckInByHabit(ctx, habitID, timezone)
+}
+
 func (r *checkInsRepo) GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]db.CheckIn, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "CheckInsRepo.GetTodayCheckIns")
 	defer span.End()

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
@@ -25,6 +24,8 @@ type RegisterLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner svc.TxRunnerInterface
 }
 
 func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *RegisterLogic {
@@ -74,9 +75,8 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 
 	hashStr := string(hashedPassword)
 	var user db.User
-	err = l.svcCtx.TxRunner.Run(ctx, "", func(tx pgx.Tx) error {
-		q := db.New(tx)
-		row, err := q.CreateUser(ctx, db.CreateUserParams{
+	err = runInTx(l.svcCtx, l.testTxRunner, ctx, "", func(repo *repository.Repository) error {
+		row, err := repo.Users.CreateUser(ctx, db.CreateUserParams{
 			Username:      in.Username,
 			Email:         in.Email,
 			PasswordHash:  &hashStr,
@@ -93,7 +93,10 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 			return errInternal(MsgFailedCreateUser)
 		}
 		user = db.User(row)
-		return nil
+		// Enqueue the profile-sync event in the same transaction as the user
+		// row so it can't be lost between commit and publish (P1). The relay
+		// drains auth_event_outbox to the broker.
+		return enqueueUserProfileUpdated(ctx, repo.EventOutbox, user)
 	})
 	if err != nil {
 		return nil, err
@@ -129,9 +132,6 @@ func (l *RegisterLogic) Register(in *auth.RegisterRequest) (*auth.RegisterRespon
 	}
 
 	l.Infof("Register successful for user %s (pending email verification)", user.ID)
-
-	// Publish so downstream services can seed their local user_profiles read model.
-	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
 
 	return &auth.RegisterResponse{
 		RequiresVerification: true,

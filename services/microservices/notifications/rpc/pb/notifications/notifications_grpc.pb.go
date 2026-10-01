@@ -28,6 +28,7 @@ const (
 	Notifications_GetUnreadCount_FullMethodName                = "/notifications.Notifications/GetUnreadCount"
 	Notifications_GetNotificationPreferences_FullMethodName    = "/notifications.Notifications/GetNotificationPreferences"
 	Notifications_UpdateNotificationPreferences_FullMethodName = "/notifications.Notifications/UpdateNotificationPreferences"
+	Notifications_UnsubscribeEmail_FullMethodName              = "/notifications.Notifications/UnsubscribeEmail"
 	Notifications_RegisterDevice_FullMethodName                = "/notifications.Notifications/RegisterDevice"
 	Notifications_UnregisterDevice_FullMethodName              = "/notifications.Notifications/UnregisterDevice"
 )
@@ -45,6 +46,9 @@ type NotificationsClient interface {
 	GetUnreadCount(ctx context.Context, in *GetUnreadCountRequest, opts ...grpc.CallOption) (*GetUnreadCountResponse, error)
 	GetNotificationPreferences(ctx context.Context, in *GetNotificationPreferencesRequest, opts ...grpc.CallOption) (*GetNotificationPreferencesResponse, error)
 	UpdateNotificationPreferences(ctx context.Context, in *UpdateNotificationPreferencesRequest, opts ...grpc.CallOption) (*UpdateNotificationPreferencesResponse, error)
+	// RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+	// exempt from user-JWT verification (service auth still applies).
+	UnsubscribeEmail(ctx context.Context, in *UnsubscribeEmailRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	// Push device registration (see docs/push-notifications-design.md).
 	RegisterDevice(ctx context.Context, in *RegisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
 	UnregisterDevice(ctx context.Context, in *UnregisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error)
@@ -148,6 +152,16 @@ func (c *notificationsClient) UpdateNotificationPreferences(ctx context.Context,
 	return out, nil
 }
 
+func (c *notificationsClient) UnsubscribeEmail(ctx context.Context, in *UnsubscribeEmailRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmptyResponse)
+	err := c.cc.Invoke(ctx, Notifications_UnsubscribeEmail_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *notificationsClient) RegisterDevice(ctx context.Context, in *RegisterDeviceRequest, opts ...grpc.CallOption) (*EmptyResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(EmptyResponse)
@@ -181,6 +195,9 @@ type NotificationsServer interface {
 	GetUnreadCount(context.Context, *GetUnreadCountRequest) (*GetUnreadCountResponse, error)
 	GetNotificationPreferences(context.Context, *GetNotificationPreferencesRequest) (*GetNotificationPreferencesResponse, error)
 	UpdateNotificationPreferences(context.Context, *UpdateNotificationPreferencesRequest) (*UpdateNotificationPreferencesResponse, error)
+	// RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+	// exempt from user-JWT verification (service auth still applies).
+	UnsubscribeEmail(context.Context, *UnsubscribeEmailRequest) (*EmptyResponse, error)
 	// Push device registration (see docs/push-notifications-design.md).
 	RegisterDevice(context.Context, *RegisterDeviceRequest) (*EmptyResponse, error)
 	UnregisterDevice(context.Context, *UnregisterDeviceRequest) (*EmptyResponse, error)
@@ -220,6 +237,9 @@ func (UnimplementedNotificationsServer) GetNotificationPreferences(context.Conte
 }
 func (UnimplementedNotificationsServer) UpdateNotificationPreferences(context.Context, *UpdateNotificationPreferencesRequest) (*UpdateNotificationPreferencesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateNotificationPreferences not implemented")
+}
+func (UnimplementedNotificationsServer) UnsubscribeEmail(context.Context, *UnsubscribeEmailRequest) (*EmptyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UnsubscribeEmail not implemented")
 }
 func (UnimplementedNotificationsServer) RegisterDevice(context.Context, *RegisterDeviceRequest) (*EmptyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterDevice not implemented")
@@ -410,6 +430,24 @@ func _Notifications_UpdateNotificationPreferences_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Notifications_UnsubscribeEmail_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnsubscribeEmailRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NotificationsServer).UnsubscribeEmail(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Notifications_UnsubscribeEmail_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NotificationsServer).UnsubscribeEmail(ctx, req.(*UnsubscribeEmailRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Notifications_RegisterDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RegisterDeviceRequest)
 	if err := dec(in); err != nil {
@@ -488,6 +526,10 @@ var Notifications_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateNotificationPreferences",
 			Handler:    _Notifications_UpdateNotificationPreferences_Handler,
+		},
+		{
+			MethodName: "UnsubscribeEmail",
+			Handler:    _Notifications_UnsubscribeEmail_Handler,
 		},
 		{
 			MethodName: "RegisterDevice",

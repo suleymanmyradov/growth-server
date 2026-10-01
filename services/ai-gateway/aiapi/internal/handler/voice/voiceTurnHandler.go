@@ -56,10 +56,13 @@ func VoiceTurnHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// Plan-aware daily token cap, enforced at the edge before any AI work
-		// (including STT, which is not token-metered but always precedes the
-		// coaching turn).
+		// Plan-aware daily token cap plus the per-user voice (STT seconds)
+		// cap, enforced at the edge before any AI work.
 		if err := svcCtx.CheckDailyTokenQuota(r.Context(), p.UserID); err != nil {
+			sse.NewWriter(w).WriteError(ai.UserFacingMessage(err))
+			return
+		}
+		if err := svcCtx.CheckDailyVoiceQuota(r.Context(), p.UserID); err != nil {
 			sse.NewWriter(w).WriteError(ai.UserFacingMessage(err))
 			return
 		}

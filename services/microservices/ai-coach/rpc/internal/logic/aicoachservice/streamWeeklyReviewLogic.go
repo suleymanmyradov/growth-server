@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach/rpc/pb/aicoach"
@@ -93,6 +95,40 @@ func (l *StreamWeeklyReviewLogic) StreamWeeklyReview(in *aicoach.WeeklyReviewReq
 		MoodStats:            moodStats,
 		EnergyStats:          energyStats,
 		DetectedPatterns:     in.DetectedPatterns,
+	}
+
+	// Safety screen on all user-authored free text before it reaches the
+	// model (same policy as the non-streaming GenerateWeeklyReview path).
+	// A flagged verdict or a classifier failure (fail closed) sends the
+	// deterministic, no-model fallback review — unscreened text never
+	// reaches the LLM.
+	if l.svcCtx.Classifier != nil {
+		if freeText := weeklyReviewFreeText(in); freeText != "" {
+			classifyCtx, cancel := context.WithTimeout(l.ctx, 10*time.Second)
+			verdict, err := safety.ClassifyWithRetry(classifyCtx, l.svcCtx.Classifier, freeText)
+			cancel()
+			switch {
+			case err != nil:
+				l.Errorf("weekly review safety classify failed, failing closed: user=%s err=%v", in.UserId, err)
+				coachingSafetyClassifyErrors.Inc()
+				return stream.Send(&aicoach.WeeklyReviewStreamChunk{
+					Complete: true,
+					Review:   weeklyReviewFallbackResponse(input),
+				})
+			case verdict.Category != safety.CategorySafe:
+				if _, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold); !blocked {
+					l.Infof("weekly review safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f", in.UserId, verdict.Category, verdict.Confidence)
+					break
+				}
+				// Reason deliberately not logged — may quote sensitive content.
+				l.Infof("weekly review safety block: user=%s category=%s confidence=%.2f", in.UserId, verdict.Category, verdict.Confidence)
+				coachingSafetyBlockedTotal.WithLabelValues(string(verdict.Category)).Inc()
+				return stream.Send(&aicoach.WeeklyReviewStreamChunk{
+					Complete: true,
+					Review:   weeklyReviewFallbackResponse(input),
+				})
+			}
+		}
 	}
 
 	systemPrompt := prompts.BuildWeeklyReviewStreamSystemPrompt(in.AccountabilityStyle, in.PreferredTone, in.DifficultyPreference)

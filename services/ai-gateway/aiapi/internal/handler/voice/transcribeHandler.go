@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/svc"
@@ -35,6 +36,14 @@ func TranscribeHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 		p, ok := principal.PrincipalFrom(r.Context())
 		if !ok {
 			errors.HandleGrpcError(w, status.Error(codes.Unauthenticated, "not authenticated"))
+			return
+		}
+
+		// Per-user daily voice quota — STT is provider-billed and was
+		// previously unmetered, so a scripted client could drain transcription
+		// spend without touching the token cap.
+		if err := svcCtx.CheckDailyVoiceQuota(r.Context(), p.UserID); err != nil {
+			errors.HandleGrpcError(w, status.Error(codes.ResourceExhausted, ai.UserFacingMessage(err)))
 			return
 		}
 

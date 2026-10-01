@@ -3,13 +3,16 @@
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date)
-RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at;
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version;
 
 -- name: UpsertCheckIn :one
 -- Insert a check-in for today, or update the existing one if already present
 -- (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
 -- change status (missed → completed) or add/update mood/energy/blocker/note.
 -- created_at is preserved on update (the original check-in timestamp).
+-- version increments on every update so the caller can derive a deterministic
+-- per-transition event ID for the outbox (idempotent retry = same version =
+-- skipped side effects).
 -- Timezone is passed by the caller.
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
@@ -19,32 +22,43 @@ ON CONFLICT (habit_id, local_date) DO UPDATE SET
     mood    = EXCLUDED.mood,
     energy  = EXCLUDED.energy,
     blocker = EXCLUDED.blocker,
-    note    = EXCLUDED.note
-RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at;
+    note    = EXCLUDED.note,
+    version = check_ins.version + 1
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version;
+
+-- name: GetTodayCheckInByHabit :one
+-- Fetch the check-in for a habit on "today" in the caller's timezone, using
+-- the same date math as UpsertCheckIn. Used for idempotency: comparing the
+-- incoming request against the stored row lets the logic skip side effects
+-- (activity rows, events) when nothing changed.
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
+FROM check_ins
+WHERE habit_id = $1
+  AND local_date = (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date;
 
 -- name: GetTodayCheckIns :many
 -- Timezone is passed by the caller.
-SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at
+SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.version
 FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.local_date = (NOW() AT TIME ZONE sqlc.arg(timezone)::text)::date;
 
 -- name: GetCheckInsByHabit :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE habit_id = $1 AND user_id = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: GetCheckInsByUser :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: GetCheckInHistory :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
@@ -53,7 +67,7 @@ ORDER BY created_at DESC
 LIMIT $4 OFFSET $5;
 
 -- name: GetCheckInsForWeek :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND created_at >= sqlc.arg(week_start)
@@ -70,7 +84,7 @@ SELECT EXISTS(
 
 -- name: GetCheckInsByUserKeyset :many
 -- Keyset pagination: more efficient than OFFSET for deep pages.
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)

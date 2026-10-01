@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/prompts"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/ai-coach-consumer/internal/repository/db"
 )
@@ -81,9 +82,9 @@ type fakeRepo struct {
 	feedback        []db.InsertAIFeedbackParams
 	style           string
 	styleErr        error
-	checkIns        []db.CheckIn
+	checkIns        []db.CoachCheckIn
 	checkInsErr     error
-	dateCheckIns    []db.CheckInWithHabit
+	dateCheckIns    []db.CoachCheckIn
 	dateCheckInsErr error
 	insertErr       error
 	markErr         error
@@ -106,13 +107,13 @@ func (r *fakeRepo) InsertAIFeedback(_ context.Context, arg db.InsertAIFeedbackPa
 	return nil
 }
 
-func (r *fakeRepo) GetCheckInsForWeek(_ context.Context, _ uuid.UUID, _, _ interface{}) ([]db.CheckIn, error) {
+func (r *fakeRepo) GetCheckInsForWeek(_ context.Context, _ uuid.UUID, _, _ interface{}) ([]db.CoachCheckIn, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.checkIns, r.checkInsErr
 }
 
-func (r *fakeRepo) GetCheckInsForDate(_ context.Context, _ uuid.UUID, _ string) ([]db.CheckInWithHabit, error) {
+func (r *fakeRepo) GetCheckInsForDate(_ context.Context, _ uuid.UUID, _ string) ([]db.CoachCheckIn, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	return r.dateCheckIns, r.dateCheckInsErr
@@ -147,7 +148,7 @@ func (r *fakeRepo) WithTx(_ pgx.Tx) *fakeRepo {
 func TestEventsHandler_InvalidEnvelope(t *testing.T) {
 	dlq := &fakeDLQPusher{}
 	opts := &EventsHandlerOptions{DLQPub: dlq}
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, opts)
 	err := h.Consume(context.Background(), "", "not-json")
 	require.NoError(t, err)
 	msgs := dlq.messages()
@@ -158,7 +159,7 @@ func TestEventsHandler_InvalidEnvelope(t *testing.T) {
 func TestEventsHandler_InvalidEventID(t *testing.T) {
 	dlq := &fakeDLQPusher{}
 	opts := &EventsHandlerOptions{DLQPub: dlq}
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, opts)
 	env := events.Envelope{EventID: "not-a-uuid", EventType: string(events.TypeCheckInCreated), Version: 1, Payload: []byte(`{}`)}
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
@@ -171,7 +172,7 @@ func TestEventsHandler_InvalidEventID(t *testing.T) {
 func TestEventsHandler_UnknownEventType(t *testing.T) {
 	dlq := &fakeDLQPusher{}
 	opts := &EventsHandlerOptions{DLQPub: dlq}
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, opts)
 	env, _ := events.NewEnvelope("unknown_type", struct{}{})
 	raw, _ := json.Marshal(env)
 	err := h.Consume(context.Background(), "", string(raw))
@@ -185,7 +186,7 @@ func TestEventsHandler_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, nil)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil)
 	err := h.Consume(ctx, "", "anything")
 	assert.ErrorIs(t, err, context.Canceled)
 }
@@ -195,7 +196,7 @@ func TestEventsHandler_ConcurrencyLimit(t *testing.T) {
 	// Use the real handler with a nil repo and trigger an error path
 	// that exercises the semaphore path.
 	opts := &EventsHandlerOptions{DLQPub: dlq, Concurrency: 1}
-	h := NewEventsHandler(&repository.Repository{}, nil, nil, nil, opts)
+	h := NewEventsHandler(&repository.Repository{}, nil, nil, opts)
 
 	// Two rapid invalid messages — first should acquire semaphore, second should too.
 	_ = h.Consume(context.Background(), "", "bad")
@@ -211,7 +212,7 @@ func TestEventsHandler_ConcurrencyLimit(t *testing.T) {
 type testHandler struct {
 	repo *fakeRepo
 	ai   AIClient
-	pub  Publisher
+	pub  *fakePublisher
 }
 
 func (h *testHandler) Consume(ctx context.Context, _ string, raw string) error {
@@ -289,10 +290,10 @@ func TestCoachDigest_HappyPath(t *testing.T) {
 	h := &testHandler{repo: repo, ai: &fakeAI{content: "Great day!", modelID: "test-model"}, pub: pub}
 
 	userID := uuid.New()
-	repo.dateCheckIns = []db.CheckInWithHabit{
-		{ID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
-		{ID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Exercise", Status: "completed"},
-		{ID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Reading", Status: "missed"},
+	repo.dateCheckIns = []db.CoachCheckIn{
+		{CheckInID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
+		{CheckInID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Exercise", Status: "completed"},
+		{CheckInID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Reading", Status: "missed"},
 	}
 
 	env, err := events.NewEnvelope(events.TypeCoachDigestRequested, events.CoachDigestRequested{
@@ -329,8 +330,8 @@ func TestCoachDigest_DuplicateSkipped(t *testing.T) {
 	h := &testHandler{repo: repo, ai: &fakeAI{content: "Great day!", modelID: "test-model"}, pub: pub}
 
 	userID := uuid.New()
-	repo.dateCheckIns = []db.CheckInWithHabit{
-		{ID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
+	repo.dateCheckIns = []db.CoachCheckIn{
+		{CheckInID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
 	}
 
 	env, _ := events.NewEnvelope(events.TypeCoachDigestRequested, events.CoachDigestRequested{
@@ -378,6 +379,27 @@ func TestEventsHandler_TransientError_Retry(t *testing.T) {
 	assert.True(t, IsTransientError(repo.insertErr))
 }
 
+// A1: every user-authored check-in field must reach the classifier input.
+func TestDigestFreeText(t *testing.T) {
+	checkIns := []prompts.DigestCheckIn{
+		{
+			HabitName: "  Meditate ",
+			Status:    "missed",
+			Mood:      "low",
+			Energy:    "drained",
+			Blocker:   "no time",
+			Note:      "felt defeated",
+		},
+		{HabitName: "Read", Status: "completed"},
+	}
+	got := digestFreeText(checkIns)
+	want := "Meditate\nmissed\nlow\ndrained\nno time\nfelt defeated\nRead\ncompleted"
+	assert.Equal(t, want, got)
+
+	assert.Empty(t, digestFreeText(nil))
+	assert.Empty(t, digestFreeText([]prompts.DigestCheckIn{{Note: "   "}}))
+}
+
 func TestIsTransientError(t *testing.T) {
 	assert.False(t, IsTransientError(nil))
 	assert.True(t, IsTransientError(context.Canceled))
@@ -391,8 +413,8 @@ func TestEventsHandler_AITimeout(t *testing.T) {
 	slowAI := &fakeAI{err: context.DeadlineExceeded}
 	repo := newFakeRepo()
 	userID := uuid.New()
-	repo.dateCheckIns = []db.CheckInWithHabit{
-		{ID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
+	repo.dateCheckIns = []db.CoachCheckIn{
+		{CheckInID: uuid.New(), UserID: userID, HabitID: uuid.New(), HabitName: "Meditation", Status: "completed"},
 	}
 	h := &testHandler{repo: repo, ai: slowAI, pub: &fakePublisher{}}
 

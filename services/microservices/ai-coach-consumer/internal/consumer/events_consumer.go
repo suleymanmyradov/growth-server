@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sync"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,11 +30,6 @@ type SafetyClassifier interface {
 	Classify(ctx context.Context, text string) (safety.Verdict, error)
 }
 
-// Publisher publishes event envelopes.
-type Publisher interface {
-	Publish(ctx context.Context, env events.Envelope) error
-}
-
 // DLQPusher pushes messages to the dead-letter topic.
 type DLQPusher interface {
 	Publish(ctx context.Context, msg events.DLQMessage) error
@@ -46,18 +41,18 @@ type TxRunner interface {
 }
 
 // EventsHandler consumes domain events from the growth.events topic and
-// generates AI coaching feedback for check-in events.
+// generates AI coaching feedback for check-in events. Outbound events are
+// written to ai_coach_event_outbox inside the digest transaction — the svc
+// layer runs an outbox relay that drains them to the broker.
 type EventsHandler struct {
 	repo        *repository.Repository
 	txRunner    TxRunner
 	ai          AIClient
-	pub         Publisher
 	dlqPub      DLQPusher
 	classifier  SafetyClassifier
 	sem         chan struct{}
 	aiTimeout   time.Duration
 	serviceName string
-	safetyCache sync.Map // habitName -> safety.Verdict
 }
 
 // EventsHandlerOptions carries optional configuration for the handler.
@@ -70,11 +65,10 @@ type EventsHandlerOptions struct {
 }
 
 // NewEventsHandler creates a handler with the given dependencies.
-func NewEventsHandler(repo *repository.Repository, aiClient AIClient, pub Publisher, classifier SafetyClassifier, opts *EventsHandlerOptions) *EventsHandler {
+func NewEventsHandler(repo *repository.Repository, aiClient AIClient, classifier SafetyClassifier, opts *EventsHandlerOptions) *EventsHandler {
 	h := &EventsHandler{
 		repo:        repo,
 		ai:          aiClient,
-		pub:         pub,
 		classifier:  classifier,
 		aiTimeout:   30 * time.Second,
 		serviceName: "ai-coach-consumer",
@@ -177,17 +171,33 @@ func (h *EventsHandler) Consume(ctx context.Context, _ string, raw string) error
 		return nil
 	}
 
-	// CheckInCreated events are no longer used for per-check-in AI feedback.
-	// The daily coach digest (triggered by CoachDigestRequested) replaces the
-	// old per-check-in feedback that spammed users with N notifications for N
-	// habits. We still consume these events and mark them processed so the
-	// idempotency table stays consistent, but no AI call is made.
+	// CheckInCreated events feed the ai_coach_check_ins read model so the
+	// digest prompt never reads the client-owned check_ins table (P2). The
+	// daily coach digest (triggered by CoachDigestRequested) builds on those
+	// mirrored rows; no AI call is made here.
 	if events.EventType(env.EventType) == events.TypeCheckInCreated {
-		logx.WithContext(ctx).Infof("check-in event received (no per-check-in feedback): eventID=%s", env.EventID)
-		eventsConsumedTotal.WithLabelValues(env.EventType, "ignored").Inc()
-		if err := h.repo.MarkProcessed(ctx, eventID); err != nil {
-			logx.WithContext(ctx).Errorf("mark processed: %v", err)
+		logx.WithContext(ctx).Infof("processing check_in_created event (read-model sync): eventID=%s", env.EventID)
+		eventsConsumedTotal.WithLabelValues(env.EventType, "processing").Inc()
+		if err := h.onCheckInCreated(ctx, env, eventID); err != nil {
+			logx.WithContext(ctx).Errorf("error syncing check-in read model: eventID=%s err=%v", env.EventID, err)
+			eventsConsumedTotal.WithLabelValues(env.EventType, "retry").Inc()
+			return err
 		}
+		eventsConsumedTotal.WithLabelValues(env.EventType, "success").Inc()
+		return nil
+	}
+
+	// CoachingProfileChanged events feed the ai_coach_profiles read model
+	// (accountability style) used by the digest prompt.
+	if events.EventType(env.EventType) == events.TypeCoachingProfileChanged {
+		logx.WithContext(ctx).Infof("processing coaching_profile_changed event: eventID=%s", env.EventID)
+		eventsConsumedTotal.WithLabelValues(env.EventType, "processing").Inc()
+		if err := h.onCoachingProfileChanged(ctx, env, eventID); err != nil {
+			logx.WithContext(ctx).Errorf("error syncing coaching profile read model: eventID=%s err=%v", env.EventID, err)
+			eventsConsumedTotal.WithLabelValues(env.EventType, "retry").Inc()
+			return err
+		}
+		eventsConsumedTotal.WithLabelValues(env.EventType, "success").Inc()
 		return nil
 	}
 
@@ -303,25 +313,27 @@ func (h *EventsHandler) onCoachDigestRequested(ctx context.Context, env events.E
 	// Compute recent 7-day pattern across all habits.
 	recentPattern := h.buildDigestRecentPattern(ctx, userID)
 
-	// Safety check on habit names before sending to the model.
+	// Safety check on all user-authored free text before it reaches the
+	// model. Habit names, blockers, notes, and mood/energy strings are all
+	// user-controlled; a single joined classify covers every field in one
+	// call. Previously only habit names were screened — crisis, self-harm,
+	// and medical content in blocker/note fields reached the prompt verbatim.
 	if h.classifier != nil {
-		for _, dci := range digestCheckIns {
-			verdict, ok := h.safetyCache.Load(dci.HabitName)
-			if !ok {
-				v, err := h.classifier.Classify(ctx, dci.HabitName)
-				if err != nil {
-					logx.WithContext(ctx).Errorf("safety classification error, will retry: user=%s habit=%s err=%v", p.UserID, dci.HabitName, err)
-					return fmt.Errorf("safety classification: %w", err)
-				}
-				h.safetyCache.Store(dci.HabitName, v)
-				verdict = v
+		if freeText := digestFreeText(digestCheckIns); freeText != "" {
+			verdict, err := safety.ClassifyWithRetry(ctx, h.classifier, freeText)
+			if err != nil {
+				logx.WithContext(ctx).Errorf("safety classification error, will retry: user=%s err=%v", p.UserID, err)
+				return fmt.Errorf("safety classification: %w", err)
 			}
-			v := verdict.(safety.Verdict)
-			if v.Category != safety.CategorySafe {
-				logx.WithContext(ctx).Infof("safety block on habit name: user=%s habit=%s category=%s", p.UserID, dci.HabitName, v.Category)
+			if _, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold); blocked {
+				// Reason deliberately not logged — may quote sensitive content.
+				logx.WithContext(ctx).Infof("safety block on digest input: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
 				aiSafetyBlockedTotal.Inc()
 				_ = h.repo.MarkProcessed(ctx, eventID)
 				return nil
+			}
+			if verdict.Category != safety.CategorySafe {
+				logx.WithContext(ctx).Infof("safety flag below threshold on digest input, proceeding: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
 			}
 		}
 	}
@@ -376,8 +388,26 @@ func (h *EventsHandler) onCoachDigestRequested(ctx context.Context, env events.E
 	content := resp.Message.Content
 	feedbackID := uuid.New()
 
-	// Persist digest feedback (check_in_id and habit_id are NULL for digests)
-	// and mark event processed atomically.
+	// The feedback event the notifications service turns into the digest
+	// notification. It goes into ai_coach_event_outbox — inside the same
+	// transaction as the ai_feedback row + processed marker — so it can't be
+	// lost between commit and publish (P1). The relay drains it to the broker.
+	feedbackEnv, err := events.NewEnvelope(events.TypeCheckInFeedbackGenerated, events.CheckInFeedbackGenerated{
+		UserID:    p.UserID,
+		CheckInID: "", // digest covers multiple check-ins
+		HabitID:   "",
+		Content:   content,
+	})
+	if err != nil {
+		return fmt.Errorf("build feedback envelope: %w", err)
+	}
+	feedbackEventID, fErr := uuid.Parse(feedbackEnv.EventID)
+	if fErr != nil {
+		return fmt.Errorf("feedback event ID: %w", fErr)
+	}
+
+	// Persist digest feedback (check_in_id and habit_id are NULL for digests),
+	// the pending event publication, and the processed marker atomically.
 	if h.txRunner != nil {
 		err = h.txRunner.Run(ctx, p.UserID, func(tx pgx.Tx) error {
 			txRepo := h.repo.WithTx(tx)
@@ -390,6 +420,9 @@ func (h *EventsHandler) onCoachDigestRequested(ctx context.Context, env events.E
 				Model:     resp.ModelID,
 			}); err != nil {
 				return fmt.Errorf("insert ai_feedback: %w", err)
+			}
+			if err := txRepo.EnqueueEvent(ctx, feedbackEventID, feedbackEnv.EventType, feedbackEnv.Payload, feedbackEnv.OccurredAt); err != nil {
+				return fmt.Errorf("enqueue feedback event: %w", err)
 			}
 			if err := txRepo.MarkProcessed(ctx, eventID); err != nil {
 				return fmt.Errorf("mark processed: %w", err)
@@ -412,6 +445,10 @@ func (h *EventsHandler) onCoachDigestRequested(ctx context.Context, env events.E
 			logx.WithContext(ctx).Errorf("insert ai_feedback failed: user=%s eventID=%s err=%v", p.UserID, env.EventID, err)
 			return fmt.Errorf("insert ai_feedback: %w", err)
 		}
+		if err := h.repo.EnqueueEvent(ctx, feedbackEventID, feedbackEnv.EventType, feedbackEnv.Payload, feedbackEnv.OccurredAt); err != nil {
+			logx.WithContext(ctx).Errorf("enqueue feedback event failed: user=%s eventID=%s err=%v", p.UserID, env.EventID, err)
+			return fmt.Errorf("enqueue feedback event: %w", err)
+		}
 		if err := h.repo.MarkProcessed(ctx, eventID); err != nil {
 			logx.WithContext(ctx).Errorf("mark processed failed: user=%s eventID=%s err=%v", p.UserID, env.EventID, err)
 			return fmt.Errorf("mark processed: %w", err)
@@ -420,26 +457,109 @@ func (h *EventsHandler) onCoachDigestRequested(ctx context.Context, env events.E
 
 	logx.WithContext(ctx).Infof("digest persisted: user=%s date=%s feedbackID=%s", p.UserID, p.Date, feedbackID)
 
-	// Publish feedback generated event so the notifications service creates
-	// one notification. CheckInID and HabitID are empty for digests.
-	if h.pub != nil {
-		feedbackEnv, err := events.NewEnvelope(events.TypeCheckInFeedbackGenerated, events.CheckInFeedbackGenerated{
-			UserID:    p.UserID,
-			CheckInID: "", // digest covers multiple check-ins
-			HabitID:   "",
-			Content:   content,
-		})
-		if err != nil {
-			logx.WithContext(ctx).Errorf("build feedback envelope: user=%s err=%v", p.UserID, err)
-		} else if err := h.pub.Publish(ctx, feedbackEnv); err != nil {
-			logx.WithContext(ctx).Errorf("publish feedback event: user=%s err=%v", p.UserID, err)
-		} else {
-			logx.WithContext(ctx).Infof("published digest feedback event: user=%s date=%s", p.UserID, p.Date)
-		}
-	}
-
 	logx.WithContext(ctx).Infof("generated daily digest for user %s date %s", p.UserID, p.Date)
 	return nil
+}
+
+// onCheckInCreated mirrors a check_in_created event into the consumer-owned
+// ai_coach_check_ins read model (P2). Upserts are keyed on check_in_id so
+// re-check-ins (missed → completed) keep the row truthful. The row +
+// processed_events marker commit atomically when a txRunner is available.
+func (h *EventsHandler) onCheckInCreated(ctx context.Context, env events.Envelope, eventID uuid.UUID) error {
+	var p events.CheckInCreated
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		logx.WithContext(ctx).Errorf("unmarshal CheckInCreated: eventID=%s err=%v", env.EventID, err)
+		// Permanent — can't parse; mark processed so it doesn't retry forever.
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil {
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+	checkInID, err := uuid.Parse(p.CheckInID)
+	if err != nil {
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+	habitID, err := uuid.Parse(p.HabitID)
+	if err != nil {
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+
+	localDate := p.LocalDate
+	if localDate == "" {
+		// Older publishers may omit local_date; fall back to the event date
+		// (UTC). Newer publishers always send it.
+		localDate = env.OccurredAt.Format("2006-01-02")
+	}
+
+	arg := db.UpsertCoachCheckInParams{
+		CheckInID:  checkInID,
+		UserID:     userID,
+		HabitID:    habitID,
+		HabitName:  p.HabitName,
+		Status:     p.Status,
+		Mood:       strPtrOrNil(p.Mood),
+		Energy:     strPtrOrNil(p.Energy),
+		Blocker:    strPtrOrNil(p.Blocker),
+		Note:       strPtrOrNil(p.Note),
+		LocalDate:  localDate,
+		OccurredAt: env.OccurredAt,
+	}
+
+	if h.txRunner != nil {
+		err = h.txRunner.Run(ctx, p.UserID, func(tx pgx.Tx) error {
+			txRepo := h.repo.WithTx(tx)
+			if err := txRepo.UpsertCoachCheckIn(ctx, arg); err != nil {
+				return err
+			}
+			return txRepo.MarkProcessed(ctx, eventID)
+		})
+		return err
+	}
+	if err := h.repo.UpsertCoachCheckIn(ctx, arg); err != nil {
+		return err
+	}
+	return h.repo.MarkProcessed(ctx, eventID)
+}
+
+// onCoachingProfileChanged mirrors the accountability style into
+// ai_coach_profiles so the digest prompt can read it without touching the
+// client-owned coaching_profiles table.
+func (h *EventsHandler) onCoachingProfileChanged(ctx context.Context, env events.Envelope, eventID uuid.UUID) error {
+	var p events.CoachingProfileChanged
+	if err := json.Unmarshal(env.Payload, &p); err != nil {
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+	userID, err := uuid.Parse(p.UserID)
+	if err != nil || p.AccountabilityStyle == "" {
+		_ = h.repo.MarkProcessed(ctx, eventID)
+		return nil
+	}
+	if h.txRunner != nil {
+		return h.txRunner.Run(ctx, p.UserID, func(tx pgx.Tx) error {
+			txRepo := h.repo.WithTx(tx)
+			if err := txRepo.UpsertCoachProfile(ctx, userID, p.AccountabilityStyle); err != nil {
+				return err
+			}
+			return txRepo.MarkProcessed(ctx, eventID)
+		})
+	}
+	if err := h.repo.UpsertCoachProfile(ctx, userID, p.AccountabilityStyle); err != nil {
+		return err
+	}
+	return h.repo.MarkProcessed(ctx, eventID)
+}
+
+func strPtrOrNil(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
 }
 
 // buildDigestRecentPattern computes a 7-day pattern across ALL habits (not
@@ -468,6 +588,21 @@ func (h *EventsHandler) buildDigestRecentPattern(ctx context.Context, userID uui
 	return fmt.Sprintf("completed %d of last %d check-ins across all habits", completed, len(checkIns))
 }
 
+// digestFreeText joins every user-authored free-text field that gets
+// interpolated into the digest prompt so they can be screened together in a
+// single classifier call.
+func digestFreeText(checkIns []prompts.DigestCheckIn) string {
+	var parts []string
+	for _, c := range checkIns {
+		for _, s := range []string{c.HabitName, c.Status, c.Mood, c.Energy, c.Blocker, c.Note} {
+			if t := strings.TrimSpace(s); t != "" {
+				parts = append(parts, t)
+			}
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
 func (h *EventsHandler) sendToDLQ(ctx context.Context, env events.Envelope, raw, reason string, permanent bool) {
 	if h.dlqPub == nil {
 		logx.WithContext(ctx).Infof("no DLQ publisher configured, dropping message: eventID=%s reason=%s", env.EventID, reason)
@@ -489,7 +624,9 @@ func (h *EventsHandler) sendToDLQ(ctx context.Context, env events.Envelope, raw,
 	}
 }
 
-// onUserDeleted cleans up ai_feedback rows for a deleted user.
+// onUserDeleted cleans up this service's own tables for a deleted user:
+// ai_feedback plus the ai_coach_* read models. Conversation tables are owned
+// by the ai-coach service, which runs its own user_deleted cleanup (P2).
 func (h *EventsHandler) onUserDeleted(ctx context.Context, env events.Envelope) error {
 	var p events.UserDeleted
 	if err := json.Unmarshal(env.Payload, &p); err != nil {
@@ -503,16 +640,15 @@ func (h *EventsHandler) onUserDeleted(ctx context.Context, env events.Envelope) 
 		return nil
 	}
 
-	logx.WithContext(ctx).Infof("cleaning up ai_feedback and conversations for user %s", userID)
+	logx.WithContext(ctx).Infof("cleaning up ai_feedback and read models for user %s", userID)
 	if err := h.repo.DeleteAIFeedbackByUser(ctx, userID); err != nil {
 		return fmt.Errorf("delete ai_feedback: %w", err)
 	}
-	// Delete messages first (FK to conversations), then conversations.
-	if err := h.repo.DeleteConversationMessagesByUser(ctx, userID); err != nil {
-		return fmt.Errorf("delete conversation_messages: %w", err)
+	if err := h.repo.DeleteCoachCheckInsByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete ai_coach_check_ins: %w", err)
 	}
-	if err := h.repo.DeleteConversationsByUser(ctx, userID); err != nil {
-		return fmt.Errorf("delete conversations: %w", err)
+	if err := h.repo.DeleteCoachProfileByUser(ctx, userID); err != nil {
+		return fmt.Errorf("delete ai_coach_profiles: %w", err)
 	}
 	return nil
 }

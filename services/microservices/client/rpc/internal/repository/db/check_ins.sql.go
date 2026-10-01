@@ -59,7 +59,7 @@ const createCheckIn = `-- name: CreateCheckIn :one
 INSERT INTO check_ins (user_id, habit_id, status, mood, energy, blocker, note, local_date)
 VALUES ($1, $2, $3, $4, $5, $6, $7,
         (NOW() AT TIME ZONE $8::text)::date)
-RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 `
 
 type CreateCheckInParams struct {
@@ -97,6 +97,7 @@ func (q *Queries) CreateCheckIn(ctx context.Context, arg CreateCheckInParams) (C
 		&i.Blocker,
 		&i.Note,
 		&i.CreatedAt,
+		&i.Version,
 	)
 	return i, err
 }
@@ -120,7 +121,7 @@ func (q *Queries) DeleteTodayCheckIn(ctx context.Context, userID uuid.UUID, habi
 }
 
 const getCheckInHistory = `-- name: GetCheckInHistory :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
@@ -163,6 +164,7 @@ func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryPa
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -175,7 +177,7 @@ func (q *Queries) GetCheckInHistory(ctx context.Context, arg GetCheckInHistoryPa
 }
 
 const getCheckInsByHabit = `-- name: GetCheckInsByHabit :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE habit_id = $1 AND user_id = $2
 ORDER BY created_at DESC
@@ -207,6 +209,7 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, use
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -219,7 +222,7 @@ func (q *Queries) GetCheckInsByHabit(ctx context.Context, habitID uuid.UUID, use
 }
 
 const getCheckInsByUser = `-- name: GetCheckInsByUser :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -246,6 +249,7 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -258,7 +262,7 @@ func (q *Queries) GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit
 }
 
 const getCheckInsByUserKeyset = `-- name: GetCheckInsByUserKeyset :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)
@@ -287,6 +291,7 @@ func (q *Queries) GetCheckInsByUserKeyset(ctx context.Context, userID uuid.UUID,
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -299,7 +304,7 @@ func (q *Queries) GetCheckInsByUserKeyset(ctx context.Context, userID uuid.UUID,
 }
 
 const getCheckInsForWeek = `-- name: GetCheckInsForWeek :many
-SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 FROM check_ins
 WHERE user_id = $1
   AND created_at >= $2
@@ -327,6 +332,7 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, week
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -338,8 +344,38 @@ func (q *Queries) GetCheckInsForWeek(ctx context.Context, userID uuid.UUID, week
 	return items, nil
 }
 
+const getTodayCheckInByHabit = `-- name: GetTodayCheckInByHabit :one
+SELECT id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
+FROM check_ins
+WHERE habit_id = $1
+  AND local_date = (NOW() AT TIME ZONE $2::text)::date
+`
+
+// Fetch the check-in for a habit on "today" in the caller's timezone, using
+// the same date math as UpsertCheckIn. Used for idempotency: comparing the
+// incoming request against the stored row lets the logic skip side effects
+// (activity rows, events) when nothing changed.
+func (q *Queries) GetTodayCheckInByHabit(ctx context.Context, habitID uuid.UUID, timezone string) (CheckIn, error) {
+	row := q.db.QueryRow(ctx, getTodayCheckInByHabit, habitID, timezone)
+	var i CheckIn
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.HabitID,
+		&i.LocalDate,
+		&i.Status,
+		&i.Mood,
+		&i.Energy,
+		&i.Blocker,
+		&i.Note,
+		&i.CreatedAt,
+		&i.Version,
+	)
+	return i, err
+}
+
 const getTodayCheckIns = `-- name: GetTodayCheckIns :many
-SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at
+SELECT ci.id, ci.user_id, ci.habit_id, ci.local_date, ci.status, ci.mood, ci.energy, ci.blocker, ci.note, ci.created_at, ci.version
 FROM check_ins ci
 WHERE ci.user_id = $1
   AND ci.local_date = (NOW() AT TIME ZONE $2::text)::date
@@ -366,6 +402,7 @@ func (q *Queries) GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezo
 			&i.Blocker,
 			&i.Note,
 			&i.CreatedAt,
+			&i.Version,
 		); err != nil {
 			return nil, err
 		}
@@ -402,8 +439,9 @@ ON CONFLICT (habit_id, local_date) DO UPDATE SET
     mood    = EXCLUDED.mood,
     energy  = EXCLUDED.energy,
     blocker = EXCLUDED.blocker,
-    note    = EXCLUDED.note
-RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at
+    note    = EXCLUDED.note,
+    version = check_ins.version + 1
+RETURNING id, user_id, habit_id, local_date, status, mood, energy, blocker, note, created_at, version
 `
 
 type UpsertCheckInParams struct {
@@ -421,6 +459,9 @@ type UpsertCheckInParams struct {
 // (UNIQUE(habit_id, local_date) conflict). This lets users re-check-in to
 // change status (missed → completed) or add/update mood/energy/blocker/note.
 // created_at is preserved on update (the original check-in timestamp).
+// version increments on every update so the caller can derive a deterministic
+// per-transition event ID for the outbox (idempotent retry = same version =
+// skipped side effects).
 // Timezone is passed by the caller.
 func (q *Queries) UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (CheckIn, error) {
 	row := q.db.QueryRow(ctx, upsertCheckIn,
@@ -445,6 +486,7 @@ func (q *Queries) UpsertCheckIn(ctx context.Context, arg UpsertCheckInParams) (C
 		&i.Blocker,
 		&i.Note,
 		&i.CreatedAt,
+		&i.Version,
 	)
 	return i, err
 }

@@ -109,6 +109,10 @@ func parseNotification(payload string) (Notification, error) {
 // reconciliation loop.
 // ---------------------------------------------------------------------------
 
+// GetArticle fetches an article as a public-catalog doc. Published articles
+// are marked visibility="public"; drafts are marked visibility="internal" so
+// the public /search endpoint (security clause visibility="public") never
+// returns them, while adminway can still reach them via include_internal.
 func (r *Repository) GetArticle(ctx context.Context, id uuid.UUID) (map[string]any, error) {
 	query := `
 		SELECT
@@ -149,6 +153,10 @@ func (r *Repository) GetArticle(ctx context.Context, id uuid.UUID) (map[string]a
 		return nil, err
 	}
 
+	visibility := "internal"
+	if doc.Status == "published" {
+		visibility = "public"
+	}
 	result := map[string]any{
 		"id":            docID("article", doc.ID),
 		"entity_id":     doc.ID.String(),
@@ -164,7 +172,7 @@ func (r *Repository) GetArticle(ctx context.Context, id uuid.UUID) (map[string]a
 		"created_at":    doc.CreatedAt.Unix(),
 		"updated_at":    doc.UpdatedAt.Unix(),
 		"url":           fmt.Sprintf("/article/%s", doc.ID.String()),
-		"visibility":    "public",
+		"visibility":    visibility,
 	}
 	if doc.Excerpt != nil {
 		result["description"] = *doc.Excerpt
@@ -448,7 +456,8 @@ type EntitySpec struct {
 	ListIDs func(ctx context.Context) ([]uuid.UUID, error)
 }
 
-// ListArticleIDs returns all article IDs.
+// ListArticleIDs returns all article IDs. Drafts are indexed too — tagged
+// visibility="internal" so only include_internal callers can see them.
 func (r *Repository) ListArticleIDs(ctx context.Context) ([]uuid.UUID, error) {
 	return r.listIDs(ctx, `SELECT id FROM articles`)
 }

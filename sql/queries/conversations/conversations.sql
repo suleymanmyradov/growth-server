@@ -56,3 +56,10 @@ RETURNING id, user_id, title, type, last_message, created_at, updated_at, archiv
 -- name: DeleteConversation :exec
 DELETE FROM conversations
 WHERE id = $1 AND user_id = $2;
+
+-- name: DeleteConversationsByUser :exec
+-- Wipes all of a user's conversations on user_deleted. conversation_messages
+-- cascade via the FK, and user_facts.source_message_id is SET NULL — facts are
+-- deleted separately by ForgetAllUserFacts.
+DELETE FROM conversations
+WHERE user_id = $1;

@@ -86,18 +86,23 @@ func TestGetCustomerEntitlements_EmptyCustomerID(t *testing.T) {
 func TestParseWebhookPayload_RealShape(t *testing.T) {
 	// The actual RevenueCat webhook sends a SINGLE "event" object with an
 	// api_version field — not an "events" array. Regression test for the
-	// silent-parse bug that dropped every real webhook.
+	// silent-parse bug that dropped every real webhook. Field names match the
+	// documented schema: id, event_timestamp_ms, *_at_ms timestamps.
 	body := []byte(`{
 		"api_version": "1.0",
 		"event": {
 			"type": "INITIAL_PURCHASE",
+			"id": "evt-abc",
+			"event_timestamp_ms": 1753200000000,
 			"store": "APP_STORE",
 			"app_user_id": "0191fa87-6ed1-7022-9999-0123456789ae",
 			"product_id": "com.growth.pro.monthly",
-			"entitlement_id": "pro",
-			"period_start_at": "2025-07-22T00:00:00Z",
-			"expiration_at": "2025-08-22T00:00:00Z",
-			"event_id": "evt-abc"
+			"entitlement_ids": ["pro"],
+			"period_type": "NORMAL",
+			"purchased_at_ms": 1753142400000,
+			"expiration_at_ms": 1755820800000,
+			"transaction_id": "2000000123456789",
+			"original_transaction_id": "2000000123456789"
 		}
 	}`)
 
@@ -109,8 +114,15 @@ func TestParseWebhookPayload_RealShape(t *testing.T) {
 
 	events := payload.AllEvents()
 	require.Len(t, events, 1)
-	assert.Equal(t, "INITIAL_PURCHASE", events[0].Type)
-	assert.Equal(t, "evt-abc", events[0].EventID)
+	e := events[0]
+	assert.Equal(t, "INITIAL_PURCHASE", e.Type)
+	assert.Equal(t, "evt-abc", e.EventID)
+	assert.Equal(t, int64(1753200000000), e.EventTimestampMs)
+	assert.Equal(t, []string{"pro"}, e.EntitlementIDs)
+	assert.False(t, e.OccurredAt().IsZero())
+	assert.False(t, e.PurchasedTime().IsZero())
+	assert.False(t, e.ExpirationTime().IsZero())
+	assert.False(t, e.IsTrial())
 }
 
 func TestParseWebhookPayload(t *testing.T) {
@@ -121,17 +133,17 @@ func TestParseWebhookPayload(t *testing.T) {
 				"store": "APP_STORE",
 				"app_user_id": "0191fa87-6ed1-7022-9999-0123456789ae",
 				"product_id": "com.growth.pro.monthly",
-				"entitlement_id": "pro",
-				"period_start_at": "2025-07-22T00:00:00Z",
-				"expiration_at": "2025-08-22T00:00:00Z"
+				"entitlement_ids": ["pro"],
+				"purchased_at_ms": 1753142400000,
+				"expiration_at_ms": 1755820800000
 			},
 			{
 				"type": "EXPIRATION",
 				"store": "PLAY_STORE",
 				"app_user_id": "0191fa87-6ed1-7022-9999-0123456789ae",
 				"product_id": "com.growth.pro.annual",
-				"entitlement_id": "pro",
-				"expiration_at": "2025-07-20T00:00:00Z"
+				"entitlement_ids": ["pro"],
+				"expiration_at_ms": 1752969600000
 			}
 		]
 	}`)
@@ -141,7 +153,7 @@ func TestParseWebhookPayload(t *testing.T) {
 	require.Len(t, payload.Events, 2)
 	assert.Equal(t, "INITIAL_PURCHASE", payload.Events[0].Type)
 	assert.Equal(t, "APP_STORE", payload.Events[0].Store)
-	assert.Equal(t, "pro", payload.Events[0].EntitlementID)
+	assert.Equal(t, []string{"pro"}, payload.Events[0].EntitlementIDs)
 	assert.Equal(t, "EXPIRATION", payload.Events[1].Type)
 }
 
@@ -171,7 +183,7 @@ func TestSubtleEqual(t *testing.T) {
 
 func TestWebhookEvent_Fields(t *testing.T) {
 	// Verify all fields parse correctly from a realistic webhook payload.
-	body := []byte(`{"events":[{"type":"RENEWAL","store":"APP_STORE","app_user_id":"user-1","original_app_user_id":"$RCAnonymousID:abc","product_id":"com.growth.pro.monthly","entitlement_id":"pro","period_start_at":"2025-07-22T00:00:00Z","expiration_at":"2025-08-22T00:00:00Z","event_id":"evt-123"}]}`)
+	body := []byte(`{"events":[{"type":"RENEWAL","id":"evt-123","store":"APP_STORE","app_user_id":"user-1","original_app_user_id":"$RCAnonymousID:abc","aliases":["user-1","$RCAnonymousID:abc"],"product_id":"com.growth.pro.monthly","entitlement_ids":["pro"],"period_type":"NORMAL","purchased_at_ms":1753142400000,"expiration_at_ms":1755820800000,"is_trial_conversion":true,"event_timestamp_ms":1753200000000}]}`)
 	payload, err := ParseWebhookPayload(body)
 	require.NoError(t, err)
 	require.Len(t, payload.Events, 1)
@@ -179,6 +191,17 @@ func TestWebhookEvent_Fields(t *testing.T) {
 	assert.Equal(t, "RENEWAL", e.Type)
 	assert.Equal(t, "user-1", e.AppUserID)
 	assert.Equal(t, "$RCAnonymousID:abc", e.OriginalAppUserID)
+	assert.Equal(t, []string{"user-1", "$RCAnonymousID:abc"}, e.Aliases)
 	assert.Equal(t, "evt-123", e.EventID)
+	assert.True(t, e.IsTrialConversion)
 	assert.True(t, strings.HasPrefix(e.ProductID, "com.growth"))
+}
+
+func TestWebhookEvent_TrialAndGraceFields(t *testing.T) {
+	body := []byte(`{"event":{"type":"BILLING_ISSUE","app_user_id":"user-1","period_type":"TRIAL","expiration_at_ms":1755820800000,"grace_period_expiration_at_ms":1756000000000}}`)
+	payload, err := ParseWebhookPayload(body)
+	require.NoError(t, err)
+	e := payload.AllEvents()[0]
+	assert.True(t, e.IsTrial())
+	assert.False(t, e.GracePeriodExpiration().IsZero())
 }

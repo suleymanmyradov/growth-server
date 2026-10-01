@@ -12,8 +12,10 @@ import (
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/notifications"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
+	"github.com/suleymanmyradov/growth-server/pkg/validator"
 	internalnotification "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/notification"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/scheduler"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -201,35 +203,52 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, repo *repository.R
 
 	now := h.clock.Now()
 
+	// Fetch the local read model once — it carries the user's timezone.
+	var rs db.ReminderState
+	haveState := false
+	if repo.ReminderState != nil {
+		if got, stateErr := repo.ReminderState.Get(ctx, userID); stateErr != nil {
+			logx.WithContext(ctx).Errorf("get reminder state: %v", stateErr)
+		} else {
+			rs = got
+			haveState = true
+		}
+	}
+	tz := "UTC"
+	if rs.Timezone != "" {
+		tz = rs.Timezone
+	}
+
+	// The check-in's local date is authoritative (the event carries the exact
+	// check_ins.local_date). Legacy events lack it — derive from the event
+	// timestamp in the user's timezone instead.
+	localDate := checkInLocalDate(p.LocalDate, env.OccurredAt, now, tz)
+
 	// Bump today's check-in count in the local read model.
 	if repo.ReminderState != nil {
-		if err := repo.ReminderState.BumpCheckInCountToday(ctx, userID); err != nil {
+		if err := repo.ReminderState.BumpCheckInCountToday(ctx, userID, localDate); err != nil {
 			logx.WithContext(ctx).Errorf("bump check-in count: %v", err)
 		}
 	}
 
-	// Look up user timezone for correct date comparison.
-	if repo.ReminderState != nil {
-		rs, err := repo.ReminderState.Get(ctx, userID)
-		if err != nil {
-			logx.WithContext(ctx).Errorf("get reminder state for cancel: %v", err)
-		} else {
-			// Cancel today's missed_check_in reminder since user just checked in.
-			if err := repo.Reminders.CancelPendingForDate(ctx, userID, "missed_check_in", now, rs.Timezone); err != nil {
-				logx.WithContext(ctx).Errorf("cancel missed_check_in: %v", err)
-			}
-			// Schedule today's coach_digest at check_in_time + 2h so the
-			// coach reviews all of the day's check-ins in one message
-			// instead of sending one notification per check-in. The
-			// Enqueue call is idempotent per (user, type, date) via the
-			// uniq_reminders_pending_per_day index, so multiple check-ins
-			// on the same day only produce one digest reminder.
-			digestAt, dErr := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
-			if dErr != nil {
-				logx.WithContext(ctx).Errorf("compute coach_digest time: %v", dErr)
-			} else if _, dErr := repo.Reminders.Enqueue(ctx, userID, "coach_digest", digestAt, nil); dErr != nil {
-				logx.WithContext(ctx).Errorf("enqueue coach_digest: %v", dErr)
-			}
+	if haveState {
+		// Cancel today's missed_check_in reminder since user just checked in.
+		// The day must be in the user's timezone — passing the raw UTC clock
+		// compares the UTC date against user-local reminder dates.
+		if err := repo.Reminders.CancelPendingForDate(ctx, userID, "missed_check_in", now.In(timezoneOrUTC(tz)), tz); err != nil {
+			logx.WithContext(ctx).Errorf("cancel missed_check_in: %v", err)
+		}
+		// Schedule today's coach_digest at check_in_time + 2h so the
+		// coach reviews all of the day's check-ins in one message
+		// instead of sending one notification per check-in. The
+		// Enqueue call is idempotent per (user, type, date) via the
+		// uniq_reminders_pending_per_day index, so multiple check-ins
+		// on the same day only produce one digest reminder.
+		digestAt, dErr := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
+		if dErr != nil {
+			logx.WithContext(ctx).Errorf("compute coach_digest time: %v", dErr)
+		} else if _, dErr := repo.Reminders.Enqueue(ctx, userID, "coach_digest", digestAt, nil); dErr != nil {
+			logx.WithContext(ctx).Errorf("enqueue coach_digest: %v", dErr)
 		}
 	}
 
@@ -238,17 +257,6 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, repo *repository.R
 		if parseErr != nil {
 			logx.WithContext(ctx).Errorf("invalid habitID %q: %v", p.HabitID, parseErr)
 		} else {
-			tz := "UTC"
-			if repo.ReminderState != nil {
-				if rs, stateErr := repo.ReminderState.Get(ctx, userID); stateErr == nil && rs.Timezone != "" {
-					tz = rs.Timezone
-				}
-			}
-			eventTime := env.OccurredAt
-			if eventTime.IsZero() {
-				eventTime = now
-			}
-			localDate := eventTime.In(timezoneOrUTC(tz))
 			if _, stateErr := repo.HabitState.UpdateCheckIn(ctx, userID, habitID, p.HabitName, p.Streak, localDate); stateErr != nil {
 				return fmt.Errorf("update notification habit state: %w", stateErr)
 			}
@@ -268,6 +276,25 @@ func (h *EventsHandler) onCheckInCreated(ctx context.Context, repo *repository.R
 	}
 
 	return nil
+}
+
+// checkInLocalDate resolves the user-local calendar date of a check-in event.
+// The event's localDate field is authoritative — it is the exact
+// check_ins.local_date the write committed. Legacy events carry no localDate,
+// so fall back to converting the event timestamp (or now) into the user's
+// timezone. The result is a UTC-midnight time whose y/m/d is the local date,
+// matching how pgtype.Date columns are written elsewhere in this service.
+func checkInLocalDate(localDate string, occurredAt, now time.Time, tz string) time.Time {
+	if localDate != "" {
+		if d, err := time.ParseInLocation("2006-01-02", localDate, time.UTC); err == nil {
+			return d
+		}
+	}
+	eventTime := occurredAt
+	if eventTime.IsZero() {
+		eventTime = now
+	}
+	return eventTime.In(timezoneOrUTC(tz))
 }
 
 func (h *EventsHandler) onUserOnboarded(ctx context.Context, repo *repository.Repository, env events.Envelope) error {
@@ -311,6 +338,14 @@ func (h *EventsHandler) onSettingsChanged(ctx context.Context, repo *repository.
 	// not the client settings event — so we read it from our own preferences
 	// table rather than trusting the event payload.
 	if repo.ReminderState != nil {
+		// Drop an invalid timezone rather than writing it to reminder_state —
+		// it would poison `AT TIME ZONE` in reminder queries. An empty value
+		// means "not provided" and preserves the stored zone.
+		tz := p.Timezone
+		if tz != "" && !validator.IsValidTimezone(tz) {
+			logx.WithContext(ctx).Errorf("settings_changed: dropping invalid timezone %q", tz)
+			tz = ""
+		}
 		// Empty timezone / unparsed check-in time mean "not provided"; the
 		// upsert preserves the stored value for those (see
 		// UpsertReminderStateSettings). Never default to UTC here — that would
@@ -327,7 +362,7 @@ func (h *EventsHandler) onSettingsChanged(ctx context.Context, repo *repository.
 				habitReminders = pref.HabitReminders
 			}
 		}
-		if err := repo.ReminderState.UpsertSettings(ctx, userID, p.Timezone, checkInTime, habitReminders); err != nil {
+		if err := repo.ReminderState.UpsertSettings(ctx, userID, tz, checkInTime, habitReminders); err != nil {
 			logx.WithContext(ctx).Errorf("upsert reminder state settings: %v", err)
 		}
 	}
@@ -382,6 +417,20 @@ func (h *EventsHandler) onHabitCreated(ctx context.Context, repo *repository.Rep
 	if repo.ReminderState != nil {
 		if err := repo.ReminderState.IncrementHabitCount(ctx, userID); err != nil {
 			return fmt.Errorf("increment habit count: %w", err)
+		}
+
+		// (Re)seed the habit_reminder chain. This covers users who skipped
+		// onboarding (no user_onboarded event ever arrived) and users who
+		// deleted all habits then added one again — the fired-reminder
+		// reschedule alone can't revive a chain that was never seeded (P4).
+		// Enqueue is idempotent per (user, type, UTC-day): repeat creations
+		// just refresh scheduled_at.
+		if rs, rsErr := repo.ReminderState.Get(ctx, userID); rsErr == nil && rs.HabitReminders {
+			if next, nerr := scheduler.NextOccurrence(h.clock.Now(), rs.Timezone, rs.CheckInTime); nerr == nil {
+				if _, err := repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
+					logx.WithContext(ctx).Errorf("seed habit_reminder on habit_created: %v", err)
+				}
+			}
 		}
 	}
 	if repo.HabitState != nil {
@@ -686,13 +735,28 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 
 	rs, err := repo.ReminderState.Get(ctx, userID)
 	if err != nil {
+		if err == pgx.ErrNoRows {
+			// No state row yet (user never saved settings / created a habit).
+			// Nothing to schedule from — don't fail the event; later events
+			// (habit_created, check_in_created) seed the state and chains.
+			logx.WithContext(ctx).Infof("scheduleRemindersFromState: no reminder state for user %s, skipping", userID)
+			return nil
+		}
 		return fmt.Errorf("get reminder state: %w", err)
 	}
 
+	// onboarding_completed is intentionally NOT a gate here: users who skipped
+	// setup still get reminders once any state exists (P7 product decision —
+	// "skip setup" must not kill reminders forever). Per-type preferences and
+	// the habit_reminders flag still gate their own chains.
 	now := h.clock.Now()
+	// Cancel comparisons happen on user-local dates (the SQL converts
+	// scheduled_at via the user's timezone), so the day must be passed in the
+	// user's timezone too — a raw UTC timestamp would target the wrong day.
+	localNow := now.In(timezoneOrUTC(rs.Timezone))
 
 	// Cancel existing pending reminders so we can reschedule.
-	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "habit_reminder", now, rs.Timezone); err != nil {
+	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "habit_reminder", localNow, rs.Timezone); err != nil {
 		logx.WithContext(ctx).Errorf("cancel habit_reminder: %v", err)
 	}
 	if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "weekly_review"); err != nil {
@@ -701,12 +765,12 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "streak_warning_scan"); err != nil {
 		logx.WithContext(ctx).Errorf("cancel streak_warning_scan: %v", err)
 	}
-	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "coach_digest", now, rs.Timezone); err != nil {
+	if err := repo.Reminders.CancelPendingForDate(ctx, userID, "coach_digest", localNow, rs.Timezone); err != nil {
 		logx.WithContext(ctx).Errorf("cancel coach_digest: %v", err)
 	}
 
 	// Schedule next habit_reminder at user's check_in_time in their timezone.
-	if rs.HabitReminders && rs.OnboardingCompleted {
+	if rs.HabitReminders {
 		next, err := scheduler.NextOccurrence(now, rs.Timezone, rs.CheckInTime)
 		if err != nil {
 			logx.WithContext(ctx).Errorf("next occurrence: %v", err)
@@ -718,7 +782,7 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	}
 
 	// Schedule next coach_digest at check_in_time + 2h.
-	if rs.OnboardingCompleted {
+	{
 		digestAt, err := scheduler.NextCoachDigest(now, rs.Timezone, rs.CheckInTime)
 		if err != nil {
 			logx.WithContext(ctx).Errorf("next coach_digest: %v", err)
@@ -731,7 +795,7 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	if err != nil {
 		return fmt.Errorf("get notification preferences: %w", err)
 	}
-	if rs.OnboardingCompleted && pref.SundayReview {
+	if pref.SundayReview {
 		nextSun, nextErr := scheduler.NextWeekday(now, rs.Timezone, time.Sunday, 18, 0)
 		if nextErr != nil {
 			return fmt.Errorf("compute weekly review schedule: %w", nextErr)
@@ -740,7 +804,7 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 			return fmt.Errorf("enqueue weekly_review: %w", enqueueErr)
 		}
 	}
-	if rs.OnboardingCompleted && pref.StreakWarnings {
+	if pref.StreakWarnings {
 		nextScan, nextErr := scheduler.NextDailyAt(now, rs.Timezone, 20, 0)
 		if nextErr != nil {
 			return fmt.Errorf("compute streak warning schedule: %w", nextErr)
@@ -753,7 +817,7 @@ func (h *EventsHandler) scheduleRemindersFromState(ctx context.Context, repo *re
 	// Reschedule goal_deadline reminders for active goals with future deadlines.
 	// Goal deadlines are per-goal (not recurring), so we cancel pending ones and
 	// re-enqueue from the local goal_state read model.
-	if rs.OnboardingCompleted && pref.GoalReminders && repo.GoalState != nil {
+	if pref.GoalReminders && repo.GoalState != nil {
 		if _, err := repo.Reminders.CancelPendingByType(ctx, userID, "goal_deadline"); err != nil {
 			logx.WithContext(ctx).Errorf("cancel goal_deadline for reschedule: %v", err)
 		}

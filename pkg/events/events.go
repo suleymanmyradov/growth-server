@@ -49,6 +49,12 @@ const (
 	// The notifications consumer fan-outs the notification to each user id in the
 	// payload by batch-inserting rows into the notifications table.
 	TypeBroadcastNotificationRequested EventType = "broadcast_notification_requested"
+	// TypeCoachingProfileChanged is published by the client service when a
+	// user's coaching profile (coaching_profiles table) is written — onboarding
+	// settings, profile upserts, preference updates. Consumers keep a local
+	// read model (e.g. ai-coach-consumer's ai_coach_profiles) instead of
+	// reading the client-owned table.
+	TypeCoachingProfileChanged EventType = "coaching_profile_changed"
 )
 
 // Envelope wraps every event published to Kafka with stable metadata.
@@ -69,6 +75,20 @@ type CheckInCreated struct {
 	HabitName string `json:"habitName"`
 	Status    string `json:"status"`
 	Streak    int32  `json:"streak"`
+	// LocalDate is the check_in's local_date (YYYY-MM-DD in the owner's
+	// timezone) — the same date the check_ins write computed. Consumers use it
+	// for day-boundary bookkeeping instead of recomputing "today" from the UTC
+	// clock, which would shift for non-UTC users (and when the event is
+	// processed after midnight). Optional: absent on events from older
+	// publishers; consumers fall back to their local-date derivation.
+	LocalDate string `json:"localDate,omitempty"`
+	// User-authored context carried so the ai-coach-consumer can maintain its
+	// own ai_coach_check_ins read model without reading the client-owned
+	// check_ins table (data-ownership rule). All optional.
+	Mood    string `json:"mood,omitempty"`
+	Energy  string `json:"energy,omitempty"`
+	Blocker string `json:"blocker,omitempty"`
+	Note    string `json:"note,omitempty"`
 }
 
 // UserOnboarded is the payload for TypeUserOnboarded events.
@@ -173,6 +193,14 @@ type PlanAdjustmentCreated struct {
 	GoalID         string `json:"goalId,omitempty"`
 	Source         string `json:"source"`
 	AdjustmentType string `json:"adjustmentType"`
+}
+
+// CoachingProfileChanged is the payload for TypeCoachingProfileChanged
+// events. Published after any coaching_profiles write so consumers' read
+// models stay in sync.
+type CoachingProfileChanged struct {
+	UserID              string `json:"userId"`
+	AccountabilityStyle string `json:"accountabilityStyle"`
 }
 
 // UserDeleted is the payload for TypeUserDeleted events.

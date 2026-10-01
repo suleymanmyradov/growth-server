@@ -1,12 +1,34 @@
 package habitslogic
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 )
+
+// pgxTxRunner is satisfied by *postgres.PgxTxRunner; tests inject a no-op
+// runner that calls fn(nil) so repository calls land on the mock svcCtx.Repo.
+type pgxTxRunner interface {
+	Run(ctx context.Context, userID string, fn func(pgx.Tx) error) error
+}
+
+// runInTx runs fn inside svcCtx.RunInTx in production; when override is set
+// (tests only), fn runs directly against svcCtx.Repo without a real
+// transaction — mirroring the billingservice testTxRunner seam.
+func runInTx(svcCtx *svc.ServiceContext, override pgxTxRunner, ctx context.Context, userID string, fn func(*repository.Repository) error) error {
+	if override != nil {
+		return override.Run(ctx, userID, func(pgx.Tx) error {
+			return fn(svcCtx.Repo)
+		})
+	}
+	return svcCtx.RunInTx(ctx, userID, fn)
+}
 
 // habitToProto builds the proto Habit from a DB row. The streak is derived
 // from check_ins history (not stored on the habit), so the caller must pass it
@@ -61,12 +83,12 @@ func bucketHabitHistory(rows []db.ListHabitHistoryRow) map[uuid.UUID][]db.ListHa
 func buildRecentHistory(habitID uuid.UUID, today time.Time, rows []db.ListHabitHistoryRow) []bool {
 	const days = 28
 	out := make([]bool, days)
-	start := midnight(today).AddDate(0, 0, -(days - 1))
+	start := utcMidnight(today).AddDate(0, 0, -(days - 1))
 	for _, r := range rows {
 		if r.HabitID != habitID || !r.LocalDate.Valid {
 			continue
 		}
-		d := midnight(r.LocalDate.Time)
+		d := utcMidnight(r.LocalDate.Time)
 		dayDiff := int(d.Sub(start).Hours() / 24)
 		if dayDiff >= 0 && dayDiff < days {
 			out[dayDiff] = true
@@ -75,9 +97,14 @@ func buildRecentHistory(habitID uuid.UUID, today time.Time, rows []db.ListHabitH
 	return out
 }
 
-// midnight truncates a time to its calendar date at 00:00 in the same location.
-func midnight(t time.Time) time.Time {
-	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
+// utcMidnight normalizes t to 00:00 UTC on the same calendar date. Both sides
+// of the day-diff must share one location for the subtraction to be an exact
+// multiple of 24h: pgtype.Date decodes at UTC midnight while `today` arrives
+// in the user's location — diffing those directly loses the UTC offset and
+// shifts every bucket a day for users west of UTC.
+func utcMidnight(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, time.UTC)
 }
 
 // userToday returns "today" in the user's timezone, falling back to UTC.

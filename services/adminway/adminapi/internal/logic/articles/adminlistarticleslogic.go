@@ -40,6 +40,9 @@ func (l *AdminListArticlesLogic) AdminListArticles(req *types.ListArticlesReques
 			Status: req.Status,
 			Limit:  int32(req.Limit),
 			Offset: int32(offset),
+			// Admin-only surface: admit visibility="internal" docs so drafts
+			// are searchable. User-facing gateways never set this.
+			IncludeInternal: true,
 		})
 		if err != nil {
 			return nil, err

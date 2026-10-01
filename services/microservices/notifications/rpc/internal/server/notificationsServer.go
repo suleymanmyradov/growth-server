@@ -68,6 +68,12 @@ func (s *NotificationsServer) UpdateNotificationPreferences(ctx context.Context,
 	return l.UpdateNotificationPreferences(in)
 }
 
+// RFC 8058 one-click email unsubscribe. Token-authenticated: the only RPC
+func (s *NotificationsServer) UnsubscribeEmail(ctx context.Context, in *notifications.UnsubscribeEmailRequest) (*notifications.EmptyResponse, error) {
+	l := logic.NewUnsubscribeEmailLogic(ctx, s.svcCtx)
+	return l.UnsubscribeEmail(in)
+}
+
 // Push device registration (see docs/push-notifications-design.md).
 func (s *NotificationsServer) RegisterDevice(ctx context.Context, in *notifications.RegisterDeviceRequest) (*notifications.EmptyResponse, error) {
 	l := logic.NewRegisterDeviceLogic(ctx, s.svcCtx)

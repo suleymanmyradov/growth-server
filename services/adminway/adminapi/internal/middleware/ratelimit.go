@@ -20,9 +20,10 @@ func BuildRateLimiters(cfg RateLimitConfig) *RateLimiters {
 }
 
 // RateLimitMiddleware applies the adminway's endpoint classification on top of
-// the shared rate-limit middleware.
+// the shared rate-limit middleware. No adminway endpoint uses the AI bucket,
+// so no token verifier is needed.
 func RateLimitMiddleware(limiters *RateLimiters) func(http.HandlerFunc) http.HandlerFunc {
-	return sharedmw.RateLimitMiddleware(limiters, classifyAdminEndpoint)
+	return sharedmw.RateLimitMiddleware(limiters, classifyAdminEndpoint, nil)
 }
 
 // classifyAdminEndpoint maps a request to its rate-limit bucket based on the

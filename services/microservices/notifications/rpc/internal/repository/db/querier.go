@@ -12,7 +12,12 @@ import (
 )
 
 type Querier interface {
-	BumpCheckInCountToday(ctx context.Context, userID uuid.UUID) error
+	// $2 is the check-in's local date (YYYY-MM-DD in the owner's timezone, from
+	// check_ins.local_date via the check_in_created event — or the consumer's
+	// local-date derivation for legacy events). Comparing against CURRENT_DATE
+	// here would be the UTC date and fire false "missed" pushes for users whose
+	// local day differs from the UTC day.
+	BumpCheckInCountToday(ctx context.Context, userID uuid.UUID, column2 pgtype.Date) error
 	// Cancel all unsent reminders of a given type for a user. Used when the user
 	// disables a notification preference (e.g. habit reminders) so no further
 	// reminders of that type fire until re-enabled.
@@ -28,7 +33,13 @@ type Querier interface {
 	// the same rows.
 	ClaimDueReminders(ctx context.Context, limit int32) ([]ClaimDueRemindersRow, error)
 	ClaimNotificationDeliveries(ctx context.Context, limit int32) ([]NotificationDelivery, error)
+	ClaimNotificationEvent(ctx context.Context) (ClaimNotificationEventRow, error)
+	CompleteNotificationEvent(ctx context.Context, eventID uuid.UUID) error
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
+	// Pushes sent on the user's local calendar date ($3 is the IANA timezone,
+	// $2 the YYYY-MM-DD date). Backs the 5-pushes-per-day cap — counts only
+	// 'sent' rows so retries and suppressed deliveries don't consume the budget.
+	CountPushDeliveriesSentOnDate(ctx context.Context, userID uuid.UUID, column2 pgtype.Date, column3 string) (int64, error)
 	CreateNotification(ctx context.Context, arg CreateNotificationParams) (CreateNotificationRow, error)
 	CreateNotificationDelivery(ctx context.Context, notificationID uuid.UUID, userID uuid.UUID, channel string) (NotificationDelivery, error)
 	CreateNotificationHabitState(ctx context.Context, userID uuid.UUID, habitID uuid.UUID, habitName string) (NotificationHabitState, error)
@@ -37,6 +48,10 @@ type Querier interface {
 	// Owned exclusively by the notifications service.
 	CreatePushTicket(ctx context.Context, ticketID string, pushToken string, userID uuid.UUID, notificationID uuid.UUID) error
 	DecrementHabitCount(ctx context.Context, userID uuid.UUID) error
+	// Reschedule a delivery without consuming a send attempt (claim bumped
+	// attempt_count, so the GREATEST(...-1) hands it back). Used for quiet-hours
+	// deferral: the push is delayed until 08:00 local, not retried as a failure.
+	DeferNotificationDelivery(ctx context.Context, iD uuid.UUID, nextAttemptAt pgtype.Timestamptz, lastErrorCode *string, lastErrorMessage *string) error
 	DeleteAllNotificationsByUser(ctx context.Context, userID uuid.UUID) error
 	// Unregister a device by installation_id + user_id. Used on logout and on
 	// explicit unregister. The user_id scoping prevents a user from deleting
@@ -66,6 +81,9 @@ type Querier interface {
 	// uniq_reminders_goal_deadline_per_goal ensures one pending reminder per
 	// (user, goal), so re-enqueuing on a deadline change upserts in place.
 	EnqueueGoalDeadlineReminder(ctx context.Context, userID uuid.UUID, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueGoalDeadlineReminderRow, error)
+	// Transactional event outbox for the notifications service (P1). See
+	// sql/queries/client/event_outbox.sql for the pattern.
+	EnqueueNotificationEvent(ctx context.Context, eventID uuid.UUID, eventType string, payload []byte, occurredAt pgtype.Timestamptz) error
 	// Reminders: sent_at IS NULL means pending.
 	// Excludes goal_deadline (which has its own per-goal unique index and query).
 	EnqueueReminder(ctx context.Context, userID uuid.UUID, type_ string, scheduledAt pgtype.Timestamptz, metadata []byte) (EnqueueReminderRow, error)
@@ -119,6 +137,10 @@ type Querier interface {
 	// Idempotent register/update: insert a new device or update the push token +
 	// metadata for an existing (installation_id, user_id) pair. Token rotation is
 	// handled by the UPDATE branch. enabled is reset to true on re-registration.
+	// The WHERE clause refuses to reassign an installation_id that already belongs
+	// to a different user: the update is skipped and RETURNING yields zero rows,
+	// which the logic layer maps to an ownership error instead of silently letting
+	// anyone who knows an installation_id take over its push registration.
 	UpsertDevice(ctx context.Context, arg UpsertDeviceParams) (NotificationDevice, error)
 	// Local goal read model for the notifications service, maintained from
 	// goal_created/goal_updated/goal_deleted/goal_completed events.

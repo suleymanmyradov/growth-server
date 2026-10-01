@@ -45,7 +45,14 @@ type Config struct {
 		APIKey          string `json:",optional" secret:"true"`
 		FromAddress     string `json:",optional"`
 		FrontendBaseURL string `json:",optional"`
-		Enabled         bool   `json:",optional,default=false"`
+		// APIBaseURL is the public API origin (e.g. https://api.example.com)
+		// used to build the List-Unsubscribe endpoint URL that mail clients
+		// POST to. Required when Enabled.
+		APIBaseURL string `json:",optional"`
+		// UnsubscribeSecret signs the RFC 8058 tokens embedded in
+		// List-Unsubscribe URLs. Falls back to ServiceAuth.Secret when empty.
+		UnsubscribeSecret string `json:",optional" secret:"true"`
+		Enabled           bool   `json:",optional,default=false"`
 	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`

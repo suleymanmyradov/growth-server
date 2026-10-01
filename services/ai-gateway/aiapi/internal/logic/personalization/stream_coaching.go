@@ -22,11 +22,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-// safetyCrisisThreshold is the minimum classifier confidence required to
-// block the stream and send the deterministic crisis response. Low-confidence
-// safety flags are logged and treated as safe to avoid false positives.
-const safetyCrisisThreshold = 0.75
-
 // toolStatusMessages maps tool names to user-friendly status messages
 // shown as SSE "thinking" events while the tool executes.
 var toolStatusMessages = map[string]string{
@@ -144,21 +139,24 @@ func StreamCoaching(ctx context.Context, sseWriter *sse.Writer, req *types.Gener
 		verdict, err := safety.ClassifyWithRetry(classifyCtx, deps.Classifier, req.UserMessage)
 		cancel()
 
-		switch {
-		case err != nil:
+		if err != nil {
 			// Fail closed: the model never sees unscreened input. A user in
 			// crisis still gets crisis resources; everyone else gets an
 			// honest "try again" instead of a model answer.
 			logx.WithContext(ctx).Errorf("agentic coaching: safety classify failed, failing closed: user=%s err=%v", p.UserID, err)
 			streamDeterministicResponse(ctx, sseWriter, req, p, deps.Conversations, safety.UnavailableResponse)
 			return safety.UnavailableResponse
-		case (verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm) && verdict.Confidence >= safetyCrisisThreshold:
+		}
+
+		if resp, blocked := safety.BlockedResponse(verdict, safety.BlockConfidenceThreshold); blocked {
 			// Reason deliberately not logged at Info — classifier reasons
 			// can quote self-harm content verbatim (Loki is not access-gated).
 			logx.WithContext(ctx).Infof("agentic coaching: safety block: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
-			streamDeterministicResponse(ctx, sseWriter, req, p, deps.Conversations, safety.CrisisResponse)
-			return safety.CrisisResponse
-		case verdict.Category == safety.CategoryCrisis || verdict.Category == safety.CategorySelfHarm:
+			streamDeterministicResponse(ctx, sseWriter, req, p, deps.Conversations, resp)
+			return resp
+		}
+
+		if verdict.Category != safety.CategorySafe {
 			logx.WithContext(ctx).Infof("agentic coaching: safety flag below threshold, proceeding: user=%s category=%s confidence=%.2f", p.UserID, verdict.Category, verdict.Confidence)
 		}
 	}

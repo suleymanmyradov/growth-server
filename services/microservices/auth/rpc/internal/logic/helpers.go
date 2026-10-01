@@ -4,9 +4,13 @@ import (
 	"context"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
+	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/pb/auth"
 	"github.com/zeromicro/go-zero/core/logx"
 )
@@ -67,15 +71,27 @@ func nonNilStrings(s []string) []string {
 	return s
 }
 
-// publishUserProfileUpdated publishes a user_profile_updated event synchronously.
-// It logs loudly on failure but does not return an error — the DB write has
-// already committed and failing the RPC would mislead the caller. In dev this
-// makes broker issues immediately visible in logs rather than silently diverging.
-func publishUserProfileUpdated(ctx context.Context, pub *events.Publisher, u db.User) {
-	if pub == nil {
-		return
+// runInTx runs fn inside a transaction with the repository bound to that
+// transaction. When override is set (tests only), it replaces the runner and
+// the repository resolves to svcCtx.Repo so calls land on mocks — mirroring
+// the client service's testTxRunner/getTxRepo seam.
+func runInTx(svcCtx *svc.ServiceContext, override svc.TxRunnerInterface, ctx context.Context, userID string, fn func(*repository.Repository) error) error {
+	r := svcCtx.TxRunner
+	if override != nil {
+		r = override
 	}
+	return r.Run(ctx, userID, func(tx pgx.Tx) error {
+		repo := svcCtx.WithTx(tx)
+		if override != nil {
+			repo = svcCtx.Repo
+		}
+		return fn(repo)
+	})
+}
 
+// userProfileUpdatedEnvelope builds the user_profile_updated event for the
+// given user row.
+func userProfileUpdatedEnvelope(u db.User) (events.Envelope, error) {
 	bio := ""
 	if u.Bio != nil {
 		bio = *u.Bio
@@ -92,8 +108,7 @@ func publishUserProfileUpdated(ctx context.Context, pub *events.Publisher, u db.
 	if u.AvatarUrl != nil {
 		avatar = *u.AvatarUrl
 	}
-
-	env, err := events.NewEnvelope(events.TypeUserProfileUpdated, events.UserProfileUpdated{
+	return events.NewEnvelope(events.TypeUserProfileUpdated, events.UserProfileUpdated{
 		UserID:        u.ID.String(),
 		Username:      u.Username,
 		Email:         u.Email,
@@ -105,11 +120,32 @@ func publishUserProfileUpdated(ctx context.Context, pub *events.Publisher, u db.
 		Interests:     u.Interests,
 		Avatar:        avatar,
 	})
+}
+
+// enqueueUserProfileUpdated writes a user_profile_updated row into
+// auth_event_outbox via the outbox repo — which may be transaction-scoped so
+// the event commits atomically with the user mutation (P1). The svc-layer
+// relay drains the outbox to the broker under a stable event ID.
+func enqueueUserProfileUpdated(ctx context.Context, outboxRepo repository.IEventOutbox, u db.User) error {
+	env, err := userProfileUpdatedEnvelope(u)
 	if err != nil {
-		logx.WithContext(ctx).Errorf("failed to build user_profile_updated envelope: %v", err)
+		return err
+	}
+	return outboxRepo.Enqueue(ctx, env)
+}
+
+// publishUserProfileUpdated enqueues a user_profile_updated event into
+// auth_event_outbox for mutations that do not run inside a transaction
+// (e.g. login, which only reads the user). The outbox write is a single local
+// INSERT — far narrower than the old publish-after-commit network call — and
+// the relay republishes under a stable event ID until it succeeds (P1).
+// It logs loudly on failure but does not return an error: failing the RPC
+// after the write committed would mislead the caller.
+func publishUserProfileUpdated(ctx context.Context, pool *pgxpool.Pool, u db.User) {
+	if pool == nil {
 		return
 	}
-	if err := pub.Publish(ctx, env); err != nil {
-		logx.WithContext(ctx).Errorf("failed to publish user_profile_updated event for user %s: %v", u.ID, err)
+	if err := enqueueUserProfileUpdated(ctx, repository.NewEventOutboxRepo(db.New(pool)), u); err != nil {
+		logx.WithContext(ctx).Errorf("failed to enqueue user_profile_updated event for user %s: %v", u.ID, err)
 	}
 }

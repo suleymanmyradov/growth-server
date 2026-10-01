@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
@@ -65,7 +66,8 @@ type planCapEntry struct {
 // DailyTokenCap resolves the per-user daily AI token cap from the user's
 // plan: an active Pro subscription gets the configured default cap, everyone
 // else gets FreeUserDailyTokenCap. When plan-aware caps are not configured
-// (free cap unset) or the billing lookup fails, the default cap applies —
+// (free cap unset), the default cap applies. When the billing lookup fails
+// the free cap applies — a billing outage must never raise a user's limit;
 // the global daily cost cap still bounds total platform spend.
 func (s *ServiceContext) DailyTokenCap(ctx context.Context, userID string) int64 {
 	defaultCap := s.Config.AI.Quota.UserDailyTokenCap
@@ -96,24 +98,48 @@ func (s *ServiceContext) DailyTokenCap(ctx context.Context, userID string) int64
 
 // CheckDailyTokenQuota enforces the plan-aware daily token cap at the edge,
 // before any AI work is dispatched. Usage is recorded into the same Redis
-// counters by the AI clients, so this reads the shared counter. Best-effort:
-// if the quota store is unavailable the check passes — the fail-closed
-// per-call check inside pkg/ai still applies.
+// counters by the AI clients, so this reads the shared counter. Fails CLOSED:
+// when a cap is configured but the quota store is missing or errors, the
+// request is rejected — a Redis/billing outage must never grant unlimited AI.
 func (s *ServiceContext) CheckDailyTokenQuota(ctx context.Context, userID string) error {
-	if s.QuotaStore == nil {
-		return nil
-	}
 	cap := s.DailyTokenCap(ctx, userID)
 	if cap <= 0 {
 		return nil
 	}
+	if s.QuotaStore == nil {
+		logx.WithContext(ctx).Errorf("ai quota: edge check failed closed for user %s: cap %d configured but quota store unavailable", userID, cap)
+		return &ai.QuotaError{Limit: "user_daily_unavailable", Cap: cap}
+	}
 	ok, err := s.QuotaStore.CheckUserQuota(ctx, userID, cap)
 	if err != nil {
-		logx.WithContext(ctx).Errorf("ai quota: edge check error for user %s: %v", userID, err)
-		return nil
+		logx.WithContext(ctx).Errorf("ai quota: edge check error for user %s, failing closed: %v", userID, err)
+		return &ai.QuotaError{Limit: "user_daily_unavailable", Cap: cap}
 	}
 	if !ok {
 		return ai.ErrQuotaExceeded
+	}
+	return nil
+}
+
+// CheckDailyVoiceQuota enforces the per-user daily speech-to-text seconds cap
+// at the edge, before audio is dispatched to STT. Fails closed like
+// CheckDailyTokenQuota.
+func (s *ServiceContext) CheckDailyVoiceQuota(ctx context.Context, userID string) error {
+	cap := s.Config.AI.Quota.UserDailyVoiceSecondsCap
+	if cap <= 0 {
+		return nil
+	}
+	if s.QuotaStore == nil {
+		logx.WithContext(ctx).Errorf("ai quota: voice check failed closed for user %s: cap %d configured but quota store unavailable", userID, cap)
+		return &ai.QuotaError{Limit: "user_daily_voice_unavailable", Cap: cap}
+	}
+	ok, err := s.QuotaStore.CheckUserVoiceQuota(ctx, userID, cap)
+	if err != nil {
+		logx.WithContext(ctx).Errorf("ai quota: voice edge check error for user %s, failing closed: %v", userID, err)
+		return &ai.QuotaError{Limit: "user_daily_voice_unavailable", Cap: cap}
+	}
+	if !ok {
+		return &ai.QuotaError{Limit: "user_daily_voice", Cap: cap}
 	}
 	return nil
 }
@@ -135,9 +161,13 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	s2sCfg := s2s.Config{Secret: c.ServiceAuth.Secret}
 
 	// Base client options with auth propagation, s2s signing, and default timeout.
+	// The stream interceptors mirror the unary ones so server-streaming RPCs
+	// (ai-coach weekly review) carry the same JWT propagation + s2s signature.
 	baseOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
+		zrpc.WithStreamClientInterceptor(mdpropagate.StreamClientInterceptor()),
+		zrpc.WithStreamClientInterceptor(s2s.StreamClientInterceptor(s2sCfg)),
 		zrpc.WithTimeout(time.Second * 3),
 	}
 
@@ -145,6 +175,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	aiCoachOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
+		zrpc.WithStreamClientInterceptor(mdpropagate.StreamClientInterceptor()),
+		zrpc.WithStreamClientInterceptor(s2s.StreamClientInterceptor(s2sCfg)),
 		zrpc.WithTimeout(time.Second * 90),
 	}
 
@@ -152,6 +184,8 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	clientOpts := []zrpc.ClientOption{
 		zrpc.WithUnaryClientInterceptor(mdpropagate.UnaryClientInterceptor()),
 		zrpc.WithUnaryClientInterceptor(s2s.UnaryClientInterceptor(s2sCfg)),
+		zrpc.WithStreamClientInterceptor(mdpropagate.StreamClientInterceptor()),
+		zrpc.WithStreamClientInterceptor(s2s.StreamClientInterceptor(s2sCfg)),
 		zrpc.WithTimeout(time.Second * 30),
 	}
 
@@ -164,20 +198,19 @@ func NewServiceContext(c config.Config) *ServiceContext {
 
 	limiters := sharedmw.BuildRateLimiters(c.RateLimit)
 
-	// Quota store (optional). Wired when AI.quota.redis_addr is set; the
-	// agentic coaching path is the most expensive AI surface, so it must
-	// honour the per-user token cap and global daily cost cap. The same
-	// store is kept on the ServiceContext for edge quota checks.
+	// Quota store. Wired when AI.quota.redis_addr is set; the agentic coaching
+	// path is the most expensive AI surface, so it must honour the per-user
+	// token cap and global daily cost cap. The same store is kept on the
+	// ServiceContext for edge quota checks. No startup ping — the client
+	// connects lazily, so a Redis outage at boot fails closed at request time
+	// instead of disabling quotas for the process lifetime.
 	var quotaStore ai.QuotaStore
 	aiOpts := []ai.Option{}
 	if c.AI.Quota.RedisAddr != "" {
-		quotaRedis, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
-		if err == nil {
-			quotaStore = ai.NewRedisQuotaStore(quotaRedis)
-			aiOpts = append(aiOpts, ai.WithQuotaStore(quotaStore))
-		} else {
-			logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
-		}
+		quotaStore = ai.NewRedisQuotaStore(redis.NewClient(redisutil.DefaultOpts(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)))
+		aiOpts = append(aiOpts, ai.WithQuotaStore(quotaStore))
+	} else if c.AI.Quota.UserDailyTokenCap > 0 || c.AI.Quota.GlobalDailyCostCapUSD > 0 || c.AI.Quota.UserDailyVoiceSecondsCap > 0 {
+		logx.Error("AI quota caps configured but AI.Quota.RedisAddr is empty; quota checks fail closed")
 	}
 	aiClient, err := ai.New(c.AI, aiOpts...)
 	if err != nil {
@@ -206,7 +239,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		Config:        c,
 		Auth:          sharedmw.JWTMiddleware(tokenVerifier),
 		TokenVerifier: tokenVerifier,
-		RateLimit:     middleware.RateLimitMiddleware(limiters),
+		RateLimit:     middleware.RateLimitMiddleware(limiters, tokenVerifier),
 		AuthRpc:       authRpc,
 		ClientRpc:     clientRpc,
 		AICoachRpc:    aiCoachRpc,

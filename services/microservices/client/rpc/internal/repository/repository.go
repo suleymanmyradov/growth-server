@@ -73,6 +73,7 @@ type IActivities interface {
 	ListActivitiesByType(ctx context.Context, userID uuid.UUID, itemType string, limit, offset int32) ([]db.Activity, error)
 	GetActivityByID(ctx context.Context, id uuid.UUID) (db.Activity, error)
 	CreateActivity(ctx context.Context, params db.CreateActivityParams) (db.Activity, error)
+	CreateActivityDeduped(ctx context.Context, params db.CreateActivityDedupedParams) error
 	LogActivity(ctx context.Context, params db.LogActivityParams) (db.Activity, error)
 	DeleteActivity(ctx context.Context, id uuid.UUID) error
 	DeleteActivitiesByUser(ctx context.Context, userID uuid.UUID) error
@@ -100,6 +101,7 @@ type IUsers interface {
 type IHabits interface {
 	ListHabits(ctx context.Context, userID uuid.UUID, limit, offset int32, timezone string) ([]db.GetHabitRow, error)
 	GetHabitByID(ctx context.Context, id uuid.UUID, timezone string) (db.GetHabitRow, error)
+	GetHabitsByIDs(ctx context.Context, ids []uuid.UUID, timezone string) ([]db.GetHabitsByIDsRow, error)
 	CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error)
 	UpdateHabit(ctx context.Context, params db.UpdateHabitParams) (db.GetHabitRow, error)
 	UpdateHabitDescription(ctx context.Context, id uuid.UUID, description *string) (db.Habit, error)
@@ -157,6 +159,7 @@ type ICategories interface {
 type ICheckIns interface {
 	CreateCheckIn(ctx context.Context, params db.CreateCheckInParams) (db.CheckIn, error)
 	UpsertCheckIn(ctx context.Context, params db.UpsertCheckInParams) (db.CheckIn, error)
+	GetTodayCheckInByHabit(ctx context.Context, habitID uuid.UUID, timezone string) (db.CheckIn, error)
 	GetTodayCheckIns(ctx context.Context, userID uuid.UUID, timezone string) ([]db.CheckIn, error)
 	GetCheckInsByHabit(ctx context.Context, habitID, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
 	GetCheckInsByUser(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]db.CheckIn, error)
@@ -198,19 +201,24 @@ type IBilling interface {
 	GetUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
 	GetOrCreateUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error)
 	CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error)
-	UpsertUserSubscription(ctx context.Context, params db.UpsertUserSubscriptionParams) (db.Subscription, error)
 	CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error)
 	ComputeEntitlements(ctx context.Context, sub db.GetUserSubscriptionRow, userID uuid.UUID) (*EntitlementsResult, error)
+	EntitlementsOrFreeFallback(ctx context.Context, userID uuid.UUID) (*EntitlementsResult, error)
 	ListSubscriptionStatuses(ctx context.Context) ([]db.ListSubscriptionStatusesRow, error)
+	// Provider states + merged projection
+	GetSubscriptionProviderState(ctx context.Context, userID uuid.UUID, provider string) (db.SubscriptionProviderState, error)
+	ListSubscriptionProviderStates(ctx context.Context, userID uuid.UUID) ([]db.SubscriptionProviderState, error)
+	UpsertSubscriptionProviderState(ctx context.Context, params db.UpsertSubscriptionProviderStateParams) (db.SubscriptionProviderState, error)
+	ApplyMergedSubscription(ctx context.Context, params db.ApplyMergedSubscriptionParams) (db.Subscription, error)
 	// RevenueCat
 	GetUserSubscriptionByUserID(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionByUserIDRow, error)
-	SetRevenueCatCustomerID(ctx context.Context, userID uuid.UUID, revenuecatCustomerID *string) error
 	IsRevenueCatEventProcessed(ctx context.Context, eventID string) (bool, error)
 	MarkRevenueCatEventProcessed(ctx context.Context, eventID string) error
 	// Paddle
 	GetUserSubscriptionByPaddleCustomerID(ctx context.Context, paddleCustomerID *string) (db.GetUserSubscriptionByPaddleCustomerIDRow, error)
-	SetPaddleCustomerID(ctx context.Context, userID uuid.UUID, paddleCustomerID *string) error
-	UpsertUserSubscriptionPaddle(ctx context.Context, params db.UpsertUserSubscriptionPaddleParams) (db.Subscription, error)
+	LinkPaddleProviderIDs(ctx context.Context, userID uuid.UUID, providerCustomerID, providerSubscriptionID *string, lastEventAt pgtype.Timestamptz) error
+	RecordPaddleCheckout(ctx context.Context, transactionID string, userID uuid.UUID) error
+	GetPaddleCheckoutUserID(ctx context.Context, transactionID string) (uuid.UUID, error)
 	IsPaddleEventProcessed(ctx context.Context, eventID string) (bool, error)
 	MarkPaddleEventProcessed(ctx context.Context, eventID string) error
 }
@@ -290,6 +298,7 @@ type Repository struct {
 	HabitTemplates            IHabitTemplates
 	GoalTemplates             IGoalTemplates
 	Reports                   IReports
+	EventOutbox               IEventOutbox
 }
 
 func NewRepository(db *db.Queries) *Repository {
@@ -317,5 +326,6 @@ func NewRepository(db *db.Queries) *Repository {
 		HabitTemplates:            NewHabitTemplatesRepo(db),
 		GoalTemplates:             NewGoalTemplatesRepo(db),
 		Reports:                   NewReportsRepo(db),
+		EventOutbox:               NewEventOutboxRepo(db),
 	}
 }

@@ -3,6 +3,7 @@ package billingservicelogic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -44,7 +45,7 @@ func newPaddleCheckoutServer(t *testing.T) *paddleCheckoutServer {
 	return s
 }
 
-func paddleCheckoutLogic(t *testing.T, m *paddleMockBilling, apiURL string) *CreatePaddleCheckoutLogic {
+func paddleCheckoutLogic(t *testing.T, m *mockBilling, apiURL string) *CreatePaddleCheckoutLogic {
 	t.Helper()
 	cfg := config.Config{}
 	cfg.Billing.Paddle.Enabled = true
@@ -68,7 +69,8 @@ func paddleCheckoutLogic(t *testing.T, m *paddleMockBilling, apiURL string) *Cre
 
 func TestCreatePaddleCheckout_HappyPath(t *testing.T) {
 	ts := newPaddleCheckoutServer(t)
-	m := &paddleMockBilling{getSubErr: pgx.ErrNoRows}
+	m := newMockBilling()
+	m.getSubErr = pgx.ErrNoRows
 	l := paddleCheckoutLogic(t, m, ts.URL)
 
 	resp, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{
@@ -100,15 +102,38 @@ func TestCreatePaddleCheckout_HappyPath(t *testing.T) {
 
 	// No stored Paddle customer — none sent.
 	assert.NotContains(t, ts.lastTxnBody, "customer_id")
+
+	// The transaction → user binding is recorded server-side so the webhook
+	// never has to trust client-side custom_data (B4).
+	require.Len(t, m.checkoutRecords, 1)
+	assert.Equal(t, "txn_01h_test", m.checkoutRecords[0].transactionID)
+	assert.Equal(t, paddleTestUserID, m.checkoutRecords[0].userID)
+}
+
+func TestCreatePaddleCheckout_RecordFailureFailsCheckout(t *testing.T) {
+	// If the txn→user record can't be persisted the payment could never be
+	// mapped — fail the checkout rather than let the user pay into the void.
+	ts := newPaddleCheckoutServer(t)
+	m := newMockBilling()
+	m.getSubErr = pgx.ErrNoRows
+	m.checkoutErr = errors.New("db down")
+	l := paddleCheckoutLogic(t, m, ts.URL)
+
+	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{
+		PriceId: "pri_01m340f2f38cbr9ndj77bmpbzc",
+	})
+	require.Error(t, err)
+	assert.Equal(t, codes.Internal, status.Code(err))
 }
 
 func TestCreatePaddleCheckout_ReusesCustomer(t *testing.T) {
 	ts := newPaddleCheckoutServer(t)
 	ctm := "ctm_01h8441jn5pcwrfhwh78jqt8hk"
-	m := &paddleMockBilling{getSub: db.GetUserSubscriptionRow{
+	m := newMockBilling()
+	m.getSub = db.GetUserSubscriptionRow{
 		UserID:           paddleTestUserID,
 		PaddleCustomerID: &ctm,
-	}}
+	}
 	l := paddleCheckoutLogic(t, m, ts.URL)
 
 	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{
@@ -119,7 +144,7 @@ func TestCreatePaddleCheckout_ReusesCustomer(t *testing.T) {
 }
 
 func TestCreatePaddleCheckout_NoPrincipal(t *testing.T) {
-	l := paddleCheckoutLogic(t, &paddleMockBilling{}, "http://unused")
+	l := paddleCheckoutLogic(t, newMockBilling(), "http://unused")
 	l.ctx = context.Background()
 
 	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{PriceId: "pri_x"})
@@ -128,7 +153,7 @@ func TestCreatePaddleCheckout_NoPrincipal(t *testing.T) {
 }
 
 func TestCreatePaddleCheckout_InvalidPrice(t *testing.T) {
-	l := paddleCheckoutLogic(t, &paddleMockBilling{}, "http://unused")
+	l := paddleCheckoutLogic(t, newMockBilling(), "http://unused")
 
 	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{PriceId: "pro-monthly"})
 	require.Error(t, err)
@@ -136,7 +161,7 @@ func TestCreatePaddleCheckout_InvalidPrice(t *testing.T) {
 }
 
 func TestCreatePaddleCheckout_Disabled(t *testing.T) {
-	l := paddleCheckoutLogic(t, &paddleMockBilling{}, "")
+	l := paddleCheckoutLogic(t, newMockBilling(), "")
 	l.svcCtx.Config.Billing.Paddle.Enabled = false
 
 	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{PriceId: "pri_x"})

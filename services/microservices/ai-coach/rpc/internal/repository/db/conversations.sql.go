@@ -80,6 +80,19 @@ func (q *Queries) DeleteConversation(ctx context.Context, iD uuid.UUID, userID u
 	return err
 }
 
+const deleteConversationsByUser = `-- name: DeleteConversationsByUser :exec
+DELETE FROM conversations
+WHERE user_id = $1
+`
+
+// Wipes all of a user's conversations on user_deleted. conversation_messages
+// cascade via the FK, and user_facts.source_message_id is SET NULL — facts are
+// deleted separately by ForgetAllUserFacts.
+func (q *Queries) DeleteConversationsByUser(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deleteConversationsByUser, userID)
+	return err
+}
+
 const getConversation = `-- name: GetConversation :one
 SELECT id, user_id, title, type, last_message, created_at, updated_at, archived
 FROM conversations

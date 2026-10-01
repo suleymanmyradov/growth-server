@@ -145,15 +145,26 @@ func buildFilters(req *search.SearchRequest) ([]string, error) {
 	// The user id is interpolated, so it must be a well-formed UUID; callers
 	// pass the authenticated principal's id and anything else is a bug
 	// upstream, so we fail closed rather than degrade to a public-only search.
+	//
+	// include_internal additionally admits visibility="internal" docs —
+	// currently unpublished articles. It exists for adminway's draft search;
+	// this RPC is only reachable by internal services, and user-facing
+	// gateways must never forward it.
 	userID := strings.TrimSpace(req.UserId)
+	clause := `visibility = "public"`
+	if req.IncludeInternal {
+		clause += ` OR visibility = "internal"`
+	}
 	if userID != "" {
 		if _, err := uuid.Parse(userID); err != nil {
 			return nil, fmt.Errorf("search: invalid user id: %w", err)
 		}
-		filters = append(filters, `(visibility = "public" OR user_id = `+quoteFilterValue(userID)+`)`)
-	} else {
-		filters = append(filters, `visibility = "public"`)
+		clause += ` OR user_id = ` + quoteFilterValue(userID)
 	}
+	if strings.Contains(clause, " OR ") {
+		clause = "(" + clause + ")"
+	}
+	filters = append(filters, clause)
 
 	// Type filter. Closed set — the indexer only ever writes these three.
 	if len(req.Types) > 0 {

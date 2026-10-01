@@ -48,23 +48,30 @@ func (l *ListWeeklyReviewsLogic) ListWeeklyReviews(in *client.ListWeeklyReviewsR
 		limit = 50
 	}
 
-	// Enforce weekly review history limit server-side
+	// Enforce weekly review history limit server-side.
+	// EntitlementsOrFreeFallback applies Free-plan limits when the
+	// subscription row can't be loaded — a billing failure degrades a user to
+	// Free access, it never skips the check. An error means even the fallback
+	// failed; to stay safe we clamp to the strictest window (current week
+	// only) instead of returning an unbounded list.
 	var historyLimit int32
 	var isRestricted bool
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
-	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
-		if computeErr == nil && !entitlements.CanViewWeeklyReviewHistory {
-			isRestricted = true
-			if sub.WeeklyReviewHistoryLimit > 0 {
-				historyLimit = sub.WeeklyReviewHistoryLimit
-			} else {
-				historyLimit = 1
-			}
-			if limit > historyLimit {
-				limit = historyLimit
-			}
+	entitlements, entErr := l.svcCtx.Repo.Billing.EntitlementsOrFreeFallback(ctx, userID)
+	switch {
+	case entErr != nil:
+		l.Errorf("ListWeeklyReviews: entitlement check failed closed for user %s, clamping to strictest limit: %v", userID, entErr)
+		isRestricted = true
+		historyLimit = 1
+	case !entitlements.CanViewWeeklyReviewHistory:
+		isRestricted = true
+		if entitlements.WeeklyReviewHistoryLimit > 0 {
+			historyLimit = entitlements.WeeklyReviewHistoryLimit
+		} else {
+			historyLimit = 1
 		}
+	}
+	if isRestricted && limit > historyLimit {
+		limit = historyLimit
 	}
 
 	offset := (page - 1) * limit

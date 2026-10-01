@@ -80,7 +80,9 @@ func (l *LoginLogic) Login(in *auth.LoginRequest) (*auth.AuthResponse, error) {
 	}
 
 	l.Infof("Login successful for user %s", user.ID)
-	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.EventsPub, user)
+	// Login only reads the user — the profile-sync event goes straight into
+	// the outbox; the relay republishes it (P1).
+	publishUserProfileUpdated(context.WithoutCancel(ctx), l.svcCtx.Pool(), user)
 
 	return &auth.AuthResponse{
 		AccessToken:  accessToken.Token,

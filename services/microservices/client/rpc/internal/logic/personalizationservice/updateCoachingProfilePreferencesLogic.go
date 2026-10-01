@@ -2,8 +2,12 @@ package personalizationservicelogic
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -66,8 +70,24 @@ func (l *UpdateCoachingProfilePreferencesLogic) UpdateCoachingProfilePreferences
 		return nil, status.Error(codes.InvalidArgument, "invalid difficulty preference")
 	}
 
-	// Update coaching profile preferences
-	profile, err := l.svcCtx.Repo.CoachingProfiles.UpdateCoachingProfilePreferences(ctx, userID, (in.AccountabilityStyle), (in.PreferredTone), (in.DifficultyPreference))
+	// Update coaching profile preferences + emit coaching_profile_changed in
+	// the same transaction (outbox) so consumer read models stay in sync.
+	var profile db.UpdateCoachingProfilePreferencesRow
+	err = l.svcCtx.RunInTx(ctx, userID.String(), func(txRepo *repository.Repository) error {
+		var txErr error
+		profile, txErr = txRepo.CoachingProfiles.UpdateCoachingProfilePreferences(ctx, userID, (in.AccountabilityStyle), (in.PreferredTone), (in.DifficultyPreference))
+		if txErr != nil {
+			return txErr
+		}
+		env, envErr := events.NewEnvelope(events.TypeCoachingProfileChanged, events.CoachingProfileChanged{
+			UserID:              userID.String(),
+			AccountabilityStyle: profile.AccountabilityStyle,
+		})
+		if envErr != nil {
+			return fmt.Errorf("build coaching_profile_changed envelope: %w", envErr)
+		}
+		return txRepo.EventOutbox.Enqueue(ctx, env)
+	})
 	if err != nil {
 		l.Errorf("failed to update coaching profile preferences: %v", err)
 		return nil, status.Error(codes.Internal, "failed to update coaching profile preferences")

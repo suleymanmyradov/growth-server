@@ -215,6 +215,17 @@ func (l *SaveWeeklyReviewLogic) SaveWeeklyReview(in *client.SaveWeeklyReviewRequ
 			var goalID, habitID uuid.NullUUID
 			if adjustment.HabitId != "" {
 				if habitUUID, err := uuid.Parse(adjustment.HabitId); err == nil {
+					// The habit ID is raw model output — it may be
+					// hallucinated or injected with another user's ID.
+					// Only persist suggestions that reference a habit the
+					// review's owner actually owns.
+					habit, hErr := l.svcCtx.Repo.Habits.GetHabitByID(bgCtx, habitUUID, "UTC")
+					if hErr != nil || habit.UserID != userID {
+						logx.WithContext(bgCtx).Infof(
+							"weekly review: dropping adjustment for habit %s: not owned by user %s",
+							habitUUID, userID)
+						continue
+					}
 					habitID = uuid.NullUUID{UUID: habitUUID, Valid: true}
 				}
 			}

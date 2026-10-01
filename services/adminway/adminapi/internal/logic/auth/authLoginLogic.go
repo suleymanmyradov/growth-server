@@ -3,7 +3,7 @@ package auth
 import (
 	"context"
 
-	"github.com/google/uuid"
+	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/mfa"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/adminway/adminapi/internal/types"
 	"github.com/zeromicro/go-zero/core/logx"
@@ -25,7 +25,7 @@ func NewAuthLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *AuthLog
 	}
 }
 
-func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.AuthResponse, error) {
+func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.LoginResponse, error) {
 	ctx, span := trace.TracerFromContext(l.ctx).Start(l.ctx, "AuthLoginLogic.AuthLogin")
 	defer span.End()
 
@@ -45,28 +45,30 @@ func (l *AuthLoginLogic) AuthLogin(req *types.LoginRequest) (*types.AuthResponse
 		return nil, ErrInvalidCredentials
 	}
 
-	sessionID := uuid.New()
+	// Password is proven. Admins with TOTP enrolled get a verify-purpose
+	// ticket instead of tokens; when Mfa.Required is on, unenrolled admins
+	// get an enroll-purpose ticket that only reaches the mfa setup endpoints.
+	switch {
+	case user.TotpEnabledAt.Valid:
+		ticket, err := issueMfaTicket(ctx, l.svcCtx, user.ID, mfa.TicketPurposeVerify)
+		if err != nil {
+			l.Errorf("login failed to issue mfa ticket for user %s: %v", user.ID, err)
+			return nil, errInternal(MsgFailedGenAccessToken)
+		}
+		return &types.LoginResponse{MfaRequired: true, MfaTicket: ticket}, nil
+	case l.svcCtx.Config.Mfa.Required:
+		ticket, err := issueMfaTicket(ctx, l.svcCtx, user.ID, mfa.TicketPurposeEnroll)
+		if err != nil {
+			l.Errorf("login failed to issue mfa enroll ticket for user %s: %v", user.ID, err)
+			return nil, errInternal(MsgFailedGenAccessToken)
+		}
+		return &types.LoginResponse{MfaRequired: true, MfaSetupRequired: true, MfaTicket: ticket}, nil
+	}
 
-	accessToken, err := l.svcCtx.TokenMaker.CreateAccessToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
+	auth, err := issueAuthTokens(ctx, l.svcCtx, user)
 	if err != nil {
-		l.Errorf("login failed to create access token for user %s: %v", user.ID, err)
+		l.Errorf("login failed to create tokens for user %s: %v", user.ID, err)
 		return nil, ErrFailedGenAccessToken
 	}
-
-	refreshToken, err := l.svcCtx.TokenMaker.CreateRefreshToken(ctx, user.ID, user.Email, []string{user.Role}, sessionID)
-	if err != nil {
-		l.Errorf("login failed to create refresh token for user %s: %v", user.ID, err)
-		return nil, ErrFailedGenRefreshToken
-	}
-
-	return &types.AuthResponse{
-		AccessToken:  accessToken.Token,
-		RefreshToken: refreshToken.Token,
-		User: types.UserInfo{
-			Id:       user.ID.String(),
-			Email:    user.Email,
-			FullName: user.FullName,
-			Role:     user.Role,
-		},
-	}, nil
+	return &types.LoginResponse{Auth: auth}, nil
 }

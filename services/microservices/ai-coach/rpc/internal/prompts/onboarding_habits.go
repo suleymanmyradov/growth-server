@@ -1,6 +1,10 @@
 package prompts
 
-import "fmt"
+import (
+	"fmt"
+
+	aiprompts "github.com/suleymanmyradov/growth-server/pkg/ai/prompts"
+)
 
 // OnboardingHabitsInput holds the structured onboarding data used to generate
 // habit suggestions. All fields are server-controlled — the client never
@@ -45,5 +49,5 @@ Rules:
 		in.DailyMinutes, in.AccountabilityStyle,
 		in.DailyMinutes,
 		onboardingHabitsJSONShape,
-	)
+	) + aiprompts.CoachScopeRules
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/email"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/outbox"
 	"github.com/suleymanmyradov/growth-server/pkg/events/redisstream"
 	expo "github.com/suleymanmyradov/growth-server/pkg/notifications/expo"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -42,8 +44,15 @@ type ServiceContext struct {
 	// stale tokens. Nil-safe: when Expo is disabled, Run is a no-op.
 	ReceiptWorker  *delivery.ReceiptWorker
 	DeliveryWorker *delivery.Worker
-	pool           *pgxpool.Pool
-	schedCancel    context.CancelFunc
+	// EmailUnsubscribeSecret verifies the RFC 8058 tokens in List-Unsubscribe
+	// URLs (UnsubscribeEmail RPC). Resolved from Email.UnsubscribeSecret with
+	// ServiceAuth.Secret as fallback; empty when email delivery is disabled.
+	EmailUnsubscribeSecret string
+	// EventRelay drains notification_event_outbox into the events broker (P1).
+	// Nil when no publisher backend is configured.
+	EventRelay  *outbox.Relay
+	pool        *pgxpool.Pool
+	schedCancel context.CancelFunc
 }
 
 func mustOpenDB(datasource string, maxOpen, maxIdle int, maxLifetime time.Duration) *pgxpool.Pool {
@@ -119,9 +128,23 @@ func NewServiceContext(c config.Config) *ServiceContext {
 	pushSender := delivery.NewSender(repo.Devices, repo.PushTickets, expoClient, c.Expo.Enabled)
 	receiptWorker := delivery.NewReceiptWorker(repo.Devices, repo.PushTickets, expoClient)
 	var emailSender email.Sender
+	var unsubscribeSecret string
 	if c.Email.Enabled {
 		if c.Email.FrontendBaseURL == "" {
 			panic("email frontend base URL is required when email delivery is enabled")
+		}
+		if c.Email.APIBaseURL == "" {
+			panic("email API base URL is required when email delivery is enabled")
+		}
+		// Without a secret the unsubscribe tokens are forgeable — anyone could
+		// disable email for arbitrary users — so fail fast rather than send
+		// emails with unverifiable links.
+		unsubscribeSecret = c.Email.UnsubscribeSecret
+		if unsubscribeSecret == "" {
+			unsubscribeSecret = c.ServiceAuth.Secret
+		}
+		if unsubscribeSecret == "" {
+			panic("email unsubscribe secret is required when email delivery is enabled (set Email.UnsubscribeSecret or ServiceAuth.Secret)")
 		}
 		var err error
 		emailSender, err = email.New(email.Config{
@@ -133,7 +156,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			panic(fmt.Errorf("create email sender: %w", err))
 		}
 	}
-	deliveryWorker := delivery.NewWorker(repo, pushSender, emailSender, c.Email.FrontendBaseURL)
+	deliveryWorker := delivery.NewWorker(repo, pushSender, emailSender, c.Email.FrontendBaseURL, c.Email.APIBaseURL, unsubscribeSecret)
 
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
 	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender, eventsPub)
@@ -196,20 +219,53 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		}
 	}
 
-	return &ServiceContext{
-		Config:         c,
-		Repo:           repo,
-		EventsPub:      eventsPub,
-		ReminderPub:    reminderPub,
-		Scheduler:      sched,
-		TxRunner:       txRunner,
-		EventsQ:        eventsQ,
-		ReminderDueQ:   reminderDueQ,
-		PushSender:     pushSender,
-		ReceiptWorker:  receiptWorker,
-		DeliveryWorker: deliveryWorker,
-		pool:           pool,
+	// Transactional outbox relay: coach_digest and other domain events are
+	// written to notification_event_outbox inside the dispatch transaction;
+	// the relay republishes them under stable event IDs (P1).
+	var eventRelay *outbox.Relay
+	if eventsPub != nil {
+		eventRelay = outbox.NewRelay("notifications", notificationOutboxStore{q: queries}, eventsPub)
 	}
+
+	return &ServiceContext{
+		Config:                 c,
+		Repo:                   repo,
+		EventsPub:              eventsPub,
+		ReminderPub:            reminderPub,
+		Scheduler:              sched,
+		TxRunner:               txRunner,
+		EventsQ:                eventsQ,
+		ReminderDueQ:           reminderDueQ,
+		PushSender:             pushSender,
+		ReceiptWorker:          receiptWorker,
+		DeliveryWorker:         deliveryWorker,
+		EmailUnsubscribeSecret: unsubscribeSecret,
+		EventRelay:             eventRelay,
+		pool:                   pool,
+	}
+}
+
+// notificationOutboxStore adapts the sqlc notification_event_outbox queries to
+// outbox.Store.
+type notificationOutboxStore struct {
+	q *db.Queries
+}
+
+func (s notificationOutboxStore) Claim(ctx context.Context) (outbox.Row, error) {
+	row, err := s.q.ClaimNotificationEvent(ctx)
+	if err != nil {
+		return outbox.Row{}, err
+	}
+	return outbox.Row{
+		EventID:    row.EventID,
+		EventType:  row.EventType,
+		Payload:    row.Payload,
+		OccurredAt: row.OccurredAt.Time,
+	}, nil
+}
+
+func (s notificationOutboxStore) Complete(ctx context.Context, eventID uuid.UUID) error {
+	return s.q.CompleteNotificationEvent(ctx, eventID)
 }
 
 // WithTx returns a new Repository backed by the given transaction.
@@ -234,6 +290,9 @@ func (s *ServiceContext) StartConsumers() context.CancelFunc {
 	}
 	if s.DeliveryWorker != nil {
 		go s.DeliveryWorker.Run(ctx)
+	}
+	if s.EventRelay != nil {
+		go s.EventRelay.Run(ctx)
 	}
 
 	logx.Info("started scheduler, event consumers, and notification delivery workers")

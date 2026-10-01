@@ -14,17 +14,22 @@ import (
 
 const bumpCheckInCountToday = `-- name: BumpCheckInCountToday :exec
 INSERT INTO reminder_state (user_id, checked_in_count_today, last_check_in_date)
-VALUES ($1, 1, CURRENT_DATE)
+VALUES ($1, 1, $2::date)
 ON CONFLICT (user_id) DO UPDATE SET
     checked_in_count_today = CASE
-        WHEN reminder_state.last_check_in_date = CURRENT_DATE THEN reminder_state.checked_in_count_today + 1
+        WHEN reminder_state.last_check_in_date = $2::date THEN reminder_state.checked_in_count_today + 1
         ELSE 1
     END,
-    last_check_in_date = CURRENT_DATE
+    last_check_in_date = $2::date
 `
 
-func (q *Queries) BumpCheckInCountToday(ctx context.Context, userID uuid.UUID) error {
-	_, err := q.db.Exec(ctx, bumpCheckInCountToday, userID)
+// $2 is the check-in's local date (YYYY-MM-DD in the owner's timezone, from
+// check_ins.local_date via the check_in_created event — or the consumer's
+// local-date derivation for legacy events). Comparing against CURRENT_DATE
+// here would be the UTC date and fire false "missed" pushes for users whose
+// local day differs from the UTC day.
+func (q *Queries) BumpCheckInCountToday(ctx context.Context, userID uuid.UUID, column2 pgtype.Date) error {
+	_, err := q.db.Exec(ctx, bumpCheckInCountToday, userID, column2)
 	return err
 }
 

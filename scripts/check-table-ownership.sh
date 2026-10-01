@@ -18,7 +18,12 @@ cd "$(dirname "$0")/.."
 # Notes on ownership:
 #   - ai_feedback is owned by ai-coach-consumer (hand-written SQL, no query dir
 #     to scan). It is NOT in client's list — client never touches it.
-#   - ai-coach-consumer likewise has no sql/queries/ dir.
+#   - ai-coach-consumer likewise has no sql/queries/ dir. Its hand-written
+#     queries must touch only: ai_feedback, ai_coach_check_ins,
+#     ai_coach_profiles, ai_coach_processed_events, ai_coach_event_outbox.
+#   - Per-service event outboxes (P1): client_event_outbox,
+#     notification_event_outbox, auth_event_outbox, ai_coach_event_outbox —
+#     each owned exclusively by its service.
 #   - analytics rollup tables (user_lifecycle_events, daily_metrics,
 #     retention_cohorts, conversion_funnels) are written by analytics-consumer
 #     and read by adminway for metrics endpoints. adminway only runs SELECTs
@@ -26,10 +31,10 @@ cd "$(dirname "$0")/.."
 # ---------------------------------------------------------------------------
 get_allowed_tables() {
     case "$1" in
-        auth)          echo "users user_oauth_accounts auth_deletion_outbox" ;;
-        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits goal_milestones check_ins activities weekly_reviews plan_adjustments plans subscriptions upgrade_events user_profiles reports report_comments site_settings goal_templates habit_templates billing_webhook_events client_processed_events habit_missed_streaks" ;;
-        notifications) echo "notifications reminders notification_preferences reminder_state processed_events notification_devices push_tickets notification_deliveries notification_recipients notification_habit_state notification_goal_state" ;;
-        adminway)      echo "internal_users user_lifecycle_events daily_metrics retention_cohorts conversion_funnels" ;;
+        auth)          echo "users user_oauth_accounts auth_deletion_outbox auth_event_outbox" ;;
+        client)        echo "user_preferences coaching_profiles categories articles article_likes article_shares article_tags tags saved_articles saved_goals saved_habits goals habits goal_habits goal_milestones check_ins activities weekly_reviews plan_adjustments plans subscriptions subscription_provider_states paddle_checkouts upgrade_events user_profiles reports report_comments site_settings goal_templates habit_templates billing_webhook_events client_processed_events habit_missed_streaks client_event_outbox" ;;
+        notifications) echo "notifications reminders notification_preferences reminder_state processed_events notification_devices push_tickets notification_deliveries notification_recipients notification_habit_state notification_goal_state notification_event_outbox" ;;
+        adminway)      echo "internal_users admin_audit_log admin_mfa_tickets admin_mfa_backup_codes user_lifecycle_events daily_metrics retention_cohorts conversion_funnels" ;;
         conversations) echo "conversations conversation_messages user_facts" ;;
         filemanager)   echo "file_objects" ;;
         analytics-consumer) echo "user_lifecycle_events daily_metrics retention_cohorts conversion_funnels analytics_processed_events" ;;

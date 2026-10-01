@@ -57,6 +57,9 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 				result = fbResult
 			} else {
 				latencyMS := time.Since(start).Milliseconds()
+				// Record partial usage — prior steps already consumed
+				// provider tokens even though this turn failed.
+				c.recordUsage(ctx, req.Metadata, totalUsage, c.cfg.ComputeCost(m.modelID, totalUsage.PromptTokens, totalUsage.CompletionTokens))
 				c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, 0, err)
 				recordMetrics(req.ModelProfile, m.modelID, "error", req.Metadata.Feature, totalUsage, 0, latencyMS)
 				return AgentResponse{}, fmt.Errorf("ai.RunAgent step %d: %w", step+1, err)
@@ -79,6 +82,7 @@ func (c *client) RunAgent(ctx context.Context, req AgentRequest) (AgentResponse,
 		// Enforce cumulative token budget.
 		if req.MaxTotalTokens > 0 && totalUsage.TotalTokens > req.MaxTotalTokens {
 			latencyMS := time.Since(start).Milliseconds()
+			c.recordUsage(ctx, req.Metadata, totalUsage, c.cfg.ComputeCost(m.modelID, totalUsage.PromptTokens, totalUsage.CompletionTokens))
 			c.logCall(ctx, req.ModelProfile, m.modelID, req.Metadata, totalUsage, latencyMS, 0, ErrMaxTokens)
 			recordMetrics(req.ModelProfile, m.modelID, "error", req.Metadata.Feature, totalUsage, 0, latencyMS)
 			return AgentResponse{}, fmt.Errorf("ai.RunAgent: max total tokens exceeded (%d > %d): %w", totalUsage.TotalTokens, req.MaxTotalTokens, ErrMaxTokens)

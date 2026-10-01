@@ -45,6 +45,13 @@ func (r *habitsRepo) GetHabitByID(ctx context.Context, id uuid.UUID, timezone st
 	return r.db.GetHabit(ctx, id, timezone)
 }
 
+func (r *habitsRepo) GetHabitsByIDs(ctx context.Context, ids []uuid.UUID, timezone string) ([]db.GetHabitsByIDsRow, error) {
+	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.GetHabitsByIDs")
+	defer span.End()
+
+	return r.db.GetHabitsByIDs(ctx, ids, timezone)
+}
+
 func (r *habitsRepo) CreateHabit(ctx context.Context, name string, description *string, category string, userID uuid.UUID) (db.GetHabitRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "HabitsRepo.CreateHabit")
 	defer span.End()

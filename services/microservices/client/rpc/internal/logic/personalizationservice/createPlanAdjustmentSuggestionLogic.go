@@ -3,11 +3,12 @@ package personalizationservicelogic
 import (
 	"context"
 	"encoding/json"
-	"time"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
@@ -45,13 +46,17 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 		return nil, status.Error(codes.InvalidArgument, "invalid user ID")
 	}
 
-	// Check plan limit enforcement (auto-create free subscription if missing)
-	sub, subErr := l.svcCtx.Repo.Billing.GetOrCreateUserSubscription(ctx, userID)
-	if subErr == nil {
-		entitlements, computeErr := l.svcCtx.Repo.Billing.ComputeEntitlements(ctx, sub, userID)
-		if computeErr == nil && !entitlements.CanCreatePlanAdjustment {
-			return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:plan_adjustments:plan_adjustments")
-		}
+	// Check plan limit enforcement (auto-create free subscription if missing).
+	// EntitlementsOrFreeFallback enforces Free-plan limits when the
+	// subscription row can't be loaded; an error means even the fallback
+	// failed, so the request is rejected rather than skipping enforcement.
+	entitlements, entErr := l.svcCtx.Repo.Billing.EntitlementsOrFreeFallback(ctx, userID)
+	if entErr != nil {
+		l.Errorf("CreatePlanAdjustmentSuggestion: entitlement check failed closed for user %s: %v", userID, entErr)
+		return nil, status.Error(codes.Internal, "failed to verify plan limits")
+	}
+	if !entitlements.CanCreatePlanAdjustment {
+		return nil, status.Error(codes.FailedPrecondition, "PLAN_LIMIT_REACHED:plan_adjustments:plan_adjustments")
 	}
 
 	var goalID, habitID uuid.NullUUID
@@ -107,42 +112,46 @@ func (l *CreatePlanAdjustmentSuggestionLogic) CreatePlanAdjustmentSuggestion(in 
 		}
 	}
 
-	suggestion, err := l.svcCtx.Repo.PlanAdjustmentSuggestions.CreatePlanAdjustmentSuggestion(ctx, db.CreatePlanAdjustmentSuggestionParams{
-		UserID:         userID,
-		GoalID:         goalID,
-		HabitID:        habitID,
-		Source:         (in.Source),
-		AdjustmentType: (in.AdjustmentType),
-		Reason:         in.Reason,
-		Suggestion:     in.Suggestion,
-		Metadata:       metadata,
+	var suggestion db.PlanAdjustment
+	err = l.svcCtx.RunInTx(ctx, userID.String(), func(txRepo *repository.Repository) error {
+		var txErr error
+		suggestion, txErr = txRepo.PlanAdjustmentSuggestions.CreatePlanAdjustmentSuggestion(ctx, db.CreatePlanAdjustmentSuggestionParams{
+			UserID:         userID,
+			GoalID:         goalID,
+			HabitID:        habitID,
+			Source:         (in.Source),
+			AdjustmentType: (in.AdjustmentType),
+			Reason:         in.Reason,
+			Suggestion:     in.Suggestion,
+			Metadata:       metadata,
+		})
+		if txErr != nil {
+			return txErr
+		}
+		habitIDStr := ""
+		if habitID.Valid {
+			habitIDStr = habitID.UUID.String()
+		}
+		goalIDStr := ""
+		if goalID.Valid {
+			goalIDStr = goalID.UUID.String()
+		}
+		env, envErr := events.NewEnvelope(events.TypePlanAdjustmentCreated, events.PlanAdjustmentCreated{
+			UserID:         userID.String(),
+			SuggestionID:   suggestion.ID.String(),
+			HabitID:        habitIDStr,
+			GoalID:         goalIDStr,
+			Source:         in.Source,
+			AdjustmentType: in.AdjustmentType,
+		})
+		if envErr != nil {
+			return fmt.Errorf("build plan_adjustment_created envelope: %w", envErr)
+		}
+		return txRepo.EventOutbox.Enqueue(ctx, env)
 	})
 	if err != nil {
 		l.Errorf("failed to create plan adjustment suggestion: %v", err)
 		return nil, status.Error(codes.Internal, "failed to create plan adjustment suggestion")
-	}
-
-	// Fire-and-forget publish plan_adjustment_created event for analytics.
-	if l.svcCtx.EventsPub != nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypePlanAdjustmentCreated, events.PlanAdjustmentCreated{
-				UserID:         userID.String(),
-				SuggestionID:   suggestion.ID.String(),
-				HabitID:        habitID.UUID.String(),
-				GoalID:         goalID.UUID.String(),
-				Source:         in.Source,
-				AdjustmentType: in.AdjustmentType,
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish plan_adjustment_created event: %v", err)
-			}
-		}()
 	}
 
 	return &client.CreatePlanAdjustmentSuggestionResponse{

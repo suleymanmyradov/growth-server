@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -136,19 +137,36 @@ type mockQuotaStore struct {
 	globalOK  bool
 	userErr   error
 	globalErr error
+
+	userTokens   atomic.Int64
+	voiceSeconds atomic.Int64
+	globalCost   atomic.Int64
 }
 
 func (m *mockQuotaStore) CheckUserQuota(_ context.Context, _ string, _ int64) (bool, error) {
 	return m.userOK, m.userErr
 }
-func (m *mockQuotaStore) UserDailyTokens(_ context.Context, _ string) (int64, error) {
-	return 0, nil
+func (m *mockQuotaStore) CheckUserVoiceQuota(_ context.Context, _ string, _ int64) (bool, error) {
+	return m.userOK, m.userErr
 }
-func (m *mockQuotaStore) IncrUserTokens(_ context.Context, _ string, _ int64) error { return nil }
+func (m *mockQuotaStore) IncrUserVoiceSeconds(_ context.Context, _ string, s int64) error {
+	m.voiceSeconds.Add(s)
+	return nil
+}
+func (m *mockQuotaStore) UserDailyTokens(_ context.Context, _ string) (int64, error) {
+	return m.userTokens.Load(), nil
+}
+func (m *mockQuotaStore) IncrUserTokens(_ context.Context, _ string, n int64) error {
+	m.userTokens.Add(n)
+	return nil
+}
 func (m *mockQuotaStore) CheckGlobalQuota(_ context.Context, _ int64) (bool, error) {
 	return m.globalOK, m.globalErr
 }
-func (m *mockQuotaStore) IncrGlobalCost(_ context.Context, _ int64) error { return nil }
+func (m *mockQuotaStore) IncrGlobalCost(_ context.Context, c int64) error {
+	m.globalCost.Add(c)
+	return nil
+}
 
 func TestCheckQuota_UserQuotaExceeded(t *testing.T) {
 	cfg := testConfig("test-key")
@@ -182,6 +200,22 @@ func TestCheckQuota_NoStore(t *testing.T) {
 	cl := c.(*client)
 	err = cl.checkQuota(context.Background(), Metadata{UserID: "user1"})
 	assert.NoError(t, err)
+}
+
+func TestCheckQuota_NoStoreWithCaps_FailsClosed(t *testing.T) {
+	// A configured cap without a quota store (e.g. RedisAddr unset, or a
+	// service that skipped wiring) must block, not become an unlimited path.
+	cfg := testConfig("test-key")
+	cfg.Quota.UserDailyTokenCap = 100
+	c, err := New(cfg)
+	require.NoError(t, err)
+
+	cl := c.(*client)
+	err = cl.checkQuota(context.Background(), Metadata{UserID: "user1"})
+	assert.ErrorIs(t, err, ErrQuotaExceeded)
+	var qe *QuotaError
+	require.ErrorAs(t, err, &qe)
+	assert.Equal(t, "quota_store_unavailable", qe.Limit)
 }
 
 func TestCheckQuota_StoreError_FailClosed(t *testing.T) {

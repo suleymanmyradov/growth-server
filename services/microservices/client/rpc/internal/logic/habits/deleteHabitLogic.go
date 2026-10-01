@@ -2,7 +2,7 @@ package habitslogic
 
 import (
 	"context"
-	"time"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 
@@ -21,6 +22,8 @@ type DeleteHabitLogic struct {
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 	logx.Logger
+	// testTxRunner is only set in tests to inject a no-op transaction runner.
+	testTxRunner pgxTxRunner
 }
 
 func NewDeleteHabitLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DeleteHabitLogic {
@@ -66,32 +69,26 @@ func (l *DeleteHabitLogic) DeleteHabit(in *client.DeleteHabitRequest) (*client.D
 		return nil, status.Error(codes.PermissionDenied, "access denied")
 	}
 
-	if err := l.svcCtx.Repo.Habits.DeleteHabit(ctx, habitID); err != nil {
+	// Delete + habit_deleted event commit together via the outbox.
+	err = runInTx(l.svcCtx, l.testTxRunner, ctx, existing.UserID.String(), func(txRepo *repository.Repository) error {
+		if txErr := txRepo.Habits.DeleteHabit(ctx, habitID); txErr != nil {
+			return txErr
+		}
+		env, envErr := events.NewEnvelope(events.TypeHabitDeleted, events.HabitDeleted{
+			UserID:  existing.UserID.String(),
+			HabitID: habitID.String(),
+		})
+		if envErr != nil {
+			return fmt.Errorf("envelope: %w", envErr)
+		}
+		return txRepo.EventOutbox.Enqueue(ctx, env)
+	})
+	if err != nil {
 		l.Errorf("Failed to delete habit: %v", err)
 		return nil, status.Error(codes.Internal, "failed to delete habit")
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, existing.UserID)
-
-	// Fire-and-forget publish habit_deleted event so notifications can update
-	// its local reminder_state read model (active_habit_count).
-	if l.svcCtx.EventsPub != nil {
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypeHabitDeleted, events.HabitDeleted{
-				UserID:  existing.UserID.String(),
-				HabitID: habitID.String(),
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish habit_deleted event: %v", err)
-			}
-		}()
-	}
 
 	return &client.DeleteHabitResponse{
 		Success: true,

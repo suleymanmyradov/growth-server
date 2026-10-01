@@ -1,27 +1,35 @@
 -- name: ListActivities :many
 -- NOTE: Previously unfiltered; now requires user_id to avoid full table scans on a 50GB table.
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListActivitiesByType :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1 AND type = $2
 ORDER BY created_at DESC
 LIMIT $3 OFFSET $4;
 
 -- name: GetActivity :one
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE id = $1;
 
 -- name: CreateActivity :one
 INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, type, title, description, metadata, created_at;
+RETURNING id, user_id, type, title, description, metadata, created_at, dedupe_key;
+
+-- name: CreateActivityDeduped :exec
+-- Idempotent insert: the partial unique index on dedupe_key makes a second
+-- insert with the same key a no-op, so retried writes can't create duplicate
+-- activity rows even when requests race (P3).
+INSERT INTO activities (type, title, description, metadata, user_id, dedupe_key)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING;
 
 -- name: DeleteActivity :exec
 DELETE FROM activities WHERE id = $1;
@@ -36,7 +44,7 @@ SELECT COUNT(*) FROM activities WHERE user_id = $1;
 SELECT COUNT(*) FROM activities WHERE user_id = $1 AND type = $2;
 
 -- name: GetActivityFeed :many
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
 ORDER BY created_at DESC
@@ -45,7 +53,7 @@ LIMIT $2 OFFSET $3;
 -- name: LogActivity :one
 INSERT INTO activities (type, title, description, metadata, user_id)
 VALUES ($1, $2, $3, $4, $5)
-RETURNING id, user_id, type, title, description, metadata, created_at;
+RETURNING id, user_id, type, title, description, metadata, created_at, dedupe_key;
 
 -- name: GetActivityStats :one
 SELECT
@@ -114,7 +122,7 @@ ORDER BY unlocked_at NULLS LAST;
 
 -- name: ListActivitiesByTypes :many
 -- Filter activities by multiple types in a single round-trip.
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
   AND type = ANY($2::text[])
@@ -134,7 +142,7 @@ ORDER BY day;
 -- name: ListActivitiesKeyset :many
 -- Keyset pagination: more efficient than OFFSET for deep pages.
 -- Pass last_created_at from previous page (or NULL for first page).
-SELECT id, user_id, type, title, description, metadata, created_at
+SELECT id, user_id, type, title, description, metadata, created_at, dedupe_key
 FROM activities
 WHERE user_id = $1
   AND ($2::timestamptz IS NULL OR created_at < $2)

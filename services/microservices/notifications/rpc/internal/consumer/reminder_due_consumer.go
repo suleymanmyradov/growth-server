@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
+	"github.com/suleymanmyradov/growth-server/pkg/events/outbox"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
 	"github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/delivery"
 	internalnotification "github.com/suleymanmyradov/growth-server/services/microservices/notifications/rpc/internal/notification"
@@ -25,10 +26,11 @@ type PushSender interface {
 	Send(ctx context.Context, userID uuid.UUID, payload delivery.Payload) (int, error)
 }
 
-// EventsPublisher publishes domain events to the growth.events topic. Used by
-// the coach_digest handler to publish CoachDigestRequested so the
-// ai-coach-consumer can generate the digest asynchronously. Nil means digest
-// reminders are logged and dropped (dev/test without Kafka).
+// EventsPublisher signals whether an events broker is configured. The
+// coach_digest handler writes CoachDigestRequested to the outbox table (inside
+// the dispatch transaction) instead of publishing directly; the svc-layer
+// relay performs the actual publish. Nil means digest reminders are logged and
+// dropped (dev/test without Kafka).
 type EventsPublisher interface {
 	Publish(ctx context.Context, env events.Envelope) error
 }
@@ -188,6 +190,27 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *reposito
 		return fmt.Errorf("get reminder state: %w", err)
 	}
 
+	now := h.clock.Now()
+
+	// Always enqueue the next occurrence BEFORE deciding whether to send, so
+	// the chain survives a skipped firing (P4). The only exception is the user
+	// explicitly disabling habit reminders — the preferences logic cancels the
+	// pending row and re-seeds on re-enable, so rescheduling here would fight
+	// that intent.
+	if rs.HabitReminders {
+		next, nerr := scheduler.NextOccurrence(now, rs.Timezone, rs.CheckInTime)
+		if nerr != nil {
+			logx.WithContext(ctx).Errorf("next occurrence: %v", nerr)
+		} else {
+			if _, err := repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
+				logx.WithContext(ctx).Errorf("enqueue next habit_reminder: %v", err)
+			}
+		}
+	}
+
+	// Skip the notification itself when there's nothing to check in on or the
+	// user turned habit reminders off. The chain is already rescheduled above,
+	// so it self-heals when a habit is added again.
 	if rs.ActiveHabitCount == 0 || !rs.HabitReminders {
 		return nil
 	}
@@ -195,18 +218,6 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *reposito
 	message := fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount)
 	if _, err := h.createNotification(ctx, repo, userID, "habit_reminder", "Time to check in", message, delivery.DestinationActivity, uuid.Nil, "", nil, false); err != nil {
 		return fmt.Errorf("create notification: %w", err)
-	}
-
-	now := h.clock.Now()
-
-	// Enqueue tomorrow's habit_reminder at user's check_in_time.
-	next, err := scheduler.NextOccurrence(now, rs.Timezone, rs.CheckInTime)
-	if err != nil {
-		logx.WithContext(ctx).Errorf("next occurrence: %v", err)
-	} else {
-		if _, err := repo.Reminders.Enqueue(ctx, userID, "habit_reminder", next, nil); err != nil {
-			logx.WithContext(ctx).Errorf("enqueue next habit_reminder: %v", err)
-		}
 	}
 
 	// Enqueue today's missed_check_in at now + 2h.
@@ -424,7 +435,10 @@ func (h *ReminderDueHandler) onCoachDigest(ctx context.Context, repo *repository
 	}
 	today := h.clock.Now().In(loc).Format("2006-01-02")
 
-	// Publish CoachDigestRequested so ai-coach-consumer generates the digest.
+	// Enqueue CoachDigestRequested into the notification_event_outbox so it
+	// commits atomically with the processed_events mark and can't be lost
+	// between commit and publish (P1). The svc-layer relay drains it to the
+	// broker; ai-coach-consumer generates the digest.
 	if h.eventsPub != nil {
 		env, err := events.NewEnvelope(events.TypeCoachDigestRequested, events.CoachDigestRequested{
 			UserID: userID.String(),
@@ -433,10 +447,14 @@ func (h *ReminderDueHandler) onCoachDigest(ctx context.Context, repo *repository
 		if err != nil {
 			return fmt.Errorf("build coach_digest envelope: %w", err)
 		}
-		if err := h.eventsPub.Publish(ctx, env); err != nil {
-			return fmt.Errorf("publish coach_digest event: %w", err)
+		eventID, eventType, payload, occurredAt, err := outbox.EnqueueParams(env)
+		if err != nil {
+			return fmt.Errorf("coach_digest outbox params: %w", err)
 		}
-		logx.WithContext(ctx).Infof("published coach_digest request: user=%s date=%s", userID, today)
+		if err := repo.EventOutbox.EnqueueEvent(ctx, eventID, eventType, payload, occurredAt.Time); err != nil {
+			return fmt.Errorf("enqueue coach_digest event: %w", err)
+		}
+		logx.WithContext(ctx).Infof("enqueued coach_digest request: user=%s date=%s", userID, today)
 	} else {
 		logx.WithContext(ctx).Infof("coach_digest reminder fired but no events publisher configured: user=%s", userID)
 	}

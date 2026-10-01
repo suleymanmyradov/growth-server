@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/email"
+	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/config"
 	"github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/internal/repository/db"
 )
@@ -105,6 +106,27 @@ func (m *MockTxRunner) Run(ctx context.Context, userID string, fn func(pgx.Tx) e
 	// the callback, which would panic with a nil tx. Tests that need to simulate
 	// a specific return value just configure the mock to return that error.
 	return m.Called(ctx, userID, fn).Error(0)
+}
+
+// noopTxRunner is a test-only transaction runner that calls fn directly
+// without a real database transaction. It passes a nil pgx.Tx — the logic's
+// runInTx seam returns svcCtx.Repo (mocks) whenever testTxRunner is set.
+type noopTxRunner struct{}
+
+func (noopTxRunner) Run(_ context.Context, _ string, fn func(pgx.Tx) error) error {
+	return fn(nil)
+}
+
+// ============================================
+// MockEventOutbox
+// ============================================
+
+type MockEventOutbox struct {
+	mock.Mock
+}
+
+func (m *MockEventOutbox) Enqueue(ctx context.Context, env events.Envelope) error {
+	return m.Called(ctx, env).Error(0)
 }
 
 // ============================================

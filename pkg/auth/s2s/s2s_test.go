@@ -2,48 +2,60 @@ package s2s
 
 import (
 	"context"
+	"io"
 	"strconv"
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
+const testSecret = "my-shared-secret-must-be-at-least-32-by"
+
 func TestSignAndVerify(t *testing.T) {
-	secret := "my-shared-secret-must-be-at-least-32-by"
 	method := "/service.Method"
+	bodyHash := "deadbeef"
 	ts := time.Now().Unix()
 
-	sig := Sign(secret, method, ts)
+	sig := Sign(testSecret, method, bodyHash, ts)
 	if sig == "" {
 		t.Fatal("expected non-empty signature")
 	}
 
-	if !Verify(secret, method, sig, ts, 5*time.Minute) {
+	if !Verify(testSecret, method, bodyHash, sig, ts, 5*time.Minute) {
 		t.Fatal("expected signature to verify")
 	}
 
 	// Wrong secret
-	if Verify("wrong-secret-must-be-at-least-32-by", method, sig, ts, 5*time.Minute) {
+	if Verify("wrong-secret-must-be-at-least-32-by", method, bodyHash, sig, ts, 5*time.Minute) {
 		t.Fatal("expected signature to fail with wrong secret")
 	}
 
 	// Wrong method
-	if Verify(secret, "/other.Method", sig, ts, 5*time.Minute) {
+	if Verify(testSecret, "/other.Method", bodyHash, sig, ts, 5*time.Minute) {
 		t.Fatal("expected signature to fail with wrong method")
+	}
+
+	// Wrong body hash — a replayed signature with a different body must fail.
+	if Verify(testSecret, method, "cafe", sig, ts, 5*time.Minute) {
+		t.Fatal("expected signature to fail with different body hash")
 	}
 
 	// Expired timestamp
 	oldTs := time.Now().Add(-10 * time.Minute).Unix()
-	oldSig := Sign(secret, method, oldTs)
-	if Verify(secret, method, oldSig, oldTs, 5*time.Minute) {
+	oldSig := Sign(testSecret, method, bodyHash, oldTs)
+	if Verify(testSecret, method, bodyHash, oldSig, oldTs, 5*time.Minute) {
 		t.Fatal("expected signature to fail with expired timestamp")
 	}
 
 	// Future timestamp
 	futureTs := time.Now().Add(10 * time.Minute).Unix()
-	futureSig := Sign(secret, method, futureTs)
-	if Verify(secret, method, futureSig, futureTs, 5*time.Minute) {
+	futureSig := Sign(testSecret, method, bodyHash, futureTs)
+	if Verify(testSecret, method, bodyHash, futureSig, futureTs, 5*time.Minute) {
 		t.Fatal("expected signature to fail with future timestamp")
 	}
 }
@@ -81,13 +93,169 @@ func TestMustValidate(t *testing.T) {
 	}
 }
 
-func TestUnaryClientInterceptorSign(t *testing.T) {
-	cfg := Config{Secret: "test-secret-must-be-at-least-32-bytes"}
-	// We can't easily call the interceptor directly without a real grpc.ClientConn,
-	// but we can test that Sign produces deterministic output.
-	sig := Sign(cfg.Secret, "/test.Method", 1234567890)
-	if sig == "" {
-		t.Fatal("expected non-empty signature from client interceptor logic")
+func TestHashRequestDeterministic(t *testing.T) {
+	req := wrapperspb.String("hello")
+	h1, err := HashRequest(req)
+	if err != nil {
+		t.Fatalf("HashRequest: %v", err)
+	}
+	h2, err := HashRequest(wrapperspb.String("hello"))
+	if err != nil {
+		t.Fatalf("HashRequest: %v", err)
+	}
+	if h1 != h2 {
+		t.Fatal("expected deterministic hash for equal proto messages")
+	}
+	h3, err := HashRequest(wrapperspb.String("world"))
+	if err != nil {
+		t.Fatalf("HashRequest: %v", err)
+	}
+	if h3 == h1 {
+		t.Fatal("expected different hash for different message")
+	}
+}
+
+func TestUnaryInterceptorsBodyHash(t *testing.T) {
+	cfg := Config{Secret: testSecret}
+	method := "/svc.Test/Method"
+	req := wrapperspb.String("payload")
+
+	// Run the client interceptor to produce signed metadata, then feed it to
+	// the server interceptor as incoming metadata.
+	clientInt := UnaryClientInterceptor(cfg)
+	var outgoingMD metadata.MD
+	invoker := func(ctx context.Context, _ string, _, _ interface{}, _ *grpc.ClientConn, _ ...grpc.CallOption) error {
+		md, _ := metadata.FromOutgoingContext(ctx)
+		outgoingMD = md
+		return nil
+	}
+	if err := clientInt(context.Background(), method, req, nil, nil, invoker); err != nil {
+		t.Fatalf("client interceptor: %v", err)
+	}
+	if len(outgoingMD.Get(mdServiceAuth)) == 0 || len(outgoingMD.Get(mdServiceAuthBody)) == 0 {
+		t.Fatal("expected auth + body hash metadata to be set")
+	}
+
+	serverInt := UnaryServerInterceptor(cfg)
+	handler := func(ctx context.Context, _ interface{}) (interface{}, error) {
+		return "ok", nil
+	}
+	ctx := metadata.NewIncomingContext(context.Background(), outgoingMD)
+	if _, err := serverInt(ctx, req, &grpc.UnaryServerInfo{FullMethod: method}, handler); err != nil {
+		t.Fatalf("server interceptor should accept valid signature: %v", err)
+	}
+
+	// Same signature, different body → replay must fail.
+	if _, err := serverInt(ctx, wrapperspb.String("tampered"), &grpc.UnaryServerInfo{FullMethod: method}, handler); err == nil {
+		t.Fatal("expected body hash mismatch to be rejected")
+	} else if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied, got %v", err)
+	}
+
+	// Missing metadata → fail.
+	if _, err := serverInt(context.Background(), req, &grpc.UnaryServerInfo{FullMethod: method}, handler); err == nil {
+		t.Fatal("expected missing metadata to be rejected")
+	}
+}
+
+type fakeServerStream struct {
+	grpc.ServerStream
+	ctx      context.Context
+	recvMsgs []interface{}
+	err      error
+	idx      int
+}
+
+func (f *fakeServerStream) Context() context.Context { return f.ctx }
+
+func (f *fakeServerStream) RecvMsg(m interface{}) error {
+	if f.idx >= len(f.recvMsgs) {
+		return io.EOF
+	}
+	src := f.recvMsgs[f.idx]
+	f.idx++
+	if s, ok := src.(*wrapperspb.StringValue); ok {
+		if d, ok := m.(*wrapperspb.StringValue); ok {
+			d.Value = s.Value
+			return nil
+		}
+	}
+	return f.err
+}
+
+func TestStreamServerInterceptor(t *testing.T) {
+	cfg := Config{Secret: testSecret}
+	method := "/svc.Test/StreamMethod"
+	req := wrapperspb.String("stream-request")
+
+	// Sign as the client interceptor would with a bound body.
+	bodyHash, err := HashRequest(req)
+	if err != nil {
+		t.Fatalf("HashRequest: %v", err)
+	}
+	ts := time.Now().Unix()
+	sig := Sign(cfg.Secret, method, bodyHash, ts)
+	md := metadata.Pairs(
+		mdServiceAuth, sig,
+		mdServiceAuthTs, strconv.FormatInt(ts, 10),
+		mdServiceAuthBody, bodyHash,
+	)
+
+	streamInt := StreamServerInterceptor(cfg)
+	handler := func(_ interface{}, ss grpc.ServerStream) error {
+		msg := &wrapperspb.StringValue{}
+		return ss.RecvMsg(msg)
+	}
+
+	// Bound body matches → handler's RecvMsg succeeds.
+	ss := &fakeServerStream{
+		ctx:      metadata.NewIncomingContext(context.Background(), md),
+		recvMsgs: []interface{}{wrapperspb.String("stream-request")},
+	}
+	if err := streamInt(nil, ss, &grpc.StreamServerInfo{FullMethod: method}, handler); err != nil {
+		t.Fatalf("expected bound stream to verify: %v", err)
+	}
+
+	// Bound body mismatch → RecvMsg fails with PermissionDenied.
+	ssBad := &fakeServerStream{
+		ctx:      metadata.NewIncomingContext(context.Background(), md),
+		recvMsgs: []interface{}{wrapperspb.String("different-request")},
+	}
+	if err := streamInt(nil, ssBad, &grpc.StreamServerInfo{FullMethod: method}, handler); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied on body mismatch, got %v", err)
+	}
+
+	// No signature at all → rejected before the handler runs.
+	ssNoAuth := &fakeServerStream{ctx: context.Background()}
+	if err := streamInt(nil, ssNoAuth, &grpc.StreamServerInfo{FullMethod: method}, handler); status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("expected PermissionDenied without metadata, got %v", err)
+	}
+
+	// Unbound signature (empty body hash) → signature verifies, no body check.
+	ts2 := time.Now().Unix()
+	sig2 := Sign(cfg.Secret, method, "", ts2)
+	mdUnbound := metadata.Pairs(mdServiceAuth, sig2, mdServiceAuthTs, strconv.FormatInt(ts2, 10))
+	ssUnbound := &fakeServerStream{
+		ctx:      metadata.NewIncomingContext(context.Background(), mdUnbound),
+		recvMsgs: []interface{}{wrapperspb.String("anything")},
+	}
+	if err := streamInt(nil, ssUnbound, &grpc.StreamServerInfo{FullMethod: method}, handler); err != nil {
+		t.Fatalf("expected unbound stream to verify signature only: %v", err)
+	}
+}
+
+func TestContextWithSigningBody(t *testing.T) {
+	req := wrapperspb.String("x")
+	ctx := ContextWithSigningBody(context.Background(), req)
+	got, ok := signingBodyFrom(ctx)
+	if !ok {
+		t.Fatal("expected signing body present")
+	}
+	if got != req {
+		t.Fatal("expected same request object")
+	}
+	if _, ok := signingBodyFrom(context.Background()); ok {
+		t.Fatal("expected no signing body on empty ctx")
 	}
 }
 
@@ -109,49 +277,4 @@ func TestShouldSkipValidation(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestVerifyWithMetadata(t *testing.T) {
-	secret := "test-secret-must-be-at-least-32-bytes"
-	method := "/test.Method"
-	ts := time.Now().Unix()
-	sig := Sign(secret, method, ts)
-
-	// Valid metadata
-	md := metadata.Pairs(mdServiceAuth, sig, mdServiceAuthTs, strconv.FormatInt(ts, 10))
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	if !verifyWithContext(ctx, secret, method) {
-		t.Fatal("expected verification to succeed with valid metadata")
-	}
-
-	// Missing metadata
-	emptyCtx := metadata.NewIncomingContext(context.Background(), metadata.MD{})
-	if verifyWithContext(emptyCtx, secret, method) {
-		t.Fatal("expected verification to fail with missing metadata")
-	}
-
-	// Wrong signature
-	wrongMd := metadata.Pairs(mdServiceAuth, "wrong-sig", mdServiceAuthTs, strconv.FormatInt(ts, 10))
-	wrongCtx := metadata.NewIncomingContext(context.Background(), wrongMd)
-	if verifyWithContext(wrongCtx, secret, method) {
-		t.Fatal("expected verification to fail with wrong signature")
-	}
-}
-
-// Helper to test verification logic without full interceptor
-func verifyWithContext(ctx context.Context, secret, method string) bool {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return false
-	}
-	sigs := md.Get(mdServiceAuth)
-	tss := md.Get(mdServiceAuthTs)
-	if len(sigs) == 0 || len(tss) == 0 {
-		return false
-	}
-	ts, err := strconv.ParseInt(tss[0], 10, 64)
-	if err != nil {
-		return false
-	}
-	return Verify(secret, method, sigs[0], ts, 5*time.Minute)
 }

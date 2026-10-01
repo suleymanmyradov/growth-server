@@ -14,6 +14,8 @@ const (
 	EventSubscriptionUpdated  = "subscription.updated"
 	EventSubscriptionCanceled = "subscription.canceled"
 	EventSubscriptionPastDue  = "subscription.past_due"
+	EventAdjustmentCreated    = "adjustment.created"
+	EventAdjustmentUpdated    = "adjustment.updated"
 )
 
 // Envelope is the wrapper Paddle puts around every webhook notification.
@@ -66,6 +68,16 @@ func (e *Envelope) Subscription() (*Subscription, error) {
 		return nil, fmt.Errorf("paddle: decode subscription data: %w", err)
 	}
 	return &sub, nil
+}
+
+// Adjustment decodes Data as an adjustment entity. Valid for adjustment.*
+// events (refunds, credits, chargebacks).
+func (e *Envelope) Adjustment() (*Adjustment, error) {
+	var adj Adjustment
+	if err := json.Unmarshal(e.Data, &adj); err != nil {
+		return nil, fmt.Errorf("paddle: decode adjustment data: %w", err)
+	}
+	return &adj, nil
 }
 
 // UserID extracts custom_data.user_id from the raw event data — the internal
@@ -265,4 +277,59 @@ func (s *Subscription) PriceID() string {
 		return ""
 	}
 	return s.Items[0].Price.ID
+}
+
+// Adjustment is a Paddle adjustment entity — a post-billing action on a
+// transaction (refund, credit, chargeback, and their reversals). Carried in
+// adjustment.* webhook events. Only fields we consume are modeled.
+type Adjustment struct {
+	// ID is the Paddle adjustment ID (adj_...).
+	ID string `json:"id"`
+	// Action is credit|refund|chargeback|chargeback_reverse|
+	// chargeback_warning|chargeback_warning_reverse|credit_reverse.
+	Action string `json:"action"`
+	// Status is pending_approval|approved|rejected|reversed.
+	Status string `json:"status"`
+	// Type is full|partial; empty when Paddle omits it (treated as partial).
+	Type string `json:"type"`
+	// TransactionID is the adjusted transaction (txn_...).
+	TransactionID string `json:"transaction_id"`
+	// SubscriptionID is the subscription the adjustment belongs to; empty
+	// for one-off transactions.
+	SubscriptionID *string `json:"subscription_id"`
+	// CustomerID is the Paddle customer (ctm_...).
+	CustomerID string `json:"customer_id"`
+	// Reason is freeform context on why the adjustment was made.
+	Reason string `json:"reason"`
+	// CurrencyCode is the ISO 4217 adjustment currency.
+	CurrencyCode string `json:"currency_code"`
+	// CreatedAt / UpdatedAt are the entity timestamps.
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// IsMoneyBack reports whether the adjustment returns money to the customer:
+// an approved refund or chargeback. Credits don't move money back to the
+// customer (they sit on the Paddle balance) so they are excluded.
+func (a *Adjustment) IsMoneyBack() bool {
+	if a.Status != "approved" {
+		return false
+	}
+	switch a.Action {
+	case "refund", "chargeback":
+		return true
+	default:
+		return false
+	}
+}
+
+// IsReversal reports whether the adjustment reverses a previous
+// refund/credit/chargeback (dispute won, refund reversed).
+func (a *Adjustment) IsReversal() bool {
+	switch a.Action {
+	case "chargeback_reverse", "credit_reverse":
+		return true
+	default:
+		return false
+	}
 }

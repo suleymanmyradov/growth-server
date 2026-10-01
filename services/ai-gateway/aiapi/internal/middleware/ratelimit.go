@@ -20,9 +20,11 @@ func BuildRateLimiters(cfg RateLimitConfig) *RateLimiters {
 }
 
 // RateLimitMiddleware applies the ai-gateway's endpoint classification on top
-// of the shared rate-limit middleware.
-func RateLimitMiddleware(limiters *RateLimiters) func(http.HandlerFunc) http.HandlerFunc {
-	return sharedmw.RateLimitMiddleware(limiters, classifyAIGatewayEndpoint)
+// of the shared rate-limit middleware. verifier lets the AI bucket key on the
+// bearer token's subject — this middleware runs globally, before route-level
+// auth, so the principal is not yet in context.
+func RateLimitMiddleware(limiters *RateLimiters, verifier sharedmw.AccessTokenVerifier) func(http.HandlerFunc) http.HandlerFunc {
+	return sharedmw.RateLimitMiddleware(limiters, classifyAIGatewayEndpoint, verifier)
 }
 
 // classifyAIGatewayEndpoint maps a request to its rate-limit bucket. Every

@@ -32,6 +32,36 @@ func TestIsValidEmail(t *testing.T) {
 	}
 }
 
+func TestIsValidTimezone(t *testing.T) {
+	tests := []struct {
+		tz   string
+		want bool
+	}{
+		{"UTC", true},
+		{"Europe/Berlin", true},
+		{"America/New_York", true},
+		{"Asia/Tokyo", true},
+		{"Etc/GMT+5", true},
+		{"", false},
+		{"garbage", false},
+		{"Europe/Nowhere", false},
+		{"UTC+05:00", false}, // offsets aren't IANA names
+		{" Europe/Berlin", false},
+		{"Europe/Berlin ", false},
+		{"../../etc/passwd", false},
+		{"/absolute/path", false},
+		{string(make([]byte, 51)), false}, // over the varchar(50) column bound
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.tz, func(t *testing.T) {
+			if got := IsValidTimezone(tt.tz); got != tt.want {
+				t.Errorf("IsValidTimezone(%q) = %v, want %v", tt.tz, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestIsStrongPassword(t *testing.T) {
 	tests := []struct {
 		password string

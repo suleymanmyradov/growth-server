@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/meilisearch/meilisearch-go"
+	"github.com/redis/go-redis/v9"
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/ai/safety"
 	"github.com/suleymanmyradov/growth-server/pkg/events/userdeletion"
@@ -38,6 +39,9 @@ type ServiceContext struct {
 	// Transcribe/Synthesize RPCs then return Unavailable.
 	STT speech.STTClient
 	TTS speech.TTSClient
+	// QuotaStore backs the per-user voice (STT seconds) quota enforced by
+	// Transcribe. Nil when AI.Quota.RedisAddr is unset or AI is disabled.
+	QuotaStore ai.QuotaStore
 	// DeletionQ consumes user_deleted events and wipes curated memory facts
 	// (user_facts). Nil when UserDeletion.Topic is empty.
 	DeletionQ     queue.MessageQueue
@@ -46,15 +50,18 @@ type ServiceContext struct {
 
 func NewServiceContext(c config.Config) *ServiceContext {
 	var aiClient ai.Client
+	var quotaStore ai.QuotaStore
 	if c.AI.APIKey != "" {
 		opts := []ai.Option{}
 		if c.AI.Quota.RedisAddr != "" {
-			redisClient, err := redisutil.NewClient(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)
-			if err == nil {
-				opts = append(opts, ai.WithQuotaStore(ai.NewRedisQuotaStore(redisClient)))
-			} else {
-				logx.Errorf("redis unavailable; AI quotas disabled: %v", err)
-			}
+			// No startup ping: the client connects lazily. The quota store is
+			// always wired when configured — if Redis is down, enforcement
+			// fails closed at request time instead of silently disabling
+			// quotas for the process lifetime.
+			quotaStore = ai.NewRedisQuotaStore(redis.NewClient(redisutil.DefaultOpts(c.AI.Quota.RedisAddr, c.AI.Quota.RedisPassword, c.AI.Quota.RedisDB)))
+			opts = append(opts, ai.WithQuotaStore(quotaStore))
+		} else if c.AI.Quota.UserDailyTokenCap > 0 || c.AI.Quota.GlobalDailyCostCapUSD > 0 || c.AI.Quota.UserDailyVoiceSecondsCap > 0 {
+			logx.Errorf("AI quota caps configured but AI.Quota.RedisAddr is empty; quota checks fail closed")
 		}
 		client, err := ai.New(c.AI, opts...)
 		if err != nil {
@@ -116,15 +123,22 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		logx.Must(fmt.Errorf("failed to create speech clients: %w", err))
 	}
 
-	// user_deleted consumer: curated facts live only in this service, so the
-	// deletion cleanup belongs here (not in ai-coach-consumer, which owns the
-	// transcript tables). Disabled when UserDeletion.Topic is empty.
+	// user_deleted consumer: conversations, messages (cascading), and curated
+	// facts live in this service, so the deletion cleanup belongs here (the
+	// ai-coach-consumer only wipes its own ai_feedback/read-model tables).
+	// Disabled when UserDeletion.Topic is empty.
 	deletionQ, closeDeletion, err := userdeletion.NewQueue(c.UserDeletion, userdeletion.Handler{
 		Delete: func(ctx context.Context, userID uuid.UUID) error {
 			if queries == nil {
 				return errors.New("user deletion cleanup unavailable: postgres not configured")
 			}
-			return queries.ForgetAllUserFacts(ctx, userID)
+			if err := queries.ForgetAllUserFacts(ctx, userID); err != nil {
+				return fmt.Errorf("forget user facts: %w", err)
+			}
+			if err := queries.DeleteConversationsByUser(ctx, userID); err != nil {
+				return fmt.Errorf("delete conversations: %w", err)
+			}
+			return nil
 		},
 	})
 	if err != nil {
@@ -142,6 +156,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 		FactExtractor:   factExtractor,
 		STT:             speechClients.STT,
 		TTS:             speechClients.TTS,
+		QuotaStore:      quotaStore,
 		DeletionQ:       deletionQ,
 		closeDeletion:   closeDeletion,
 	}

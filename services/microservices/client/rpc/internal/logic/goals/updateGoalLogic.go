@@ -117,6 +117,16 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 		return nil, status.Error(codes.InvalidArgument, "numeric goals require a target value different from start value")
 	}
 
+	// Verify every linked habit belongs to the caller before the relink inside
+	// the transaction — otherwise a user could attach another user's habit and
+	// read its check-in pattern through this goal's computed progress.
+	habitIDs := parseHabitIDs(in.RelatedHabitIds)
+	if len(in.RelatedHabitIds) > 0 && len(habitIDs) > 0 {
+		if err := validateHabitOwnership(ctx, l.svcCtx.Repo.Habits, existing.UserID, habitIDs); err != nil {
+			return nil, err
+		}
+	}
+
 	// Backfill the remaining columns from the existing row when the request
 	// omits them — the UpdateGoal SQL writes every column unconditionally, so
 	// a partial update would otherwise blank title/description/category/due_date.
@@ -177,7 +187,6 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 			if hErr := txRepo.Goals.UnlinkAllGoalHabits(ctx, goalID); hErr != nil {
 				return fmt.Errorf("unlink old goal-habits: %w", hErr)
 			}
-			habitIDs := parseHabitIDs(in.RelatedHabitIds)
 			if len(habitIDs) > 0 {
 				if lErr := txRepo.Goals.LinkGoalHabitsBatch(ctx, goalID, habitIDs); lErr != nil {
 					return fmt.Errorf("link habits to goal: %w", lErr)
@@ -305,6 +314,26 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 				return fmt.Errorf("recompute goal progress: %w", rErr)
 			}
 		}
+
+		// goal_updated event goes into the outbox in this transaction — the
+		// notifications service uses it to reschedule the goal_deadline
+		// reminder, so it must not be lost between commit and publish.
+		deadlineAt := ""
+		if goal.DueDate.Valid {
+			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
+		}
+		env, envErr := events.NewEnvelope(events.TypeGoalUpdated, events.GoalUpdated{
+			UserID:     existing.UserID.String(),
+			GoalID:     goal.ID.String(),
+			Title:      goal.Title,
+			DeadlineAt: deadlineAt,
+		})
+		if envErr != nil {
+			return fmt.Errorf("build goal_updated envelope: %w", envErr)
+		}
+		if err := txRepo.EventOutbox.Enqueue(ctx, env); err != nil {
+			return fmt.Errorf("enqueue goal_updated event: %w", err)
+		}
 		return nil
 	})
 	if err != nil {
@@ -316,32 +345,6 @@ func (l *UpdateGoalLogic) UpdateGoal(in *client.UpdateGoalRequest) (*client.Upda
 	}
 
 	l.svcCtx.InvalidatePersonalizationContext(ctx, goal.UserID)
-
-	// Fire-and-forget publish goal_updated event so the notifications service
-	// can reschedule the goal_deadline reminder for the new deadline.
-	if l.svcCtx.EventsPub != nil {
-		deadlineAt := ""
-		if goal.DueDate.Valid {
-			deadlineAt = goal.DueDate.Time.Format(time.RFC3339)
-		}
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			env, err := events.NewEnvelope(events.TypeGoalUpdated, events.GoalUpdated{
-				UserID:     goal.UserID.String(),
-				GoalID:     goal.ID.String(),
-				Title:      goal.Title,
-				DeadlineAt: deadlineAt,
-			})
-			if err != nil {
-				logx.Errorf("envelope: %v", err)
-				return
-			}
-			if err := l.svcCtx.EventsPub.Publish(ctx, env); err != nil {
-				logx.Errorf("publish goal_updated event: %v", err)
-			}
-		}()
-	}
 
 	return &client.UpdateGoalResponse{
 		Goal: goalToProto(goal, relatedHabitIDs, milestones),

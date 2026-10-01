@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/jwt"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/events/userdeletion"
 	"github.com/suleymanmyradov/growth-server/pkg/speech"
@@ -15,7 +16,12 @@ type Config struct {
 	// ServiceAuth is the shared secret required on every incoming RPC call
 	// (enforced by the s2s server interceptor).
 	ServiceAuth s2s.Config `json:",optional"`
-	AI          ai.Config
+	// JWT is the verify-only ES256 keypair used to authenticate the propagated
+	// user token (the ai-gateway forwards the caller's bearer token). Required —
+	// every RPC is user-scoped and must resolve identity from the token, not
+	// from a request field.
+	JWT jwt.Config `json:",optional"`
+	AI  ai.Config
 	// Speech configures STT (dictate / live voice input) and TTS (live voice
 	// output). Optional: if APIKey is empty, both clients are nil and the
 	// Transcribe/Synthesize RPCs return Unavailable.

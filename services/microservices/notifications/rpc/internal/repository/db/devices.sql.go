@@ -116,6 +116,7 @@ SET
     timezone     = EXCLUDED.timezone,
     enabled      = true,
     last_seen_at = now()
+WHERE notification_devices.user_id = EXCLUDED.user_id
 RETURNING id, user_id, installation_id, provider, push_token, platform, app_id, environment, app_version, os_version, locale, timezone, enabled, last_seen_at, created_at, updated_at
 `
 
@@ -139,6 +140,10 @@ type UpsertDeviceParams struct {
 // Idempotent register/update: insert a new device or update the push token +
 // metadata for an existing (installation_id, user_id) pair. Token rotation is
 // handled by the UPDATE branch. enabled is reset to true on re-registration.
+// The WHERE clause refuses to reassign an installation_id that already belongs
+// to a different user: the update is skipped and RETURNING yields zero rows,
+// which the logic layer maps to an ownership error instead of silently letting
+// anyone who knows an installation_id take over its push registration.
 func (q *Queries) UpsertDevice(ctx context.Context, arg UpsertDeviceParams) (NotificationDevice, error) {
 	row := q.db.QueryRow(ctx, upsertDevice,
 		arg.UserID,

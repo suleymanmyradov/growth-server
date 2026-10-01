@@ -44,3 +44,15 @@ func (r *DeliveriesRepo) MarkFailed(ctx context.Context, id uuid.UUID, code, mes
 func (r *DeliveriesRepo) Retry(ctx context.Context, id uuid.UUID, next time.Time, code, message string) error {
 	return r.db.RetryNotificationDelivery(ctx, id, pgtype.Timestamptz{Time: next, Valid: true}, &code, &message)
 }
+
+// Defer reschedules a delivery without consuming a send attempt (quiet-hours
+// deferral).
+func (r *DeliveriesRepo) Defer(ctx context.Context, id uuid.UUID, next time.Time, code, message string) error {
+	return r.db.DeferNotificationDelivery(ctx, id, pgtype.Timestamptz{Time: next, Valid: true}, &code, &message)
+}
+
+// CountPushesSentOnDate returns how many push deliveries were sent on the
+// user's local calendar date (backs the 5/day push cap).
+func (r *DeliveriesRepo) CountPushesSentOnDate(ctx context.Context, userID uuid.UUID, localDate time.Time, timezone string) (int64, error) {
+	return r.db.CountPushDeliveriesSentOnDate(ctx, userID, pgtype.Date{Time: localDate, Valid: true}, timezone)
+}

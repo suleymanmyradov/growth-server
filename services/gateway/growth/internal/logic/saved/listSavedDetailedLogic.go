@@ -90,7 +90,7 @@ func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp
 			articleWg.Add(1)
 			go func(id string) {
 				defer articleWg.Done()
-				articleResp, err := l.svcCtx.ClientRpc.Articles.GetArticle(l.ctx, &pbclient.GetArticleRequest{ArticleId: id})
+				articleResp, err := l.svcCtx.ClientRpc.Articles.GetArticle(l.ctx, &pbclient.GetArticleRequest{ArticleId: id, Status: "published"})
 				if err != nil || articleResp == nil {
 					return
 				}

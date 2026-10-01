@@ -107,10 +107,47 @@ service adminapi {
 )
 service adminapi {
 	@handler AuthLogin
-	post /auth/login (LoginRequest) returns (AuthResponse)
+	post /auth/login (LoginRequest) returns (LoginResponse)
 
 	@handler AuthRefresh
 	post /auth/refresh (RefreshTokenRequest) returns (AuthResponse)
+
+	@handler AuthMfaVerify
+	post /auth/mfa/verify (MfaVerifyRequest) returns (AuthResponse)
+}
+
+// MFA setup/confirm are pre-auth endpoints: they accept either a normal admin
+// JWT (optional enrollment while already logged in) or an enroll-purpose mfa
+// ticket in the X-Mfa-Ticket header (forced enrollment at login when
+// Mfa.Required is on). See internal/middleware/mfaauth.go.
+@server (
+	prefix:     /api/v1/admin
+	group:      auth
+	middleware: MfaAuth
+	tags:       "Admin Auth"
+)
+service adminapi {
+	@handler AuthMfaSetup
+	post /auth/mfa/setup returns (MfaSetupResponse)
+
+	@handler AuthMfaConfirm
+	post /auth/mfa/confirm (MfaConfirmRequest) returns (MfaConfirmResponse)
+}
+
+// Disabling MFA requires a full admin session plus password + a current TOTP
+// code, so a hijacked session alone cannot strip the second factor.
+@server (
+	prefix:     /api/v1/admin
+	group:      auth
+	middleware: Auth,AdminAuth
+	tags:       "Admin Auth"
+)
+service adminapi {
+	@handler AuthMfaStatus
+	get /auth/mfa/status returns (MfaStatusResponse)
+
+	@handler AuthMfaDisable
+	post /auth/mfa/disable (MfaDisableRequest) returns (EmptyResponse)
 }
 
 // Logout requires a valid access token: the session is revoked server-side so

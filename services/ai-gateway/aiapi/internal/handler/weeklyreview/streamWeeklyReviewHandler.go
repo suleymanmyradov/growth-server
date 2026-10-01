@@ -7,6 +7,7 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/ai"
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
+	"github.com/suleymanmyradov/growth-server/pkg/auth/s2s"
 	"github.com/suleymanmyradov/growth-server/pkg/httpx/errors"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/logic/weeklyreview"
 	"github.com/suleymanmyradov/growth-server/services/ai-gateway/aiapi/internal/sse"
@@ -95,10 +96,13 @@ func StreamWeeklyReviewHandler(svcCtx *svc.ServiceContext) http.HandlerFunc {
 			return
 		}
 
-		// Step 2: Open the ai-coach streaming RPC directly.
+		// Step 2: Open the ai-coach streaming RPC directly. The request is bound
+		// into the s2s signature via ContextWithSigningBody so the call cannot be
+		// replayed with a different body inside the timestamp window.
 		aiReq := weeklyreview.BuildWeeklyReviewAIRequest(prepResp.Data)
 		logx.WithContext(r.Context()).Infof("SSE stream: opening ai-coach stream for user=%s", p.UserID)
-		aiStream, err := svcCtx.AICoachRpc.AICoachService.StreamWeeklyReview(r.Context(), aiReq)
+		aiStream, err := svcCtx.AICoachRpc.AICoachService.StreamWeeklyReview(
+			s2s.ContextWithSigningBody(r.Context(), aiReq), aiReq)
 		if err != nil {
 			logx.WithContext(r.Context()).Errorf("SSE stream: ai-coach stream open failed after %v: %v", time.Since(streamStart), err)
 			errors.HandleGrpcError(w, err)
