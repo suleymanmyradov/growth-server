@@ -106,12 +106,14 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 		attempt++
 
 		// Per-attempt timeout: isolate each attempt so a slow first call
-		// doesn't starve retries of their own deadline budget.
+		// doesn't starve retries of their own deadline budget. When the
+		// caller set a deadline, grant each attempt at most half of what
+		// remains — a hung provider must not consume the whole budget and
+		// leave nothing for the retries/fallbacks sharing this context.
 		perAttemptTimeout := c.cfg.DefaultTimeout
 		if deadline, ok := ctx.Deadline(); ok {
-			remaining := time.Until(deadline)
-			if remaining > 0 && remaining < perAttemptTimeout {
-				perAttemptTimeout = remaining
+			if remaining := time.Until(deadline); remaining > 0 && remaining/2 < perAttemptTimeout {
+				perAttemptTimeout = remaining / 2
 			}
 		}
 		attemptCtx, cancel := context.WithTimeout(ctx, perAttemptTimeout)
@@ -131,6 +133,12 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 			if err == nil {
 				return true
 			}
+			// Our per-attempt cap fired while the caller's deadline is still
+			// alive — a provider that hangs its granted budget is failing,
+			// not merely busy, so let it count toward the breaker.
+			if attemptCtx.Err() == context.DeadlineExceeded && ctx.Err() == nil {
+				return false
+			}
 			// Retryable errors are "acceptable" — the breaker should NOT
 			// count them as failures.
 			return isRetryable(err)
@@ -143,6 +151,12 @@ func (c *client) withRetry(ctx context.Context, modelID string, fn retryFn) erro
 		}
 
 		if lastErr != nil {
+			// Our per-attempt cap fired — don't retry the same model on the
+			// caller's shrinking deadline; move down the fallback chain.
+			if attemptCtx.Err() == context.DeadlineExceeded && ctx.Err() == nil {
+				logx.WithContext(ctx).Infof("ai: attempt budget exhausted for model %s: %v", modelID, lastErr)
+				return struct{}{}, backoff.Permanent(fmt.Errorf("ai: attempt timed out for model %s: %w", modelID, lastErr))
+			}
 			// If the provider included an explicit retry delay (e.g. Google
 			// AI Studio's 429 "Please retry in 35s"), honor it for the next
 			// backoff instead of the exponential interval.
