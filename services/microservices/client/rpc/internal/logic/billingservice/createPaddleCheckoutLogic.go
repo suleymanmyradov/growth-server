@@ -75,13 +75,17 @@ func (l *CreatePaddleCheckoutLogic) CreatePaddleCheckout(in *client.CreatePaddle
 		return nil, status.Errorf(codes.Internal, "lookup subscription: %v", err)
 	}
 
+	// First-time buyers have no ctm_ id yet — the gateway-supplied verified
+	// email lets the Paddle client find or create the customer so checkout
+	// pre-fills it instead of asking. Ignored once a customer ID is stored.
 	txn, err := l.svcCtx.PaddleClient.CreateTransaction(ctx, paddle.CreateTransactionParams{
-		Items:       []paddle.TransactionItemParam{{PriceID: priceID, Quantity: 1}},
-		CustomerID:  customerID,
-		UserID:      userID.String(),
-		CheckoutURL: in.CheckoutUrl,
-		SuccessURL:  in.SuccessUrl,
-		CancelURL:   in.CancelUrl,
+		Items:         []paddle.TransactionItemParam{{PriceID: priceID, Quantity: 1}},
+		CustomerID:    customerID,
+		CustomerEmail: strings.TrimSpace(in.CustomerEmail),
+		UserID:        userID.String(),
+		CheckoutURL:   in.CheckoutUrl,
+		SuccessURL:    in.SuccessUrl,
+		CancelURL:     in.CancelUrl,
 	})
 	if err != nil {
 		l.Errorf("Paddle CreateTransaction failed for user %s: %v", userID, err)

@@ -1532,6 +1532,10 @@ message CreatePaddleCheckoutRequest {
   string checkoutUrl = 2;
   string successUrl = 3;
   string cancelUrl = 4;
+  // customerEmail is the user's verified email, resolved by the gateway from
+  // auth. Used only to pre-fill checkout for first-time buyers; the payment is
+  // still bound to the user via paddle_checkouts. Empty → Paddle asks for it.
+  string customerEmail = 5;
 }
 
 message CreatePaddleCheckoutResponse {
