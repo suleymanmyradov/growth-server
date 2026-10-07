@@ -44,7 +44,7 @@ svc_vars() {
     search-sync)        echo "MEILI_MASTER_KEY" ;;
     analytics-consumer) echo "" ;;
     gateway)            echo "REDIS_PASSWORD SERVICE_AUTH_SECRET" ;;
-    adminway)           echo "ADMIN_JWT_PRIVATE_KEY REDIS_PASSWORD SERVICE_AUTH_SECRET" ;;
+    adminway)           echo "ADMIN_JWT_PRIVATE_KEY ADMIN_MFA_ENCRYPTION_KEY REDIS_PASSWORD SERVICE_AUTH_SECRET" ;;
     *) echo "" ;;
   esac
 }
