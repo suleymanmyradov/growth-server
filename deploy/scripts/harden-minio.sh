@@ -45,9 +45,10 @@ echo "==> Enforcing scoped anonymous policy on $BUCKET (articles/* download only
 
 echo "==> Verifying the policy round-trips"
 # A failed/silent apply must not pass: the policy must contain the
-# articles/* download grant and no bucket-wide grant.
+# articles/* download grant and no bucket-wide grant. mc renders the prefix
+# grant's resource as arn:aws:s3:::<bucket>/articles* (no slash before *).
 policy=$("${COMPOSE[@]}" exec -T minio mc anonymous get-json local/"$BUCKET")
-if ! printf '%s' "$policy" | tr -d '[:space:]' | grep -q "s3:::$BUCKET/articles/"; then
+if ! printf '%s' "$policy" | tr -d '[:space:]' | grep -q "s3:::$BUCKET/articles"; then
   echo "!! Anonymous policy on $BUCKET does not grant articles/* download — refusing to continue:" >&2
   echo "$policy" >&2
   exit 1
