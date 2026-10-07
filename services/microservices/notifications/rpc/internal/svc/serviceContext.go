@@ -156,7 +156,7 @@ func NewServiceContext(c config.Config) *ServiceContext {
 			panic(fmt.Errorf("create email sender: %w", err))
 		}
 	}
-	deliveryWorker := delivery.NewWorker(repo, pushSender, emailSender, c.Email.FrontendBaseURL, c.Email.APIBaseURL, unsubscribeSecret)
+	deliveryWorker := delivery.NewWorker(repo, pushSender, emailSender, c.Email.FrontendBaseURL, c.Email.APIBaseURL, unsubscribeSecret, c.Email.ReminderEmailsEnabled)
 
 	eventsHandler := consumer.NewEventsHandler(repo, reminderPub, nil, txRunner, dlqPub)
 	reminderDueHandler := consumer.NewReminderDueHandler(repo, nil, txRunner, dlqPub, pushSender, eventsPub)

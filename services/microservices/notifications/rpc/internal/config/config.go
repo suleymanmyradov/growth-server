@@ -52,7 +52,12 @@ type Config struct {
 		// UnsubscribeSecret signs the RFC 8058 tokens embedded in
 		// List-Unsubscribe URLs. Falls back to ServiceAuth.Secret when empty.
 		UnsubscribeSecret string `json:",optional" secret:"true"`
-		Enabled           bool   `json:",optional,default=false"`
+		// ReminderEmailsEnabled is the kill switch for reminder emails
+		// (habit reminders, missed check-ins, streak warnings, weekly reviews,
+		// goal deadlines). Flip to false to stop reminder emails without a
+		// code change; in-app notifications are unaffected.
+		ReminderEmailsEnabled bool `json:",optional,default=true"`
+		Enabled               bool `json:",optional,default=false"`
 	}
 	JWT         jwt.Config `json:",optional"`
 	ServiceAuth s2s.Config `json:",optional"`

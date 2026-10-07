@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"net/url"
 	"strings"
 	"time"
 
@@ -30,27 +31,88 @@ const (
 	quietHoursStartHour = 21
 	quietHoursEndHour   = 8
 	maxDailyPushes      = 5
+
+	// At most maxDailyEmails emails reach a user per local day. Reminder
+	// emails fire on a fixed schedule (reminder → missed check-in +2h →
+	// streak warning 20:00), so send order is already the priority order;
+	// suppressed emails don't consume the budget.
+	maxDailyEmails = 2
 )
 
-type Worker struct {
-	repo              *repository.Repository
-	push              *Sender
-	email             email.Sender
-	frontendBaseURL   string
-	apiBaseURL        string
-	unsubscribeSecret string
-	interval          time.Duration
+// reminderEmailTypes are the notification types produced by the reminder.due
+// consumer — the emails gated by the Email.ReminderEmailsEnabled kill switch.
+var reminderEmailTypes = map[string]bool{
+	"habit_reminder":  true,
+	"missed_check_in": true,
+	"streak_warning":  true,
+	"weekly_review":   true,
+	"goal_deadline":   true,
+	"encouragement":   true,
 }
 
-func NewWorker(repo *repository.Repository, push *Sender, emailSender email.Sender, frontendBaseURL, apiBaseURL, unsubscribeSecret string) *Worker {
+// staleWhenCheckedIn are reminder types that are wrong once the user has
+// already checked in today. Re-checked at delivery time because a retried
+// email can arrive hours after the notification was created.
+var staleWhenCheckedIn = map[string]bool{
+	"habit_reminder":  true,
+	"missed_check_in": true,
+}
+
+// capExemptEmailTypes are weekly or one-off emails the daily cap must not
+// consume: the Sunday "weekly review is ready" mail is the main reason to
+// come back each week (and a Pro feature), and goal deadlines are rare. The
+// cap exists to bound the three daily nudges (habit reminder, missed
+// check-in, streak warning), not these.
+var capExemptEmailTypes = map[string]bool{
+	"weekly_review": true,
+	"goal_deadline": true,
+}
+
+// emailSuppression returns the suppression code and message for an email that
+// must not be sent now, or empty strings when it may proceed. Checks run in
+// priority order: config kill switch, stale reminder, night-time drop, then
+// the daily cap (which applies to every email except capExemptEmailTypes).
+func emailSuppression(notifType string, checkedIn, quietHours bool, emailsSentToday int64, reminderEmailsEnabled bool) (string, string) {
+	if !reminderEmailsEnabled && reminderEmailTypes[notifType] {
+		return "reminder_emails_disabled", "reminder emails disabled in config"
+	}
+	if staleWhenCheckedIn[notifType] && checkedIn {
+		return "already_checked_in", "user already checked in today"
+	}
+	if notifType == "missed_check_in" && quietHours {
+		return "quiet_hours", "missed check-in email during quiet hours"
+	}
+	if emailsSentToday >= maxDailyEmails && !capExemptEmailTypes[notifType] {
+		return "daily_cap", "daily email cap reached"
+	}
+	return "", ""
+}
+
+type Worker struct {
+	repo                  *repository.Repository
+	push                  *Sender
+	email                 email.Sender
+	frontendBaseURL       string
+	apiBaseURL            string
+	unsubscribeSecret     string
+	reminderEmailsEnabled bool
+	interval              time.Duration
+}
+
+// NewWorker builds the delivery worker. reminderEmailsEnabled is the
+// Email.ReminderEmailsEnabled config flag: when false, email deliveries for
+// reminder-type notifications are suppressed (the in-app notification row is
+// unaffected).
+func NewWorker(repo *repository.Repository, push *Sender, emailSender email.Sender, frontendBaseURL, apiBaseURL, unsubscribeSecret string, reminderEmailsEnabled bool) *Worker {
 	return &Worker{
-		repo:              repo,
-		push:              push,
-		email:             emailSender,
-		frontendBaseURL:   strings.TrimRight(frontendBaseURL, "/"),
-		apiBaseURL:        strings.TrimRight(apiBaseURL, "/"),
-		unsubscribeSecret: unsubscribeSecret,
-		interval:          5 * time.Second,
+		repo:                  repo,
+		push:                  push,
+		email:                 emailSender,
+		frontendBaseURL:       strings.TrimRight(frontendBaseURL, "/"),
+		apiBaseURL:            strings.TrimRight(apiBaseURL, "/"),
+		unsubscribeSecret:     unsubscribeSecret,
+		reminderEmailsEnabled: reminderEmailsEnabled,
+		interval:              5 * time.Second,
 	}
 }
 
@@ -113,14 +175,7 @@ func (w *Worker) deliver(ctx context.Context, item db.NotificationDelivery) erro
 
 		// User-local time drives quiet hours and the daily cap. Users without
 		// a reminder_state row fall back to UTC.
-		loc := time.UTC
-		if w.repo.ReminderState != nil {
-			if rs, rsErr := w.repo.ReminderState.Get(ctx, item.UserID); rsErr == nil && rs.Timezone != "" {
-				if l, lErr := time.LoadLocation(rs.Timezone); lErr == nil {
-					loc = l
-				}
-			}
-		}
+		loc, _ := w.userLocal(ctx, item.UserID)
 
 		// Quiet hours (21:00–08:00 local): defer to 08:00 — do not drop and do
 		// not consume a send attempt.
@@ -165,6 +220,21 @@ func (w *Worker) deliver(ctx context.Context, item db.NotificationDelivery) erro
 		if w.email == nil {
 			return w.repo.Deliveries.MarkSuppressed(ctx, item.ID, "email_unconfigured", "email provider unavailable")
 		}
+
+		// Reminder-email policy runs in the user's local time and check-in
+		// state. Unlike pushes, nothing is deferred — an email that arrives
+		// late is suppressed instead (the in-app row already exists).
+		loc, rs := w.userLocal(ctx, item.UserID)
+		now := time.Now()
+		_, quiet := quietHoursDeferral(now, loc)
+		sentToday, err := w.repo.Deliveries.CountEmailsSentOnDate(ctx, item.UserID, now.In(loc), loc.String())
+		if err != nil {
+			return fmt.Errorf("count emails sent today: %w", err)
+		}
+		if code, message := emailSuppression(n.Type, checkedInToday(rs, now), quiet, sentToday, w.reminderEmailsEnabled); code != "" {
+			return w.repo.Deliveries.MarkSuppressed(ctx, item.ID, code, message)
+		}
+
 		recipient, err := w.repo.Recipients.Get(ctx, item.UserID)
 		if err != nil {
 			if err == pgx.ErrNoRows {
@@ -192,6 +262,41 @@ func (w *Worker) deliver(ctx context.Context, item db.NotificationDelivery) erro
 	default:
 		return w.repo.Deliveries.MarkFailed(ctx, item.ID, "invalid_channel", "unsupported delivery channel")
 	}
+}
+
+// userLocal resolves the user's timezone and reminder state for delivery-time
+// policy checks. Falls back to UTC and nil state when no reminder_state row
+// exists or the timezone is unparseable.
+func (w *Worker) userLocal(ctx context.Context, userID uuid.UUID) (*time.Location, *db.ReminderState) {
+	loc := time.UTC
+	var rs *db.ReminderState
+	if w.repo.ReminderState != nil {
+		if state, err := w.repo.ReminderState.Get(ctx, userID); err == nil {
+			rs = &state
+			if state.Timezone != "" {
+				if l, lErr := time.LoadLocation(state.Timezone); lErr == nil {
+					loc = l
+				}
+			}
+		}
+	}
+	return loc, rs
+}
+
+// checkedInToday reports whether the user's reminder state shows a check-in
+// on today's date in their timezone. Nil state means unknown — treated as not
+// checked in.
+func checkedInToday(rs *db.ReminderState, now time.Time) bool {
+	if rs == nil || !rs.LastCheckInDate.Valid || rs.CheckedInCountToday == 0 {
+		return false
+	}
+	loc := time.UTC
+	if rs.Timezone != "" {
+		if l, err := time.LoadLocation(rs.Timezone); err == nil {
+			loc = l
+		}
+	}
+	return rs.LastCheckInDate.Time.Format("2006-01-02") == now.In(loc).Format("2006-01-02")
 }
 
 // quietHoursDeferral reports whether `now` falls inside the user's local quiet
@@ -272,15 +377,24 @@ func (w *Worker) unsubscribeURL(userID uuid.UUID) string {
 }
 
 func (w *Worker) renderEmail(n db.GetNotificationRow, name string) (string, error) {
-	actionURL := w.frontendBaseURL
+	// The CTA's target is the screen where the action happens: home ("/") is
+	// the check-in screen, the weekly review lives under /progress, and goals
+	// are managed on /plan.
+	path := "/"
 	switch valueOrEmpty(n.Destination) {
 	case string(DestinationWeeklyReview):
-		actionURL += "/progress"
-	case string(DestinationActivity), string(DestinationHabitDetail):
-		actionURL += "/progress"
-	default:
-		actionURL += "/"
+		path = "/progress"
+	case string(DestinationGoalDetail):
+		path = "/plan"
 	}
+	// Email readers are usually not logged in on the device they tap — a bare
+	// app path would show the marketing landing page instead of the product.
+	// Route through /login?redirect=<path>: logged-out users get the login
+	// form and land on the target after signing in; logged-in users bounce
+	// straight to the target (the frontend proxy honors a same-origin
+	// redirect param instead of its /plan default).
+	actionURL := fmt.Sprintf("%s/login?redirect=%s&utm_source=email&utm_campaign=%s",
+		w.frontendBaseURL, url.QueryEscape(path), url.QueryEscape(n.Type))
 	const markup = `<div style="font-family:system-ui,sans-serif;max-width:560px;margin:auto;color:#17202a"><p>Hi {{.Name}},</p><h1 style="font-size:24px">{{.Title}}</h1><p style="line-height:1.6">{{.Message}}</p><p><a href="{{.ActionURL}}" style="display:inline-block;background:#0d9488;color:white;text-decoration:none;padding:12px 20px;border-radius:8px">Open Evolella</a></p><hr style="border:none;border-top:1px solid #e5e7eb;margin-top:32px"><p style="font-size:12px;color:#6b7280">You received this because email notifications are enabled on your account. <a href="{{.SettingsURL}}" style="color:#6b7280">Unsubscribe</a></p></div>`
 	t, err := template.New("notification").Parse(markup)
 	if err != nil {

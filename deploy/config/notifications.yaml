@@ -31,6 +31,10 @@ Email:
   APIKey: ${RESEND_API_KEY}
   FromAddress: ${EMAIL_FROM_ADDRESS}
   FrontendBaseURL: ${APP_URL}
+  # Kill switch for reminder emails (habit reminder, missed check-in, streak
+  # warning, weekly review, goal deadline). Set to false to stop them without
+  # a code change; in-app notifications are unaffected.
+  ReminderEmailsEnabled: true
   # Public API origin for List-Unsubscribe links (RFC 8058) — mail clients
   # POST here directly, so it must be the API domain, not APP_URL.
   APIBaseURL: ${API_BASE_URL}

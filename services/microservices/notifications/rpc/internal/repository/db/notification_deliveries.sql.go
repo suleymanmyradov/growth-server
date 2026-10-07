@@ -65,6 +65,24 @@ func (q *Queries) ClaimNotificationDeliveries(ctx context.Context, limit int32) 
 	return items, nil
 }
 
+const countEmailDeliveriesSentOnDate = `-- name: CountEmailDeliveriesSentOnDate :one
+SELECT count(*) FROM notification_deliveries
+WHERE user_id = $1
+  AND channel = 'email'
+  AND status = 'sent'
+  AND (sent_at AT TIME ZONE $3::text)::date = $2::date
+`
+
+// Emails sent on the user's local calendar date ($3 is the IANA timezone,
+// $2 the YYYY-MM-DD date). Backs the 2-emails-per-day cap — counts only
+// 'sent' rows so retries and suppressed deliveries don't consume the budget.
+func (q *Queries) CountEmailDeliveriesSentOnDate(ctx context.Context, userID uuid.UUID, column2 pgtype.Date, column3 string) (int64, error) {
+	row := q.db.QueryRow(ctx, countEmailDeliveriesSentOnDate, userID, column2, column3)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countPushDeliveriesSentOnDate = `-- name: CountPushDeliveriesSentOnDate :one
 SELECT count(*) FROM notification_deliveries
 WHERE user_id = $1

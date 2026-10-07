@@ -216,7 +216,7 @@ func (h *ReminderDueHandler) onHabitReminder(ctx context.Context, repo *reposito
 	}
 
 	message := fmt.Sprintf("You have %d habits to check in on today", rs.ActiveHabitCount)
-	if _, err := h.createNotification(ctx, repo, userID, "habit_reminder", "Time to check in", message, delivery.DestinationActivity, uuid.Nil, "", nil, false); err != nil {
+	if _, err := h.createNotification(ctx, repo, userID, "habit_reminder", "Time to check in", message, delivery.DestinationActivity, uuid.Nil, "", nil, true); err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
 
@@ -240,8 +240,11 @@ func (h *ReminderDueHandler) onMissedCheckIn(ctx context.Context, repo *reposito
 		return nil
 	}
 
-	message := "You missed your check-in today. Don't worry, tomorrow is a fresh start!"
-	if _, err := h.createNotification(ctx, repo, userID, "missed_check_in", "Missed check-in", message, delivery.DestinationActivity, uuid.Nil, "", nil, false); err != nil {
+	// Recovery framing, not a scolding — the message doubles as the email body.
+	// Sent ~2h after the reminder with most of the day left, so it must not
+	// give up on today (the 20:00 streak warning says the opposite).
+	message := "Still time today — a 2-minute check-in keeps your streak going."
+	if _, err := h.createNotification(ctx, repo, userID, "missed_check_in", "Missed check-in", message, delivery.DestinationActivity, uuid.Nil, "", nil, true); err != nil {
 		return fmt.Errorf("create notification: %w", err)
 	}
 

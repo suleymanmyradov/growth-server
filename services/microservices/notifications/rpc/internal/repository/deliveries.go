@@ -56,3 +56,9 @@ func (r *DeliveriesRepo) Defer(ctx context.Context, id uuid.UUID, next time.Time
 func (r *DeliveriesRepo) CountPushesSentOnDate(ctx context.Context, userID uuid.UUID, localDate time.Time, timezone string) (int64, error) {
 	return r.db.CountPushDeliveriesSentOnDate(ctx, userID, pgtype.Date{Time: localDate, Valid: true}, timezone)
 }
+
+// CountEmailsSentOnDate returns how many email deliveries were sent on the
+// user's local calendar date (backs the 2/day email cap).
+func (r *DeliveriesRepo) CountEmailsSentOnDate(ctx context.Context, userID uuid.UUID, localDate time.Time, timezone string) (int64, error) {
+	return r.db.CountEmailDeliveriesSentOnDate(ctx, userID, pgtype.Date{Time: localDate, Valid: true}, timezone)
+}

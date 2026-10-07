@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/suleymanmyradov/growth-server/pkg/events"
 	"github.com/suleymanmyradov/growth-server/pkg/notifications"
 	"github.com/suleymanmyradov/growth-server/pkg/postgres"
@@ -281,4 +284,66 @@ func TestScheduler_ClaimLeaseAck_Integration(t *testing.T) {
 			t.Fatal("reminder should not be pending after ack (mark sent)")
 		}
 	}
+}
+
+// countEmailDeliveries returns the number of email delivery rows for a user.
+func countEmailDeliveries(t *testing.T, pool *pgxpool.Pool, userID uuid.UUID) int64 {
+	t.Helper()
+	var n int64
+	require.NoError(t, pool.QueryRow(context.Background(),
+		`SELECT count(*) FROM notification_deliveries WHERE user_id = $1 AND channel = 'email'`, userID).Scan(&n))
+	return n
+}
+
+// TestReminderDueHandler_EmailFlagPerReminderType verifies which reminder
+// types enqueue an email delivery: habit_reminder and missed_check_in do,
+// encouragement stays in-app only. It also asserts the missed check-in copy
+// uses recovery framing rather than a scolding.
+func TestReminderDueHandler_EmailFlagPerReminderType(t *testing.T) {
+	pool := integrationDB(t)
+	defer pool.Close()
+
+	queries := db.New(pool)
+	repo := repository.NewRepository(queries)
+	ctx := context.Background()
+	userID := uuid.New()
+	defer func() {
+		_ = repo.Notifications.DeleteByUser(ctx, userID)
+		_ = repo.Reminders.DeleteByUser(ctx, userID)
+		_ = repo.ReminderState.Delete(ctx, userID)
+	}()
+
+	// Seed reminder state: one active habit, reminders enabled, UTC, 20:00.
+	require.NoError(t, repo.ReminderState.UpsertSettings(ctx, userID, "UTC",
+		pgtype.Time{Microseconds: 20 * 3600 * 1e6, Valid: true}, true))
+	require.NoError(t, repo.ReminderState.IncrementHabitCount(ctx, userID))
+
+	h := NewReminderDueHandler(repo, nil, nil, nil, nil, nil)
+
+	require.NoError(t, h.dispatch(ctx, repo, userID, events.ReminderDue{Type: "habit_reminder"}))
+	assert.EqualValues(t, 1, countEmailDeliveries(t, pool, userID), "habit_reminder should enqueue an email delivery")
+
+	// The user hasn't checked in today, so missed_check_in fires — by email too.
+	require.NoError(t, h.dispatch(ctx, repo, userID, events.ReminderDue{Type: "missed_check_in"}))
+	assert.EqualValues(t, 2, countEmailDeliveries(t, pool, userID), "missed_check_in should enqueue an email delivery")
+
+	// Encouragement stays in-app only.
+	require.NoError(t, h.dispatch(ctx, repo, userID, events.ReminderDue{Type: "encouragement"}))
+	assert.EqualValues(t, 2, countEmailDeliveries(t, pool, userID), "encouragement must not enqueue an email delivery")
+
+	// The missed check-in copy is a recovery message, not a scolding.
+	listed, err := repo.Notifications.ListNotificationsForUser(ctx, userID, 50, 0)
+	require.NoError(t, err)
+	var missed *db.ListNotificationsForUserRow
+	for i := range listed {
+		if listed[i].Type == "missed_check_in" {
+			missed = &listed[i]
+		}
+	}
+	require.NotNil(t, missed, "missed_check_in notification not found")
+	// Sent ~2h after the reminder with most of the day left — the copy must
+	// not give up on today (that would contradict the 20:00 streak warning).
+	assert.Contains(t, missed.Message, "Still time today")
+	assert.NotContains(t, missed.Message, "tomorrow")
+	assert.NotContains(t, missed.Message, "You missed")
 }

@@ -33,6 +33,24 @@ type AdminAuditLog struct {
 	CreatedAt  pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
+type AdminMfaBackupCode struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	CodeHash  string             `db:"code_hash" json:"code_hash"`
+	UsedAt    pgtype.Timestamptz `db:"used_at" json:"used_at"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
+type AdminMfaTicket struct {
+	ID        uuid.UUID          `db:"id" json:"id"`
+	UserID    uuid.UUID          `db:"user_id" json:"user_id"`
+	TokenHash string             `db:"token_hash" json:"token_hash"`
+	Purpose   string             `db:"purpose" json:"purpose"`
+	Attempts  int32              `db:"attempts" json:"attempts"`
+	ExpiresAt pgtype.Timestamptz `db:"expires_at" json:"expires_at"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
+}
+
 type AiCoachCheckIn struct {
 	CheckInID  uuid.UUID          `db:"check_in_id" json:"check_in_id"`
 	UserID     uuid.UUID          `db:"user_id" json:"user_id"`
@@ -322,13 +340,15 @@ type HabitTemplate struct {
 }
 
 type InternalUser struct {
-	ID           uuid.UUID          `db:"id" json:"id"`
-	Email        string             `db:"email" json:"email"`
-	PasswordHash string             `db:"password_hash" json:"password_hash"`
-	FullName     string             `db:"full_name" json:"full_name"`
-	Role         string             `db:"role" json:"role"`
-	CreatedAt    pgtype.Timestamptz `db:"created_at" json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	ID                  uuid.UUID          `db:"id" json:"id"`
+	Email               string             `db:"email" json:"email"`
+	PasswordHash        string             `db:"password_hash" json:"password_hash"`
+	FullName            string             `db:"full_name" json:"full_name"`
+	Role                string             `db:"role" json:"role"`
+	CreatedAt           pgtype.Timestamptz `db:"created_at" json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `db:"updated_at" json:"updated_at"`
+	TotpSecretEncrypted *string            `db:"totp_secret_encrypted" json:"totp_secret_encrypted"`
+	TotpEnabledAt       pgtype.Timestamptz `db:"totp_enabled_at" json:"totp_enabled_at"`
 }
 
 type Notification struct {

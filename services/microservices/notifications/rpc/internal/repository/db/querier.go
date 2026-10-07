@@ -35,6 +35,10 @@ type Querier interface {
 	ClaimNotificationDeliveries(ctx context.Context, limit int32) ([]NotificationDelivery, error)
 	ClaimNotificationEvent(ctx context.Context) (ClaimNotificationEventRow, error)
 	CompleteNotificationEvent(ctx context.Context, eventID uuid.UUID) error
+	// Emails sent on the user's local calendar date ($3 is the IANA timezone,
+	// $2 the YYYY-MM-DD date). Backs the 2-emails-per-day cap — counts only
+	// 'sent' rows so retries and suppressed deliveries don't consume the budget.
+	CountEmailDeliveriesSentOnDate(ctx context.Context, userID uuid.UUID, column2 pgtype.Date, column3 string) (int64, error)
 	CountNotificationsByUser(ctx context.Context, userID uuid.UUID) (int64, error)
 	// Pushes sent on the user's local calendar date ($3 is the IANA timezone,
 	// $2 the YYYY-MM-DD date). Backs the 5-pushes-per-day cap — counts only

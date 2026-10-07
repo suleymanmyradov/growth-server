@@ -71,3 +71,13 @@ WHERE user_id = $1
   AND channel = 'push'
   AND status = 'sent'
   AND (sent_at AT TIME ZONE $3::text)::date = $2::date;
+
+-- name: CountEmailDeliveriesSentOnDate :one
+-- Emails sent on the user's local calendar date ($3 is the IANA timezone,
+-- $2 the YYYY-MM-DD date). Backs the 2-emails-per-day cap — counts only
+-- 'sent' rows so retries and suppressed deliveries don't consume the budget.
+SELECT count(*) FROM notification_deliveries
+WHERE user_id = $1
+  AND channel = 'email'
+  AND status = 'sent'
+  AND (sent_at AT TIME ZONE $3::text)::date = $2::date;
