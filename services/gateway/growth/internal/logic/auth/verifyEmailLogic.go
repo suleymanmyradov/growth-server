@@ -45,7 +45,7 @@ func (l *VerifyEmailLogic) VerifyEmail(req *types.VerifyEmailRequest) (*types.Au
 		ExpiresIn:    rpcResp.GetExpiresIn(),
 	}
 	if rpcResp.GetUser() != nil {
-		resp.User = mapAuthUserToProfile(rpcResp.GetUser())
+		resp.User = mapAuthUserToProfile(l.ctx, l.svcCtx, rpcResp.GetUser())
 	}
 	return resp, nil
 }

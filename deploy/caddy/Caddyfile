@@ -63,12 +63,28 @@
 	}
 
 	# --- Object storage (MinIO, path-style /bucket/key) ---
-	# Serves ONLY SigV4-presigned URLs minted by the filemanager — presigned
-	# requests always carry X-Amz-Signature in the query, so anything without
-	# it falls through to the catch-all 404 and never reaches MinIO. The
-	# bucket policy is also private (deploy/scripts/harden-minio.sh); this
-	# matcher is defense in depth so a bad bucket policy alone cannot reopen
-	# anonymous access. Do not add `mc anonymous` grants for this bucket.
+	# Article cover images are public content (served on the unauthenticated
+	# articles endpoints), so /files/*/articles/* is proxied without a
+	# signature — the bucket policy grants anonymous download on articles/*
+	# only (deploy/scripts/harden-minio.sh). Keys are UUIDs, so enumeration
+	# is impractical.
+	#
+	# Every other prefix (avatars/, exports/) stays private: avatars are
+	# served via presigned URLs minted at read time by the gateway, exports
+	# via short-lived presigned URLs. Presigned requests always carry
+	# X-Amz-Signature in the query, so anything without it falls through to
+	# the catch-all 404 and never reaches MinIO. The scoped bucket policy is
+	# the second layer; this matcher is defense in depth so a bad policy
+	# alone cannot reopen anonymous access to private prefixes. Do not widen
+	# `mc anonymous` grants beyond articles/.
+	@files_public {
+		path /files/*/articles/*
+	}
+	handle @files_public {
+		uri strip_prefix /files
+		reverse_proxy minio:9000
+	}
+
 	@files_presigned {
 		path /files/*
 		vars_regexp {http.request.uri.query} (^|&)X-Amz-Signature=[^&]

@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/suleymanmyradov/growth-server/pkg/validator"
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/files"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
@@ -61,7 +62,11 @@ func (l *RegisterLogic) Register(req *types.RegisterRequest) (*types.RegisterRes
 	}, nil
 }
 
-func mapAuthUserToProfile(user *authservice.User) types.Profile {
+// mapAuthUserToProfile maps the auth RPC user onto the API profile type.
+// The avatar URL is presigned here: stored avatar URLs point at a private
+// MinIO prefix and are not fetchable until the filemanager mints a
+// presigned URL for the current reader.
+func mapAuthUserToProfile(ctx context.Context, svcCtx *svc.ServiceContext, user *authservice.User) types.Profile {
 	if user == nil {
 		return types.Profile{}
 	}
@@ -75,7 +80,7 @@ func mapAuthUserToProfile(user *authservice.User) types.Profile {
 		Location:      user.GetLocation(),
 		Website:       user.GetWebsite(),
 		Interests:     user.GetInterests(),
-		AvatarUrl:     user.GetAvatarUrl(),
+		AvatarUrl:     files.ResolveAvatarURL(ctx, svcCtx.FileManagerRpc, user.GetAvatarUrl()),
 		CreatedAt:     user.GetCreatedAt(),
 		UpdatedAt:     user.GetUpdatedAt(),
 		EmailVerified: user.GetEmailVerified(),

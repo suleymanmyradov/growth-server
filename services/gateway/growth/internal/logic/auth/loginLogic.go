@@ -62,19 +62,6 @@ func (l *LoginLogic) Login(req *types.LoginRequest) (resp *types.AuthResponse, e
 		AccessToken:  rpcResp.AccessToken,
 		RefreshToken: rpcResp.RefreshToken,
 		ExpiresIn:    rpcResp.ExpiresIn,
-		User: types.Profile{
-			Id:            rpcResp.User.Id,
-			FullName:      rpcResp.User.FullName,
-			Username:      rpcResp.User.Username,
-			Email:         rpcResp.User.Email,
-			Bio:           rpcResp.User.Bio,
-			Location:      rpcResp.User.Location,
-			Website:       rpcResp.User.Website,
-			Interests:     rpcResp.User.Interests,
-			AvatarUrl:     rpcResp.User.AvatarUrl,
-			CreatedAt:     rpcResp.User.CreatedAt,
-			UpdatedAt:     rpcResp.User.UpdatedAt,
-			EmailVerified: rpcResp.User.EmailVerified,
-		},
+		User:         mapAuthUserToProfile(l.ctx, l.svcCtx, rpcResp.User),
 	}, nil
 }

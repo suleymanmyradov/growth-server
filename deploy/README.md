@@ -131,7 +131,9 @@ Internet → Caddy (:80/:443, auto-TLS via Let's Encrypt)
              │   /weekly-reviews/generate*, /personalization/coaching,
              │   /personalization/onboarding-habits,
              │   /personalization/transcribe, /personalization/voice-turn
-             ├── /files/* (presigned URLs only)                 → minio (:9000)
+             ├── /files/*/articles/* (public cover images)   → minio (:9000)
+             ├── /files/* (presigned URLs only; avatars,      → minio (:9000)
+             │   exports)
              └── /api/v1/* (everything else)                  → gateway (:8888)
 
 app.evolella.com   → frontend (:3000, Next.js)

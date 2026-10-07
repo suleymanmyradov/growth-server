@@ -6,6 +6,7 @@ package profile
 import (
 	"context"
 
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/files"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
@@ -53,7 +54,7 @@ func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResponse, err error) 
 			Location:      rpcResp.User.Location,
 			Website:       rpcResp.User.Website,
 			Interests:     rpcResp.User.Interests,
-			AvatarUrl:     rpcResp.User.AvatarUrl,
+			AvatarUrl:     files.ResolveAvatarURL(l.ctx, l.svcCtx.FileManagerRpc, rpcResp.User.AvatarUrl),
 			CreatedAt:     rpcResp.User.CreatedAt,
 			UpdatedAt:     rpcResp.User.UpdatedAt,
 			EmailVerified: rpcResp.User.EmailVerified,

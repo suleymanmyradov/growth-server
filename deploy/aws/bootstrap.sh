@@ -51,12 +51,13 @@ echo "==> Starting stack"
 docker compose -f "$REPO_DIR/deploy/docker-compose.prod.yml" \
   --env-file "$REPO_DIR/deploy/.env.prod" --project-directory "$REPO_DIR/deploy" up -d
 
-echo "==> Making the MinIO bucket private"
-# The bucket must stay PRIVATE: it holds avatars and GDPR data exports, and
-# Caddy proxies /files/* straight to MinIO — anonymous access there would let
-# anyone enumerate/download other users' exports. harden-minio.sh waits for
-# readiness, applies the empty-statement policy, verifies it stuck, and
-# fails hard on error (also re-run by deploy.sh on every deploy).
+echo "==> Applying the scoped MinIO bucket policy"
+# The bucket stays private except for articles/* (public cover images);
+# avatars/ and exports/ are only readable via presigned URLs. Anonymous
+# access there would let anyone enumerate/download other users' exports.
+# harden-minio.sh waits for readiness, applies the scoped policy, verifies
+# it stuck, and fails hard on error (also re-run by deploy.sh on every
+# deploy).
 "$REPO_DIR/deploy/scripts/harden-minio.sh"
 
 echo "==> Bootstrap complete."

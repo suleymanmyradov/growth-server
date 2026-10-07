@@ -47,7 +47,7 @@ func (l *GoogleLoginLogic) GoogleLogin(req *types.GoogleLoginRequest) (*types.Au
 		ExpiresIn:    rpcResp.GetExpiresIn(),
 	}
 	if rpcResp.GetUser() != nil {
-		resp.User = mapAuthUserToProfile(rpcResp.GetUser())
+		resp.User = mapAuthUserToProfile(l.ctx, l.svcCtx, rpcResp.GetUser())
 	}
 	return resp, nil
 }

@@ -111,10 +111,11 @@ echo "==> Recreating changed services"
 # and would silently keep running the old config.
 "${COMPOSE[@]}" up -d --no-deps --force-recreate "${BACKEND_SERVICES[@]}" "${MONITORING_SERVICES[@]}" caddy
 
-echo "==> Re-enforcing private MinIO bucket policy"
-# Idempotent: reapplies the empty-statement anonymous policy and verifies it
-# round-tripped. Fails the deploy if MinIO is unreachable or the policy
-# doesn't stick — a public bucket must never ride along on a green deploy.
+echo "==> Re-enforcing MinIO bucket policy"
+# Idempotent: reapplies the scoped anonymous policy (articles/* download
+# only) and verifies it round-tripped. Fails the deploy if MinIO is
+# unreachable or the policy doesn't stick — an open bucket must never ride
+# along on a green deploy.
 deploy/scripts/harden-minio.sh
 
 echo "==> Health checks"

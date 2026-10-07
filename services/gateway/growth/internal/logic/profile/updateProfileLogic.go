@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/logic/files"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/svc"
 	"github.com/suleymanmyradov/growth-server/services/gateway/growth/internal/types"
 	authservice "github.com/suleymanmyradov/growth-server/services/microservices/auth/rpc/authservice"
@@ -42,7 +43,10 @@ func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileRequest) (res
 		Location:  req.Location,
 		Website:   req.Website,
 		Interests: req.Interests,
-		AvatarUrl: req.AvatarUrl,
+		// Clients echo back the avatarUrl the API returned, which is a
+		// presigned (expiring) URL — normalize to the canonical unsigned
+		// form so an expired URL never gets persisted.
+		AvatarUrl: files.CanonicalFileURL(req.AvatarUrl),
 	})
 	if err != nil {
 		return nil, err
@@ -62,7 +66,7 @@ func (l *UpdateProfileLogic) UpdateProfile(req *types.UpdateProfileRequest) (res
 			Location:      rpcResp.User.Location,
 			Website:       rpcResp.User.Website,
 			Interests:     rpcResp.User.Interests,
-			AvatarUrl:     rpcResp.User.AvatarUrl,
+			AvatarUrl:     files.ResolveAvatarURL(l.ctx, l.svcCtx.FileManagerRpc, rpcResp.User.AvatarUrl),
 			CreatedAt:     rpcResp.User.CreatedAt,
 			UpdatedAt:     rpcResp.User.UpdatedAt,
 			EmailVerified: rpcResp.User.EmailVerified,

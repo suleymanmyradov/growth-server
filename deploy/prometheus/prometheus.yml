@@ -78,8 +78,9 @@ scrape_configs:
       module: [http_4xx]
     static_configs:
       - targets:
-          # Unsigned bucket-root request — presigned-only access enforced by
-          # Caddy's X-Amz-Signature matcher + the private bucket policy.
+          # Unsigned bucket-root request — only articles/* is anonymously
+          # readable (public cover images); the bucket root itself must stay
+          # refused (Caddy presigned-only matcher + scoped bucket policy).
           - https://api.evolella.com/files/growthmind/
     relabel_configs:
       - source_labels: [__address__]

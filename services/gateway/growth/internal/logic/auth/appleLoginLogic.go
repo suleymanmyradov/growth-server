@@ -57,7 +57,7 @@ func (l *AppleLoginLogic) AppleLogin(req *types.AppleLoginRequest) (*types.AuthR
 		ExpiresIn:    rpcResp.GetExpiresIn(),
 	}
 	if rpcResp.GetUser() != nil {
-		resp.User = mapAuthUserToProfile(rpcResp.GetUser())
+		resp.User = mapAuthUserToProfile(l.ctx, l.svcCtx, rpcResp.GetUser())
 	}
 	return resp, nil
 }
