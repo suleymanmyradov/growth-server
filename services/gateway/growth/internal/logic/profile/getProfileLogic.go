@@ -13,6 +13,8 @@ import (
 
 	"github.com/suleymanmyradov/growth-server/pkg/auth/principal"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type GetProfileLogic struct {
@@ -32,7 +34,7 @@ func NewGetProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *GetPro
 func (l *GetProfileLogic) GetProfile() (resp *types.ProfileResponse, err error) {
 	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to view profile")
 	}
 
 	rpcResp, err := l.svcCtx.AuthRpc.GetProfile(l.ctx, &authservice.GetProfileRequest{})

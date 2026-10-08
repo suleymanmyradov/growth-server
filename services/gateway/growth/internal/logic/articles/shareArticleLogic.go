@@ -12,6 +12,8 @@ import (
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ShareArticleLogic struct {
@@ -31,7 +33,7 @@ func NewShareArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Shar
 func (l *ShareArticleLogic) ShareArticle(req *types.ShareArticleRequest) (resp *types.ShareArticleResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to share articles")
 	}
 
 	rpcResp, err := l.svcCtx.ClientRpc.Articles.ShareArticle(l.ctx, &clientarticles.ShareArticleRequest{
