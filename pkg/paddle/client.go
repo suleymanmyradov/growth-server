@@ -167,7 +167,12 @@ type Customer struct {
 	Status string `json:"status"`
 }
 
-// CreateCustomer creates a customer. Paddle dedupes on email.
+// errCodeCustomerAlreadyExists is Paddle's 409 code when a customer with the
+// same email already exists.
+const errCodeCustomerAlreadyExists = "customer_already_exists"
+
+// CreateCustomer creates a customer. Paddle rejects a duplicate email with a
+// 409 customer_already_exists — use EnsureCustomer to reuse the existing one.
 func (c *Client) CreateCustomer(ctx context.Context, email, name string, customData map[string]any) (*Customer, error) {
 	if email == "" {
 		return nil, errors.New("paddle: email is required")
@@ -184,6 +189,45 @@ func (c *Client) CreateCustomer(ctx context.Context, email, name string, customD
 		return nil, err
 	}
 	return &cust, nil
+}
+
+// FindCustomerByEmail returns the active customer whose email exactly matches,
+// or (nil, nil) when there is none.
+func (c *Client) FindCustomerByEmail(ctx context.Context, email string) (*Customer, error) {
+	if email == "" {
+		return nil, errors.New("paddle: email is required")
+	}
+	var customers []Customer
+	if err := c.do(ctx, http.MethodGet, "/customers", url.Values{"email": {email}}, nil, &customers); err != nil {
+		return nil, err
+	}
+	if len(customers) == 0 {
+		return nil, nil
+	}
+	return &customers[0], nil
+}
+
+// EnsureCustomer creates a customer, or returns the existing one when Paddle
+// reports the email is already taken (e.g. a previous checkout created it but
+// the ctm_ id was never stored on our side).
+func (c *Client) EnsureCustomer(ctx context.Context, email, name string) (*Customer, error) {
+	cust, err := c.CreateCustomer(ctx, email, name, nil)
+	if err == nil {
+		return cust, nil
+	}
+	var apiErr *APIError
+	if !errors.As(err, &apiErr) || apiErr.Code != errCodeCustomerAlreadyExists {
+		return nil, err
+	}
+	existing, findErr := c.FindCustomerByEmail(ctx, email)
+	if findErr != nil {
+		return nil, fmt.Errorf("paddle: look up existing customer: %w", findErr)
+	}
+	if existing == nil {
+		// Conflict with a customer the active-only lookup can't see (archived).
+		return nil, err
+	}
+	return existing, nil
 }
 
 // TransactionItemParam is a line item on a new transaction.
@@ -237,11 +281,11 @@ func (c *Client) CreateTransaction(ctx context.Context, p CreateTransactionParam
 	}
 
 	// Customer is optional — hosted checkout collects email when absent.
-	// When only an email is known, create the customer up front so events
-	// can correlate on a stable ctm_ id.
+	// When only an email is known, resolve the customer up front so checkout
+	// pre-fills it and events correlate on a stable ctm_ id.
 	customerID := p.CustomerID
 	if customerID == "" && p.CustomerEmail != "" {
-		cust, err := c.CreateCustomer(ctx, p.CustomerEmail, p.CustomerName, nil)
+		cust, err := c.EnsureCustomer(ctx, p.CustomerEmail, p.CustomerName)
 		if err != nil {
 			return nil, fmt.Errorf("paddle: create customer: %w", err)
 		}

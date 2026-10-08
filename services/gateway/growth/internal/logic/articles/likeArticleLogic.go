@@ -12,6 +12,8 @@ import (
 	clientarticles "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/articles"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type LikeArticleLogic struct {
@@ -31,7 +33,7 @@ func NewLikeArticleLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LikeA
 func (l *LikeArticleLogic) LikeArticle(req *types.LikeArticleRequest) (resp *types.LikeArticleResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to like articles")
 	}
 
 	rpcResp, err := l.svcCtx.ClientRpc.Articles.LikeArticle(l.ctx, &clientarticles.LikeArticleRequest{

@@ -26,13 +26,20 @@ import (
 // paddleCheckoutServer stubs the Paddle API and captures the transaction body.
 type paddleCheckoutServer struct {
 	*httptest.Server
-	lastTxnBody map[string]any
+	lastTxnBody      map[string]any
+	lastCustomerBody map[string]any
 }
 
 func newPaddleCheckoutServer(t *testing.T) *paddleCheckoutServer {
 	t.Helper()
 	s := &paddleCheckoutServer{}
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost && r.URL.Path == "/customers" {
+			_ = json.NewDecoder(r.Body).Decode(&s.lastCustomerBody)
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":{"id":"ctm_01h_new","email":"jane@example.com","status":"active"},"meta":{"request_id":"req_c"}}`))
+			return
+		}
 		if r.Method == http.MethodPost && r.URL.Path == "/transactions" {
 			_ = json.NewDecoder(r.Body).Decode(&s.lastTxnBody)
 			w.Header().Set("Content-Type", "application/json")
@@ -140,6 +147,39 @@ func TestCreatePaddleCheckout_ReusesCustomer(t *testing.T) {
 		PriceId: "pri_01m340f2f38cbr9ndj77bmpbzc",
 	})
 	require.NoError(t, err)
+	assert.Equal(t, ctm, ts.lastTxnBody["customer_id"])
+}
+
+func TestCreatePaddleCheckout_FirstTimeBuyerEmailPrefilled(t *testing.T) {
+	// No stored ctm_ id + gateway-supplied email → customer resolved up front
+	// so Paddle checkout doesn't ask the user to type their email.
+	ts := newPaddleCheckoutServer(t)
+	m := newMockBilling()
+	m.getSubErr = pgx.ErrNoRows
+	l := paddleCheckoutLogic(t, m, ts.URL)
+
+	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{
+		PriceId:       "pri_01m340f2f38cbr9ndj77bmpbzc",
+		CustomerEmail: "  jane@example.com ",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "jane@example.com", ts.lastCustomerBody["email"])
+	assert.Equal(t, "ctm_01h_new", ts.lastTxnBody["customer_id"])
+}
+
+func TestCreatePaddleCheckout_StoredCustomerWinsOverEmail(t *testing.T) {
+	ts := newPaddleCheckoutServer(t)
+	ctm := "ctm_01h8441jn5pcwrfhwh78jqt8hk"
+	m := newMockBilling()
+	m.getSub = db.GetUserSubscriptionRow{UserID: paddleTestUserID, PaddleCustomerID: &ctm}
+	l := paddleCheckoutLogic(t, m, ts.URL)
+
+	_, err := l.CreatePaddleCheckout(&client.CreatePaddleCheckoutRequest{
+		PriceId:       "pri_01m340f2f38cbr9ndj77bmpbzc",
+		CustomerEmail: "jane@example.com",
+	})
+	require.NoError(t, err)
+	assert.Nil(t, ts.lastCustomerBody, "no customer creation when a ctm_ id is stored")
 	assert.Equal(t, ctm, ts.lastTxnBody["customer_id"])
 }
 

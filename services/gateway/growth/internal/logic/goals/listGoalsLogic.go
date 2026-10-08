@@ -9,6 +9,8 @@ import (
 	clientgoals "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/goals"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ListGoalsLogic struct {
@@ -28,7 +30,7 @@ func NewListGoalsLogic(ctx context.Context, svcCtx *svc.ServiceContext) *ListGoa
 func (l *ListGoalsLogic) ListGoals(req *types.PageRequest) (resp *types.GoalsResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to view goals")
 	}
 	l.Infof("UserID: %v", p.UserID)
 

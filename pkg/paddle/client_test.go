@@ -138,6 +138,73 @@ func TestCreateTransaction_CustomerEmailFlow(t *testing.T) {
 	assert.Equal(t, []string{"POST /customers", "POST /transactions"}, calls)
 }
 
+func TestCreateTransaction_ExistingCustomerEmailReused(t *testing.T) {
+	// Paddle rejects a duplicate email with 409 — the client must look the
+	// existing customer up and attach it instead of failing checkout.
+	var calls []string
+	c := mockPaddle(t, func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/customers":
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error": {"type": "request_error", "code": "customer_already_exists", "detail": "customer email conflicts with customer of id ctm_existing01"}, "meta": {"request_id": "req_c409"}}`))
+		case r.Method == http.MethodGet && r.URL.Path == "/customers":
+			assert.Equal(t, "jane@example.com", r.URL.Query().Get("email"))
+			_, _ = w.Write([]byte(`{"data": [{"id": "ctm_existing01", "email": "jane@example.com", "status": "active"}], "meta": {"request_id": "req_l1"}}`))
+		case r.URL.Path == "/transactions":
+			var sent map[string]any
+			readJSON(t, r, &sent)
+			assert.Equal(t, "ctm_existing01", sent["customer_id"])
+			_, _ = w.Write([]byte(`{"data": {"id": "txn_02", "status": "draft", "customer_id": "ctm_existing01", "created_at": "2024-04-11T15:56:00.000Z", "updated_at": "2024-04-11T15:56:00.000Z"}, "meta": {"request_id": "req_t2"}}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	txn, err := c.CreateTransaction(context.Background(), CreateTransactionParams{
+		Items:         []TransactionItemParam{{PriceID: "pri_01gsz8x8sawmvhz1pv30nge1ke"}},
+		CustomerEmail: "jane@example.com",
+		UserID:        "user-123",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "txn_02", txn.ID)
+	assert.Equal(t, []string{"POST /customers", "GET /customers", "POST /transactions"}, calls)
+}
+
+func TestEnsureCustomer_ConflictWithoutActiveMatchFails(t *testing.T) {
+	c := mockPaddle(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodPost {
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"error": {"type": "request_error", "code": "customer_already_exists", "detail": "conflict"}, "meta": {"request_id": "req_c409"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{"data": [], "meta": {"request_id": "req_l2"}}`))
+	})
+
+	_, err := c.EnsureCustomer(context.Background(), "jane@example.com", "")
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, "customer_already_exists", apiErr.Code)
+}
+
+func TestEnsureCustomer_OtherErrorsNotSwallowed(t *testing.T) {
+	var calls int
+	c := mockPaddle(t, func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = w.Write([]byte(`{"error": {"type": "request_error", "code": "invalid_field", "detail": "email is invalid"}, "meta": {"request_id": "req_400"}}`))
+	})
+
+	_, err := c.EnsureCustomer(context.Background(), "not-an-email", "")
+	var apiErr *APIError
+	require.ErrorAs(t, err, &apiErr)
+	assert.Equal(t, "invalid_field", apiErr.Code)
+	assert.Equal(t, 1, calls, "no lookup on non-conflict errors")
+}
+
 func TestCreateTransaction_Validation(t *testing.T) {
 	c := NewClient("pdl_test_key", false, nil)
 

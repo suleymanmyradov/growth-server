@@ -12,6 +12,8 @@ import (
 	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type SaveItemLogic struct {
@@ -31,7 +33,7 @@ func NewSaveItemLogic(ctx context.Context, svcCtx *svc.ServiceContext) *SaveItem
 func (l *SaveItemLogic) SaveItem(req *types.SaveItemRequest) (resp *types.SavedItemResponse, err error) {
 	p, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return nil, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to save items")
 	}
 
 	rpcResp, err := l.svcCtx.ClientRpc.Saved.SaveItem(l.ctx, &clientsaved.SaveItemRequest{

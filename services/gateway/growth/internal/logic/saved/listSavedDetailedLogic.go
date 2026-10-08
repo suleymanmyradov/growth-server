@@ -13,6 +13,8 @@ import (
 	clientsaved "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/client/saved"
 	pbclient "github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/pb/client"
 	"github.com/zeromicro/go-zero/core/logx"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type ListSavedDetailedLogic struct {
@@ -32,7 +34,7 @@ func NewListSavedDetailedLogic(ctx context.Context, svcCtx *svc.ServiceContext) 
 func (l *ListSavedDetailedLogic) ListSavedDetailed(req *types.PageRequest) (resp *types.SavedItemsDetailedResponse, err error) {
 	_, ok := principal.PrincipalFrom(l.ctx)
 	if !ok {
-		return &types.SavedItemsDetailedResponse{Data: []types.SavedItemDetailed{}}, nil
+		return nil, status.Error(codes.Unauthenticated, "login required to view saved items")
 	}
 
 	// 1. Get saved items
