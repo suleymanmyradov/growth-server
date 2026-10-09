@@ -605,6 +605,24 @@ func TestHandleRevenueCatWebhook_InvalidUserID(t *testing.T) {
 	assert.Empty(t, m.upsertCalls)
 }
 
+func TestHandleRevenueCatWebhook_NilUserIDRejected(t *testing.T) {
+	// uuid.Parse accepts the all-zero UUID; it must still be treated as a
+	// permanent bad-data failure — no phantom billing rows, no retry storm.
+	m := rcMock()
+	l := rcTestLogic(m)
+
+	body := rcWebhookBody(rcEvent(uuid.Nil, "INITIAL_PURCHASE", nil))
+
+	resp, err := l.HandleRevenueCatWebhook(&client.HandleRevenueCatWebhookRequest{
+		RawBody:       body,
+		Authorization: "Bearer secret",
+	})
+	require.NoError(t, err, "permanent failure must ack so RevenueCat stops retrying")
+	assert.True(t, resp.Processed)
+	assert.Empty(t, m.upsertCalls)
+	assert.Empty(t, m.merged)
+}
+
 func TestHandleRevenueCatWebhook_RetryableFailureReturnsError(t *testing.T) {
 	userID := uuid.New()
 	m := rcMock()

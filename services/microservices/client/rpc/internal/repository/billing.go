@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,6 +13,11 @@ import (
 	"github.com/suleymanmyradov/growth-server/services/microservices/client/rpc/internal/repository/db"
 	"github.com/zeromicro/go-zero/core/trace"
 )
+
+// ErrNilUserID is returned by billing writes given uuid.Nil. No real user has
+// that ID, so a write with it would create a phantom billing row — a caller
+// bug (e.g. an unmapped webhook user) that must fail loudly instead.
+var ErrNilUserID = errors.New("billing: nil user id")
 
 type billingRepo struct {
 	db              *db.Queries
@@ -65,6 +71,9 @@ func (r *billingRepo) GetUserSubscription(ctx context.Context, userID uuid.UUID)
 func (r *billingRepo) GetOrCreateUserSubscription(ctx context.Context, userID uuid.UUID) (db.GetUserSubscriptionRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.GetOrCreateUserSubscription")
 	defer span.End()
+	if userID == uuid.Nil {
+		return db.GetUserSubscriptionRow{}, ErrNilUserID
+	}
 
 	// Race-safe: use the atomic UPSERT instead of read-then-write.
 	// ON CONFLICT handles the case where another concurrent request already inserted.
@@ -84,6 +93,9 @@ func (r *billingRepo) GetOrCreateUserSubscription(ctx context.Context, userID uu
 func (r *billingRepo) CreateDefaultFreeSubscription(ctx context.Context, userID uuid.UUID) (db.Subscription, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CreateDefaultFreeSubscription")
 	defer span.End()
+	if userID == uuid.Nil {
+		return db.Subscription{}, ErrNilUserID
+	}
 
 	return r.db.CreateDefaultFreeSubscription(ctx, userID)
 }
@@ -91,6 +103,9 @@ func (r *billingRepo) CreateDefaultFreeSubscription(ctx context.Context, userID 
 func (r *billingRepo) ApplyMergedSubscription(ctx context.Context, params db.ApplyMergedSubscriptionParams) (db.Subscription, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.ApplyMergedSubscription")
 	defer span.End()
+	if params.UserID == uuid.Nil {
+		return db.Subscription{}, ErrNilUserID
+	}
 
 	return r.db.ApplyMergedSubscription(ctx, params)
 }
@@ -112,6 +127,9 @@ func (r *billingRepo) ListSubscriptionProviderStates(ctx context.Context, userID
 func (r *billingRepo) UpsertSubscriptionProviderState(ctx context.Context, params db.UpsertSubscriptionProviderStateParams) (db.SubscriptionProviderState, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.UpsertSubscriptionProviderState")
 	defer span.End()
+	if params.UserID == uuid.Nil {
+		return db.SubscriptionProviderState{}, ErrNilUserID
+	}
 
 	return r.db.UpsertSubscriptionProviderState(ctx, params)
 }
@@ -119,6 +137,9 @@ func (r *billingRepo) UpsertSubscriptionProviderState(ctx context.Context, param
 func (r *billingRepo) LinkPaddleProviderIDs(ctx context.Context, userID uuid.UUID, providerCustomerID, providerSubscriptionID *string, lastEventAt pgtype.Timestamptz) error {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.LinkPaddleProviderIDs")
 	defer span.End()
+	if userID == uuid.Nil {
+		return ErrNilUserID
+	}
 
 	return r.db.LinkPaddleProviderIDs(ctx, userID, providerCustomerID, providerSubscriptionID, lastEventAt)
 }
@@ -126,6 +147,9 @@ func (r *billingRepo) LinkPaddleProviderIDs(ctx context.Context, userID uuid.UUI
 func (r *billingRepo) RecordPaddleCheckout(ctx context.Context, transactionID string, userID uuid.UUID) error {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.RecordPaddleCheckout")
 	defer span.End()
+	if userID == uuid.Nil {
+		return ErrNilUserID
+	}
 
 	return r.db.RecordPaddleCheckout(ctx, transactionID, userID)
 }
@@ -140,6 +164,9 @@ func (r *billingRepo) GetPaddleCheckoutUserID(ctx context.Context, transactionID
 func (r *billingRepo) CreateUpgradeEvent(ctx context.Context, params db.CreateUpgradeEventParams) (db.CreateUpgradeEventRow, error) {
 	ctx, span := trace.TracerFromContext(ctx).Start(ctx, "BillingRepo.CreateUpgradeEvent")
 	defer span.End()
+	if params.UserID == uuid.Nil {
+		return db.CreateUpgradeEventRow{}, ErrNilUserID
+	}
 
 	return r.db.CreateUpgradeEvent(ctx, params)
 }

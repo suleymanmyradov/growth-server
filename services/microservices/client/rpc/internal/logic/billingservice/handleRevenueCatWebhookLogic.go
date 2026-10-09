@@ -237,6 +237,11 @@ func (l *HandleRevenueCatWebhookLogic) handleEventWithRepo(ctx context.Context, 
 	if err != nil {
 		return fmt.Errorf("invalid app_user_id %q: %w", evt.AppUserID, err)
 	}
+	// uuid.Parse accepts the all-zero UUID, but no user has it — writing it
+	// would create a phantom billing row (seen in prod from a test event).
+	if userID == uuid.Nil {
+		return fmt.Errorf("invalid app_user_id %q: nil user id", evt.AppUserID)
+	}
 
 	prev, err := repo.Billing.GetSubscriptionProviderState(ctx, userID, "revenuecat")
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
